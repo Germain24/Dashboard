@@ -103,7 +103,7 @@ Je veux porter et étoffer le module Santé/Nutrition de Mission Control. Lis :
 
 1. C:\Users\germa\Documents\GitHub\mission-control\orchestration\PLAN.md
 2. C:\Users\germa\Documents\GitHub\mission-control\orchestration\CONV3_sante_nutrition.md
-3. Logique de référence : C:\Users\germa\Documents\GitHub\openclaw\mon_espace\sante\logic.py
+3. Logique de référence : C:\Users\germa\Documents\GitHub\mission-control\legacy_code\sante\logic.py
 
 Pose-moi les 5 questions de "Décisions à prendre" avant d'attaquer.
 ```

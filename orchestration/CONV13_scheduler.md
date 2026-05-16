@@ -23,7 +23,10 @@ pour le briefing matinal.
    - Briefing matinal de l'agent (7h chaque jour)
    - Refresh météo (toutes les 6h)
    - Backup SQLite (quotidien)
-   - Analyse Buffett (1er des mois trimestriels : janv/avril/juil/oct)
+   - **Analyse Buffett mensuelle** (1er de chaque mois, 3h du matin —
+     job *long*, plusieurs heures sur ~50k tickers à terme, à traiter avec
+     `misfire_grace_time` élevé et écriture progressive en DB pour reprise
+     en cas de crash)
 3. **Catch-up** : si le PC est éteint au moment du run, on rattrape au démarrage ?
 4. **Notifications** : où arrivent les résultats ?
    - Card "Notifications" dans le dashboard (reco V1)

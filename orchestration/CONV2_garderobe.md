@@ -105,7 +105,7 @@ nouvelle stack. Lis :
 1. C:\Users\germa\Documents\GitHub\mission-control\orchestration\PLAN.md
 2. C:\Users\germa\Documents\GitHub\mission-control\orchestration\CONV2_garderobe.md
 3. Pour la logique de référence : ancien code dans
-   C:\Users\germa\Documents\GitHub\openclaw\mon_espace\habits\logic.py
+   C:\Users\germa\Documents\GitHub\mission-control\legacy_code\habits\logic.py
 
 Puis pose-moi les 4 questions de "Décisions à prendre" avant d'attaquer.
 ```
