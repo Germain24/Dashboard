@@ -1,7 +1,7 @@
-"""Modèles SQLModel — source de vérité du schéma DB.
+"""Modeles SQLModel - source de verite du schema DB.
 
-Chaque module métier a son fichier. Import explicite ici pour
-qu'Alembic puisse découvrir toutes les tables via `SQLModel.metadata`.
+Chaque module metier a son fichier. Import explicite ici pour
+qu'Alembic puisse decouvrir toutes les tables via `SQLModel.metadata`.
 """
 
 from app.models.agenda import Evenement  # noqa: F401
@@ -18,4 +18,4 @@ from app.models.finance import (  # noqa: F401
 from app.models.garderobe import TenueHistory, Vetement  # noqa: F401
 from app.models.habitudes import Habitude, HabitudeLog  # noqa: F401
 from app.models.livres import Livre  # noqa: F401
-from app.models.sante import Aliment, MesureSante, PlanNutrition
+from app.models.sante import Aliment, MesureSante, NutritionGoal, PlanNutrition  # noqa: F401
