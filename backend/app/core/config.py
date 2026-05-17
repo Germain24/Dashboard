@@ -44,6 +44,14 @@ class Settings(BaseSettings):
     # --- CORS ---
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
+    # --- Garde-robe (CONV 2) ---
+    openweather_api_key: str = ""
+    garderobe_lat: float = 45.5017
+    garderobe_lon: float = -73.5673
+    garderobe_hour_start: int = 7
+    garderobe_hour_end: int = 23
+    garderobe_weather_cache_ttl: int = 1800
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

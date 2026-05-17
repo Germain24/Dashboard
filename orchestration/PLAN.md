@@ -65,7 +65,7 @@ L'ordre suit les dépendances. CONV 1 doit être faite avant tout le reste.
 
 | #     | Titre                                          | Statut  |
 |-------|------------------------------------------------|---------|
-| CONV 2| Module Garde-robe                              | À faire |
+| CONV 2| Module Garde-robe                              | **✅ Terminée 2026-05-16** (CONV2_DONE.md à fournir, commit Git à faire) |
 | CONV 3| Module Santé / Nutrition                       | À faire |
 | CONV 4| Module Finance (suivi + Buffett mensuel)       | À faire |
 | CONV 5| Module Agenda (vrai)                           | À faire |

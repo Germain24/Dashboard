@@ -1,7 +1,5 @@
-import { ModulePlaceholder } from "@/components/ModulePlaceholder";
-import { MODULES } from "@/lib/modules";
+import { Garderobe } from "@/components/garderobe/Garderobe";
 
 export default function GarderobePage() {
-  const m = MODULES.find((x) => x.slug === "garderobe")!;
-  return <ModulePlaceholder module={m} />;
+  return <Garderobe />;
 }

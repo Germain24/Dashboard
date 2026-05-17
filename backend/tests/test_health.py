@@ -19,11 +19,15 @@ def test_health_ok() -> None:
 
 
 def test_ping_modules() -> None:
-    """Chaque module a un /ping fonctionnel."""
+    """Chaque module non encore porté a un /ping stub fonctionnel.
+
+    Les modules portés (garderobe en CONV 2, etc.) ne sont plus dans cette
+    liste : ils ont leurs propres tests dans tests/test_<module>/.
+    """
     client = TestClient(app)
     modules = [
         "finance",
-        "garderobe",
+        # "garderobe",  # CONV 2 terminée — voir tests/test_garderobe/
         "sante",
         "agenda",
         "etudes",
