@@ -1,4 +1,4 @@
-"""Test /health - app demarre, DB repond, et modules non portes ont leur /ping."""
+"""Test /health — vérifie que l'app démarre et que la DB répond."""
 
 from __future__ import annotations
 
@@ -21,14 +21,14 @@ def test_health_ok() -> None:
 def test_ping_modules() -> None:
     """Chaque module non encore porté a un /ping stub fonctionnel.
 
-    Modules portés (CONV 2 = garderobe, CONV 3 = sante) ont leurs propres
-    tests dans tests/test_<module>/ et ne sont plus dans cette liste.
+    Les modules portés (garderobe en CONV 2, etc.) ne sont plus dans cette
+    liste : ils ont leurs propres tests dans tests/test_<module>/.
     """
     client = TestClient(app)
     modules = [
         "finance",
-        # "garderobe" - CONV 2 terminee
-        # "sante" - CONV 3 terminee
+        # "garderobe",  # CONV 2 terminée — voir tests/test_garderobe/
+        "sante",
         "agenda",
         "etudes",
         "entrainement",

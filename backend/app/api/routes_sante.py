@@ -35,6 +35,29 @@ from app.services.sante.aliments import load_aliments_dataframe
 from app.services.sante.optimizer import optimize_nutrition
 from app.services.sante.totals import calculate_plan_totals
 
+# CONV 7 : on consomme l'endpoint intensité du module Entraînement. Comme tout
+# tourne dans le même process (FastAPI mono-app), on importe directement le
+# service plutôt que de faire un round-trip HTTP. En cas de souci côté
+# Entraînement (table manquante, erreur), on retombe sur le placeholder
+# `default_intensity_for_date` du module Santé — ce fallback est intentionnel
+# (cf. PLAN.md note 11 + CONV7_entrainement.md "Conserver default… comme
+# fallback si Entraînement est indisponible ou si aucune séance n'est
+# planifiée pour la date demandée").
+try:
+    from app.services.entrainement import compute_intensity_for_date as _entrainement_intensity
+except Exception:  # pragma: no cover — défensif
+    _entrainement_intensity = None  # type: ignore
+
+
+def _resolve_intensity(session, date, sport_days) -> str:
+    """Intensité officielle pour `date`. Priorise Entraînement, fallback Santé."""
+    if _entrainement_intensity is not None:
+        try:
+            return _entrainement_intensity(session, date, sport_days_fallback=sport_days)
+        except Exception:
+            pass
+    return default_intensity_for_date(date, sport_days)
+
 router = APIRouter()
 
 
@@ -100,6 +123,7 @@ def _plan_to_response(plan, df):
         targets=plan.targets or {},
         items=items,
         totals=plan.totals or {},
+        consumed=plan.consumed,
         warning=plan.warning,
         budget_max_daily=float((plan.targets or {}).get("Prix_Max", 18.0)),
     )
@@ -198,7 +222,7 @@ def get_targets_today(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aucun poids connu et aucun poids fourni.")
     intensity_was_default = intensity is None
     if intensity is None:
-        intensity = default_intensity_for_date(today, goal.sport_days)
+        intensity = _resolve_intensity(session, today, goal.sport_days)
     history = _history_payload(session)
     base, comp = calculate_daily_targets(
         weight=poids, date=today, history=history, intensity=intensity,
@@ -221,7 +245,7 @@ def generate_plan(payload: PlanGenerateRequest, session: Session = Depends(get_s
     if poids is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aucun poids connu.")
     intensity_was_default = payload.intensity is None
-    intensity = payload.intensity or default_intensity_for_date(today, goal.sport_days)
+    intensity = payload.intensity or _resolve_intensity(session, today, goal.sport_days)
     history = _history_payload(session)
     base, comp = calculate_daily_targets(
         weight=poids, date=today, history=history, intensity=intensity,
@@ -259,10 +283,13 @@ def generate_plan(payload: PlanGenerateRequest, session: Session = Depends(get_s
         )
         session.add(new)
         session.commit()
+    # `consumed` is preserved across re-generations unless `force=True`
+    consumed_out = None if (payload.force or not existing) else (existing.consumed if existing else None)
     return PlanResponse(
         date=today, poids_used=poids, intensite=intensity,
         intensity_was_default=intensity_was_default,
         base_targets=base, targets=comp, items=items, totals=totals,
+        consumed=consumed_out,
         warning=warning or None, budget_max_daily=float(budget or 18.0),
     )
 
@@ -291,7 +318,21 @@ def patch_plan(date: dt.date, payload: PlanPatchRequest, session: Session = Depe
         plan.quantites = payload.quantites
         items_for_total = [{"Aliment": nom, "Quantite_g": grammes} for nom, grammes in payload.quantites.items()]
         plan.totals = calculate_plan_totals(items_for_total, df)
-    if payload.consumed is not None:
+    # consumed_grams (par aliment) → on calcule les totaux nutritionnels et on
+    # garde les deux dans `consumed` (clés _g pour les grammes, clés nutriment
+    # pour les totaux). La compensation J-1 ne lit que les clés nutriment.
+    if payload.consumed_grams is not None:
+        items_for_total = [
+            {"Aliment": nom, "Quantite_g": grammes}
+            for nom, grammes in payload.consumed_grams.items()
+            if grammes is not None and grammes > 0
+        ]
+        nutrit_totals = calculate_plan_totals(items_for_total, df)
+        merged: dict = dict(nutrit_totals)
+        for nom, grammes in payload.consumed_grams.items():
+            merged[f"{nom}_g"] = float(grammes or 0.0)
+        plan.consumed = merged
+    elif payload.consumed is not None:
         plan.consumed = payload.consumed
     if payload.warning is not None:
         plan.warning = payload.warning
