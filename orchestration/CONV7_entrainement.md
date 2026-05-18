@@ -68,16 +68,32 @@ GET    /api/entrainement/intensity/today    # consommé par CONV 3 Nutrition
 - Vue **Cardio** : log course, distance cumulée, allure moyenne
 - Vue **Calendrier** : sessions des 30 derniers jours
 
-## Lien avec Nutrition (CONV 3)
+## Lien avec Nutrition (CONV 3) — contrat figé
 
-`/api/entrainement/intensity/today` retourne l'intensité estimée du jour :
-- `none` : repos
-- `low` : récup active, mobilité
-- `medium` : séance normale
-- `high` : séance lourde (>60 min, charge > 80 % 1RM)
+CONV 3 a livré un placeholder `default_intensity_for_date(date)` qui retourne
+`medium` les lundi/mardi/mercredi/vendredi/samedi et `none` sinon. CONV 7
+remplace ce placeholder.
 
-Le module Nutrition appelle cet endpoint pour ajuster les macros (protéines
-plus hautes en `high`, glucides ajustés).
+**Contrat à respecter strictement** (pour ne rien casser dans Santé) :
+
+- Nouvel endpoint : `GET /api/entrainement/intensity/{date}` (format
+  `YYYY-MM-DD`).
+- Retour : `{"date": "YYYY-MM-DD", "intensity": "none" | "low" | "medium" |
+  "high"}`.
+- Sémantique :
+  - `none` : pas de séance prévue ce jour
+  - `low` : récup active / mobilité (< 30 min, faible charge)
+  - `medium` : séance normale (~ 45-60 min)
+  - `high` : séance lourde (> 60 min OU charge > 80 % du 1RM moyen)
+
+Côté Santé, la seule modification sera dans `routes_sante.py` (remplacer
+l'appel à `default_intensity_for_date()` par un appel au nouvel endpoint).
+**Ne pas toucher** à `services/sante/intensity.py` ni à `intensity_modifiers()`
+— le mapping `intensity → (activity_factor, surplus_kcal, protein_per_kg,
+lipid_per_kg)` reste figé côté Santé.
+
+Conserver `default_intensity_for_date()` comme fallback si Entraînement est
+indisponible ou si aucune séance n'est planifiée pour la date demandée.
 
 ## Lien avec Agenda (CONV 5)
 
