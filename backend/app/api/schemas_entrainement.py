@@ -203,3 +203,21 @@ class IntensityResponse(BaseModel):
 
     date: dt.date
     intensity: str  # "none" | "low" | "medium" | "high"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Seed Garmin
+# ─────────────────────────────────────────────────────────────────────────────
+
+class GarminSeedRequest(BaseModel):
+    force: bool = Field(
+        default=False,
+        description="Si True, écrase les slots existants même si non vides.",
+    )
+
+
+class GarminSeedResponse(BaseModel):
+    exos_crees: int
+    jours_seedes: list[str]
+    jours_skipped: list[str]
+    lower_a_definir: bool

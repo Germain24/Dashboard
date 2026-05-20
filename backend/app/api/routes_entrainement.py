@@ -285,3 +285,26 @@ def intensity_today(session: Session = Depends(get_session)):
 @router.get("/intensity/{date}", response_model=IntensityResponse)
 def intensity_for_date(date: dt.date, session: Session = Depends(get_session)):
     return IntensityResponse(date=date, intensity=compute_intensity_for_date(session, date))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Seed Garmin (port des programmes Push/Pull/Legs/Upper de Germain)
+# ─────────────────────────────────────────────────────────────────────────────
+
+from app.api.schemas_entrainement import GarminSeedRequest, GarminSeedResponse  # noqa: E402
+from app.services.entrainement.garmin_seed import seed_garmin_programs  # noqa: E402
+
+
+@router.post("/program/seed-garmin", response_model=GarminSeedResponse)
+def seed_garmin(
+    payload: GarminSeedRequest = GarminSeedRequest(),
+    session: Session = Depends(get_session),
+):
+    """Peuple le programme actif avec les 4 séances Garmin de Germain.
+
+    Idempotent : par défaut, n'écrase pas les jours déjà configurés.
+    Passe `force=true` pour réinitialiser depuis le dump Garmin.
+
+    Note : samedi (Lower) reste à définir — pas dans le dump Garmin partagé.
+    """
+    return seed_garmin_programs(session, force=payload.force)

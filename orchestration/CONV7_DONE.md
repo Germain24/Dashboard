@@ -17,7 +17,7 @@
 - **Backend** : FastAPI 0.115+ + SQLModel 0.0.38 + Alembic 1.14 + Pydantic 2.13
 - **DB** : SQLite, migration `b2c3d4e5f6a7` qui révise `a1b2c3d4e5f6` (CONV 3)
 - **Frontend** : Next.js 15 + React 19 + TailwindCSS 4 (CSS variables shadcn-style)
-- **Tests** : pytest 8.3 → **113 tests verts** (71 anciens + **42 nouveaux** Entraînement)
+- **Tests** : pytest 8.3 → **120 tests verts** (71 anciens + **49 nouveaux** Entraînement, dont 7 sur le seed Garmin)
 - **Calcul** : pur Python (Epley, classification d'intensité, agrégations 1RM). Aucune dépendance pandas/scipy ajoutée — c'est exprès, conforme à la note 10 du PLAN.
 
 ## Livré (critères de succès du brief)
@@ -26,8 +26,9 @@
 - [x] Voir la courbe 1RM estimée du squat sur 90 jours → `GET /progression/{exercice_id}` + onglet Progression (SVG inline)
 - [x] Course du jour loggée avec distance + temps + pace → `POST /cardio` + onglet Cardio (pace auto)
 - [x] CONV 3 Nutrition appelle bien `/intensity/today` et ajuste les macros → branchement in-process dans `routes_sante.py` avec fallback intact
+- [x] **Bonus** : import des 5 jours Garmin de Germain (Push/Pull/Legs/Upper/Lower) via `POST /entrainement/program/seed-garmin` (idempotent). Décision Germain 2026-05-18 : Lower (samedi) reproduit Legs.
 - [ ] Agenda affiche la séance du jour dans la timeline → **dépendance CONV 5** (à faire dans CONV 5)
-- [x] `pytest` passe (113 tests, dont 42 spécifiques entraînement)
+- [x] `pytest` passe (120 tests, dont 49 spécifiques entraînement)
 
 ## Schéma DB modifié
 
@@ -103,21 +104,24 @@ backend/app/
     ├── __init__.py                         (façade publique)
     ├── constants.py                        (CATEGORIES, INTENSITY_LEVELS, défauts)
     ├── one_rm.py                           (formule Epley + best_1rm_from_sets)
-    ├── exercises_seed.py                   (35 exos curés)
+    ├── exercises_seed.py                   (33 exos seed maison)
     ├── exercises.py                        (CRUD)
     ├── programs.py                         (singleton + helpers ProgrammeJour)
     ├── sets.py                             (CRUD séries)
     ├── sessions.py                         (CRUD séances + classify_intensity)
     ├── progression.py                      (courbe 1RM 90j + delta 4w%)
     ├── cardio.py                           (CRUD course + pace)
-    └── intensity.py                        (compute_intensity_for_date — contrat)
+    ├── intensity.py                        (compute_intensity_for_date — contrat)
+    └── garmin_seed.py                      (23 exos Garmin + 5 jours Germain
+                                             Push/Pull/Legs/Upper/Lower=Legs)
 
-backend/tests/test_entrainement/            (42 tests)
+backend/tests/test_entrainement/            (49 tests)
 ├── test_one_rm.py                          (8)
 ├── test_intensity.py                       (10 — contrat figé)
 ├── test_progression.py                     (5)
 ├── test_cardio.py                          (5)
-└── test_api.py                             (14 intégration DB SQLite isolée)
+├── test_api.py                             (14 intégration DB SQLite isolée)
+└── test_garmin_seed.py                     (7 — endpoint + idempotence + Lower vide)
 
 frontend/
 ├── src/app/entrainement/page.tsx           (mount du composant client)
@@ -193,6 +197,34 @@ backend/alembic/versions/
     pas implémenté — V2 si Germain le demande. Le tableau "Calendrier" → drawer
     permet déjà de voir et supprimer les séries.
 
+11. **Bug latent `select(Column).all()` révélé par l'idempotence du seed
+    Garmin**. Le seed maison utilisait
+    `{e.nom for e in session.exec(select(Exercice.nom)).all()}` — sqlmodel
+    retourne ici des `str`, pas des `Exercice`, donc `e.nom` lève `AttributeError`.
+    Les tests précédents passaient par chance (table vide → setcomp jamais
+    exécutée). Le 2e appel `POST /program/seed-garmin` (table peuplée) a
+    déclenché le bug. Fix : `set(session.exec(select(Exercice.nom)).all())`
+    dans `exercises_seed.py` et `garmin_seed.py`. Couvert par
+    `test_seed_is_idempotent`.
+
+12. **Mount FUSE Windows↔Linux montre deux versions du même fichier**. Au
+    moins une fois, `grep` voyait la nouvelle version et `inspect.getsource`
+    + l'import Python voyaient l'ancienne. Concrètement, après une `Edit`
+    Windows, l'AST que Python compile peut rester ancien malgré
+    `__pycache__` clean. Workaround systématique : pour tout fix bytecode-
+    sensible, réécrire via `cat > … << 'EOF'` en bash. À ajouter en note 12
+    du PLAN.
+
+13. **Programme Garmin de Germain importé en données figées dans
+    `garmin_seed.py`**. Module dédié, séparé du seed maison, pour pouvoir le
+    régénérer / le modifier sans toucher au catalogue de base. L'endpoint
+    `POST /entrainement/program/seed-garmin` est idempotent (par défaut, ne
+    réécrit pas un jour déjà configuré) et accepte `{"force": true}` pour
+    re-seeder après une mise à jour Garmin. **Samedi (Lower) = Legs**
+    (décision Germain 2026-05-18) : un alias `5: ("Lower", LEGS_SLOTS)` dans
+    `GARMIN_WEEKDAYS` ; le label "Lower" est conservé pour la lisibilité du
+    split PPL/UL même si le contenu est identique à mercredi.
+
 ## Action utilisateur — finaliser CONV 7 chez Germain
 
 ### 0. Faire le commit (sandbox n'a pas pu le faire)
@@ -221,6 +253,8 @@ git add \
   frontend/src/app/entrainement/page.tsx \
   frontend/components/entrainement/ \
   orchestration/CONV7_DONE.md
+# Note : backend/app/services/entrainement/ et backend/tests/test_entrainement/
+# incluent automatiquement garmin_seed.py et test_garmin_seed.py.
 
 git commit -m "feat(entrainement): build module from scratch (CONV 7)
 
@@ -229,18 +263,20 @@ git commit -m "feat(entrainement): build module from scratch (CONV 7)
 - Services en sous-modules < 200 lignes (cf. PLAN.md note 9):
   constants, one_rm (Epley), exercises[_seed], programs (singleton
   PPL/UL auto), sessions, sets, progression (1RM 90j + Δ4w%),
-  cardio (course à pied V1), intensity (contrat figé avec Santé).
-- ~25 endpoints REST sous /entrainement/* dont GET
-  /intensity/{date} et /intensity/today (contrat Santé respecté).
+  cardio (course à pied V1), intensity (contrat figé avec Santé),
+  garmin_seed (4 programmes Garmin de Germain + 23 exos).
+- ~26 endpoints REST sous /entrainement/* dont GET
+  /intensity/{date} et /intensity/today (contrat Santé respecté)
+  et POST /program/seed-garmin (idempotent).
 - Branchement Santé in-process (try-import + fallback intact
   cf. PLAN.md note 11).
 - Frontend Next.js: 5 onglets (Aujourd'hui, Programme, Progression,
   Cardio, Calendrier) + client API typé.
-- Tests: 42 nouveaux (one_rm, intensity, progression, cardio, api).
-  pytest entier vert: 113 tests (71 anciens + 42 entrainement)."
+- Tests: 49 nouveaux (one_rm, intensity, progression, cardio, api,
+  garmin_seed). pytest entier vert: 120 tests (71 anciens + 49 entrainement)."
 ```
 
-Diff staged côté sandbox : **31 fichiers, +3 891 / -55 lignes**.
+Diff prêt : **33+ fichiers, ~+4 100 / −55 lignes**.
 
 ### 1. Appliquer la migration
 
@@ -274,9 +310,35 @@ l'onglet **🗓️ Calendrier**, clique sur la séance → drawer (pour l'instan
 lecture). Pour ajouter des séries, utilise directement l'API ou attends la
 V2 du drawer "Live log".
 
-### 5. (Optionnel) Importer tes exos Garmin
+### 5. Importer tes 4 programmes Garmin (Push/Pull/Legs/Upper)
 
-Tu peux poster en boucle :
+Tes séances Garmin sont déjà encodées en dur dans `garmin_seed.py`
+(les exports texte que tu m'as collés le 2026-05-18). Un seul appel :
+
+```bash
+curl -X POST http://127.0.0.1:8000/entrainement/program/seed-garmin \
+  -H "Content-Type: application/json" -d '{}'
+```
+
+Réponse attendue :
+
+```json
+{"exos_crees": 23, "jours_seedes": ["Push","Pull","Legs","Upper","Lower"],
+ "jours_skipped": [], "lower_a_definir": false}
+```
+
+Cela crée 23 nouveaux exos (`source="garmin"` : Incline Barbell Bench Press,
+Skullcrusher, GHD Back Extensions, Banded Fly, etc.) et peuple les slots des
+5 jours du programme PPL/UL avec tes séries cibles (warmups, sets, reps).
+Idempotent : ré-appel sans rien (`jours_skipped` = tous les jours). Pour
+forcer un re-seed (ex. après une modif Garmin), `-d '{"force": true}'`.
+
+**Samedi (Lower) = mêmes slots que mercredi (Legs)** — décision Germain
+2026-05-18. Le label reste "Lower" pour respecter le split PPL/UL, mais
+le contenu est dupliqué de Legs (mêmes 9 exos : warmups + Deadlift pyramide
++ RDL + Leg Press + GHD + Leg Ext + Mollets + Hanging Leg Raise).
+
+### 6. (Bonus) Ajouter d'autres exos perso à la volée
 
 ```bash
 curl -X POST http://127.0.0.1:8000/entrainement/exercises \
@@ -286,7 +348,7 @@ curl -X POST http://127.0.0.1:8000/entrainement/exercises \
 
 Le `source="garmin"` permet de filtrer plus tard les exos importés vs maison.
 
-### 6. Vérifier le couplage Nutrition
+### 7. Vérifier le couplage Nutrition
 
 Le module Santé appelle maintenant Entraînement pour l'intensité. Va sur
 http://localhost:3000/sante → onglet 🥗 Jour : l'intensité affichée vient
