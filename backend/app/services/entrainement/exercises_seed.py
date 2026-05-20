@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.models.entrainement import Exercice
@@ -45,7 +46,13 @@ SEED_EXERCICES: list[tuple] = [
 
 
 def seed_exercices(session: Session) -> int:
-    """Insère les exercices manquants. Retourne le nombre créé."""
+    """Insère les exercices manquants. Retourne le nombre créé.
+
+    Robuste aux race conditions : si deux requêtes appellent `ensure_catalogue`
+    simultanément (typique en dev Next.js avec strict mode + Promise.all),
+    la 2e prend `IntegrityError UNIQUE constraint failed: exercice.nom`. On
+    rollback et on retourne 0 — l'autre thread a déjà fait le travail.
+    """
     existing_names = set(session.exec(select(Exercice.nom)).all())
     created = 0
     for nom, categorie, muscles, type_mvt, uni, note in SEED_EXERCICES:
@@ -62,6 +69,13 @@ def seed_exercices(session: Session) -> int:
         )
         session.add(e)
         created += 1
-    if created:
+    if not created:
+        return 0
+    try:
         session.commit()
+    except IntegrityError:
+        # Race condition : un autre thread a seedé entre notre SELECT et notre
+        # COMMIT. Le seed est idempotent par nature → rollback et on continue.
+        session.rollback()
+        return 0
     return created

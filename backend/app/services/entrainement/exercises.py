@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.models.entrainement import Exercice
@@ -49,7 +50,12 @@ def create_exercice(
     note: Optional[str] = None,
 ) -> Exercice:
     """Crée un exercice. Si le nom existe déjà, retourne l'existant (upsert
-    soft : pas de modification silencieuse)."""
+    soft : pas de modification silencieuse).
+
+    Robuste aux race conditions : si un autre thread insère le même nom entre
+    notre check `get_exercice_by_nom` et notre `commit`, on attrape
+    `IntegrityError`, on rollback, et on retourne l'enregistrement existant.
+    """
     existing = get_exercice_by_nom(session, nom)
     if existing:
         return existing
@@ -63,7 +69,15 @@ def create_exercice(
         note=note,
     )
     session.add(e)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        # Un autre thread l'a inséré pendant qu'on essayait → on relit
+        existing = get_exercice_by_nom(session, nom)
+        if existing is not None:
+            return existing
+        raise
     session.refresh(e)
     return e
 

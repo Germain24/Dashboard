@@ -38,6 +38,36 @@ def test_ping_ready(client):
     assert r.json() == {"module": "entrainement", "ready": True}
 
 
+def test_seed_exercices_robust_to_race_condition(client):
+    """Régression : deux GET /exercises en parallèle ne doivent pas faire 500.
+
+    Bug observé en prod (logs Germain 2026-05-20) : React strict mode + Next.js
+    dev déclenche deux requêtes /exercises quasi simultanées. Le 1er seed
+    réussit, le 2e voyait la table vide entre son SELECT et son COMMIT et
+    plantait avec UNIQUE constraint failed: exercice.nom.
+
+    Fix : try/except IntegrityError + rollback dans seed_exercices.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    # Avec un TestClient, FastAPI exécute chaque requête sur un thread du pool
+    # anyio. On lance 3 requêtes concurrentes : la première peuple la table,
+    # les deux autres doivent retomber sur ses pieds (rollback silencieux).
+    def _hit():
+        r = client.get("/entrainement/exercises")
+        return r.status_code, len(r.json()) if r.status_code == 200 else 0
+
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        results = list(ex.map(lambda _: _hit(), range(4)))
+
+    # Aucune requête ne doit avoir 500
+    statuses = [s for s, _ in results]
+    assert all(s == 200 for s in statuses), f"Statuses: {statuses}"
+    # Toutes voient la table seedée (au moins 30 exos)
+    counts = [n for _, n in results]
+    assert all(n >= 30 for n in counts), f"Counts: {counts}"
+
+
 def test_list_exercises_seeds_catalogue(client):
     r = client.get("/entrainement/exercises")
     assert r.status_code == 200

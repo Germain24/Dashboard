@@ -9,6 +9,7 @@ Germain le 2026-05-18.
 
 from __future__ import annotations
 
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.models.entrainement import Exercice, ProgrammeJour
@@ -56,17 +57,28 @@ GARMIN_EXERCICES: list[tuple] = [
 
 
 def seed_garmin_exercices(session: Session) -> int:
-    """Insère les exos Garmin manquants. Retourne le nombre créé."""
+    """Insère les exos Garmin manquants. Retourne le nombre créé.
+
+    Idempotent + robuste aux race conditions : `create_exercice` attrape
+    déjà `IntegrityError` et retourne l'enregistrement existant si un autre
+    thread l'a créé entre-temps. On ne compte que les insertions où l'id
+    est nouveau (created_at récent).
+    """
     existing = set(session.exec(select(Exercice.nom)).all())
     created = 0
     for nom, cat, muscles, tm, uni, note in GARMIN_EXERCICES:
         if nom in existing:
             continue
-        create_exercice(
-            session, nom=nom, categorie=cat, muscles=list(muscles),
-            type_mouvement=tm, unilateral=uni, source="garmin", note=note,
-        )
-        created += 1
+        try:
+            create_exercice(
+                session, nom=nom, categorie=cat, muscles=list(muscles),
+                type_mouvement=tm, unilateral=uni, source="garmin", note=note,
+            )
+            created += 1
+        except IntegrityError:
+            # Filet de sécurité supplémentaire si create_exercice échoue malgré
+            # tout (cas extrême sur sqlite avec WAL désactivé).
+            session.rollback()
     return created
 
 

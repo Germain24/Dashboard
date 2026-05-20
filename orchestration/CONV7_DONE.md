@@ -215,7 +215,22 @@ backend/alembic/versions/
     sensible, réécrire via `cat > … << 'EOF'` en bash. À ajouter en note 12
     du PLAN.
 
-13. **Programme Garmin de Germain importé en données figées dans
+13bis. **Race condition sur le seed du catalogue d'exercices** (bug observé
+    par Germain au 1er `make dev` après le commit, 2026-05-20). React strict
+    mode + Next.js dev déclenche **deux** GET `/entrainement/exercises` en
+    parallèle. Sur la 1re requête, `seed_exercices` voyait la table vide,
+    insérait les 33 exos, commit OK. Sur la 2e, même observation entre le
+    `SELECT exercice.nom` et le `COMMIT` → `UNIQUE constraint failed:
+    exercice.nom` → 500 sur le frontend. Fix appliqué en 3 endroits :
+    `seed_exercices`, `create_exercice` et `seed_garmin_exercices` attrapent
+    `IntegrityError`, font `session.rollback()`, et retournent l'enregistrement
+    existant (ou 0 créés). Test de régression ajouté
+    (`test_seed_exercices_robust_to_race_condition`) qui hammer 4 GET
+    concurrents sur `/exercises`. À retenir : tout helper de seed idempotent
+    doit être robuste aux race conditions, pas juste à la duplication
+    séquentielle.
+
+14. **Programme Garmin de Germain importé en données figées dans
     `garmin_seed.py`**. Module dédié, séparé du seed maison, pour pouvoir le
     régénérer / le modifier sans toucher au catalogue de base. L'endpoint
     `POST /entrainement/program/seed-garmin` est idempotent (par défaut, ne
