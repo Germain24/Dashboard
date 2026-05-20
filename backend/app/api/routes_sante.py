@@ -184,8 +184,19 @@ def delete_mesure(date: dt.date, session: Session = Depends(get_session)):
 
 @router.get("/aliments", response_model=list[AlimentRead])
 def list_aliments(session: Session = Depends(get_session)):
-    rows = session.exec(select(Aliment).order_by(Aliment.nom)).all()
-    return [AlimentRead.model_validate(a) for a in rows]
+    """Liste le catalogue d'aliments lu depuis data/imports/aliments.csv.
+
+    Le CSV est la source de vérité (cf. services/sante/aliments.py). La table
+    SQL `aliment` n'est plus consultée par cette route.
+    """
+    from app.services.sante.aliments import load_aliments_from_csv
+    catalog = load_aliments_from_csv()
+    # On simule une `AlimentRead` par entrée (id séquentiel arbitraire pour
+    # garder la forme `{id, nom, proprietes}` de l'API V1).
+    return [
+        AlimentRead(id=i, nom=nom, proprietes=props)
+        for i, (nom, props) in enumerate(sorted(catalog.items()), start=1)
+    ]
 
 
 @router.get("/goal", response_model=NutritionGoalRead)
