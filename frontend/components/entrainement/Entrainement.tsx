@@ -104,13 +104,7 @@ export function Entrainement() {
       </nav>
 
       {tab === "aujourdhui" && (
-        <AujourdhuiTab
-          program={program}
-          exercices={exercices}
-          sessions={sessions}
-          intensity={intensity}
-          onSessionsChanged={reloadAll}
-        />
+        <AujourdhuiTab onSessionsChanged={reloadAll} />
       )}
       {tab === "programme" && program && (
         <ProgrammeTab

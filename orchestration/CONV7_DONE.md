@@ -17,7 +17,7 @@
 - **Backend** : FastAPI 0.115+ + SQLModel 0.0.38 + Alembic 1.14 + Pydantic 2.13
 - **DB** : SQLite, migration `b2c3d4e5f6a7` qui révise `a1b2c3d4e5f6` (CONV 3)
 - **Frontend** : Next.js 15 + React 19 + TailwindCSS 4 (CSS variables shadcn-style)
-- **Tests** : pytest 8.3 → **120 tests verts** (71 anciens + **49 nouveaux** Entraînement, dont 7 sur le seed Garmin)
+- **Tests** : pytest 8.3 → **148 tests verts** (71 anciens + **73 Entraînement** : 49 initiaux + 7 garmin + 8 calories + 9 suggested_weight + 6 today/calories endpoints + 1 race condition)
 - **Calcul** : pur Python (Epley, classification d'intensité, agrégations 1RM). Aucune dépendance pandas/scipy ajoutée — c'est exprès, conforme à la note 10 du PLAN.
 
 ## Livré (critères de succès du brief)
@@ -27,6 +27,7 @@
 - [x] Course du jour loggée avec distance + temps + pace → `POST /cardio` + onglet Cardio (pace auto)
 - [x] CONV 3 Nutrition appelle bien `/intensity/today` et ajuste les macros → branchement in-process dans `routes_sante.py` avec fallback intact
 - [x] **Bonus** : import des 5 jours Garmin de Germain (Push/Pull/Legs/Upper/Lower) via `POST /entrainement/program/seed-garmin` (idempotent). Décision Germain 2026-05-18 : Lower (samedi) reproduit Legs.
+- [x] **Bonus (v2 Germain 2026-05-20)** : refonte de l'onglet "Aujourd'hui" en vraie séance opérationnelle. Détecte le jour, affiche la séance Garmin avec poids suggéré (progressive overload +2.5% si historique, baseline % du poids du corps sinon), log live des séries (form +Série par exo), calcul kcal en temps réel (tonnage muscu + Niemann course), bouton "Terminer la séance" qui set duree_min. Calories exposées via `GET /entrainement/calories/{date}` pour la CONV nutrition future.
 - [ ] Agenda affiche la séance du jour dans la timeline → **dépendance CONV 5** (à faire dans CONV 5)
 - [x] `pytest` passe (120 tests, dont 49 spécifiques entraînement)
 
@@ -112,16 +113,22 @@ backend/app/
     ├── progression.py                      (courbe 1RM 90j + delta 4w%)
     ├── cardio.py                           (CRUD course + pace)
     ├── intensity.py                        (compute_intensity_for_date — contrat)
-    └── garmin_seed.py                      (23 exos Garmin + 5 jours Germain
-                                             Push/Pull/Legs/Upper/Lower=Legs)
+    ├── garmin_seed.py                      (23 exos Garmin + 5 jours Germain
+    │                                         Push/Pull/Legs/Upper/Lower=Legs)
+    ├── calories.py                         (tonnage muscu + Niemann course
+    │                                         + intégration poids du corps Santé)
+    └── suggested_weight.py                 (baseline % PdC ou top set +2.5%)
 
-backend/tests/test_entrainement/            (49 tests)
+backend/tests/test_entrainement/            (73 tests)
 ├── test_one_rm.py                          (8)
 ├── test_intensity.py                       (10 — contrat figé)
 ├── test_progression.py                     (5)
 ├── test_cardio.py                          (5)
-├── test_api.py                             (14 intégration DB SQLite isolée)
-└── test_garmin_seed.py                     (7 — endpoint + idempotence + Lower vide)
+├── test_api.py                             (14 + 1 race condition)
+├── test_garmin_seed.py                     (7 — endpoint + idempotence + Lower=Legs)
+├── test_calories.py                        (8 — tonnage + Niemann + PdC Santé)
+├── test_suggested_weight.py                (9 — baseline + progressive overload)
+└── test_today_calories.py                  (6 — endpoints /today, /calories/{date})
 
 frontend/
 ├── src/app/entrainement/page.tsx           (mount du composant client)
@@ -229,6 +236,25 @@ backend/alembic/versions/
     concurrents sur `/exercises`. À retenir : tout helper de seed idempotent
     doit être robuste aux race conditions, pas juste à la duplication
     séquentielle.
+
+13ter. **Refonte "Aujourd'hui" → vraie séance opérationnelle** (demande Germain
+    2026-05-20). L'onglet précédent était décoratif. Maintenant : `GET
+    /entrainement/today` agrège jour du programme + slots enrichis (résolution
+    label→exercice_id + poids suggéré) + séance en cours + kcal live + poids du
+    corps (récupéré depuis Santé si dispo, fallback 70 kg). L'UI affiche un
+    panneau par exo avec mini-form "+ Série" pré-rempli du poids suggéré, une
+    barre de progression sets faits / sets cible, et un FinishBar sticky qui
+    POST patchSession avec la durée écoulée. Le calcul calories utilise
+    **tonnage × 0.05** pour la muscu (plus précis qu'un MET fixe : reflète
+    l'effort réel) et **1.036 × PdC × km** (Niemann) pour la course. Exposé
+    via `GET /entrainement/calories/{date}` au format figé pour la CONV
+    nutrition future (`{date, kcal_muscu, kcal_cardio, total_kcal, poids_corps_kg}`).
+    Suggestion de poids = progressive overload (top set précédent × 1.025
+    arrondi 0.5 kg) si historique, sinon ratio × poids_corps via table
+    `BASELINE_RATIO` (Squat 1.20× PdC, Bench 0.85× PdC, Pull-ups → 0.0 =
+    poids du corps strict, etc.). Le dict est normalisé à l'initialisation
+    (accents/parens strippés) pour matcher de manière souple les noms d'exos
+    du seed maison ET Garmin.
 
 14. **Programme Garmin de Germain importé en données figées dans
     `garmin_seed.py`**. Module dédié, séparé du seed maison, pour pouvoir le

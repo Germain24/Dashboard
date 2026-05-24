@@ -12,11 +12,18 @@ Découpage (chaque sous-module < 200 lignes, cf. PLAN.md note 9) :
 - `progression`      : courbe 1RM + volume sur un exercice
 - `cardio`           : course à pied V1 (distance + temps + pace)
 - `intensity`        : compute_intensity_for_date — **contrat figé avec Santé**
+- `calories`         : estimation kcal (tonnage muscu + Niemann course)
+- `suggested_weight` : poids suggéré (progressive overload OU baseline PdC)
 
 Le contrat avec Santé (CONV 3) est exposé par `compute_intensity_for_date`
 qui retourne toujours un des `INTENSITY_LEVELS` (none/low/medium/high).
 """
 
+from app.services.entrainement.calories import (
+    estimate_calories_seance,
+    kcal_for_date,
+    resolve_poids_corps,
+)
 from app.services.entrainement.cardio import (
     create_course,
     format_pace,
@@ -66,6 +73,10 @@ from app.services.entrainement.sets import (
     list_sets_for_exercice,
     list_sets_for_seance,
 )
+from app.services.entrainement.suggested_weight import (
+    baseline_weight,
+    suggested_weight,
+)
 
 __all__ = [
     "CATEGORIES",
@@ -74,6 +85,7 @@ __all__ = [
     "DEFAULT_WEEKDAY_LABELS",
     "INTENSITY_LEVELS",
     "SPORT_WEEKDAYS_DEFAULT",
+    "baseline_weight",
     "best_1rm_from_sets",
     "classify_intensity_for_session",
     "compute_intensity_for_date",
@@ -87,10 +99,12 @@ __all__ = [
     "ensure_active_program",
     "ensure_catalogue",
     "epley_1rm",
+    "estimate_calories_seance",
     "format_pace",
     "get_active_program",
     "get_courses_for_date",
     "get_sessions_for_date",
+    "kcal_for_date",
     "list_courses",
     "list_exercices",
     "list_program_days",
@@ -101,5 +115,7 @@ __all__ = [
     "pace_sec_per_km",
     "program_day_for_date",
     "progression_for_exercice",
+    "resolve_poids_corps",
+    "suggested_weight",
     "update_program_day",
 ]

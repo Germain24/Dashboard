@@ -221,3 +221,42 @@ class GarminSeedResponse(BaseModel):
     jours_seedes: list[str]
     jours_skipped: list[str]
     lower_a_definir: bool
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Vue "Aujourd'hui" — séance opérationnelle du jour
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SlotToday(BaseModel):
+    """Une ligne du programme du jour, enrichie pour l'UI."""
+
+    label: str
+    note: Optional[str] = None
+    sets_target: Optional[int] = None
+    reps_target: Optional[Any] = None       # int | str ("8/5/15", "5 min"...)
+    charge_indicative_kg: Optional[float] = None
+    # ── enrichissement résolu par le backend ──
+    exercice_id: Optional[int] = None       # None si label non mappable à un exo
+    categorie: Optional[str] = None
+    poids_suggere_kg: Optional[float] = None  # None si pas de PdC connu
+
+
+class TodayResponse(BaseModel):
+    date: dt.date
+    weekday: int
+    jour_label: str                          # "Push" / "Pull" / "Repos" / ...
+    programme_jour_id: Optional[int] = None
+    slots: list[SlotToday] = Field(default_factory=list)
+    seance_en_cours: Optional[SeanceRead] = None
+    kcal_estimees: float = 0.0
+    poids_corps_kg: float
+
+
+class CaloriesDayResponse(BaseModel):
+    """Format stable pour la CONV nutrition future."""
+
+    date: dt.date
+    kcal_muscu: float
+    kcal_cardio: float
+    total_kcal: float
+    poids_corps_kg: float

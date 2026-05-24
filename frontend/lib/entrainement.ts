@@ -130,6 +130,36 @@ export type IntensityResponse = {
   intensity: "none" | "low" | "medium" | "high";
 };
 
+export type SlotToday = {
+  label: string;
+  note: string | null;
+  sets_target: number | null;
+  reps_target: number | string | null;
+  charge_indicative_kg: number | null;
+  exercice_id: number | null;
+  categorie: string | null;
+  poids_suggere_kg: number | null;
+};
+
+export type TodayResponse = {
+  date: string;
+  weekday: number;
+  jour_label: string;
+  programme_jour_id: number | null;
+  slots: SlotToday[];
+  seance_en_cours: Seance | null;
+  kcal_estimees: number;
+  poids_corps_kg: number;
+};
+
+export type CaloriesDayResponse = {
+  date: string;
+  kcal_muscu: number;
+  kcal_cardio: number;
+  total_kcal: number;
+  poids_corps_kg: number;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Endpoints
 // ─────────────────────────────────────────────────────────────────────────────
@@ -242,6 +272,13 @@ export const entrainementApi = {
     api<IntensityResponse>(`/entrainement/intensity/${date}`),
   getIntensityToday: () =>
     api<IntensityResponse>(`/entrainement/intensity/today`),
+
+  // Vue "Aujourd'hui" — séance opérationnelle du jour
+  getToday: () => api<TodayResponse>(`/entrainement/today`),
+
+  // Calories par date (consommé par CONV nutrition future)
+  getCaloriesForDate: (date: string) =>
+    api<CaloriesDayResponse>(`/entrainement/calories/${date}`),
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
