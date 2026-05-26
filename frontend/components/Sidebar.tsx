@@ -12,25 +12,28 @@ export function Sidebar() {
     slug === "" ? pathname === "/" : pathname?.startsWith(`/${slug}`);
 
   return (
-    <aside className="w-60 shrink-0 border-r border-[var(--border)] bg-[var(--muted)] px-3 py-6 hidden md:flex flex-col gap-1">
-      <Link href="/" className="px-3 py-2 mb-3 text-lg font-semibold tracking-tight">
+    <aside className="w-56 shrink-0 border-r border-[var(--border)] bg-[var(--muted)] px-3 py-6 hidden md:flex flex-col gap-0.5">
+      <Link
+        href="/"
+        className="px-3 py-2 mb-3 text-sm font-semibold tracking-tight text-[var(--foreground)] hover:opacity-80 transition-opacity"
+      >
         Mission Control
       </Link>
 
       <Link
         href="/"
         className={cn(
-          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+          "flex items-center gap-2.5 rounded-[var(--radius)] px-3 py-2 text-sm transition-colors",
           isActive("")
-            ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm"
-            : "text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
+            ? "bg-[var(--background)] text-[var(--foreground)]"
+            : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
         )}
       >
-        <Home className="h-4 w-4" />
+        <Home className="h-4 w-4 shrink-0" />
         Accueil
       </Link>
 
-      <div className="my-3 h-px bg-[var(--border)]" />
+      <div className="my-2 h-px bg-[var(--border)]" />
 
       {MODULES.map((m) => {
         const Icon = m.icon;
@@ -39,13 +42,13 @@ export function Sidebar() {
             key={m.slug}
             href={`/${m.slug}`}
             className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+              "flex items-center gap-2.5 rounded-[var(--radius)] px-3 py-2 text-sm transition-colors",
               isActive(m.slug)
-                ? "bg-[var(--background)] text-[var(--foreground)] shadow-sm"
-                : "text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
+                ? "bg-[var(--background)] text-[var(--foreground)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
             )}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4 shrink-0" />
             {m.label}
           </Link>
         );

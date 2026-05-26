@@ -10,6 +10,9 @@ import {
   type Seance,
   todayKey,
 } from "@/lib/entrainement";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { AujourdhuiTab } from "./AujourdhuiTab";
 import { ProgrammeTab } from "./ProgrammeTab";
 import { ProgressionTab } from "./ProgressionTab";
@@ -62,10 +65,8 @@ export function Entrainement() {
     return () => { cancelled = true; };
   }, [reloadAll]);
 
-  if (loading) {
-    return <div className="flex items-center gap-2"><Dumbbell className="h-5 w-5" /> Chargement…</div>;
-  }
-  if (error) return <div className="text-red-500">⚠ {error}</div>;
+  if (loading) return <Spinner label="Chargement de l'entraînement…" />;
+  if (error) return <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>;
 
   const todayWeekday = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const todayJour = program?.jours.find((j) => j.weekday === todayWeekday);
@@ -73,55 +74,49 @@ export function Entrainement() {
   return (
     <div className="space-y-4">
       <header className="flex items-center gap-3">
-        <Dumbbell className="h-6 w-6" />
-        <h1 className="text-2xl font-semibold tracking-tight">Entraînement</h1>
+        <Dumbbell className="h-5 w-5 shrink-0" />
+        <h1 className="text-xl font-semibold tracking-tight">Entraînement</h1>
         {todayJour && (
-          <span className="ml-auto text-xs rounded bg-[var(--muted)] px-2 py-1 text-[var(--muted-foreground)]">
-            Aujourd&apos;hui : <strong>{todayJour.label}</strong>
+          <Badge className="ml-auto">
+            {todayJour.label}
             {intensity && (
-              <span className="ml-2 opacity-70">· intensité {intensity.intensity}</span>
+              <span className="ml-1 opacity-70">· intensité {intensity.intensity}</span>
             )}
-          </span>
+          </Badge>
         )}
       </header>
 
-      <nav className="flex gap-1 border-b border-[var(--border)] flex-wrap">
-        {([
-          ["aujourdhui", "🏋️ Aujourd'hui"],
-          ["programme", "📅 Programme"],
-          ["progression", "📈 Progression"],
-          ["cardio", "🏃 Cardio"],
-          ["calendrier", "🗓️ Calendrier"],
-        ] as [Tab, string][]).map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            className={`px-3 py-2 text-sm -mb-px border-b-2 ${tab === k ? "border-blue-500 text-[var(--foreground)]" : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+        <TabsList>
+          <TabsTrigger value="aujourdhui">🏋️ Aujourd&apos;hui</TabsTrigger>
+          <TabsTrigger value="programme">📅 Programme</TabsTrigger>
+          <TabsTrigger value="progression">📈 Progression</TabsTrigger>
+          <TabsTrigger value="cardio">🏃 Cardio</TabsTrigger>
+          <TabsTrigger value="calendrier">🗓️ Calendrier</TabsTrigger>
+        </TabsList>
 
-      {tab === "aujourdhui" && (
-        <AujourdhuiTab onSessionsChanged={reloadAll} />
-      )}
-      {tab === "programme" && program && (
-        <ProgrammeTab
-          program={program}
-          exercices={exercices}
-          onProgramChanged={reloadAll}
-        />
-      )}
-      {tab === "progression" && (
-        <ProgressionTab exercices={exercices} />
-      )}
-      {tab === "cardio" && (
-        <CardioTab />
-      )}
-      {tab === "calendrier" && (
-        <CalendrierTab sessions={sessions} program={program} />
-      )}
+        <TabsContent value="aujourdhui">
+          <AujourdhuiTab onSessionsChanged={reloadAll} />
+        </TabsContent>
+        <TabsContent value="programme">
+          {program && (
+            <ProgrammeTab
+              program={program}
+              exercices={exercices}
+              onProgramChanged={reloadAll}
+            />
+          )}
+        </TabsContent>
+        <TabsContent value="progression">
+          <ProgressionTab exercices={exercices} />
+        </TabsContent>
+        <TabsContent value="cardio">
+          <CardioTab />
+        </TabsContent>
+        <TabsContent value="calendrier">
+          <CalendrierTab sessions={sessions} program={program} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

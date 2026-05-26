@@ -12,6 +12,10 @@ import {
   type Vetement,
   type Weather,
 } from "@/lib/garderobe";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { SlotCard } from "./SlotCard";
 import { WeatherBanner } from "./WeatherBanner";
 import { ThermalScore } from "./ThermalScore";
@@ -24,7 +28,6 @@ type Tab = "tenue" | "inventaire" | "stats" | "history" | "recs";
 
 const SLOT_ROW_1 = ["Manteau", "Veste", "Haut", "Pantalon", "Chaussures", "Echarpe"];
 const SLOT_ROW_2 = ["Casquette", "Lunettes", "Bijoux 1", "Bijoux 2", "Montre", "Pendentif"];
-
 const LAST_SUGGESTION_KEY = "garderobe:lastSuggestionDate";
 
 function todayKey(): string {
@@ -49,7 +52,6 @@ export function Garderobe() {
   const [validating, setValidating] = useState(false);
   const [resuggesting, setResuggesting] = useState(false);
 
-  // ── Bootstrap : charge tout en parallèle + auto-suggest 1×/jour ──────────
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -70,7 +72,6 @@ export function Garderobe() {
         setHistory(hist);
         setRecs(rec);
 
-        // Auto-suggest si pas encore fait aujourd'hui
         const last = typeof window !== "undefined" ? localStorage.getItem(LAST_SUGGESTION_KEY) : null;
         if (last !== todayKey()) {
           const sug = await garderobeApi.suggest();
@@ -125,7 +126,6 @@ export function Garderobe() {
       const payload: Record<string, string | null> = {};
       for (const [sid, v] of Object.entries(tenue)) payload[sid] = v?.id ?? null;
       await garderobeApi.valider({ tenue: payload, use_body: useBody });
-      // Refresh garde-robe + stats + history
       const [ward, st, hist] = await Promise.all([
         garderobeApi.listVetements(),
         garderobeApi.stats(),
@@ -134,7 +134,6 @@ export function Garderobe() {
       setWardrobe(ward);
       setStats(st);
       setHistory(hist);
-      // Reset state pour le lendemain
       onReset();
       localStorage.removeItem(LAST_SUGGESTION_KEY);
     } catch (e: any) {
@@ -152,7 +151,6 @@ export function Garderobe() {
 
   const wornItems = useMemo(() => Object.values(tenue).filter(Boolean) as Vetement[], [tenue]);
 
-  // Calcul thermique côté front (cohérent avec /suggest, sans rappel API)
   const targetThermal = useMemo(() => {
     if (!weather) return 0;
     return 50 - 1.5 * weather.mean_window_temp;
@@ -169,111 +167,104 @@ export function Garderobe() {
     return total;
   }, [tenue, useBody, wornItems]);
 
-  if (loading) {
-    return <div className="flex items-center gap-2"><Shirt className="h-5 w-5" /> Chargement…</div>;
-  }
-  if (error) {
-    return <div className="text-red-500">⚠ {error}</div>;
-  }
+  if (loading) return <Spinner label="Chargement de la garde-robe…" />;
+  if (error) return <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>;
 
   return (
     <div className="space-y-4">
       <header className="flex items-center gap-3">
-        <Shirt className="h-6 w-6" />
-        <h1 className="text-2xl font-semibold tracking-tight">Garde-robe</h1>
-        <span className="ml-auto text-xs rounded bg-[var(--muted)] px-2 py-1 text-[var(--muted-foreground)]">
-          {wardrobe.length} pièces
-        </span>
+        <Shirt className="h-5 w-5 shrink-0" />
+        <h1 className="text-xl font-semibold tracking-tight">Garde-robe</h1>
+        <Badge className="ml-auto">{wardrobe.length} pièces</Badge>
       </header>
 
       {weather && <WeatherBanner weather={weather} meanTemp={suggestion?.mean_temp ?? weather.mean_window_temp} />}
 
-      <nav className="flex gap-1 border-b border-[var(--border)]">
-        {([
-          ["tenue", "👔 Tenue du Jour"],
-          ["inventaire", "📦 Inventaire"],
-          ["stats", "📊 Stats"],
-          ["history", "📜 Historique"],
-          ["recs", "🚀 Recommandations"],
-        ] as [Tab, string][]).map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            className={`px-3 py-2 text-sm -mb-px border-b-2 ${tab === k ? "border-blue-500 text-[var(--foreground)]" : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+        <TabsList>
+          <TabsTrigger value="tenue">👔 Tenue du jour</TabsTrigger>
+          <TabsTrigger value="inventaire">📦 Inventaire</TabsTrigger>
+          <TabsTrigger value="stats">📊 Stats</TabsTrigger>
+          <TabsTrigger value="history">📜 Historique</TabsTrigger>
+          <TabsTrigger value="recs">🚀 Recommandations</TabsTrigger>
+        </TabsList>
 
-      {tab === "tenue" && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2 items-center">
-            <button
-              onClick={onResuggest}
-              disabled={resuggesting}
-              className="rounded bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm font-medium disabled:opacity-50"
-            >
-              {resuggesting ? "…" : "✨ Re-suggérer"}
-            </button>
-            <button
-              onClick={onReset}
-              className="rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--accent)]"
-            >
-              🗑 Réinitialiser
-            </button>
-            <label className="ml-2 text-sm flex items-center gap-2">
-              <input type="checkbox" checked={useBody} onChange={(e) => setUseBody(e.target.checked)} />
-              👕 Body en coton (+1.5)
-            </label>
+        <TabsContent value="tenue">
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button onClick={onResuggest} disabled={resuggesting} size="sm">
+                {resuggesting ? "…" : "✨ Re-suggérer"}
+              </Button>
+              <Button variant="secondary" onClick={onReset} size="sm">
+                🗑 Réinitialiser
+              </Button>
+              <label className="ml-2 text-sm flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useBody}
+                  onChange={(e) => setUseBody(e.target.checked)}
+                  className="rounded"
+                />
+                👕 Body en coton (+1.5)
+              </label>
+            </div>
+
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {SLOT_ROW_1.map((sid) => slotsMap[sid] && (
+                <SlotCard
+                  key={sid}
+                  slot={slotsMap[sid]}
+                  item={tenue[sid] ?? null}
+                  candidates={wardrobe.filter((v) => slotsMap[sid].categories.includes(v.categorie))}
+                  onChange={(next) => setTenue((t) => ({ ...t, [sid]: next }))}
+                />
+              ))}
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {SLOT_ROW_2.map((sid) => slotsMap[sid] && (
+                <SlotCard
+                  key={sid}
+                  slot={slotsMap[sid]}
+                  item={tenue[sid] ?? null}
+                  candidates={wardrobe.filter((v) => slotsMap[sid].categories.includes(v.categorie))}
+                  onChange={(next) => setTenue((t) => ({ ...t, [sid]: next }))}
+                />
+              ))}
+            </div>
+
+            <ThermalScore
+              total={totalThermal}
+              target={targetThermal}
+              useBody={useBody}
+              styleScore={suggestion?.style_score ?? 0}
+            />
+
+            <div className="flex justify-center">
+              <Button
+                variant="success"
+                size="lg"
+                onClick={onValider}
+                disabled={validating || wornItems.length === 0}
+              >
+                {validating ? "…" : "✅ Porter cette tenue aujourd'hui"}
+              </Button>
+            </div>
           </div>
+        </TabsContent>
 
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-            {SLOT_ROW_1.map((sid) => slotsMap[sid] && (
-              <SlotCard
-                key={sid}
-                slot={slotsMap[sid]}
-                item={tenue[sid] ?? null}
-                candidates={wardrobe.filter((v) => slotsMap[sid].categories.includes(v.categorie))}
-                onChange={(next) => setTenue((t) => ({ ...t, [sid]: next }))}
-              />
-            ))}
-          </div>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-            {SLOT_ROW_2.map((sid) => slotsMap[sid] && (
-              <SlotCard
-                key={sid}
-                slot={slotsMap[sid]}
-                item={tenue[sid] ?? null}
-                candidates={wardrobe.filter((v) => slotsMap[sid].categories.includes(v.categorie))}
-                onChange={(next) => setTenue((t) => ({ ...t, [sid]: next }))}
-              />
-            ))}
-          </div>
-
-          <ThermalScore
-            total={totalThermal}
-            target={targetThermal}
-            useBody={useBody}
-            styleScore={suggestion?.style_score ?? 0}
-          />
-
-          <div className="flex justify-center">
-            <button
-              onClick={onValider}
-              disabled={validating || wornItems.length === 0}
-              className="rounded bg-emerald-600 text-white px-6 py-2.5 text-sm font-semibold disabled:opacity-50"
-            >
-              {validating ? "…" : "✅ PORTER CETTE TENUE AUJOURD'HUI"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {tab === "inventaire" && <InventaireTab wardrobe={wardrobe} />}
-      {tab === "stats" && stats && <StatsTab stats={stats} />}
-      {tab === "history" && <HistoriqueTab history={history} />}
-      {tab === "recs" && <RecommandationsTab recs={recs} />}
+        <TabsContent value="inventaire">
+          <InventaireTab wardrobe={wardrobe} />
+        </TabsContent>
+        <TabsContent value="stats">
+          {stats && <StatsTab stats={stats} />}
+        </TabsContent>
+        <TabsContent value="history">
+          <HistoriqueTab history={history} />
+        </TabsContent>
+        <TabsContent value="recs">
+          <RecommandationsTab recs={recs} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

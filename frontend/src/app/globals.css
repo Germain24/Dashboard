@@ -1,16 +1,99 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════
+   Mission Control — Design System (CONV DESIGN)
+   Mood : Minimal Mono + Blue accent (Notion/Bear style)
+   ═══════════════════════════════════════════════════════════ */
+
 :root {
+  /* ── Backgrounds ───────────────────────────────────────── */
   --background: #ffffff;
-  --foreground: #171717;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --border: #e4e4e7;
+  --background-subtle: #fafafa;
+
+  /* ── Foreground ────────────────────────────────────────── */
+  --foreground: #111111;
+
+  /* ── Surfaces neutres ──────────────────────────────────── */
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --border: #e8e8e8;
+
+  /* ── Cartes ────────────────────────────────────────────── */
   --card: #ffffff;
-  --card-foreground: #171717;
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
-  --accent: #f4f4f5;
+  --card-foreground: #111111;
+
+  /* ── Actions primaires (boutons noirs) ─────────────────── */
+  --primary: #111111;
+  --primary-foreground: #ffffff;
+
+  /* ── Hover / surfaces secondaires ─────────────────────── */
+  --accent: #f5f5f5;
+  --accent-foreground: #111111;
+
+  /* ── Accent interactif (bleu) ──────────────────────────── */
+  --ring: #2563eb;
+
+  /* ── Sémantiques ───────────────────────────────────────── */
+  --success: #16a34a;
+  --success-muted: #dcfce7;
+  --success-foreground: #14532d;
+
+  --warning: #d97706;
+  --warning-muted: #fef3c7;
+  --warning-foreground: #78350f;
+
+  --destructive: #dc2626;
+  --destructive-muted: #fee2e2;
+  --destructive-foreground: #7f1d1d;
+
+  --info: #2563eb;
+  --info-muted: #dbeafe;
+  --info-foreground: #1e40af;
+
+  /* ── Rayons de bordure ─────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0d0d0d;
+    --background-subtle: #111111;
+    --foreground: #e8e8e8;
+
+    --muted: #1a1a1a;
+    --muted-foreground: #a3a3a3;
+    --border: #262626;
+
+    --card: #111111;
+    --card-foreground: #e8e8e8;
+
+    --primary: #e8e8e8;
+    --primary-foreground: #0d0d0d;
+
+    --accent: #1a1a1a;
+    --accent-foreground: #e8e8e8;
+
+    --ring: #3b82f6;
+
+    --success: #4ade80;
+    --success-muted: #14532d;
+    --success-foreground: #bbf7d0;
+
+    --warning: #fbbf24;
+    --warning-muted: #78350f;
+    --warning-foreground: #fde68a;
+
+    --destructive: #f87171;
+    --destructive-muted: #7f1d1d;
+    --destructive-foreground: #fecaca;
+
+    --info: #60a5fa;
+    --info-muted: #1e3a5f;
+    --info-foreground: #bfdbfe;
+  }
 }
 
 @theme inline {
@@ -24,27 +107,26 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-info: var(--info);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --muted: #1f1f23;
-    --muted-foreground: #a1a1aa;
-    --border: #27272a;
-    --card: #111114;
-    --card-foreground: #ededed;
-    --primary: #fafafa;
-    --primary-foreground: #18181b;
-    --accent: #27272a;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── Focus visible global ──────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }

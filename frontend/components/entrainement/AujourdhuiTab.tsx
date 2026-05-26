@@ -7,10 +7,11 @@ import {
   type SlotToday,
   type TodayResponse,
 } from "@/lib/entrainement";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Props = {
-  // Toujours fourni par le parent (Entrainement.tsx) pour cohérence,
-  // mais on rafraîchit nous-mêmes via /entrainement/today.
   onSessionsChanged?: () => Promise<void>;
 };
 
@@ -52,9 +53,7 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
   const handleFinish = async (duree_min: number) => {
     if (!today?.seance_en_cours) return;
     try {
-      await entrainementApi.patchSession(today.seance_en_cours.id, {
-        duree_min,
-      });
+      await entrainementApi.patchSession(today.seance_en_cours.id, { duree_min });
       await reload();
       await onSessionsChanged?.();
     } catch (e: any) {
@@ -62,10 +61,8 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
     }
   };
 
-  if (loading) {
-    return <div className="text-sm text-[var(--muted-foreground)]">Chargement…</div>;
-  }
-  if (err) return <div className="text-sm text-red-500">⚠ {err}</div>;
+  if (loading) return <Spinner label="Chargement…" />;
+  if (err) return <p className="text-sm text-[var(--destructive)]">⚠ {err}</p>;
   if (!today) return null;
 
   const isRest = today.jour_label.toLowerCase() === "repos";
@@ -74,59 +71,52 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded border border-[var(--border)] p-3 flex flex-wrap items-center gap-3 text-sm">
+      {/* Résumé du jour */}
+      <div className="rounded-[var(--radius)] border border-[var(--border)] p-3 flex flex-wrap items-center gap-3 text-sm">
         <span className="font-medium">
           {new Date(today.date + "T12:00:00").toLocaleDateString("fr-CA", {
             weekday: "long", day: "numeric", month: "long",
           })}
         </span>
-        <span className="rounded bg-[var(--muted)] px-2 py-0.5 text-xs">
-          <strong>{today.jour_label}</strong>
+        <span className="rounded-[var(--radius-sm)] bg-[var(--muted)] px-2 py-0.5 text-xs font-medium">
+          {today.jour_label}
         </span>
         <span className="text-xs text-[var(--muted-foreground)]">
-          Poids du corps : {today.poids_corps_kg.toFixed(1)} kg
+          Poids : {today.poids_corps_kg.toFixed(1)} kg
         </span>
         {today.kcal_estimees > 0 && (
-          <span className="ml-auto rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 text-xs">
+          <span className="ml-auto rounded-[var(--radius-sm)] bg-[var(--success-muted)] text-[var(--success-foreground)] px-2 py-0.5 text-xs">
             🔥 {today.kcal_estimees.toFixed(0)} kcal
           </span>
         )}
       </div>
 
       {isRest && (
-        <div className="rounded border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--muted-foreground)]">
-          😴 Jour de repos. Profite-en pour récupérer.
-        </div>
+        <EmptyState
+          title="Jour de repos"
+          description="Profite-en pour récupérer. 😴"
+        />
       )}
 
       {!isRest && !seance && (
-        <div className="rounded border border-[var(--border)] p-4 flex flex-wrap items-center gap-3">
+        <div className="rounded-[var(--radius)] border border-[var(--border)] p-4 flex flex-wrap items-center gap-3">
           <span className="text-sm">Prêt pour la séance {today.jour_label} ?</span>
-          <button
-            onClick={handleStart}
-            className="ml-auto rounded bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm font-medium"
-          >
+          <Button onClick={handleStart} className="ml-auto" size="sm">
             ▶️ Commencer la séance
-          </button>
+          </Button>
         </div>
       )}
 
       {!isRest && (
         <div className="space-y-2">
           {today.slots.map((slot, i) => (
-            <SlotCard
-              key={i}
-              slot={slot}
-              seance={seance}
-              onSetAdded={reload}
-            />
+            <SlotCard key={i} slot={slot} seance={seance} onSetAdded={reload} />
           ))}
           {today.slots.length === 0 && (
-            <div className="rounded border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted-foreground)]">
-              Aucun slot configuré pour ce jour. Lance{" "}
-              <code>POST /entrainement/program/seed-garmin</code> pour importer
-              tes programmes Garmin, ou édite le jour dans l&apos;onglet 📅 Programme.
-            </div>
+            <EmptyState
+              title="Aucun slot configuré"
+              description="Lance POST /entrainement/program/seed-garmin ou édite le jour dans l'onglet Programme."
+            />
           )}
         </div>
       )}
@@ -138,6 +128,7 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
   );
 }
 
+/* ── Slot card ────────────────────────────────────────────── */
 function SlotCard({
   slot, seance, onSetAdded,
 }: {
@@ -145,20 +136,17 @@ function SlotCard({
   seance: Seance | null;
   onSetAdded: () => Promise<void>;
 }) {
-  const setsForSlot = seance?.sets.filter(
-    (s) => s.exercice_id === slot.exercice_id,
-  ) ?? [];
+  const setsForSlot = seance?.sets.filter((s) => s.exercice_id === slot.exercice_id) ?? [];
   const setsDone = setsForSlot.length;
   const setsTarget = slot.sets_target ?? null;
   const progress = setsTarget && setsTarget > 0
     ? Math.min(100, Math.round((setsDone / setsTarget) * 100))
     : 0;
-
   const noExercice = slot.exercice_id === null;
   const isWarmup = /warm-?up/i.test(slot.label);
 
   return (
-    <div className="rounded border border-[var(--border)] p-3">
+    <div className="rounded-[var(--radius)] border border-[var(--border)] p-3">
       <div className="flex flex-wrap items-baseline gap-2 text-sm">
         <span className="font-medium">{slot.label}</span>
         {setsTarget && (
@@ -172,35 +160,29 @@ function SlotCard({
           </span>
         )}
         {slot.poids_suggere_kg === 0 && (
-          <span className="text-xs text-[var(--muted-foreground)]">
-            · poids du corps
-          </span>
+          <span className="text-xs text-[var(--muted-foreground)]">· poids du corps</span>
         )}
-        {slot.note && (
-          <span className="text-xs italic opacity-70">{slot.note}</span>
-        )}
+        {slot.note && <span className="text-xs italic opacity-60">{slot.note}</span>}
         {setsTarget && (
-          <span className="ml-auto text-xs">
-            {setsDone}/{setsTarget}
-          </span>
+          <span className="ml-auto text-xs">{setsDone}/{setsTarget}</span>
         )}
       </div>
 
       {setsTarget && (
-        <div className="mt-1 h-1.5 rounded-full bg-[var(--muted)] overflow-hidden">
+        <div className="mt-1 h-1 rounded-full bg-[var(--muted)] overflow-hidden">
           <div
-            className="h-full bg-[var(--primary)] transition-all"
+            className="h-full bg-[var(--ring)] transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>
       )}
 
       {setsForSlot.length > 0 && (
-        <ul className="mt-2 text-xs space-y-0.5">
+        <ul className="mt-2 text-xs space-y-0.5 text-[var(--muted-foreground)]">
           {setsForSlot.map((s, i) => (
             <li key={s.id}>
-              Série {i + 1} : <strong>{s.reps}</strong> reps ×{" "}
-              <strong>{s.poids_kg}</strong> kg
+              Série {i + 1} : <strong className="text-[var(--foreground)]">{s.reps}</strong> reps
+              × <strong className="text-[var(--foreground)]">{s.poids_kg}</strong> kg
               {s.rpe ? ` · RPE ${s.rpe}` : ""}
             </li>
           ))}
@@ -218,15 +200,15 @@ function SlotCard({
       )}
 
       {seance && noExercice && !isWarmup && (
-        <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-          ⚠ Exercice « {slot.label} » introuvable dans le catalogue. Ajoute-le
-          via <code>POST /entrainement/exercises</code>.
-        </div>
+        <p className="mt-2 text-xs text-[var(--warning)]">
+          ⚠ Exercice « {slot.label} » introuvable dans le catalogue.
+        </p>
       )}
     </div>
   );
 }
 
+/* ── Add set form ─────────────────────────────────────────── */
 function AddSetForm({
   seanceId, exerciceId, suggested, repsHint, onAdded,
 }: {
@@ -257,53 +239,34 @@ function AddSetForm({
     }
   };
 
+  const inputCls = "mt-0.5 rounded-[var(--radius-sm)] border border-[var(--border)] bg-transparent px-1.5 py-0.5 text-xs focus:border-[var(--ring)] focus:outline-none";
+
   return (
     <div className="mt-2 flex flex-wrap items-end gap-2 text-xs">
       <label className="flex flex-col">
         Reps
-        <input
-          type="number"
-          value={reps}
-          onChange={(e) => setReps(e.target.value)}
-          className="mt-0.5 w-16 rounded border border-[var(--border)] bg-transparent px-1.5 py-0.5"
-        />
+        <input type="number" value={reps} onChange={(e) => setReps(e.target.value)} className={`${inputCls} w-16`} />
       </label>
       <label className="flex flex-col">
         Poids (kg)
-        <input
-          type="number"
-          step="0.5"
-          value={poids}
-          onChange={(e) => setPoids(e.target.value)}
-          className="mt-0.5 w-20 rounded border border-[var(--border)] bg-transparent px-1.5 py-0.5"
-        />
+        <input type="number" step="0.5" value={poids} onChange={(e) => setPoids(e.target.value)} className={`${inputCls} w-20`} />
       </label>
       <label className="flex flex-col">
         RPE
-        <input
-          type="number"
-          step="0.5"
-          min="6"
-          max="10"
-          value={rpe}
-          onChange={(e) => setRpe(e.target.value)}
-          className="mt-0.5 w-14 rounded border border-[var(--border)] bg-transparent px-1.5 py-0.5"
-        />
+        <input type="number" step="0.5" min="6" max="10" value={rpe} onChange={(e) => setRpe(e.target.value)} className={`${inputCls} w-14`} />
       </label>
-      <button
-        onClick={submit}
-        disabled={busy}
-        className="rounded bg-emerald-600 text-white px-2 py-1 text-xs font-medium disabled:opacity-50"
-      >
+      <Button size="sm" onClick={submit} disabled={busy}>
         + Série
-      </button>
+      </Button>
     </div>
   );
 }
 
-function FinishBar({
-  startedAt, onFinish,
-}: { startedAt: Date; onFinish: (duree_min: number) => Promise<void> }) {
+/* ── Finish bar ───────────────────────────────────────────── */
+function FinishBar({ startedAt, onFinish }: {
+  startedAt: Date;
+  onFinish: (duree_min: number) => Promise<void>;
+}) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -312,14 +275,11 @@ function FinishBar({
   const dureeMin = Math.max(1, Math.round((now - startedAt.getTime()) / 60_000));
 
   return (
-    <div className="sticky bottom-2 rounded border border-[var(--border)] bg-[var(--background)] p-3 flex items-center gap-3 text-sm shadow-lg">
+    <div className="sticky bottom-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--background)] p-3 flex items-center gap-3 text-sm shadow-md">
       <span>⏱️ {dureeMin} min écoulées</span>
-      <button
-        onClick={() => onFinish(dureeMin)}
-        className="ml-auto rounded bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm font-medium"
-      >
+      <Button onClick={() => onFinish(dureeMin)} className="ml-auto" size="sm">
         ✓ Terminer la séance
-      </button>
+      </Button>
     </div>
   );
 }
