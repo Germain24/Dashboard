@@ -55,6 +55,27 @@
   --radius: 6px;
   --radius-lg: 8px;
   --radius-full: 9999px;
+
+  /* ── Ombres ────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* ── Transitions ───────────────────────────────────────── */
+  --transition-fast: 100ms ease;
+  --transition: 150ms ease;
+  --transition-slow: 250ms ease;
+
+  /* ── Z-index ───────────────────────────────────────────── */
+  --z-sidebar: 20;
+  --z-header: 30;
+  --z-overlay: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /* ── Sidebar ───────────────────────────────────────────── */
+  --sidebar-width: 224px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -93,40 +114,5 @@
     --info: #60a5fa;
     --info-muted: #1e3a5f;
     --info-foreground: #bfdbfe;
-  }
-}
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-accent: var(--accent);
-  --color-ring: var(--ring);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-destructive: var(--destructive);
-  --color-info: var(--info);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-/* ── Focus visible global ──────────────────────────────────── */
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
+    /* ── Shado

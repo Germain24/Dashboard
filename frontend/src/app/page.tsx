@@ -1,25 +1,52 @@
 import { HealthBadge } from "@/components/HealthBadge";
 import { ModuleCard } from "@/components/ModuleCard";
+import { Greeting } from "@/components/Greeting";
 import { MODULES } from "@/lib/modules";
 
 export default function HomePage() {
+  const readyCount = MODULES.filter((m) => m.ready).length;
+  const totalCount = MODULES.length;
+
   return (
     <div>
-      <header className="mb-8 flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Mission Control</h1>
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            Dashboard personnel — 11 modules pour piloter ta vie.
-          </p>
+      <header className="mb-8">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <Greeting />
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+              {readyCount} module{readyCount > 1 ? "s" : ""} actif{readyCount > 1 ? "s" : ""}
+              {" "}&middot;{" "}
+              {totalCount - readyCount} a venir
+            </p>
+          </div>
+          <HealthBadge />
         </div>
-        <HealthBadge />
+
+        <div
+          className="mt-4 flex items-center gap-3"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={totalCount}
+          aria-valuenow={readyCount}
+          aria-label={readyCount + " modules sur " + totalCount + " livres"}
+        >
+          <div className="h-1 flex-1 rounded-full overflow-hidden bg-[var(--border)]">
+            <div
+              className="h-full rounded-full bg-[var(--ring)] transition-all duration-300"
+              style={{ width: ((readyCount / totalCount) * 100) + "%" }}
+            />
+          </div>
+          <span className="shrink-0 text-xs tabular-nums text-[var(--muted-foreground)]">
+            {readyCount}/{totalCount}
+          </span>
+        </div>
       </header>
 
-      <section>
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+      <section aria-label="Modules">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-[var(--muted-foreground)]">
           Modules
         </h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {MODULES.map((m) => (
             <ModuleCard key={m.slug} module={m} />
           ))}
