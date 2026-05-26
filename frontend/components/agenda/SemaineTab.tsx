@@ -8,8 +8,15 @@ import { useEffect, useState } from "react";
 import type { Evenement } from "@/lib/agenda";
 import { couleurFor, fetchEvents, formatHeure } from "@/lib/agenda";
 
+/** Date locale YYYY-MM-DD — N'utilise PAS toISOString() qui convertit en UTC.
+ *  En soirée à Montréal (UTC-4), toISOString() renverrait le lendemain,
+ *  ce qui décale les événements d'une colonne vers la droite.
+ */
 function isoDate(d: Date): string {
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function startOfWeek(d: Date): Date {
@@ -37,8 +44,9 @@ export default function SemaineTab() {
 
   useEffect(() => {
     setLoading(true);
-    const from = weekStart.toISOString();
-    const to = new Date(weekStart.getTime() + 7 * 86400000).toISOString();
+    // Dates locales (pas UTC) pour éviter le décalage de fuseau horaire
+    const from = isoDate(weekDates[0]) + "T00:00:00";
+    const to   = isoDate(weekDates[6]) + "T23:59:59";
     fetchEvents(from, to)
       .then(setEvents)
       .catch(console.error)
