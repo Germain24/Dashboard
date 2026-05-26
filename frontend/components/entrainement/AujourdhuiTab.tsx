@@ -76,7 +76,7 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
     <div className="space-y-4">
       <div className="rounded border border-[var(--border)] p-3 flex flex-wrap items-center gap-3 text-sm">
         <span className="font-medium">
-          {new Date(today.date).toLocaleDateString("fr-CA", {
+          {new Date(today.date + "T12:00:00").toLocaleDateString("fr-CA", {
             weekday: "long", day: "numeric", month: "long",
           })}
         </span>

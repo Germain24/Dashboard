@@ -60,7 +60,7 @@ export function CalendrierTab({ sessions, program }: Props) {
         {days.map(([dateKey, list]) => (
           <div key={dateKey} className="rounded border border-[var(--border)]">
             <div className="bg-[var(--muted)]/50 px-3 py-1.5 text-xs font-medium flex items-center gap-3">
-              <span>{new Date(dateKey).toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "short" })}</span>
+              <span>{new Date(dateKey + "T12:00:00").toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "short" })}</span>
               <span className="ml-auto opacity-60">{list.length} séance(s)</span>
             </div>
             <table className="w-full text-sm">
