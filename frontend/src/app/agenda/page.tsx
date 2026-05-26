@@ -1,7 +1,7 @@
-import { ModulePlaceholder } from "@/components/ModulePlaceholder";
-import { MODULES } from "@/lib/modules";
+import Agenda from "@/components/agenda/Agenda";
+
+export const metadata = { title: "Agenda — Mission Control" };
 
 export default function AgendaPage() {
-  const m = MODULES.find((x) => x.slug === "agenda")!;
-  return <ModulePlaceholder module={m} />;
+  return <Agenda />;
 }
