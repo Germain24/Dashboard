@@ -1,3 +1,8 @@
+/**
+ * Liste centrale des modules — utilisée par la sidebar et la home page.
+ * Chaque module a une page placeholder en CONV 1.
+ */
+
 import {
   BookOpen,
   Briefcase,
@@ -33,47 +38,42 @@ export const MODULES: Module[] = [
   {
     slug: "garderobe",
     label: "Garde-robe",
-    description: "Vetements, tenues, score thermique.",
+    description: "Vêtements, tenues, score thermique.",
     icon: Shirt,
     conv: "CONV 2",
-    ready: true,
   },
   {
     slug: "sante",
-    label: "Sante",
+    label: "Santé",
     description: "Mesures, nutrition, plan macros.",
     icon: HeartPulse,
     conv: "CONV 3",
-    ready: true,
   },
   {
     slug: "agenda",
     label: "Agenda",
-    description: "Evenements, rappels.",
+    description: "Événements, rappels.",
     icon: Calendar,
     conv: "CONV 5",
-    ready: true,
   },
   {
     slug: "etudes",
-    label: "Etudes",
+    label: "Études",
     description: "Suivi des sessions de travail.",
     icon: GraduationCap,
     conv: "CONV 6",
-    ready: true,
   },
   {
     slug: "entrainement",
-    label: "Entrainement",
-    description: "Seances de sport, prise de muscle.",
+    label: "Entraînement",
+    description: "Séances de sport, prise de muscle.",
     icon: Dumbbell,
     conv: "CONV 7",
-    ready: true,
   },
   {
     slug: "budget",
     label: "Budget",
-    description: "Depenses personnelles.",
+    description: "Dépenses personnelles.",
     icon: Wallet,
     conv: "CONV 8",
   },
@@ -94,7 +94,7 @@ export const MODULES: Module[] = [
   {
     slug: "livres",
     label: "Livres",
-    description: "Lectures en cours, a lire, lus.",
+    description: "Lectures en cours, à lire, lus.",
     icon: BookOpen,
     conv: "CONV 11",
   },
