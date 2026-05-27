@@ -106,13 +106,13 @@ export function ConsoDrawer({ open, onClose, planItems, initialConsumed, onSave 
           <div className="text-sm text-[var(--muted-foreground)]">Aucun item dans le plan.</div>
         )}
 
-        {err && <div className="mt-3 text-sm text-red-500">⚠ {err}</div>}
+        {err && <div className="mt-3 text-sm text-[var(--destructive)]">⚠ {err}</div>}
 
         <div className="mt-4 flex gap-2">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded bg-emerald-600 text-white px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
+            className="rounded bg-[var(--success)] text-[var(--success-foreground)] px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
           >
             {saving ? "…" : "💾 Enregistrer ma conso"}
           </button>

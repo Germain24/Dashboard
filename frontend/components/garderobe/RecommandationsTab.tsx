@@ -19,7 +19,7 @@ export function RecommandationsTab({ recs }: { recs: Recommendation[] }) {
           </div>
           <div className="text-xs text-[var(--muted-foreground)]">{r.raison}</div>
           <div className="mt-2 h-1.5 bg-[var(--muted)] rounded overflow-hidden">
-            <div className="h-full bg-blue-500" style={{ width: `${r.potentiel}%` }} />
+            <div className="h-full bg-[var(--ring)]" style={{ width: `${r.potentiel}%` }} />
           </div>
         </div>
       ))}
