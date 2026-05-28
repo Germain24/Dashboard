@@ -66,8 +66,8 @@ export function InventaireTab({ wardrobe }: { wardrobe: Vetement[] }) {
 function VetementCard({ v }: { v: Vetement }) {
   const [failed, setFailed] = useState(false);
   const border =
-    v.needs_wash ? "border-[var(--destructive)]"
-    : v.proprete_pct < 50 ? "border-[var(--warning)]"
+    v.needs_wash ? "border-red-500"
+    : v.proprete_pct < 50 ? "border-amber-500"
     : "border-[var(--border)]";
 
   return (
@@ -82,10 +82,10 @@ function VetementCard({ v }: { v: Vetement }) {
         {v.marque ? v.marque + " · " : ""}{v.couleur}
       </div>
       <div className="flex gap-2 text-[10px]">
-        <span className={v.needs_wash ? "text-[var(--destructive)]" : "text-[var(--muted-foreground)]"}>
+        <span className={v.needs_wash ? "text-red-500" : "text-[var(--muted-foreground)]"}>
           🧼 {v.proprete_pct.toFixed(0)}%
         </span>
-        <span className="text-[var(--ring)]">⚙ {v.vie_pct.toFixed(0)}%</span>
+        <span className="text-blue-400">⚙ {v.vie_pct.toFixed(0)}%</span>
       </div>
     </div>
   );

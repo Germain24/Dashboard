@@ -8,12 +8,13 @@ from app.models.agenda import Evenement, RegleRecurrence, Tache  # noqa: F401
 from app.models.budget import Depense  # noqa: F401
 from app.models.cuisine import Recette  # noqa: F401
 from app.models.entrainement import Seance  # noqa: F401
-from app.models.etudes import Etude  # noqa: F401
+from app.models.etudes import Cours, Evaluation, SessionEtude  # noqa: F401
 from app.models.finance import (  # noqa: F401
+    BuffettRun,
+    BuffettRunResult,
     Position,
     SnapshotPortefeuille,
     Transaction,
-    WatchlistEntry,
 )
 from app.models.garderobe import TenueHistory, Vetement  # noqa: F401
 from app.models.habitudes import Habitude, HabitudeLog  # noqa: F401

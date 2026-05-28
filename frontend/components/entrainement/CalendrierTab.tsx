@@ -102,7 +102,7 @@ export function CalendrierTab({ sessions, program }: Props) {
               >Fermer</button>
             </div>
             {loading && <div className="text-sm">Chargement…</div>}
-            {err && <div className="text-sm text-[var(--destructive)]">⚠ {err}</div>}
+            {err && <div className="text-sm text-red-500">⚠ {err}</div>}
             {details && (
               <div className="space-y-3 text-sm">
                 <div>

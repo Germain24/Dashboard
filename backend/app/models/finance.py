@@ -1,4 +1,4 @@
-"""Modèles Finance — watchlist Buffett, transactions, positions, snapshots."""
+"""Modèles Finance — CONV 4 : BuffettRun, BuffettRunResult, snapshots, positions, transactions."""
 
 import datetime as dt
 from typing import Optional
@@ -7,52 +7,72 @@ from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
 
 
-class WatchlistEntry(SQLModel, table=True):
-    """Action analysée (Buffett scoring + agrégation broker).
+class BuffettRun(SQLModel, table=True):
+    """Une analyse mensuelle Buffett complète.
 
-    Source : ToutBroker.xlsx — chaque ligne est une action avec son ticker
-    Yahoo, ses indicateurs (PER, EPS, croissance, PEG…), son scoring MOAT
-    et ses positions par broker.
+    Statuts : pending → running → completed | error
     """
 
-    __tablename__ = "watchlist_entry"
+    __tablename__ = "buffett_run"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    run_date: dt.date = Field(index=True)
+    statut: str = Field(default="pending")  # pending | running | completed | error
+    n_tickers_total: int = Field(default=0)
+    n_tickers_analyzed: int = Field(default=0)
+    progress_pct: float = Field(default=0.0)
+    params_json: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    duree_sec: Optional[float] = None
+    resume: Optional[str] = None
+    erreur: Optional[str] = None
+    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+
+
+class BuffettRunResult(SQLModel, table=True):
+    """Un ticker scoré dans le cadre d'un BuffettRun.
+
+    Anciennement watchlist_entry (CONV 1). Renommé + FK run_id ajouté.
+    Les 1741 lignes importées ont run_id=NULL (données historiques).
+    """
+
+    __tablename__ = "buffett_run_result"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    run_id: Optional[int] = Field(default=None, foreign_key="buffett_run.id", index=True)
+
     ticker: str = Field(unique=True, index=True)
     nom: Optional[str] = None
     pays: Optional[str] = None
     secteur: Optional[str] = None
 
-    # Indicateurs
+    # Indicateurs financiers
     prix: Optional[float] = None
     eps: Optional[float] = None
     per: Optional[float] = None
     croissance: Optional[float] = None
     peg: Optional[float] = None
     volume: Optional[float] = None
-    chance_moat: Optional[float] = None  # score Buffett 0-100
+    chance_moat: Optional[float] = None  # score 0-100
     poids: Optional[float] = None
 
-    # Statut achat
+    # Signal achat + allocation
     achat: bool = False
+    allocation_pct: Optional[float] = None  # % portefeuille cible (dernier run)
+    broker_cible: Optional[str] = None
 
-    # Positions par broker (peuvent évoluer)
+    # Positions par broker (héritage CONV 1)
     trading_212: Optional[float] = None
     bourse_direct: Optional[float] = None
     bourse_direct_2: Optional[float] = None
     ibkr: Optional[float] = None
 
-    # Secteurs supplémentaires éventuels
     secteurs_extra: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-
     updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
 
 
 class SnapshotPortefeuille(SQLModel, table=True):
-    """Valeur totale du portefeuille à une date donnée.
-
-    Source : Historique_portefeuille.xlsx (Date, Valeur, Investit).
-    """
+    """Valeur totale du portefeuille à une date donnée (1 ligne/jour)."""
 
     __tablename__ = "snapshot_portefeuille"
 
@@ -63,10 +83,7 @@ class SnapshotPortefeuille(SQLModel, table=True):
 
 
 class Transaction(SQLModel, table=True):
-    """Transactions individuelles (achat / vente / dividende).
-
-    Tables vide en CONV 1, remplie en CONV 4.
-    """
+    """Transaction individuelle : achat / vente / dividende / frais."""
 
     __tablename__ = "transaction"
 
@@ -74,19 +91,17 @@ class Transaction(SQLModel, table=True):
     date: dt.datetime = Field(index=True)
     ticker: str = Field(index=True)
     broker: Optional[str] = None
-    type: str  # "achat" | "vente" | "dividende" | "frais"
+    type: str  # achat | vente | dividende | frais
     quantite: float
     prix_unitaire: float
     devise: str = "EUR"
     frais: float = 0.0
     note: Optional[str] = None
+    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
 
 
 class Position(SQLModel, table=True):
-    """Position courante d'une action chez un broker.
-
-    Calculée à partir des transactions, snapshotée pour rapidité.
-    """
+    """Position courante d'une action chez un broker (reconstruite depuis les transactions)."""
 
     __tablename__ = "position"
 

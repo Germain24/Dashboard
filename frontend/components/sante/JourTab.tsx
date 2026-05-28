@@ -11,7 +11,6 @@ import {
 } from "@/lib/sante";
 import { MacroBar } from "./MacroBar";
 import { ConsoDrawer } from "./ConsoDrawer";
-import { Button } from "@/components/ui/button";
 
 type Props = {
   plan: PlanResponse | null;
@@ -64,7 +63,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
     }
   };
 
-  // Edition manuelle (drawer)
+  // Édition manuelle (drawer)
   const handleSaveConso = async (grams: Record<string, number>) => {
     if (!plan) return;
     const updated = await santeApi.patchPlan(plan.date, { consumed_grams: grams });
@@ -99,15 +98,15 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
                 className="mt-1 w-24 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm"
               />
             </label>
-            <Button
+            <button
               onClick={() => handleGenerate(false)}
               disabled={generating}
-              size="sm"
+              className="rounded bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm font-medium disabled:opacity-50"
             >
               {generating ? "…" : "✨ Générer un plan"}
-            </Button>
+            </button>
           </div>
-          {err && <div className="mt-2 text-sm text-[var(--destructive)]">⚠ {err}</div>}
+          {err && <div className="mt-2 text-sm text-red-500">⚠ {err}</div>}
         </div>
       </div>
     );
@@ -138,8 +137,8 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
         <span
           className={`text-xs rounded px-2 py-0.5 ${
             consoEnregistree
-              ? "bg-[var(--success-muted)] text-[var(--success)]"
-              : "bg-[var(--warning-muted)] text-[var(--warning)]"
+              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+              : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
           }`}
           title={
             consoEnregistree
@@ -167,19 +166,18 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
             className="w-20 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-xs"
             title="Budget CAD/j"
           />
-          <Button
+          <button
             onClick={() => handleGenerate(true)}
             disabled={generating}
-            variant="secondary"
-            size="sm"
+            className="rounded bg-[var(--primary)] text-[var(--primary-foreground)] px-2 py-1 text-xs disabled:opacity-50"
           >
             {generating ? "…" : "🔄 Re-générer"}
-          </Button>
+          </button>
         </div>
       </div>
 
       {plan.warning && (
-        <div className="rounded border border-[var(--warning)]/40 bg-[var(--warning-muted)] px-3 py-2 text-sm text-[var(--warning)]">
+        <div className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
           ⚠ {plan.warning}
         </div>
       )}
@@ -206,29 +204,26 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
 
       {/* Actions principales */}
       <div className="flex flex-wrap gap-2">
-        <Button
+        <button
           onClick={handleConsommeLePlan}
           disabled={savingConso}
-          variant="success"
-          size="sm"
+          className="rounded bg-emerald-600 text-white px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
           title="Copie le plan d'aujourd'hui dans consumed pour activer la compensation J+1"
         >
           {savingConso ? "…" : consoEnregistree ? "✓ J'ai suivi le plan (re-enregistrer)" : "✓ J'ai suivi le plan"}
-        </Button>
-        <Button
+        </button>
+        <button
           onClick={() => setConsoDrawerOpen(true)}
-          variant="secondary"
-          size="sm"
+          className="rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--accent)]"
         >
           ✏️ Ajuster ce que j'ai mangé
-        </Button>
-        <Button
+        </button>
+        <button
           onClick={onOpenMicros}
-          variant="secondary"
-          size="sm"
+          className="rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--accent)]"
         >
           🔬 Voir tous les micronutriments
-        </Button>
+        </button>
       </div>
 
       {/* Tableau du plan */}
@@ -266,7 +261,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
         </table>
       </div>
 
-      {err && <div className="text-sm text-[var(--destructive)]">⚠ {err}</div>}
+      {err && <div className="text-sm text-red-500">⚠ {err}</div>}
 
       <ConsoDrawer
         open={consoDrawerOpen}

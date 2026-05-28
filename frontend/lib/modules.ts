@@ -1,3 +1,8 @@
+/**
+ * Liste centrale des modules — utilisée par la sidebar et la home page.
+ * Chaque module a une page placeholder en CONV 1.
+ */
+
 import {
   BookOpen,
   Briefcase,
@@ -36,7 +41,6 @@ export const MODULES: Module[] = [
     description: "Vêtements, tenues, score thermique.",
     icon: Shirt,
     conv: "CONV 2",
-    ready: true,
   },
   {
     slug: "sante",
@@ -44,7 +48,6 @@ export const MODULES: Module[] = [
     description: "Mesures, nutrition, plan macros.",
     icon: HeartPulse,
     conv: "CONV 3",
-    ready: true,
   },
   {
     slug: "agenda",
@@ -52,7 +55,6 @@ export const MODULES: Module[] = [
     description: "Événements, rappels.",
     icon: Calendar,
     conv: "CONV 5",
-    ready: true,
   },
   {
     slug: "etudes",
@@ -60,7 +62,6 @@ export const MODULES: Module[] = [
     description: "Suivi des sessions de travail.",
     icon: GraduationCap,
     conv: "CONV 6",
-    ready: true,
   },
   {
     slug: "entrainement",
@@ -68,7 +69,6 @@ export const MODULES: Module[] = [
     description: "Séances de sport, prise de muscle.",
     icon: Dumbbell,
     conv: "CONV 7",
-    ready: true,
   },
   {
     slug: "budget",

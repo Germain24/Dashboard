@@ -111,7 +111,7 @@ export function ProgrammeTab({ program, exercices, onProgramChanged }: Props) {
         </table>
       </div>
 
-      {err && <div className="text-sm text-[var(--destructive)]">⚠ {err}</div>}
+      {err && <div className="text-sm text-red-500">⚠ {err}</div>}
 
       <p className="text-xs text-[var(--muted-foreground)]">
         Le programme PPL/UL est créé automatiquement. Tu peux changer le label
