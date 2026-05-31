@@ -1,0 +1,157 @@
+{
+  "nodes": [
+    {"id": "nextconfig_nextconfig", "label": "Next.js Config (API Proxy)", "file_type": "config", "source_file": "frontend/next.config.ts", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "packagejson_frontend", "label": "Frontend package.json", "file_type": "config", "source_file": "frontend/package.json", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "postcss_config", "label": "PostCSS Config", "file_type": "config", "source_file": "frontend/postcss.config.mjs", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "tsconfig_frontend", "label": "TypeScript Config (Frontend)", "file_type": "config", "source_file": "frontend/tsconfig.json", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+
+    {"id": "greeting_greeting", "label": "Greeting Component", "file_type": "code", "source_file": "frontend/components/Greeting.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "healthbadge_healthbadge", "label": "HealthBadge Component", "file_type": "code", "source_file": "frontend/components/HealthBadge.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "mobilenav_mobilenav", "label": "MobileNav Component", "file_type": "code", "source_file": "frontend/components/MobileNav.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "modulecard_modulecard", "label": "ModuleCard Component", "file_type": "code", "source_file": "frontend/components/ModuleCard.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "moduleplaceholder_moduleplaceholder", "label": "ModulePlaceholder Component", "file_type": "code", "source_file": "frontend/components/ModulePlaceholder.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "sidebar_sidebar", "label": "Sidebar Component", "file_type": "code", "source_file": "frontend/components/Sidebar.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "sidebar_navitem", "label": "NavItem (Sidebar)", "file_type": "code", "source_file": "frontend/components/Sidebar.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+
+    {"id": "agenda_agenda", "label": "Agenda Orchestrator", "file_type": "code", "source_file": "frontend/components/agenda/Agenda.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "agenda_jourtab", "label": "Agenda JourTab (Daily Timeline)", "file_type": "code", "source_file": "frontend/components/agenda/JourTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "agenda_jourtab_eventblock", "label": "EventBlock (JourTab)", "file_type": "code", "source_file": "frontend/components/agenda/JourTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "agenda_jourtab_slotblock", "label": "SlotBlock (JourTab)", "file_type": "code", "source_file": "frontend/components/agenda/JourTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "agenda_semainetab", "label": "Agenda SemaineTab (Week View)", "file_type": "code", "source_file": "frontend/components/agenda/SemaineTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "agenda_tachestab", "label": "Agenda TachesTab (Task List)", "file_type": "code", "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "agenda_tachestab_tacherow", "label": "TacheRow (TachesTab)", "file_type": "code", "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+
+    {"id": "entrainement_entrainement", "label": "Entrainement Orchestrator", "file_type": "code", "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "entrainement_aujourdhuitab", "label": "AujourdhuiTab (Today Session)", "file_type": "code", "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "entrainement_aujourdhuitab_slotcard", "label": "SlotCard (AujourdhuiTab)", "file_type": "code", "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "entrainement_aujourdhuitab_addsetform", "label": "AddSetForm (AujourdhuiTab)", "file_type": "code", "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "entrainement_aujourdhuitab_finishbar", "label": "FinishBar (AujourdhuiTab)", "file_type": "code", "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "entrainement_calendriertab", "label": "CalendrierTab (Session History)", "file_type": "code", "source_file": "frontend/components/entrainement/CalendrierTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "entrainement_cardiotab", "label": "CardioTab (Running Log)", "file_type": "code", "source_file": "frontend/components/entrainement/CardioTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "entrainement_programmetab", "label": "ProgrammeTab (Weekly Program)", "file_type": "code", "source_file": "frontend/components/entrainement/ProgrammeTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "entrainement_progressiontab", "label": "ProgressionTab (1RM Progression)", "file_type": "code", "source_file": "frontend/components/entrainement/ProgressionTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "entrainement_progressiontab_chart", "label": "ProgressionChart (SVG)", "file_type": "code", "source_file": "frontend/components/entrainement/ProgressionTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+
+    {"id": "etudes_courstab", "label": "CoursTab (Course List)", "file_type": "code", "source_file": "frontend/components/etudes/CoursTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "etudes_deadlinestab", "label": "DeadlinesTab (Evaluations)", "file_type": "code", "source_file": "frontend/components/etudes/DeadlinesTab.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+
+    {"id": "lib_api", "label": "lib/api (fetchHealth)", "file_type": "code", "source_file": "frontend/lib/api.ts", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "lib_modules", "label": "lib/modules (MODULES registry)", "file_type": "code", "source_file": "frontend/lib/modules.ts", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "lib_agenda", "label": "lib/agenda (API + types)", "file_type": "code", "source_file": "frontend/lib/agenda.ts", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "lib_entrainement", "label": "lib/entrainement (API + types)", "file_type": "code", "source_file": "frontend/lib/entrainement.ts", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "lib_etudes", "label": "lib/etudes (API + types)", "file_type": "code", "source_file": "frontend/lib/etudes.ts", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "lib_utils", "label": "lib/utils (cn helper)", "file_type": "code", "source_file": "frontend/lib/utils.ts", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+
+    {"id": "ui_tabs", "label": "UI Tabs Component", "file_type": "code", "source_file": "frontend/components/ui/tabs.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "ui_badge", "label": "UI Badge Component", "file_type": "code", "source_file": "frontend/components/ui/badge.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "ui_spinner", "label": "UI Spinner Component", "file_type": "code", "source_file": "frontend/components/ui/spinner.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "ui_button", "label": "UI Button Component", "file_type": "code", "source_file": "frontend/components/ui/button.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "ui_input", "label": "UI Input Component", "file_type": "code", "source_file": "frontend/components/ui/input.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "ui_select", "label": "UI Select Component", "file_type": "code", "source_file": "frontend/components/ui/select.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "ui_textarea", "label": "UI Textarea Component", "file_type": "code", "source_file": "frontend/components/ui/textarea.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+    {"id": "ui_emptystate", "label": "UI EmptyState Component", "file_type": "code", "source_file": "frontend/components/ui/empty-state.tsx", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null},
+
+    {"id": "backend_api", "label": "Backend API (FastAPI at :8000)", "file_type": "code", "source_file": "backend/app/main.py", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null}
+  ],
+  "edges": [
+    {"source": "nextconfig_nextconfig", "target": "backend_api", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/next.config.ts", "source_location": null, "weight": 1.0},
+
+    {"source": "healthbadge_healthbadge", "target": "lib_api", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/HealthBadge.tsx", "source_location": null, "weight": 1.0},
+    {"source": "healthbadge_healthbadge", "target": "lib_utils", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/HealthBadge.tsx", "source_location": null, "weight": 0.8},
+    {"source": "healthbadge_healthbadge", "target": "backend_api", "relation": "shares_data_with", "confidence": "INFERRED", "confidence_score": 0.95, "source_file": "frontend/components/HealthBadge.tsx", "source_location": null, "weight": 0.9},
+
+    {"source": "mobilenav_mobilenav", "target": "lib_modules", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/MobileNav.tsx", "source_location": null, "weight": 1.0},
+    {"source": "mobilenav_mobilenav", "target": "lib_utils", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/MobileNav.tsx", "source_location": null, "weight": 0.8},
+
+    {"source": "modulecard_modulecard", "target": "lib_modules", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/ModuleCard.tsx", "source_location": null, "weight": 1.0},
+    {"source": "modulecard_modulecard", "target": "lib_utils", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/ModuleCard.tsx", "source_location": null, "weight": 0.8},
+
+    {"source": "moduleplaceholder_moduleplaceholder", "target": "lib_modules", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/ModulePlaceholder.tsx", "source_location": null, "weight": 1.0},
+
+    {"source": "sidebar_sidebar", "target": "lib_modules", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/Sidebar.tsx", "source_location": null, "weight": 1.0},
+    {"source": "sidebar_sidebar", "target": "sidebar_navitem", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/Sidebar.tsx", "source_location": null, "weight": 1.0},
+    {"source": "sidebar_sidebar", "target": "lib_utils", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/Sidebar.tsx", "source_location": null, "weight": 0.8},
+
+    {"source": "sidebar_sidebar", "target": "mobilenav_mobilenav", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.95, "source_file": "frontend/components/Sidebar.tsx", "source_location": null, "weight": 0.7},
+
+    {"source": "agenda_agenda", "target": "agenda_jourtab", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/Agenda.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_agenda", "target": "agenda_semainetab", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/Agenda.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_agenda", "target": "agenda_tachestab", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/Agenda.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_agenda", "target": "lib_agenda", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/Agenda.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_agenda", "target": "ui_tabs", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/Agenda.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_agenda", "target": "ui_badge", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/Agenda.tsx", "source_location": null, "weight": 0.9},
+    {"source": "agenda_agenda", "target": "ui_spinner", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/Agenda.tsx", "source_location": null, "weight": 0.9},
+
+    {"source": "agenda_jourtab", "target": "lib_agenda", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/JourTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_jourtab", "target": "ui_button", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/JourTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "agenda_jourtab", "target": "agenda_jourtab_eventblock", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/JourTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_jourtab", "target": "agenda_jourtab_slotblock", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/JourTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_jourtab", "target": "entrainement_entrainement", "relation": "shares_data_with", "confidence": "INFERRED", "confidence_score": 0.85, "source_file": "frontend/components/agenda/JourTab.tsx", "source_location": null, "weight": 0.7},
+
+    {"source": "agenda_semainetab", "target": "lib_agenda", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/SemaineTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_semainetab", "target": "ui_button", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/SemaineTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "agenda_semainetab", "target": "ui_spinner", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/SemaineTab.tsx", "source_location": null, "weight": 0.9},
+
+    {"source": "agenda_tachestab", "target": "lib_agenda", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_tachestab", "target": "agenda_tachestab_tacherow", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "agenda_tachestab", "target": "ui_button", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "agenda_tachestab", "target": "ui_input", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "agenda_tachestab", "target": "ui_select", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "agenda_tachestab", "target": "ui_textarea", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "agenda_tachestab", "target": "ui_spinner", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "agenda_tachestab", "target": "ui_emptystate", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "agenda_tachestab", "target": "lib_utils", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/agenda/TachesTab.tsx", "source_location": null, "weight": 0.8},
+
+    {"source": "entrainement_entrainement", "target": "entrainement_aujourdhuitab", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_entrainement", "target": "entrainement_calendriertab", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_entrainement", "target": "entrainement_cardiotab", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_entrainement", "target": "entrainement_programmetab", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_entrainement", "target": "entrainement_progressiontab", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_entrainement", "target": "lib_entrainement", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_entrainement", "target": "ui_tabs", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_entrainement", "target": "ui_badge", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 0.9},
+    {"source": "entrainement_entrainement", "target": "ui_spinner", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 0.9},
+    {"source": "entrainement_entrainement", "target": "backend_api", "relation": "shares_data_with", "confidence": "INFERRED", "confidence_score": 0.95, "source_file": "frontend/components/entrainement/Entrainement.tsx", "source_location": null, "weight": 0.9},
+
+    {"source": "entrainement_aujourdhuitab", "target": "lib_entrainement", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_aujourdhuitab", "target": "entrainement_aujourdhuitab_slotcard", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_aujourdhuitab", "target": "entrainement_aujourdhuitab_finishbar", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_aujourdhuitab_slotcard", "target": "entrainement_aujourdhuitab_addsetform", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_aujourdhuitab_addsetform", "target": "lib_entrainement", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_aujourdhuitab", "target": "ui_button", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "entrainement_aujourdhuitab", "target": "ui_spinner", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "entrainement_aujourdhuitab", "target": "ui_emptystate", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "weight": 0.9},
+    {"source": "entrainement_aujourdhuitab", "target": "entrainement_entrainement", "relation": "shares_data_with", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/AujourdhuiTab.tsx", "source_location": null, "weight": 0.9},
+
+    {"source": "entrainement_calendriertab", "target": "lib_entrainement", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/CalendrierTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_calendriertab", "target": "entrainement_entrainement", "relation": "shares_data_with", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/CalendrierTab.tsx", "source_location": null, "weight": 0.9},
+
+    {"source": "entrainement_cardiotab", "target": "lib_entrainement", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/CardioTab.tsx", "source_location": null, "weight": 1.0},
+
+    {"source": "entrainement_programmetab", "target": "lib_entrainement", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/ProgrammeTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_programmetab", "target": "entrainement_entrainement", "relation": "shares_data_with", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/ProgrammeTab.tsx", "source_location": null, "weight": 0.9},
+
+    {"source": "entrainement_progressiontab", "target": "lib_entrainement", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/ProgressionTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_progressiontab", "target": "entrainement_progressiontab_chart", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/ProgressionTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "entrainement_progressiontab", "target": "entrainement_entrainement", "relation": "shares_data_with", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/entrainement/ProgressionTab.tsx", "source_location": null, "weight": 0.9},
+
+    {"source": "etudes_courstab", "target": "lib_etudes", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/etudes/CoursTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "etudes_deadlinestab", "target": "lib_etudes", "relation": "calls", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/etudes/DeadlinesTab.tsx", "source_location": null, "weight": 1.0},
+    {"source": "etudes_deadlinestab", "target": "etudes_courstab", "relation": "shares_data_with", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "frontend/components/etudes/DeadlinesTab.tsx", "source_location": null, "weight": 0.9},
+
+    {"source": "lib_agenda", "target": "backend_api", "relation": "calls", "confidence": "INFERRED", "confidence_score": 0.95, "source_file": "frontend/lib/agenda.ts", "source_location": null, "weight": 1.0},
+    {"source": "lib_entrainement", "target": "backend_api", "relation": "calls", "confidence": "INFERRED", "confidence_score": 0.95, "source_file": "frontend/lib/entrainement.ts", "source_location": null, "weight": 1.0},
+    {"source": "lib_etudes", "target": "backend_api", "relation": "calls", "confidence": "INFERRED", "confidence_score": 0.95, "source_file": "frontend/lib/etudes.ts", "source_location": null, "weight": 1.0},
+
+    {"source": "packagejson_frontend", "target": "nextconfig_nextconfig", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.85, "source_file": "frontend/package.json", "source_location": null, "weight": 0.6},
+    {"source": "postcss_config", "target": "packagejson_frontend", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.85, "source_file": "frontend/postcss.config.mjs", "source_location": null, "weight": 0.5},
+    {"source": "tsconfig_frontend", "target": "packagejson_frontend", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.85, "source_file": "frontend/tsconfig.json", "source_location": null, "weight": 0.5},
+
+    {"source": "greeting_greeting", "target": "agenda_agenda", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.65, "source_file": "frontend/components/Greeting.tsx", "source_location": null, "weight": 0.4},
+
+    {"source": "etudes_deadlinestab", "target": "agenda_tachestab", "relation": "conceptually_related_to", "confidence": "INFERRED", "confidence_score": 0.75, "source_file": "frontend/components/etudes/DeadlinesTab.tsx", "source_location": null, "weight": 0.6}
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

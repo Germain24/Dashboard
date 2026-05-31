@@ -1,0 +1,1411 @@
+{
+  "nodes": [
+    {
+      "id": "projection_WeightTrend",
+      "label": "WeightTrend Dataclass",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 16",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "projection_ProjectionResult",
+      "label": "ProjectionResult Dataclass",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 25",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "projection_project_weight_to_target",
+      "label": "project_weight_to_target Function",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 72",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "projection__linregress",
+      "label": "_linregress (Pure Python Linear Regression)",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 38",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "projection__compute_trend",
+      "label": "_compute_trend Helper",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 55",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "targets_calculate_daily_targets",
+      "label": "calculate_daily_targets Function",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/targets.py",
+      "source_location": "line 26",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "targets__find_entry_for_date",
+      "label": "_find_entry_for_date Helper",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/targets.py",
+      "source_location": "line 103",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "totals_calculate_plan_totals",
+      "label": "calculate_plan_totals Function",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/totals.py",
+      "source_location": "line 17",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "sante_init_module",
+      "label": "Sante Services __init__ (Public API)",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/__init__.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "data_cache_status",
+      "label": "Finance ETF Cache Status JSON",
+      "file_type": "data",
+      "source_file": "backend/data/cache_status.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-29",
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scripts_import_legacy",
+      "label": "import_legacy Script (DB Seeder)",
+      "file_type": "code",
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scripts_import_legacy_import_vetements",
+      "label": "import_vetements Function",
+      "file_type": "code",
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 104",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scripts_import_legacy_import_tenues",
+      "label": "import_tenues Function",
+      "file_type": "code",
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 142",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scripts_import_legacy_import_sante",
+      "label": "import_sante Function",
+      "file_type": "code",
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 172",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scripts_import_legacy_import_aliments",
+      "label": "import_aliments Function",
+      "file_type": "code",
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 221",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scripts_import_legacy_import_portefeuille",
+      "label": "import_portefeuille Function",
+      "file_type": "code",
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 265",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scripts_import_legacy_import_watchlist",
+      "label": "import_watchlist Function",
+      "file_type": "code",
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 313",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scripts_seed_dev",
+      "label": "seed_dev Script (DB State Inspector)",
+      "file_type": "code",
+      "source_file": "backend/scripts/seed_dev.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_test_health",
+      "label": "test_health Test Module",
+      "file_type": "code",
+      "source_file": "backend/tests/test_health.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_test_health_test_health_ok",
+      "label": "test_health_ok Test",
+      "file_type": "code",
+      "source_file": "backend/tests/test_health.py",
+      "source_location": "line 10",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_test_health_test_ping_modules",
+      "label": "test_ping_modules Test",
+      "file_type": "code",
+      "source_file": "backend/tests/test_health.py",
+      "source_location": "line 21",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_agenda_test_api",
+      "label": "Agenda API Integration Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_agenda/test_api.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_agenda_test_recurrence",
+      "label": "Agenda Recurrence Unit Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_agenda/test_recurrence.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_agenda_test_slots",
+      "label": "Agenda Free Slots Unit Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_agenda/test_slots.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_entrainement_test_api",
+      "label": "Entrainement API Integration Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_entrainement/test_api.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_entrainement_test_calories",
+      "label": "Entrainement Calories Unit Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_entrainement_test_cardio",
+      "label": "Entrainement Cardio Unit Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_entrainement/test_cardio.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_entrainement_test_garmin_seed",
+      "label": "Garmin Seed Integration Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_entrainement/test_garmin_seed.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_entrainement_test_intensity",
+      "label": "Entrainement Intensity Contract Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_entrainement_test_one_rm",
+      "label": "Epley One-RM Unit Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_entrainement/test_one_rm.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_entrainement_test_progression",
+      "label": "Entrainement Progression Unit Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_entrainement/test_progression.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tests_entrainement_test_suggested_weight",
+      "label": "Suggested Weight Unit Tests",
+      "file_type": "code",
+      "source_file": "backend/tests/test_entrainement/test_suggested_weight.py",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "projection_project_weight_to_target",
+      "target": "projection__linregress",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 100",
+      "weight": 1.0
+    },
+    {
+      "source": "projection_project_weight_to_target",
+      "target": "projection__compute_trend",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 81",
+      "weight": 1.0
+    },
+    {
+      "source": "projection_project_weight_to_target",
+      "target": "projection_ProjectionResult",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 86",
+      "weight": 1.0
+    },
+    {
+      "source": "projection__compute_trend",
+      "target": "projection__linregress",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 62",
+      "weight": 1.0
+    },
+    {
+      "source": "projection__compute_trend",
+      "target": "projection_WeightTrend",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 63",
+      "weight": 1.0
+    },
+    {
+      "source": "projection_ProjectionResult",
+      "target": "projection_WeightTrend",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/projection.py",
+      "source_location": "line 34",
+      "weight": 1.0
+    },
+    {
+      "source": "targets_calculate_daily_targets",
+      "target": "targets__find_entry_for_date",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/targets.py",
+      "source_location": "line 84",
+      "weight": 1.0
+    },
+    {
+      "source": "targets_calculate_daily_targets",
+      "target": "sante_intensity_default_intensity_for_date",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/targets.py",
+      "source_location": "line 54",
+      "weight": 1.0
+    },
+    {
+      "source": "targets_calculate_daily_targets",
+      "target": "sante_intensity_intensity_modifiers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/targets.py",
+      "source_location": "line 56",
+      "weight": 1.0
+    },
+    {
+      "source": "targets_calculate_daily_targets",
+      "target": "sante_constants_DAILY_BASE_TARGETS_NUTRIENTS",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/targets.py",
+      "source_location": "line 73",
+      "weight": 1.0
+    },
+    {
+      "source": "targets_calculate_daily_targets",
+      "target": "sante_constants_COMPENSATION_EXCLUDED",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/targets.py",
+      "source_location": "line 93",
+      "weight": 1.0
+    },
+    {
+      "source": "totals_calculate_plan_totals",
+      "target": "sante_constants_CSV_TO_NUTRIENT_KEY",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/totals.py",
+      "source_location": "line 49",
+      "weight": 1.0
+    },
+    {
+      "source": "totals_calculate_plan_totals",
+      "target": "sante_constants_SUGAR_COMPONENTS",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/totals.py",
+      "source_location": "line 55",
+      "weight": 1.0
+    },
+    {
+      "source": "totals_calculate_plan_totals",
+      "target": "sante_aliments_load_aliments_dataframe",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "backend/app/services/sante/totals.py",
+      "source_location": "line 17",
+      "weight": 0.85
+    },
+    {
+      "source": "sante_init_module",
+      "target": "projection_project_weight_to_target",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/__init__.py",
+      "source_location": "line 30",
+      "weight": 1.0
+    },
+    {
+      "source": "sante_init_module",
+      "target": "targets_calculate_daily_targets",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/__init__.py",
+      "source_location": "line 31",
+      "weight": 1.0
+    },
+    {
+      "source": "sante_init_module",
+      "target": "sante_goal_ensure_active_goal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/__init__.py",
+      "source_location": "line 24",
+      "weight": 1.0
+    },
+    {
+      "source": "sante_init_module",
+      "target": "sante_goal_get_active_goal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/__init__.py",
+      "source_location": "line 24",
+      "weight": 1.0
+    },
+    {
+      "source": "sante_init_module",
+      "target": "sante_intensity_INTENSITY_LEVELS",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/__init__.py",
+      "source_location": "line 25",
+      "weight": 1.0
+    },
+    {
+      "source": "sante_init_module",
+      "target": "sante_intensity_default_intensity_for_date",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/__init__.py",
+      "source_location": "line 26",
+      "weight": 1.0
+    },
+    {
+      "source": "sante_init_module",
+      "target": "sante_intensity_intensity_modifiers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/__init__.py",
+      "source_location": "line 27",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy",
+      "target": "scripts_import_legacy_import_vetements",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 423",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy",
+      "target": "scripts_import_legacy_import_tenues",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 424",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy",
+      "target": "scripts_import_legacy_import_sante",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 425",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy",
+      "target": "scripts_import_legacy_import_aliments",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 426",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy",
+      "target": "scripts_import_legacy_import_portefeuille",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 427",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy",
+      "target": "scripts_import_legacy_import_watchlist",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 428",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy_import_vetements",
+      "target": "models_Vetement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 135",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy_import_tenues",
+      "target": "models_TenueHistory",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 159",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy_import_sante",
+      "target": "models_MesureSante",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 193",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy_import_sante",
+      "target": "models_PlanNutrition",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 207",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy_import_aliments",
+      "target": "models_Aliment",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 256",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy_import_portefeuille",
+      "target": "models_SnapshotPortefeuille",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 301",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy_import_watchlist",
+      "target": "models_WatchlistEntry",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 396",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy",
+      "target": "core_config_settings",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 31",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy",
+      "target": "core_db_engine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": "line 32",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_seed_dev",
+      "target": "core_db_engine",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/seed_dev.py",
+      "source_location": "line 15",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_seed_dev",
+      "target": "models_Vetement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/seed_dev.py",
+      "source_location": "line 16",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_seed_dev",
+      "target": "models_Aliment",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/seed_dev.py",
+      "source_location": "line 17",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_seed_dev",
+      "target": "models_MesureSante",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/seed_dev.py",
+      "source_location": "line 18",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_seed_dev",
+      "target": "models_SnapshotPortefeuille",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/seed_dev.py",
+      "source_location": "line 19",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_seed_dev",
+      "target": "models_WatchlistEntry",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/scripts/seed_dev.py",
+      "source_location": "line 20",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_test_health_test_health_ok",
+      "target": "main_app",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_health.py",
+      "source_location": "line 7",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_test_health_test_ping_modules",
+      "target": "main_app",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_health.py",
+      "source_location": "line 7",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_test_health_test_ping_modules",
+      "target": "routes_finance_ping",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "backend/tests/test_health.py",
+      "source_location": "line 29",
+      "weight": 0.85
+    },
+    {
+      "source": "tests_agenda_test_api",
+      "target": "main_create_app",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_agenda/test_api.py",
+      "source_location": "line 14",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_agenda_test_api",
+      "target": "core_db_get_session",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_agenda/test_api.py",
+      "source_location": "line 15",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_agenda_test_api",
+      "target": "models_agenda_Evenement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_agenda/test_api.py",
+      "source_location": "line 16",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_agenda_test_api",
+      "target": "models_agenda_Tache",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_agenda/test_api.py",
+      "source_location": "line 16",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_agenda_test_api",
+      "target": "models_agenda_RegleRecurrence",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_agenda/test_api.py",
+      "source_location": "line 16",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_agenda_test_recurrence",
+      "target": "services_agenda_recurrence_expand_rule",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_agenda/test_recurrence.py",
+      "source_location": "line 6",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_agenda_test_recurrence",
+      "target": "services_agenda_recurrence_expand_rules_for_window",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_agenda/test_recurrence.py",
+      "source_location": "line 6",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_agenda_test_slots",
+      "target": "services_agenda_slots_free_slots",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_agenda/test_slots.py",
+      "source_location": "line 6",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_agenda_test_slots",
+      "target": "services_agenda_slots__merge_intervals",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_agenda/test_slots.py",
+      "source_location": "line 6",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_api",
+      "target": "main_app",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_api.py",
+      "source_location": "line 15",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_api",
+      "target": "core_db_get_session",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_api.py",
+      "source_location": "line 15",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_api",
+      "target": "routes_entrainement_exercises",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backend/tests/test_entrainement/test_api.py",
+      "source_location": "line 71",
+      "weight": 0.95
+    },
+    {
+      "source": "tests_entrainement_test_api",
+      "target": "routes_entrainement_program",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backend/tests/test_entrainement/test_api.py",
+      "source_location": "line 102",
+      "weight": 0.95
+    },
+    {
+      "source": "tests_entrainement_test_api",
+      "target": "routes_entrainement_sessions",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backend/tests/test_entrainement/test_api.py",
+      "source_location": "line 128",
+      "weight": 0.95
+    },
+    {
+      "source": "tests_entrainement_test_api",
+      "target": "routes_entrainement_cardio",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backend/tests/test_entrainement/test_api.py",
+      "source_location": "line 176",
+      "weight": 0.95
+    },
+    {
+      "source": "tests_entrainement_test_api",
+      "target": "routes_entrainement_intensity",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backend/tests/test_entrainement/test_api.py",
+      "source_location": "line 194",
+      "weight": 0.95
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "services_entrainement_calories_estimate_calories_seance",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 22",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "services_entrainement_calories_kcal_for_date",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 23",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "services_entrainement_calories_kcal_muscu_from_sets",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 24",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "services_entrainement_calories_kcal_run_from_course",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 25",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "services_entrainement_calories_resolve_poids_corps",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 26",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "models_sante_MesureSante",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 104",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_cardio",
+      "target": "services_entrainement_cardio_format_pace",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_cardio.py",
+      "source_location": "line 8",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_cardio",
+      "target": "services_entrainement_cardio_pace_sec_per_km",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_cardio.py",
+      "source_location": "line 8",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_garmin_seed",
+      "target": "main_app",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_garmin_seed.py",
+      "source_location": "line 10",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_garmin_seed",
+      "target": "services_entrainement_garmin_seed_seed_garmin_programs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_garmin_seed.py",
+      "source_location": "line 14",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_garmin_seed",
+      "target": "services_entrainement_garmin_seed_GARMIN_EXERCICES",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_garmin_seed.py",
+      "source_location": "line 13",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_garmin_seed",
+      "target": "services_entrainement_garmin_seed_GARMIN_WEEKDAYS",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_garmin_seed.py",
+      "source_location": "line 13",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_garmin_seed",
+      "target": "core_db_get_session",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_garmin_seed.py",
+      "source_location": "line 11",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "services_entrainement_compute_intensity_for_date",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 19",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "services_entrainement_default_intensity_for_date",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 21",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "services_entrainement_ensure_active_program",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 23",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "services_entrainement_INTENSITY_LEVELS",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 17",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "services_entrainement_update_program_day",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 24",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "models_entrainement_Seance",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 15",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "models_entrainement_SetSerie",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 15",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "sante_intensity_default_intensity_for_date",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 1",
+      "weight": 0.85
+    },
+    {
+      "source": "tests_entrainement_test_one_rm",
+      "target": "services_entrainement_one_rm_epley_1rm",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_one_rm.py",
+      "source_location": "line 7",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_one_rm",
+      "target": "services_entrainement_one_rm_best_1rm_from_sets",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_one_rm.py",
+      "source_location": "line 7",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_progression",
+      "target": "services_entrainement_progression_for_exercice",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_progression.py",
+      "source_location": "line 15",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_progression",
+      "target": "services_entrainement_current_1rm",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_progression.py",
+      "source_location": "line 16",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_suggested_weight",
+      "target": "services_entrainement_suggested_weight_suggested_weight",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_suggested_weight.py",
+      "source_location": "line 16",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_suggested_weight",
+      "target": "services_entrainement_suggested_weight_baseline_weight",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_suggested_weight.py",
+      "source_location": "line 17",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_suggested_weight",
+      "target": "services_entrainement_suggested_weight_BASELINE_RATIO",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_suggested_weight.py",
+      "source_location": "line 16",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_import_legacy",
+      "target": "scripts_seed_dev",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "backend/scripts/import_legacy.py",
+      "source_location": null,
+      "weight": 0.75
+    },
+    {
+      "source": "data_cache_status",
+      "target": "services_finance_buffett_cache_manager",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backend/data/cache_status.json",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "tests_entrainement_test_api",
+      "target": "services_entrainement_seed_exercices",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "backend/tests/test_entrainement/test_api.py",
+      "source_location": "line 41",
+      "weight": 0.85
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "services_entrainement_add_set",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 18",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "services_entrainement_create_exercice",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 18",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_intensity",
+      "target": "services_entrainement_create_session",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_intensity.py",
+      "source_location": "line 18",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_progression",
+      "target": "services_entrainement_add_set",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_progression.py",
+      "source_location": "line 12",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_progression",
+      "target": "services_entrainement_create_exercice",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_progression.py",
+      "source_location": "line 13",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_progression",
+      "target": "services_entrainement_create_session",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_progression.py",
+      "source_location": "line 14",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "services_entrainement_add_set",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 12",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "services_entrainement_create_exercice",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 13",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "services_entrainement_create_session",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 14",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_calories",
+      "target": "services_entrainement_create_course",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_calories.py",
+      "source_location": "line 15",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_suggested_weight",
+      "target": "services_entrainement_add_set",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_suggested_weight.py",
+      "source_location": "line 13",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_suggested_weight",
+      "target": "services_entrainement_create_exercice",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_suggested_weight.py",
+      "source_location": "line 14",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_entrainement_test_suggested_weight",
+      "target": "services_entrainement_create_session",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_entrainement/test_suggested_weight.py",
+      "source_location": "line 15",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 14500,
+  "output_tokens": 2800
+}

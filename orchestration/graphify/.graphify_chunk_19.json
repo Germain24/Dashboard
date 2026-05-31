@@ -1,0 +1,978 @@
+{
+  "nodes": [
+    {
+      "id": "main_fastapi_app",
+      "label": "FastAPI Application Entry Point",
+      "file_type": "code",
+      "source_file": "backend/app/main.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "core_config_settings",
+      "label": "Centralized Settings (Pydantic Settings)",
+      "file_type": "code",
+      "source_file": "backend/app/core/config.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "core_db_engine",
+      "label": "SQLite Database Engine & Session Factory",
+      "file_type": "code",
+      "source_file": "backend/app/core/db.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "api_router_registry",
+      "label": "API Router Registry (all modules)",
+      "file_type": "code",
+      "source_file": "backend/app/api/__init__.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "models_registry",
+      "label": "SQLModel Registry (Alembic discovery)",
+      "file_type": "code",
+      "source_file": "backend/app/models/__init__.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_api_client",
+      "label": "Frontend HTTP API Client",
+      "file_type": "code",
+      "source_file": "frontend/lib/api.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_modules_registry",
+      "label": "Frontend Module Registry (MODULES constant)",
+      "file_type": "code",
+      "source_file": "frontend/lib/modules.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "plan_md_orchestration",
+      "label": "Orchestration Plan (PLAN.md)",
+      "file_type": "document",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conv1_fondation_brief",
+      "label": "CONV 1 Foundation Brief",
+      "file_type": "document",
+      "source_file": "orchestration/CONV1_fondation.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conv_design_brief",
+      "label": "CONV DESIGN Design System Brief",
+      "file_type": "document",
+      "source_file": "orchestration/CONV_DESIGN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "module_finance",
+      "label": "Finance Module (Buffett + Portfolio)",
+      "file_type": "code",
+      "source_file": "backend/app/api/routes_finance.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "module_garderobe",
+      "label": "Garde-robe Module",
+      "file_type": "code",
+      "source_file": "backend/app/api/routes_garderobe.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "module_sante",
+      "label": "Santé Module",
+      "file_type": "code",
+      "source_file": "backend/app/api/routes_sante.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "module_agenda",
+      "label": "Agenda Module",
+      "file_type": "code",
+      "source_file": "backend/app/api/routes_agenda.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "module_etudes",
+      "label": "Études Module",
+      "file_type": "code",
+      "source_file": "backend/app/api/routes_etudes.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "module_entrainement",
+      "label": "Entraînement Module",
+      "file_type": "code",
+      "source_file": "backend/app/api/routes_entrainement.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "service_agenda_entrainement_bridge",
+      "label": "Agenda ↔ Entraînement In-Process Bridge",
+      "file_type": "code",
+      "source_file": "backend/app/services/agenda/entrainement_bridge.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "service_sante_intensity",
+      "label": "Santé Intensity Modifiers (pure Python)",
+      "file_type": "code",
+      "source_file": "backend/app/services/sante/intensity.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "service_finance_buffett_scoring_pure",
+      "label": "Buffett MOAT Scoring (pure Python, zero deps)",
+      "file_type": "code",
+      "source_file": "backend/app/services/finance/buffett/scoring_pure.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "service_etudes_grades",
+      "label": "Études GPA Calculation (pure Python)",
+      "file_type": "code",
+      "source_file": "backend/app/services/etudes/grades.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "service_finance_scheduler_stub",
+      "label": "Finance APScheduler Stubs (CONV 13 pending)",
+      "file_type": "code",
+      "source_file": "backend/app/services/finance/scheduler_stub.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "service_agenda_tasks",
+      "label": "Agenda Task CRUD (create_task signature)",
+      "file_type": "code",
+      "source_file": "backend/app/services/agenda/tasks.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pattern_pure_python_service",
+      "label": "Architectural Pattern: Pure Python Service Layer",
+      "file_type": "rationale",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pattern_inprocess_bridge",
+      "label": "Architectural Pattern: In-Process Module Bridge (try/except fallback)",
+      "file_type": "rationale",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pattern_sqlmodel_source_of_truth",
+      "label": "Architectural Rule: SQLModel = Single Source of Truth",
+      "file_type": "rationale",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pattern_api_contract_first",
+      "label": "Architectural Rule: API Contract First (OpenAPI → TS client)",
+      "file_type": "rationale",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pattern_design_system",
+      "label": "Design System Contract (CSS vars + UI primitives)",
+      "file_type": "rationale",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pattern_no_biz_logic_frontend",
+      "label": "Architectural Rule: No Business Logic in Frontend",
+      "file_type": "rationale",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "legacy_openclaw_mon_espace",
+      "label": "Legacy Streamlit Code (openclaw/mon_espace)",
+      "file_type": "document",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conv13_scheduler_pending",
+      "label": "CONV 13: Scheduler & Automated Jobs (pending)",
+      "file_type": "document",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conv12_ai_agent_pending",
+      "label": "CONV 12: AI Agent (Claude API tool calling, pending)",
+      "file_type": "document",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tache_source_contract",
+      "label": "Tache.source / Tache.source_id Cross-Module Contract",
+      "file_type": "rationale",
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "finance_history_excel_startup",
+      "label": "Finance Excel History Sync on Startup",
+      "file_type": "code",
+      "source_file": "backend/app/main.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_ui_primitives",
+      "label": "Frontend UI Primitive Components (frontend/components/ui/)",
+      "file_type": "code",
+      "source_file": "orchestration/CONV_DESIGN.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "main_fastapi_app",
+      "target": "core_config_settings",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/main.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "main_fastapi_app",
+      "target": "api_router_registry",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/main.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "main_fastapi_app",
+      "target": "finance_history_excel_startup",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/main.py",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "core_db_engine",
+      "target": "core_config_settings",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/core/db.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "api_router_registry",
+      "target": "module_finance",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/api/__init__.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "api_router_registry",
+      "target": "module_garderobe",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/api/__init__.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "api_router_registry",
+      "target": "module_sante",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/api/__init__.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "api_router_registry",
+      "target": "module_agenda",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/api/__init__.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "api_router_registry",
+      "target": "module_etudes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/api/__init__.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "api_router_registry",
+      "target": "module_entrainement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/api/__init__.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_api_client",
+      "target": "main_fastapi_app",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/lib/api.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_api_client",
+      "target": "pattern_api_contract_first",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "frontend/lib/api.ts",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "frontend_modules_registry",
+      "target": "api_router_registry",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "frontend/lib/modules.ts",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "service_agenda_entrainement_bridge",
+      "target": "module_entrainement",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/agenda/entrainement_bridge.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "service_agenda_entrainement_bridge",
+      "target": "pattern_inprocess_bridge",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/agenda/entrainement_bridge.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "service_sante_intensity",
+      "target": "pattern_pure_python_service",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/sante/intensity.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "service_finance_buffett_scoring_pure",
+      "target": "pattern_pure_python_service",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/finance/buffett/scoring_pure.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "service_etudes_grades",
+      "target": "pattern_pure_python_service",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/etudes/grades.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "service_finance_scheduler_stub",
+      "target": "conv13_scheduler_pending",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/finance/scheduler_stub.py",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "service_finance_scheduler_stub",
+      "target": "core_db_engine",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/finance/scheduler_stub.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "module_etudes",
+      "target": "service_agenda_tasks",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "tache_source_contract",
+      "target": "module_etudes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "tache_source_contract",
+      "target": "module_agenda",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "module_sante",
+      "target": "service_sante_intensity",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backend/app/services/sante/intensity.py",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "module_sante",
+      "target": "module_entrainement",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "module_agenda",
+      "target": "service_agenda_entrainement_bridge",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/agenda/entrainement_bridge.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "plan_md_orchestration",
+      "target": "pattern_pure_python_service",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "plan_md_orchestration",
+      "target": "pattern_inprocess_bridge",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "plan_md_orchestration",
+      "target": "pattern_sqlmodel_source_of_truth",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "plan_md_orchestration",
+      "target": "pattern_api_contract_first",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "plan_md_orchestration",
+      "target": "pattern_no_biz_logic_frontend",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "plan_md_orchestration",
+      "target": "pattern_design_system",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conv_design_brief",
+      "target": "pattern_design_system",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/CONV_DESIGN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conv_design_brief",
+      "target": "frontend_ui_primitives",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/CONV_DESIGN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_ui_primitives",
+      "target": "pattern_design_system",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "legacy_openclaw_mon_espace",
+      "target": "module_finance",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.7
+    },
+    {
+      "source": "legacy_openclaw_mon_espace",
+      "target": "module_garderobe",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.7
+    },
+    {
+      "source": "legacy_openclaw_mon_espace",
+      "target": "module_sante",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.7
+    },
+    {
+      "source": "conv1_fondation_brief",
+      "target": "core_config_settings",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/CONV1_fondation.md",
+      "source_location": null,
+      "weight": 0.8
+    },
+    {
+      "source": "conv1_fondation_brief",
+      "target": "core_db_engine",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/CONV1_fondation.md",
+      "source_location": null,
+      "weight": 0.8
+    },
+    {
+      "source": "conv1_fondation_brief",
+      "target": "frontend_api_client",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/CONV1_fondation.md",
+      "source_location": null,
+      "weight": 0.8
+    },
+    {
+      "source": "models_registry",
+      "target": "pattern_sqlmodel_source_of_truth",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/models/__init__.py",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pattern_pure_python_service",
+      "target": "pattern_inprocess_bridge",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.75
+    },
+    {
+      "source": "conv12_ai_agent_pending",
+      "target": "main_fastapi_app",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.6
+    },
+    {
+      "source": "conv13_scheduler_pending",
+      "target": "service_finance_scheduler_stub",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "module_entrainement",
+      "target": "service_sante_intensity",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "core_config_settings",
+      "target": "module_garderobe",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/core/config.py",
+      "source_location": null,
+      "weight": 0.8
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "all_modules_share_db_session_pattern",
+      "label": "All backend modules share SQLite + SQLModel session pattern via get_session()",
+      "nodes": [
+        "core_db_engine",
+        "module_finance",
+        "module_garderobe",
+        "module_sante",
+        "module_agenda",
+        "module_etudes",
+        "module_entrainement"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/core/db.py"
+    },
+    {
+      "id": "pure_python_service_pattern_trio",
+      "label": "Pure Python service layer pattern (no pandas/scipy): scoring_pure, grades, intensity",
+      "nodes": [
+        "service_finance_buffett_scoring_pure",
+        "service_etudes_grades",
+        "service_sante_intensity",
+        "pattern_pure_python_service"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md"
+    },
+    {
+      "id": "frontend_module_to_backend_route_contract",
+      "label": "Frontend module registry mirrors backend router registry (one slug = one route prefix)",
+      "nodes": [
+        "frontend_modules_registry",
+        "api_router_registry",
+        "frontend_api_client",
+        "pattern_api_contract_first"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "frontend/lib/modules.ts"
+    },
+    {
+      "id": "inter_module_integration_pattern",
+      "label": "Cross-module integration via in-process import with try/except fallback (Agenda↔Entraînement, Santé↔Entraînement, Études→Agenda)",
+      "nodes": [
+        "service_agenda_entrainement_bridge",
+        "module_sante",
+        "module_entrainement",
+        "module_etudes",
+        "module_agenda",
+        "pattern_inprocess_bridge"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md"
+    },
+    {
+      "id": "design_system_all_frontend_modules",
+      "label": "Design system (CSS vars, UI primitives, mobile-first) constrains all frontend modules",
+      "nodes": [
+        "pattern_design_system",
+        "frontend_ui_primitives",
+        "module_garderobe",
+        "module_sante",
+        "module_agenda",
+        "module_entrainement",
+        "module_etudes",
+        "module_finance"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md"
+    },
+    {
+      "id": "legacy_to_modern_porting_pipeline",
+      "label": "Legacy Streamlit code (openclaw) ported module-by-module to FastAPI+Next.js across CONVs 2-7",
+      "nodes": [
+        "legacy_openclaw_mon_espace",
+        "module_finance",
+        "module_garderobe",
+        "module_sante",
+        "module_agenda",
+        "module_etudes",
+        "module_entrainement"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "orchestration/PLAN.md"
+    },
+    {
+      "id": "scheduler_finance_jobs_pending_activation",
+      "label": "Finance automated jobs (daily snapshot + monthly Buffett) stubbed, awaiting CONV 13 APScheduler activation",
+      "nodes": [
+        "service_finance_scheduler_stub",
+        "conv13_scheduler_pending",
+        "module_finance",
+        "main_fastapi_app"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/services/finance/scheduler_stub.py"
+    },
+    {
+      "id": "global_config_provides_all_modules",
+      "label": "Single Settings object provides timezone, locale, CORS, DB URL and per-module config to entire backend",
+      "nodes": [
+        "core_config_settings",
+        "core_db_engine",
+        "main_fastapi_app",
+        "module_garderobe"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/app/core/config.py"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

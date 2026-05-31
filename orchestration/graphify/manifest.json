@@ -1,0 +1,1667 @@
+{
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\dev.ps1": {
+    "mtime": 1778855927.2621412,
+    "ast_hash": "0618bebfc0eff2df3a0a6b72c80de74c",
+    "semantic_hash": "0618bebfc0eff2df3a0a6b72c80de74c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\alembic\\env.py": {
+    "mtime": 1778815607.70918,
+    "ast_hash": "838e10db992af3104d6f4d681a0a99fb",
+    "semantic_hash": "838e10db992af3104d6f4d681a0a99fb"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\alembic\\versions\\20260515_0336_cd9aba577b3c_initial_schema.py": {
+    "mtime": 1778816161.0378187,
+    "ast_hash": "b4a1879db5e1e809d3e2bb077146543d",
+    "semantic_hash": "b4a1879db5e1e809d3e2bb077146543d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\alembic\\versions\\20260516_1400_a1b2c3d4e5f6_sante_extend.py": {
+    "mtime": 1778989200.8132448,
+    "ast_hash": "e1f91aa8229d336620ddad299b703538",
+    "semantic_hash": "e1f91aa8229d336620ddad299b703538"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\alembic\\versions\\20260517_1000_b2c3d4e5f6a7_entrainement.py": {
+    "mtime": 1779063365.2818732,
+    "ast_hash": "78ac37f85fcdba05df3965f87612fdcf",
+    "semantic_hash": "78ac37f85fcdba05df3965f87612fdcf"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\alembic\\versions\\20260525_1000_c3d4e5f6a7b8_agenda.py": {
+    "mtime": 1779770066.3773391,
+    "ast_hash": "ee7f2a815585ceec9defb066402be8c7",
+    "semantic_hash": "ee7f2a815585ceec9defb066402be8c7"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\alembic\\versions\\20260526_1000_d4e5f6a7b8c9_etudes.py": {
+    "mtime": 1779804718.496825,
+    "ast_hash": "88ebc48bccbbadd39658b175f0981c85",
+    "semantic_hash": "88ebc48bccbbadd39658b175f0981c85"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\alembic\\versions\\20260527_1000_e5f6a7b8c9d0_finance.py": {
+    "mtime": 1779937726.023888,
+    "ast_hash": "093c177f700c6df0766f243c479eb1d6",
+    "semantic_hash": "093c177f700c6df0766f243c479eb1d6"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\alembic\\versions\\20260529_0000_f6a7b8c9d0e1_add_created_at_transaction.py": {
+    "mtime": 1780028088.2768736,
+    "ast_hash": "c78a6af054687670ce33b15f6abd8bc9",
+    "semantic_hash": "c78a6af054687670ce33b15f6abd8bc9"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\main.py": {
+    "mtime": 1780151313.6580338,
+    "ast_hash": "f76fc2891a336e9128039405b5e0ac1d",
+    "semantic_hash": "f76fc2891a336e9128039405b5e0ac1d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\__init__.py": {
+    "mtime": 1778815517.269205,
+    "ast_hash": "07b32426e715afe4d77292cdf2371f0b",
+    "semantic_hash": "07b32426e715afe4d77292cdf2371f0b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_agenda.py": {
+    "mtime": 1779724108.9771347,
+    "ast_hash": "6acb2c9f7e8f6091a96b001a50bde3f0",
+    "semantic_hash": "6acb2c9f7e8f6091a96b001a50bde3f0"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_budget.py": {
+    "mtime": 1778815636.0091784,
+    "ast_hash": "674c4aa0f5f0166950528b64538aa7b5",
+    "semantic_hash": "674c4aa0f5f0166950528b64538aa7b5"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_cuisine.py": {
+    "mtime": 1778815636.0337677,
+    "ast_hash": "097665781ef0c8afcf18351dd9a9139e",
+    "semantic_hash": "097665781ef0c8afcf18351dd9a9139e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_entrainement.py": {
+    "mtime": 1779636250.7377634,
+    "ast_hash": "c45bbc5f4b7eb6573a98fe2fe902f7d6",
+    "semantic_hash": "c45bbc5f4b7eb6573a98fe2fe902f7d6"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_etudes.py": {
+    "mtime": 1779804838.1316507,
+    "ast_hash": "16e0f37f5c239d6ec2adbfd574ac67fd",
+    "semantic_hash": "16e0f37f5c239d6ec2adbfd574ac67fd"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_finance.py": {
+    "mtime": 1780152406.5767405,
+    "ast_hash": "4cff54fcc637062f53038b5faabb8850",
+    "semantic_hash": "4cff54fcc637062f53038b5faabb8850"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_garderobe.py": {
+    "mtime": 1778939330.3140738,
+    "ast_hash": "f90114a299e3b5466e58c15ba5472da1",
+    "semantic_hash": "f90114a299e3b5466e58c15ba5472da1"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_habitudes.py": {
+    "mtime": 1778815636.0585685,
+    "ast_hash": "76011c258fd8d7e3d85187deeeadbd32",
+    "semantic_hash": "76011c258fd8d7e3d85187deeeadbd32"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_health.py": {
+    "mtime": 1778815623.1657605,
+    "ast_hash": "773c6086572c367ede7af65882cee5f1",
+    "semantic_hash": "773c6086572c367ede7af65882cee5f1"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_livres.py": {
+    "mtime": 1778815636.0737984,
+    "ast_hash": "bb4daec1bc2ad3c8448e2349af5f16ee",
+    "semantic_hash": "bb4daec1bc2ad3c8448e2349af5f16ee"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_robot.py": {
+    "mtime": 1778815636.0878437,
+    "ast_hash": "33d32d243253c21e46e1cedce4e2e75c",
+    "semantic_hash": "33d32d243253c21e46e1cedce4e2e75c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\routes_sante.py": {
+    "mtime": 1779316104.3631158,
+    "ast_hash": "beed25ce2cb6e8ce102aa1db402253c8",
+    "semantic_hash": "beed25ce2cb6e8ce102aa1db402253c8"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\schemas_agenda.py": {
+    "mtime": 1779724072.8516212,
+    "ast_hash": "4a93cb2a664787e001daf8f2a190ad98",
+    "semantic_hash": "4a93cb2a664787e001daf8f2a190ad98"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\schemas_entrainement.py": {
+    "mtime": 1779462675.4900825,
+    "ast_hash": "7cc9d920b31462017b1b30a77500692e",
+    "semantic_hash": "7cc9d920b31462017b1b30a77500692e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\schemas_etudes.py": {
+    "mtime": 1779804807.5549738,
+    "ast_hash": "7389c6437b58974883cd78f67953ef64",
+    "semantic_hash": "7389c6437b58974883cd78f67953ef64"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\schemas_finance.py": {
+    "mtime": 1780121505.1588528,
+    "ast_hash": "a9bd4c0da25c348b48812503d90cea1a",
+    "semantic_hash": "a9bd4c0da25c348b48812503d90cea1a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\schemas_garderobe.py": {
+    "mtime": 1778938873.4495869,
+    "ast_hash": "02f9ef47cb04683e0efa5134c29a2451",
+    "semantic_hash": "02f9ef47cb04683e0efa5134c29a2451"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\schemas_sante.py": {
+    "mtime": 1779045462.4873877,
+    "ast_hash": "baa480f9e3a69e9458e6208c1da33716",
+    "semantic_hash": "baa480f9e3a69e9458e6208c1da33716"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\api\\__init__.py": {
+    "mtime": 1778815618.191669,
+    "ast_hash": "4513610f027361f03dd003593b440c59",
+    "semantic_hash": "4513610f027361f03dd003593b440c59"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\core\\config.py": {
+    "mtime": 1778938580.3197446,
+    "ast_hash": "4753f168824025b0fe4ed3323590b9af",
+    "semantic_hash": "4753f168824025b0fe4ed3323590b9af"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\core\\db.py": {
+    "mtime": 1778815530.3411815,
+    "ast_hash": "a8446d94ba6fb88ae65fd2ca19e3accc",
+    "semantic_hash": "a8446d94ba6fb88ae65fd2ca19e3accc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\core\\logging.py": {
+    "mtime": 1778815531.9414067,
+    "ast_hash": "f481501f1d832e9c1dde0c7d9422d3ad",
+    "semantic_hash": "f481501f1d832e9c1dde0c7d9422d3ad"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\core\\__init__.py": {
+    "mtime": 1778834629.9359865,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\agenda.py": {
+    "mtime": 1779723904.8318217,
+    "ast_hash": "8e100a24af604f72241f9896e5077333",
+    "semantic_hash": "8e100a24af604f72241f9896e5077333"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\budget.py": {
+    "mtime": 1778816131.2349732,
+    "ast_hash": "3b2f18fe20615b4e799c2f47ca4a6028",
+    "semantic_hash": "3b2f18fe20615b4e799c2f47ca4a6028"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\cuisine.py": {
+    "mtime": 1778816131.295002,
+    "ast_hash": "720ac70a93ddb056aab3848c9e91a30c",
+    "semantic_hash": "720ac70a93ddb056aab3848c9e91a30c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\entrainement.py": {
+    "mtime": 1779063953.7492507,
+    "ast_hash": "5d2f8ded4b55c8db84e3ec471b4ea524",
+    "semantic_hash": "5d2f8ded4b55c8db84e3ec471b4ea524"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\etudes.py": {
+    "mtime": 1779804691.8197856,
+    "ast_hash": "d5d468ff98c231c7e72c72b2cf810673",
+    "semantic_hash": "d5d468ff98c231c7e72c72b2cf810673"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\finance.py": {
+    "mtime": 1779937748.2744038,
+    "ast_hash": "829ea3d151d88dd3d1824cd364f15654",
+    "semantic_hash": "829ea3d151d88dd3d1824cd364f15654"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\garderobe.py": {
+    "mtime": 1778816131.516544,
+    "ast_hash": "04eb4e4074919fb2f4d6c200eff1d36b",
+    "semantic_hash": "04eb4e4074919fb2f4d6c200eff1d36b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\habitudes.py": {
+    "mtime": 1778816131.5651574,
+    "ast_hash": "a3ae7eca28c0c7cc225a1413c4b1cd3a",
+    "semantic_hash": "a3ae7eca28c0c7cc225a1413c4b1cd3a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\livres.py": {
+    "mtime": 1778816131.6332703,
+    "ast_hash": "372130d3fa2aef965f6735fafa708657",
+    "semantic_hash": "372130d3fa2aef965f6735fafa708657"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\sante.py": {
+    "mtime": 1779024027.9499433,
+    "ast_hash": "207ba124fcc97d804103b070deab9161",
+    "semantic_hash": "207ba124fcc97d804103b070deab9161"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\models\\__init__.py": {
+    "mtime": 1779980727.84153,
+    "ast_hash": "a0a54dde38d6d342d5b4ec89cd86cc82",
+    "semantic_hash": "a0a54dde38d6d342d5b4ec89cd86cc82"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\__init__.py": {
+    "mtime": 1778815640.023911,
+    "ast_hash": "4fa47017d8b8def5b946d195e91e9bcd",
+    "semantic_hash": "4fa47017d8b8def5b946d195e91e9bcd"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\agenda\\entrainement_bridge.py": {
+    "mtime": 1779723976.9864929,
+    "ast_hash": "009e38e4a3efccbe9d5f38dee51f381b",
+    "semantic_hash": "009e38e4a3efccbe9d5f38dee51f381b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\agenda\\events.py": {
+    "mtime": 1779724391.3713653,
+    "ast_hash": "e076950811748670a05ba8c787aa568b",
+    "semantic_hash": "e076950811748670a05ba8c787aa568b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\agenda\\ical_adapter.py": {
+    "mtime": 1779724027.5489879,
+    "ast_hash": "688d4c73eaa0338940ef3dff1d1cb22f",
+    "semantic_hash": "688d4c73eaa0338940ef3dff1d1cb22f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\agenda\\recurrence.py": {
+    "mtime": 1779723941.7126238,
+    "ast_hash": "811a20d2035f4c82b9ba77e51a23bc20",
+    "semantic_hash": "811a20d2035f4c82b9ba77e51a23bc20"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\agenda\\slots.py": {
+    "mtime": 1779723957.9845166,
+    "ast_hash": "5e69a7c0d5c4c1db87e9a7ade96cd4fc",
+    "semantic_hash": "5e69a7c0d5c4c1db87e9a7ade96cd4fc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\agenda\\tasks.py": {
+    "mtime": 1779724004.5705361,
+    "ast_hash": "99205198159aea43563c3f60ee4db3ef",
+    "semantic_hash": "99205198159aea43563c3f60ee4db3ef"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\agenda\\__init__.py": {
+    "mtime": 1779724049.8297539,
+    "ast_hash": "2ef8438bf09bcd6d4948f2f023866d1d",
+    "semantic_hash": "2ef8438bf09bcd6d4948f2f023866d1d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\calories.py": {
+    "mtime": 1779291495.834006,
+    "ast_hash": "536b696ef3beef9d4489590af69e1958",
+    "semantic_hash": "536b696ef3beef9d4489590af69e1958"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\cardio.py": {
+    "mtime": 1779063526.543779,
+    "ast_hash": "def41ee23bd2ea80e6e291af3ad76f09",
+    "semantic_hash": "def41ee23bd2ea80e6e291af3ad76f09"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\constants.py": {
+    "mtime": 1779063387.7104206,
+    "ast_hash": "539a971d0cd5528e26991e038ff0b640",
+    "semantic_hash": "539a971d0cd5528e26991e038ff0b640"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\exercises.py": {
+    "mtime": 1779290459.1359036,
+    "ast_hash": "a20d28c502463a9cf64a1683a63fd46d",
+    "semantic_hash": "a20d28c502463a9cf64a1683a63fd46d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\exercises_seed.py": {
+    "mtime": 1779290420.7580442,
+    "ast_hash": "e001367582ab2f99c0e2eb5ca974fec7",
+    "semantic_hash": "e001367582ab2f99c0e2eb5ca974fec7"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\garmin_seed.py": {
+    "mtime": 1779290479.398288,
+    "ast_hash": "8bc3daff9cb9079eb0538f7ab7d6fc96",
+    "semantic_hash": "8bc3daff9cb9079eb0538f7ab7d6fc96"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\intensity.py": {
+    "mtime": 1779064085.0249705,
+    "ast_hash": "fa973efb7edac0217b172a194e7bd7b2",
+    "semantic_hash": "fa973efb7edac0217b172a194e7bd7b2"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\one_rm.py": {
+    "mtime": 1779063400.2385626,
+    "ast_hash": "f283f88b5db4f30e8327773d94349b3f",
+    "semantic_hash": "f283f88b5db4f30e8327773d94349b3f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\programs.py": {
+    "mtime": 1779063454.417659,
+    "ast_hash": "2f2df10ca74c964af616456153c76c79",
+    "semantic_hash": "2f2df10ca74c964af616456153c76c79"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\progression.py": {
+    "mtime": 1779063513.4931252,
+    "ast_hash": "9fdef7bd02767ce0289aaece4c3ea466",
+    "semantic_hash": "9fdef7bd02767ce0289aaece4c3ea466"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\sessions.py": {
+    "mtime": 1779063489.2307272,
+    "ast_hash": "00b31d4505fee9e56cda0876edf68a28",
+    "semantic_hash": "00b31d4505fee9e56cda0876edf68a28"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\sets.py": {
+    "mtime": 1779063468.8822167,
+    "ast_hash": "f7967a4f5bcc246d5a590bcd80b5ee9f",
+    "semantic_hash": "f7967a4f5bcc246d5a590bcd80b5ee9f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\suggested_weight.py": {
+    "mtime": 1779636825.405099,
+    "ast_hash": "d0d6b28e11e08ee52d9af00d9d09508e",
+    "semantic_hash": "d0d6b28e11e08ee52d9af00d9d09508e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\entrainement\\__init__.py": {
+    "mtime": 1779423606.3734596,
+    "ast_hash": "0cb4a355d79d725df5a7a880743d74e7",
+    "semantic_hash": "0cb4a355d79d725df5a7a880743d74e7"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\etudes\\constants.py": {
+    "mtime": 1779804732.1437383,
+    "ast_hash": "9b6cc9c02da8e3c7588523c332b344df",
+    "semantic_hash": "9b6cc9c02da8e3c7588523c332b344df"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\etudes\\courses.py": {
+    "mtime": 1779804742.983583,
+    "ast_hash": "2b16f23eb8bb4ee7c4441d0bc1b8fce0",
+    "semantic_hash": "2b16f23eb8bb4ee7c4441d0bc1b8fce0"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\etudes\\evaluations.py": {
+    "mtime": 1779804756.7678893,
+    "ast_hash": "95c9daccc262af12d378a9ef6fa06c2f",
+    "semantic_hash": "95c9daccc262af12d378a9ef6fa06c2f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\etudes\\grades.py": {
+    "mtime": 1779804772.2741826,
+    "ast_hash": "4b4a5fc6c2c86f2ef59171242952706b",
+    "semantic_hash": "4b4a5fc6c2c86f2ef59171242952706b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\etudes\\sessions.py": {
+    "mtime": 1779804782.0991416,
+    "ast_hash": "6ff66167607460bc9b72a201faa6edba",
+    "semantic_hash": "6ff66167607460bc9b72a201faa6edba"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\etudes\\__init__.py": {
+    "mtime": 1779804790.0655456,
+    "ast_hash": "2428a607d41cded263c3948d12da7170",
+    "semantic_hash": "2428a607d41cded263c3948d12da7170"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\benchmarks.py": {
+    "mtime": 1780121417.6682518,
+    "ast_hash": "35dfac38d9441cf5b3fc0c4173ff924c",
+    "semantic_hash": "35dfac38d9441cf5b3fc0c4173ff924c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\history_excel.py": {
+    "mtime": 1780152516.8055449,
+    "ast_hash": "33835f8b2cf1a255a8eadd923a74c01b",
+    "semantic_hash": "33835f8b2cf1a255a8eadd923a74c01b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\portfolio.py": {
+    "mtime": 1779938210.9667482,
+    "ast_hash": "034e64e8524aecc917dc3c8b00c23a7b",
+    "semantic_hash": "034e64e8524aecc917dc3c8b00c23a7b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\rebalancing.py": {
+    "mtime": 1780100863.3779104,
+    "ast_hash": "478bac2845f732fadf5f245fabd0d7c3",
+    "semantic_hash": "478bac2845f732fadf5f245fabd0d7c3"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\risk.py": {
+    "mtime": 1779938248.9365673,
+    "ast_hash": "6ada2349bb3e8ad7e7ea2d44d01c454b",
+    "semantic_hash": "6ada2349bb3e8ad7e7ea2d44d01c454b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\scheduler_stub.py": {
+    "mtime": 1780119835.285797,
+    "ast_hash": "07d78e0d40fb253640d6ac4f92a88b54",
+    "semantic_hash": "07d78e0d40fb253640d6ac4f92a88b54"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\snapshots.py": {
+    "mtime": 1780152397.9262102,
+    "ast_hash": "b64341caba63a66ed7df2eb796c71642",
+    "semantic_hash": "b64341caba63a66ed7df2eb796c71642"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\transactions.py": {
+    "mtime": 1779938272.2690258,
+    "ast_hash": "d5b37134932add0afad714d21e8dbfe3",
+    "semantic_hash": "d5b37134932add0afad714d21e8dbfe3"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\__init__.py": {
+    "mtime": 1779938476.613614,
+    "ast_hash": "3247051fd324d8181798179b40c07861",
+    "semantic_hash": "3247051fd324d8181798179b40c07861"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\allocation.py": {
+    "mtime": 1780100564.2662323,
+    "ast_hash": "467a6914821a5f642baf0fe17e149521",
+    "semantic_hash": "467a6914821a5f642baf0fe17e149521"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\broker_availability.py": {
+    "mtime": 1780120080.1014087,
+    "ast_hash": "c2015b047b55a8802bfcd76ff7a22409",
+    "semantic_hash": "c2015b047b55a8802bfcd76ff7a22409"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\cache_manager.py": {
+    "mtime": 1780026151.0,
+    "ast_hash": "f3e4e2ff90b8917ce5d70d4ecbc7ab56",
+    "semantic_hash": "f3e4e2ff90b8917ce5d70d4ecbc7ab56"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\config.py": {
+    "mtime": 1780120058.418481,
+    "ast_hash": "9c55020d7f48a79b8d47b8f67675dffa",
+    "semantic_hash": "9c55020d7f48a79b8d47b8f67675dffa"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\copulas.py": {
+    "mtime": 1779938031.3104725,
+    "ast_hash": "16c37b63d7065d978935afa36542dac8",
+    "semantic_hash": "16c37b63d7065d978935afa36542dac8"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\data_fetch.py": {
+    "mtime": 1779937858.983771,
+    "ast_hash": "c7d9294fc7e8deae3b5bed1917524f0c",
+    "semantic_hash": "c7d9294fc7e8deae3b5bed1917524f0c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\dedup.py": {
+    "mtime": 1779937981.1851263,
+    "ast_hash": "cb23f63419e232110d055eacbc3befa9",
+    "semantic_hash": "cb23f63419e232110d055eacbc3befa9"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\optimizer.py": {
+    "mtime": 1780100588.0679545,
+    "ast_hash": "63eb4471f11a7d5b2314c03907f116d0",
+    "semantic_hash": "63eb4471f11a7d5b2314c03907f116d0"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\rate_limiter.py": {
+    "mtime": 1779937787.4483147,
+    "ast_hash": "fddcea79a58eaf7dd37457f87896dcd9",
+    "semantic_hash": "fddcea79a58eaf7dd37457f87896dcd9"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\reporting.py": {
+    "mtime": 1780119882.624209,
+    "ast_hash": "85b3998c6243ec4f64aba72740d55f95",
+    "semantic_hash": "85b3998c6243ec4f64aba72740d55f95"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\runner.py": {
+    "mtime": 1780120104.6390274,
+    "ast_hash": "10885b3773ea5ad588613ba579a0452e",
+    "semantic_hash": "10885b3773ea5ad588613ba579a0452e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\scoring.py": {
+    "mtime": 1780119469.175023,
+    "ast_hash": "5139e63b59aff4ba6c58900386679dd4",
+    "semantic_hash": "5139e63b59aff4ba6c58900386679dd4"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\scoring_pure.py": {
+    "mtime": 1779937838.52117,
+    "ast_hash": "ccdfd6ca1246c2d346b3894830df94f2",
+    "semantic_hash": "ccdfd6ca1246c2d346b3894830df94f2"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\vine_copula.py": {
+    "mtime": 1779938063.4247549,
+    "ast_hash": "cec86d4eca31f3ab2df30605a1cf7649",
+    "semantic_hash": "cec86d4eca31f3ab2df30605a1cf7649"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\finance\\buffett\\__init__.py": {
+    "mtime": 1779938168.6715682,
+    "ast_hash": "9edffd9022aeba9057295fe8063a4fa2",
+    "semantic_hash": "9edffd9022aeba9057295fe8063a4fa2"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\garderobe\\constants.py": {
+    "mtime": 1778938686.3235373,
+    "ast_hash": "5e3446c324d13e923f7809fde2000c31",
+    "semantic_hash": "5e3446c324d13e923f7809fde2000c31"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\garderobe\\optimizer.py": {
+    "mtime": 1778988095.875957,
+    "ast_hash": "190262a9293165458aaccf398125e9e4",
+    "semantic_hash": "190262a9293165458aaccf398125e9e4"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\garderobe\\recommendations.py": {
+    "mtime": 1778938832.6995502,
+    "ast_hash": "f40997171c60740cd29314e649550904",
+    "semantic_hash": "f40997171c60740cd29314e649550904"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\garderobe\\state.py": {
+    "mtime": 1778938693.684759,
+    "ast_hash": "d8bccdf39e060d47791bcb0f50d156f1",
+    "semantic_hash": "d8bccdf39e060d47791bcb0f50d156f1"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\garderobe\\style.py": {
+    "mtime": 1778938707.753924,
+    "ast_hash": "27dd7579471837019a02f82745f71ad4",
+    "semantic_hash": "27dd7579471837019a02f82745f71ad4"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\garderobe\\thermal.py": {
+    "mtime": 1778938721.214894,
+    "ast_hash": "7d1558b8b431d09143226100b630c0cc",
+    "semantic_hash": "7d1558b8b431d09143226100b630c0cc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\garderobe\\weather.py": {
+    "mtime": 1778938769.0497007,
+    "ast_hash": "15a566e6b3bc78044d45a0d1656b65f8",
+    "semantic_hash": "15a566e6b3bc78044d45a0d1656b65f8"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\garderobe\\__init__.py": {
+    "mtime": 1778939523.283655,
+    "ast_hash": "64c3bd7734f326b37120ad2ba38cdd78",
+    "semantic_hash": "64c3bd7734f326b37120ad2ba38cdd78"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\sante\\aliments.py": {
+    "mtime": 1779316092.5323162,
+    "ast_hash": "241a854c2e5e14c2cb4220edff1b2336",
+    "semantic_hash": "241a854c2e5e14c2cb4220edff1b2336"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\sante\\constants.py": {
+    "mtime": 1778989239.1795056,
+    "ast_hash": "1d1165e2791f88f6079710dc6bf5eb71",
+    "semantic_hash": "1d1165e2791f88f6079710dc6bf5eb71"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\sante\\goal.py": {
+    "mtime": 1778989271.243352,
+    "ast_hash": "a423ca3cd5547c683013c967b4399940",
+    "semantic_hash": "a423ca3cd5547c683013c967b4399940"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\sante\\intensity.py": {
+    "mtime": 1778989258.838508,
+    "ast_hash": "d06b1f1102968f0f234d99ad0244c1bc",
+    "semantic_hash": "d06b1f1102968f0f234d99ad0244c1bc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\sante\\optimizer.py": {
+    "mtime": 1779421238.1162002,
+    "ast_hash": "7d7aea780dbca69f4567f62e84ca1681",
+    "semantic_hash": "7d7aea780dbca69f4567f62e84ca1681"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\sante\\projection.py": {
+    "mtime": 1779024376.881114,
+    "ast_hash": "d0729360cb1d66142ca2043f5cf3a8ca",
+    "semantic_hash": "d0729360cb1d66142ca2043f5cf3a8ca"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\sante\\targets.py": {
+    "mtime": 1778989296.3344166,
+    "ast_hash": "4aae42a65d1a24acca6856d524963fbc",
+    "semantic_hash": "4aae42a65d1a24acca6856d524963fbc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\sante\\totals.py": {
+    "mtime": 1779023270.4748633,
+    "ast_hash": "04af4e20259a709d77228ae80e27fa51",
+    "semantic_hash": "04af4e20259a709d77228ae80e27fa51"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\app\\services\\sante\\__init__.py": {
+    "mtime": 1778989218.5300834,
+    "ast_hash": "4af74319207b5b52b968d3272713a2c8",
+    "semantic_hash": "4af74319207b5b52b968d3272713a2c8"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\data\\cache_status.json": {
+    "mtime": 1780102060.514542,
+    "ast_hash": "f3ed3e08b4a8028db413dd2ea33cb484",
+    "semantic_hash": "f3ed3e08b4a8028db413dd2ea33cb484"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\scripts\\import_legacy.py": {
+    "mtime": 1778835134.4404726,
+    "ast_hash": "c3087159e315f5596d5cd775e2f5ceed",
+    "semantic_hash": "c3087159e315f5596d5cd775e2f5ceed"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\scripts\\seed_dev.py": {
+    "mtime": 1778816241.0542014,
+    "ast_hash": "156981d2dfada65798280895b1f02ff2",
+    "semantic_hash": "156981d2dfada65798280895b1f02ff2"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\scripts\\__init__.py": {
+    "mtime": 1778834631.492667,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_health.py": {
+    "mtime": 1779024945.2624886,
+    "ast_hash": "58a85492ab13f5dcc02685f6f63ffdaa",
+    "semantic_hash": "58a85492ab13f5dcc02685f6f63ffdaa"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\__init__.py": {
+    "mtime": 1778834631.6166449,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_agenda\\test_api.py": {
+    "mtime": 1779724192.9695828,
+    "ast_hash": "9bbe8e9440fa172001173adda783b652",
+    "semantic_hash": "9bbe8e9440fa172001173adda783b652"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_agenda\\test_recurrence.py": {
+    "mtime": 1779724132.1543355,
+    "ast_hash": "1dcff89fdfc5486799e6d09577f42c25",
+    "semantic_hash": "1dcff89fdfc5486799e6d09577f42c25"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_agenda\\test_slots.py": {
+    "mtime": 1779724163.0318549,
+    "ast_hash": "34c8897793602dfd62a8544dbd324712",
+    "semantic_hash": "34c8897793602dfd62a8544dbd324712"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_agenda\\__init__.py": {
+    "mtime": 1779724132.1361413,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\test_api.py": {
+    "mtime": 1779290498.200943,
+    "ast_hash": "a21cd5bc41e7a6a88bf611e4c3ed948a",
+    "semantic_hash": "a21cd5bc41e7a6a88bf611e4c3ed948a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\test_calories.py": {
+    "mtime": 1779636466.7341032,
+    "ast_hash": "249f14d94277066c9a11009bfcf5f5a3",
+    "semantic_hash": "249f14d94277066c9a11009bfcf5f5a3"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\test_cardio.py": {
+    "mtime": 1779063753.9610908,
+    "ast_hash": "6f1f85d56e5a1b007d91b859282743fe",
+    "semantic_hash": "6f1f85d56e5a1b007d91b859282743fe"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\test_garmin_seed.py": {
+    "mtime": 1779217526.237872,
+    "ast_hash": "4c919152f5c4831b7c66b9680d086fe8",
+    "semantic_hash": "4c919152f5c4831b7c66b9680d086fe8"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\test_intensity.py": {
+    "mtime": 1779063731.130512,
+    "ast_hash": "16beec11f95560a796649957235f2d8d",
+    "semantic_hash": "16beec11f95560a796649957235f2d8d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\test_one_rm.py": {
+    "mtime": 1779063699.463521,
+    "ast_hash": "146e690fffce91ee543b4f382228166a",
+    "semantic_hash": "146e690fffce91ee543b4f382228166a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\test_progression.py": {
+    "mtime": 1779063746.7724912,
+    "ast_hash": "54d38a9e1db6efa3e1abb42579a09e4a",
+    "semantic_hash": "54d38a9e1db6efa3e1abb42579a09e4a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\test_suggested_weight.py": {
+    "mtime": 1779636825.4142299,
+    "ast_hash": "7448655fe43aff5368c745c2ff180302",
+    "semantic_hash": "7448655fe43aff5368c745c2ff180302"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\test_today_calories.py": {
+    "mtime": 1779636524.2429404,
+    "ast_hash": "9cf4c10be9456a8e6b980a3f408fcadd",
+    "semantic_hash": "9cf4c10be9456a8e6b980a3f408fcadd"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_entrainement\\__init__.py": {
+    "mtime": 1779063689.610446,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_etudes\\test_api.py": {
+    "mtime": 1779804898.3192978,
+    "ast_hash": "1b2fbc1c79fadd5b4a808a523d559e12",
+    "semantic_hash": "1b2fbc1c79fadd5b4a808a523d559e12"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_etudes\\test_grades.py": {
+    "mtime": 1779804863.7851865,
+    "ast_hash": "dceefc6434ab8b86b2c36ab30ee0a441",
+    "semantic_hash": "dceefc6434ab8b86b2c36ab30ee0a441"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_etudes\\__init__.py": {
+    "mtime": 1779804863.7758114,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_finance\\test_api.py": {
+    "mtime": 1779981123.3838668,
+    "ast_hash": "df4e5fb22fbe3029073e25c1dca1f517",
+    "semantic_hash": "df4e5fb22fbe3029073e25c1dca1f517"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_finance\\test_scoring_pure.py": {
+    "mtime": 1779980836.849195,
+    "ast_hash": "423ab1b2ff47676fc4db6804a8fc8489",
+    "semantic_hash": "423ab1b2ff47676fc4db6804a8fc8489"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_finance\\__init__.py": {
+    "mtime": 1779980571.520373,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_garderobe\\test_optimizer.py": {
+    "mtime": 1778939001.773527,
+    "ast_hash": "80fcf065e7d161c2a14166fa99876384",
+    "semantic_hash": "80fcf065e7d161c2a14166fa99876384"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_garderobe\\test_recommendations.py": {
+    "mtime": 1778939007.8776379,
+    "ast_hash": "9c8f7399db3a589e8461f4d25b83543d",
+    "semantic_hash": "9c8f7399db3a589e8461f4d25b83543d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_garderobe\\test_state.py": {
+    "mtime": 1778938947.709827,
+    "ast_hash": "e685e3578210f76c29d037e5cbc6a33d",
+    "semantic_hash": "e685e3578210f76c29d037e5cbc6a33d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_garderobe\\test_style.py": {
+    "mtime": 1778938973.2996893,
+    "ast_hash": "c0e3b98ffa0fa240263de57f5a9fe665",
+    "semantic_hash": "c0e3b98ffa0fa240263de57f5a9fe665"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_garderobe\\test_thermal.py": {
+    "mtime": 1778938965.2730772,
+    "ast_hash": "94215d077adc355b79b19e8fd6f88c69",
+    "semantic_hash": "94215d077adc355b79b19e8fd6f88c69"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_garderobe\\__init__.py": {
+    "mtime": 1778938937.6354492,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_sante\\test_api.py": {
+    "mtime": 1779316133.431497,
+    "ast_hash": "33211837949ea0e495892e0489259357",
+    "semantic_hash": "33211837949ea0e495892e0489259357"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_sante\\test_intensity.py": {
+    "mtime": 1779023607.5324957,
+    "ast_hash": "8aef1698170d99a3a8f99cc61e091736",
+    "semantic_hash": "8aef1698170d99a3a8f99cc61e091736"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_sante\\test_optimizer.py": {
+    "mtime": 1779421128.178328,
+    "ast_hash": "495814ba3388ca541e5b3b99ae32d8ca",
+    "semantic_hash": "495814ba3388ca541e5b3b99ae32d8ca"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_sante\\test_projection.py": {
+    "mtime": 1779024491.5372896,
+    "ast_hash": "863d5f5f93c7d80455c4fea82aec1b5b",
+    "semantic_hash": "863d5f5f93c7d80455c4fea82aec1b5b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_sante\\test_targets.py": {
+    "mtime": 1779023633.3886466,
+    "ast_hash": "bd6e244a9a47641d1eff0df3d946309e",
+    "semantic_hash": "bd6e244a9a47641d1eff0df3d946309e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\tests\\test_sante\\__init__.py": {
+    "mtime": 1779023592.3255312,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components.json": {
+    "mtime": 1778816361.567555,
+    "ast_hash": "989a1ea492728a0e5469cc5a9c141df8",
+    "semantic_hash": "989a1ea492728a0e5469cc5a9c141df8"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\next-env.d.ts": {
+    "mtime": 1778816332.6390553,
+    "ast_hash": "ba64ff7d54714a8f64db89b1003207d8",
+    "semantic_hash": "ba64ff7d54714a8f64db89b1003207d8"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\next.config.ts": {
+    "mtime": 1779981694.4357567,
+    "ast_hash": "aca9cd0b8b4632cd69a6c781fa3ed93e",
+    "semantic_hash": "aca9cd0b8b4632cd69a6c781fa3ed93e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\package.json": {
+    "mtime": 1778834591.5496185,
+    "ast_hash": "e6806ca16a63804721ff7f93229305ef",
+    "semantic_hash": "e6806ca16a63804721ff7f93229305ef"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\postcss.config.mjs": {
+    "mtime": 1778816332.747931,
+    "ast_hash": "675899342e765a4d16acd75a53389101",
+    "semantic_hash": "675899342e765a4d16acd75a53389101"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\tsconfig.json": {
+    "mtime": 1778834633.9582994,
+    "ast_hash": "be402bb2943ec4d70061ca82a37cd2d5",
+    "semantic_hash": "be402bb2943ec4d70061ca82a37cd2d5"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\Greeting.tsx": {
+    "mtime": 1779839539.4828622,
+    "ast_hash": "b02ff42a4b5ff559cb022b51a94ca139",
+    "semantic_hash": "b02ff42a4b5ff559cb022b51a94ca139"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\HealthBadge.tsx": {
+    "mtime": 1779839696.4106853,
+    "ast_hash": "b9962d97bd5cd1c4fe58f3cd0e2f81bf",
+    "semantic_hash": "b9962d97bd5cd1c4fe58f3cd0e2f81bf"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\MobileNav.tsx": {
+    "mtime": 1779839718.9869592,
+    "ast_hash": "b7f974aed51641416bb9e127f7bfbb05",
+    "semantic_hash": "b7f974aed51641416bb9e127f7bfbb05"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ModuleCard.tsx": {
+    "mtime": 1779839734.9958684,
+    "ast_hash": "aa8cd7ae10c7f79a4d197cff13ab4756",
+    "semantic_hash": "aa8cd7ae10c7f79a4d197cff13ab4756"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ModulePlaceholder.tsx": {
+    "mtime": 1778834503.778702,
+    "ast_hash": "06366b7b7c784a5e144747a76c3a9f02",
+    "semantic_hash": "06366b7b7c784a5e144747a76c3a9f02"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\Sidebar.tsx": {
+    "mtime": 1779839751.4300013,
+    "ast_hash": "de30eb5c95ab7bbde5f3ea9ef71fc1a7",
+    "semantic_hash": "de30eb5c95ab7bbde5f3ea9ef71fc1a7"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\agenda\\Agenda.tsx": {
+    "mtime": 1779823256.725587,
+    "ast_hash": "6326252a3c5aafa8942cf8d25df3657a",
+    "semantic_hash": "6326252a3c5aafa8942cf8d25df3657a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\agenda\\JourTab.tsx": {
+    "mtime": 1779823278.410222,
+    "ast_hash": "e62aea76156eba307fec6c5f9bc8432e",
+    "semantic_hash": "e62aea76156eba307fec6c5f9bc8432e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\agenda\\SemaineTab.tsx": {
+    "mtime": 1779823301.9116082,
+    "ast_hash": "626cd09c58e73351b9f80d14b0368396",
+    "semantic_hash": "626cd09c58e73351b9f80d14b0368396"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\agenda\\TachesTab.tsx": {
+    "mtime": 1779823330.114891,
+    "ast_hash": "71497e41867db0ce79e95e07e6ffba06",
+    "semantic_hash": "71497e41867db0ce79e95e07e6ffba06"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\entrainement\\AujourdhuiTab.tsx": {
+    "mtime": 1779823229.1584725,
+    "ast_hash": "47ac0f73ac1ce00b9c6f03b3212d92b7",
+    "semantic_hash": "47ac0f73ac1ce00b9c6f03b3212d92b7"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\entrainement\\CalendrierTab.tsx": {
+    "mtime": 1779912521.4095752,
+    "ast_hash": "0c152956696d0068d05620304701d392",
+    "semantic_hash": "0c152956696d0068d05620304701d392"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\entrainement\\CardioTab.tsx": {
+    "mtime": 1779912521.3897848,
+    "ast_hash": "57b51ef6595e1b5b168312b3944b236f",
+    "semantic_hash": "57b51ef6595e1b5b168312b3944b236f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\entrainement\\Entrainement.tsx": {
+    "mtime": 1779823184.9078805,
+    "ast_hash": "65380e727c80542e5fa1cc5cab587179",
+    "semantic_hash": "65380e727c80542e5fa1cc5cab587179"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\entrainement\\ProgrammeTab.tsx": {
+    "mtime": 1779912521.4263382,
+    "ast_hash": "edb4877bd18b2ce0bcf7a39d00f8b223",
+    "semantic_hash": "edb4877bd18b2ce0bcf7a39d00f8b223"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\entrainement\\ProgressionTab.tsx": {
+    "mtime": 1779912521.3699062,
+    "ast_hash": "13f228a157e8979f7343b6bbe1c6697a",
+    "semantic_hash": "13f228a157e8979f7343b6bbe1c6697a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\etudes\\CoursTab.tsx": {
+    "mtime": 1779804960.5668757,
+    "ast_hash": "b952eb3ce8f816fce8c9747172824e93",
+    "semantic_hash": "b952eb3ce8f816fce8c9747172824e93"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\etudes\\DeadlinesTab.tsx": {
+    "mtime": 1779804982.2753167,
+    "ast_hash": "38e9b13ed7b55343931c5ed8b29714f7",
+    "semantic_hash": "38e9b13ed7b55343931c5ed8b29714f7"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\etudes\\Etudes.tsx": {
+    "mtime": 1779805034.5845137,
+    "ast_hash": "dd009d589c33da79821c3a279a3d5fd4",
+    "semantic_hash": "dd009d589c33da79821c3a279a3d5fd4"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\etudes\\GpaTab.tsx": {
+    "mtime": 1779805001.7659626,
+    "ast_hash": "4239a563df7165ac2e507755d7eb22d5",
+    "semantic_hash": "4239a563df7165ac2e507755d7eb22d5"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\etudes\\SessionsTab.tsx": {
+    "mtime": 1779805023.9961505,
+    "ast_hash": "0418d81e42081e43948a83c5eb56087c",
+    "semantic_hash": "0418d81e42081e43948a83c5eb56087c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\finance\\BuffettTab.tsx": {
+    "mtime": 1780149387.703743,
+    "ast_hash": "7fad51fef357518b5d2839ed9eb9f1ef",
+    "semantic_hash": "7fad51fef357518b5d2839ed9eb9f1ef"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\finance\\CompositionTab.tsx": {
+    "mtime": 1779938785.174667,
+    "ast_hash": "65882b20ea98b33e022e18d10ee66c00",
+    "semantic_hash": "65882b20ea98b33e022e18d10ee66c00"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\finance\\Finance.tsx": {
+    "mtime": 1780080986.1586056,
+    "ast_hash": "762b2882237453c5f362096f6576c770",
+    "semantic_hash": "762b2882237453c5f362096f6576c770"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\finance\\PortefeuilleTab.tsx": {
+    "mtime": 1780080936.3675723,
+    "ast_hash": "98658ebdca28fa156cc4a1e800d726f3",
+    "semantic_hash": "98658ebdca28fa156cc4a1e800d726f3"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\finance\\RebalancingTab.tsx": {
+    "mtime": 1780102430.0628817,
+    "ast_hash": "adbc913586d65fc58f30ce7187c336a7",
+    "semantic_hash": "adbc913586d65fc58f30ce7187c336a7"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\finance\\SuiviTab.tsx": {
+    "mtime": 1780152415.9229374,
+    "ast_hash": "fe9bcf04390d4bfe623b380403c7e143",
+    "semantic_hash": "fe9bcf04390d4bfe623b380403c7e143"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\finance\\TransactionsTab.tsx": {
+    "mtime": 1779938868.5151827,
+    "ast_hash": "cc1aed9055ca1399fc6ed1846292156d",
+    "semantic_hash": "cc1aed9055ca1399fc6ed1846292156d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\garderobe\\Garderobe.tsx": {
+    "mtime": 1779823147.5815518,
+    "ast_hash": "d6a7db4b6ca1bec3a058a8387df03647",
+    "semantic_hash": "d6a7db4b6ca1bec3a058a8387df03647"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\garderobe\\HistoriqueTab.tsx": {
+    "mtime": 1778939857.7259169,
+    "ast_hash": "2a3ea593d71cc375284e65fd7c92b23c",
+    "semantic_hash": "2a3ea593d71cc375284e65fd7c92b23c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\garderobe\\InventaireTab.tsx": {
+    "mtime": 1779912510.9283857,
+    "ast_hash": "f180b35a5e429eb548eb7238c110f733",
+    "semantic_hash": "f180b35a5e429eb548eb7238c110f733"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\garderobe\\RecommandationsTab.tsx": {
+    "mtime": 1779912510.9478927,
+    "ast_hash": "55b6726d398dcf611854f052a4d8acb3",
+    "semantic_hash": "55b6726d398dcf611854f052a4d8acb3"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\garderobe\\SlotCard.tsx": {
+    "mtime": 1779912382.8914578,
+    "ast_hash": "6214d3bad7dffcf6ab6d0404d97643cc",
+    "semantic_hash": "6214d3bad7dffcf6ab6d0404d97643cc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\garderobe\\StatsTab.tsx": {
+    "mtime": 1779912510.9674618,
+    "ast_hash": "959f2cb48c92d0002669e4f06390474f",
+    "semantic_hash": "959f2cb48c92d0002669e4f06390474f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\garderobe\\ThermalScore.tsx": {
+    "mtime": 1779912468.3561811,
+    "ast_hash": "8c07aae1f6690753f2bb1ee6442b7679",
+    "semantic_hash": "8c07aae1f6690753f2bb1ee6442b7679"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\garderobe\\WeatherBanner.tsx": {
+    "mtime": 1778939765.9903488,
+    "ast_hash": "2edcca25dab8a3dd7328f7d142455d0a",
+    "semantic_hash": "2edcca25dab8a3dd7328f7d142455d0a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\sante\\CompositionTab.tsx": {
+    "mtime": 1779023546.646398,
+    "ast_hash": "135294400e67a35fd38e79a2f44014f5",
+    "semantic_hash": "135294400e67a35fd38e79a2f44014f5"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\sante\\ConsoDrawer.tsx": {
+    "mtime": 1779912521.3476505,
+    "ast_hash": "074aab02d01f5e910fa2da14d3dcf54f",
+    "semantic_hash": "074aab02d01f5e910fa2da14d3dcf54f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\sante\\GoalTab.tsx": {
+    "mtime": 1779912531.4611652,
+    "ast_hash": "9b3a7a039def2d47452baf7503e4a103",
+    "semantic_hash": "9b3a7a039def2d47452baf7503e4a103"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\sante\\JourTab.tsx": {
+    "mtime": 1779912449.0712428,
+    "ast_hash": "a0c045cee83c461bd57f4065e9ab00a6",
+    "semantic_hash": "a0c045cee83c461bd57f4065e9ab00a6"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\sante\\MacroBar.tsx": {
+    "mtime": 1779912400.3180337,
+    "ast_hash": "c6b6633b5310cf0ba00fc5026e797800",
+    "semantic_hash": "c6b6633b5310cf0ba00fc5026e797800"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\sante\\MicrosDrawer.tsx": {
+    "mtime": 1779023583.6411788,
+    "ast_hash": "b1d22d00114090d82e8965ef58f6ab19",
+    "semantic_hash": "b1d22d00114090d82e8965ef58f6ab19"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\sante\\Sante.tsx": {
+    "mtime": 1779823168.6177335,
+    "ast_hash": "8750f21ec787642ffd9549b96e440ffc",
+    "semantic_hash": "8750f21ec787642ffd9549b96e440ffc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\sante\\TendanceTab.tsx": {
+    "mtime": 1779912531.4393601,
+    "ast_hash": "5acd3c4e84788dd4c26544350b11a562",
+    "semantic_hash": "5acd3c4e84788dd4c26544350b11a562"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\badge.tsx": {
+    "mtime": 1779822988.505151,
+    "ast_hash": "c565696cb425ee678916fd7aa40072b3",
+    "semantic_hash": "c565696cb425ee678916fd7aa40072b3"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\button.tsx": {
+    "mtime": 1779839864.5346732,
+    "ast_hash": "1ba301f6e5283924b13db5c7f7fe786e",
+    "semantic_hash": "1ba301f6e5283924b13db5c7f7fe786e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\card.tsx": {
+    "mtime": 1779822996.493066,
+    "ast_hash": "0511b5ca40acb9ddbb461273dadf32b8",
+    "semantic_hash": "0511b5ca40acb9ddbb461273dadf32b8"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\chart-frame.tsx": {
+    "mtime": 1779823053.5110972,
+    "ast_hash": "efa69355d328d3a999b5392474770ff7",
+    "semantic_hash": "efa69355d328d3a999b5392474770ff7"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\dialog.tsx": {
+    "mtime": 1779823065.3238332,
+    "ast_hash": "932cf7106bd94b95c37a52788ab3186b",
+    "semantic_hash": "932cf7106bd94b95c37a52788ab3186b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\empty-state.tsx": {
+    "mtime": 1779823045.9726431,
+    "ast_hash": "8a3fc352bf394f2660fddcf348da3027",
+    "semantic_hash": "8a3fc352bf394f2660fddcf348da3027"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\index.ts": {
+    "mtime": 1779823070.9260628,
+    "ast_hash": "be4b092f16bf098a421c15bae11fd97d",
+    "semantic_hash": "be4b092f16bf098a421c15bae11fd97d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\input.tsx": {
+    "mtime": 1779823003.4487195,
+    "ast_hash": "c9aafac6e861e6f3f330516717d18ddc",
+    "semantic_hash": "c9aafac6e861e6f3f330516717d18ddc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\select.tsx": {
+    "mtime": 1779823016.35556,
+    "ast_hash": "397d04e51d7fb37d6bba91822555cb32",
+    "semantic_hash": "397d04e51d7fb37d6bba91822555cb32"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\skeleton.tsx": {
+    "mtime": 1779823040.3517687,
+    "ast_hash": "73a75b133249ea04ffd97d8e298dd004",
+    "semantic_hash": "73a75b133249ea04ffd97d8e298dd004"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\spinner.tsx": {
+    "mtime": 1779823032.808185,
+    "ast_hash": "b588a6b358a361d113789dbaf11e6502",
+    "semantic_hash": "b588a6b358a361d113789dbaf11e6502"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\tabs.tsx": {
+    "mtime": 1779839769.502416,
+    "ast_hash": "6025b8da984a8b50516c4d926a677fdc",
+    "semantic_hash": "6025b8da984a8b50516c4d926a677fdc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\components\\ui\\textarea.tsx": {
+    "mtime": 1779823009.1076622,
+    "ast_hash": "756890023bf03e40edbe3b8ae7397c35",
+    "semantic_hash": "756890023bf03e40edbe3b8ae7397c35"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\lib\\agenda.ts": {
+    "mtime": 1779724444.0451672,
+    "ast_hash": "9f2b084b80faf136ac31e5afc04c9ae5",
+    "semantic_hash": "9f2b084b80faf136ac31e5afc04c9ae5"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\lib\\api.ts": {
+    "mtime": 1779420431.0969636,
+    "ast_hash": "59219b1f6995bf7da9dcdadecd7ed64f",
+    "semantic_hash": "59219b1f6995bf7da9dcdadecd7ed64f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\lib\\entrainement.ts": {
+    "mtime": 1779636293.012782,
+    "ast_hash": "d2711ff15b4eb04a167a86184266e9a9",
+    "semantic_hash": "d2711ff15b4eb04a167a86184266e9a9"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\lib\\etudes.ts": {
+    "mtime": 1779804923.2227132,
+    "ast_hash": "60560dc2dccb6df6e69d02f99d18914d",
+    "semantic_hash": "60560dc2dccb6df6e69d02f99d18914d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\lib\\finance.ts": {
+    "mtime": 1780151587.5764902,
+    "ast_hash": "bd38e4a83a9abb640a861428057ff676",
+    "semantic_hash": "bd38e4a83a9abb640a861428057ff676"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\lib\\garderobe.ts": {
+    "mtime": 1778939726.8086717,
+    "ast_hash": "662a1f090c1f31e3361d7c2b11e79785",
+    "semantic_hash": "662a1f090c1f31e3361d7c2b11e79785"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\lib\\modules.ts": {
+    "mtime": 1779912358.8239362,
+    "ast_hash": "2fd4635869d5c29b4858ea2800991c5d",
+    "semantic_hash": "2fd4635869d5c29b4858ea2800991c5d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\lib\\sante.ts": {
+    "mtime": 1779045480.1021087,
+    "ast_hash": "f459becf2a4ca8a3bb7e44c033b8ba3f",
+    "semantic_hash": "f459becf2a4ca8a3bb7e44c033b8ba3f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\lib\\utils.ts": {
+    "mtime": 1778816363.1026707,
+    "ast_hash": "618d00bf4537ce84f9ba62c5b215fb30",
+    "semantic_hash": "618d00bf4537ce84f9ba62c5b215fb30"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\layout.tsx": {
+    "mtime": 1779823095.6068263,
+    "ast_hash": "f637b8558da3f08dabe3c10f61f5bd5d",
+    "semantic_hash": "f637b8558da3f08dabe3c10f61f5bd5d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\page.tsx": {
+    "mtime": 1779839804.6278415,
+    "ast_hash": "ac9360fbca7fc88f562f525355b52b7f",
+    "semantic_hash": "ac9360fbca7fc88f562f525355b52b7f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\agenda\\page.tsx": {
+    "mtime": 1779724615.8370447,
+    "ast_hash": "bbaa44ada32f193c2e98b4ac00c8b784",
+    "semantic_hash": "bbaa44ada32f193c2e98b4ac00c8b784"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\budget\\page.tsx": {
+    "mtime": 1778834533.1386633,
+    "ast_hash": "236ec83d69f2e3dfe305e690559955d8",
+    "semantic_hash": "236ec83d69f2e3dfe305e690559955d8"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\cuisine\\page.tsx": {
+    "mtime": 1778834533.165958,
+    "ast_hash": "4c7f1c35c4e179806bc81fbeacf83d5c",
+    "semantic_hash": "4c7f1c35c4e179806bc81fbeacf83d5c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\entrainement\\page.tsx": {
+    "mtime": 1779064206.4089675,
+    "ast_hash": "5d0aaffdac7679bef21572157faa221e",
+    "semantic_hash": "5d0aaffdac7679bef21572157faa221e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\etudes\\page.tsx": {
+    "mtime": 1779805038.7683704,
+    "ast_hash": "a7cc450baad0497f29da800e1315ab66",
+    "semantic_hash": "a7cc450baad0497f29da800e1315ab66"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\finance\\page.tsx": {
+    "mtime": 1779980511.5449693,
+    "ast_hash": "740ff728989189224331dc4281d54019",
+    "semantic_hash": "740ff728989189224331dc4281d54019"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\garderobe\\page.tsx": {
+    "mtime": 1778939765.95706,
+    "ast_hash": "5cdf6997ccdab54e7e1624a19708f9d1",
+    "semantic_hash": "5cdf6997ccdab54e7e1624a19708f9d1"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\habitudes\\page.tsx": {
+    "mtime": 1778834533.1915267,
+    "ast_hash": "554def787d7e0f84783e44bcea40b626",
+    "semantic_hash": "554def787d7e0f84783e44bcea40b626"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\livres\\page.tsx": {
+    "mtime": 1778834533.2245848,
+    "ast_hash": "a01194a6b3bde62fd8ec7b7238ddcf0b",
+    "semantic_hash": "a01194a6b3bde62fd8ec7b7238ddcf0b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\robot\\page.tsx": {
+    "mtime": 1778834533.2461236,
+    "ast_hash": "7df7e6c1c23d0a639305800938a8385a",
+    "semantic_hash": "7df7e6c1c23d0a639305800938a8385a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\src\\app\\sante\\page.tsx": {
+    "mtime": 1779023431.5984633,
+    "ast_hash": "dc629aeec5c76a4da2460420e1a3a08d",
+    "semantic_hash": "dc629aeec5c76a4da2460420e1a3a08d"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\Dashboard.py": {
+    "mtime": 1778903662.373855,
+    "ast_hash": "0af02ec1a531e7bc12578434cd815a6e",
+    "semantic_hash": "0af02ec1a531e7bc12578434cd815a6e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\agenda\\logic.py": {
+    "mtime": 1778903662.125535,
+    "ast_hash": "20ab66e5fd624987425b1425774bda3e",
+    "semantic_hash": "20ab66e5fd624987425b1425774bda3e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\agenda\\__init__.py": {
+    "mtime": 1778903661.966414,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\finance\\logic.py": {
+    "mtime": 1778903660.7273886,
+    "ast_hash": "c9a9bb2a3ffc420a3051d25600b1e979",
+    "semantic_hash": "c9a9bb2a3ffc420a3051d25600b1e979"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\finance\\params.json": {
+    "mtime": 1778903660.8310757,
+    "ast_hash": "2f3d0ae1fb0512d59c39789b7900e169",
+    "semantic_hash": "2f3d0ae1fb0512d59c39789b7900e169"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\finance\\WarrenBuffetMensuel.py": {
+    "mtime": 1778903660.6186247,
+    "ast_hash": "7efd861ca9cb99946c067e08bf30e1db",
+    "semantic_hash": "7efd861ca9cb99946c067e08bf30e1db"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\finance\\__init__.py": {
+    "mtime": 1778903660.6425369,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\logic.py": {
+    "mtime": 1778903659.1152062,
+    "ast_hash": "e9b6d42806c2ea4c67408fb7a71f68d7",
+    "semantic_hash": "e9b6d42806c2ea4c67408fb7a71f68d7"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\vetements.json": {
+    "mtime": 1778903659.2586217,
+    "ast_hash": "0987107b7a0a524679cb78dd9df4f313",
+    "semantic_hash": "0987107b7a0a524679cb78dd9df4f313"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\__init__.py": {
+    "mtime": 1778903658.889686,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\sante\\logic.py": {
+    "mtime": 1778903659.6196678,
+    "ast_hash": "2e44cfd5340f4ac019dc0cba4501a796",
+    "semantic_hash": "2e44cfd5340f4ac019dc0cba4501a796"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\sante\\sante.json": {
+    "mtime": 1778903660.0242991,
+    "ast_hash": "c8c38b7941c9a9b563495a84529ee779",
+    "semantic_hash": "c8c38b7941c9a9b563495a84529ee779"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\sante\\__init__.py": {
+    "mtime": 1778903659.4244123,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\docker-compose.yml": {
+    "mtime": 1778815494.0155275,
+    "ast_hash": "991b9dd0bb49393ce663157c8ba55ebc",
+    "semantic_hash": "991b9dd0bb49393ce663157c8ba55ebc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\README.md": {
+    "mtime": 1778815489.395035,
+    "ast_hash": "c654da9ff7d2838738f9ab1e73390f5f",
+    "semantic_hash": "c654da9ff7d2838738f9ab1e73390f5f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\backend\\README.md": {
+    "mtime": 1778815511.3192792,
+    "ast_hash": "9c266ae8b8563b1a4fa5aa08e7364cdf",
+    "semantic_hash": "9c266ae8b8563b1a4fa5aa08e7364cdf"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\DESIGN.md": {
+    "mtime": 1779823392.4557586,
+    "ast_hash": "5eee0795589950c1a0032b142821eeb5",
+    "semantic_hash": "5eee0795589950c1a0032b142821eeb5"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\README.md": {
+    "mtime": 1778816332.6525748,
+    "ast_hash": "f15aaa42d5d299d091b1171097ea56ad",
+    "semantic_hash": "f15aaa42d5d299d091b1171097ea56ad"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\README.md": {
+    "mtime": 1778903749.3031826,
+    "ast_hash": "d1f5ed5ce889ef9089d337c4c7212045",
+    "semantic_hash": "d1f5ed5ce889ef9089d337c4c7212045"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV10_habitudes.md": {
+    "mtime": 1778815444.0455956,
+    "ast_hash": "ea8c1764c6c78c4fbafdc4ae5d9c0d37",
+    "semantic_hash": "ea8c1764c6c78c4fbafdc4ae5d9c0d37"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV11_livres.md": {
+    "mtime": 1778815444.0903404,
+    "ast_hash": "7849bc9a801174b8e28a4cb2337733fe",
+    "semantic_hash": "7849bc9a801174b8e28a4cb2337733fe"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV12_agent_ia.md": {
+    "mtime": 1778815444.10928,
+    "ast_hash": "6237229f7f5524c4bea45ab463a49ebc",
+    "semantic_hash": "6237229f7f5524c4bea45ab463a49ebc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV13_scheduler.md": {
+    "mtime": 1778904009.4307344,
+    "ast_hash": "ba29ac25c5e9208f10ea5ad1c2cb5474",
+    "semantic_hash": "ba29ac25c5e9208f10ea5ad1c2cb5474"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV14_auth_acces_distant.md": {
+    "mtime": 1778815444.1662066,
+    "ast_hash": "bb8c877ec9aebc6e3ca7e0607e099690",
+    "semantic_hash": "bb8c877ec9aebc6e3ca7e0607e099690"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV15_tests_ci_doc.md": {
+    "mtime": 1778815444.183269,
+    "ast_hash": "8a143ce26da9ad8fa5cf8d9090636e0a",
+    "semantic_hash": "8a143ce26da9ad8fa5cf8d9090636e0a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV1_DONE.md": {
+    "mtime": 1778835057.3693442,
+    "ast_hash": "e7aebbe7cf12c6d8e6347c4f167f71db",
+    "semantic_hash": "e7aebbe7cf12c6d8e6347c4f167f71db"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV1_fondation.md": {
+    "mtime": 1778815444.217551,
+    "ast_hash": "e7b39e0ab325d44f66190277b7e8c7f0",
+    "semantic_hash": "e7b39e0ab325d44f66190277b7e8c7f0"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV2_DONE.md": {
+    "mtime": 1778988726.123358,
+    "ast_hash": "bb20c2965d0869eafb0322854ae639a1",
+    "semantic_hash": "bb20c2965d0869eafb0322854ae639a1"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV2_garderobe.md": {
+    "mtime": 1778903784.5742855,
+    "ast_hash": "8e41178e56788097663774b4c1f7079e",
+    "semantic_hash": "8e41178e56788097663774b4c1f7079e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV3_DONE.md": {
+    "mtime": 1779025174.6179364,
+    "ast_hash": "29bf874d2b3a400f309ac96e687903ac",
+    "semantic_hash": "29bf874d2b3a400f309ac96e687903ac"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV3_FOR_CONV1.md": {
+    "mtime": 1779025815.4139466,
+    "ast_hash": "b601368a9f03b26e5cbf9d331e4c4117",
+    "semantic_hash": "b601368a9f03b26e5cbf9d331e4c4117"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV3_sante_nutrition.md": {
+    "mtime": 1778903811.919381,
+    "ast_hash": "84f89e4aa145a06f489d0895a81840bc",
+    "semantic_hash": "84f89e4aa145a06f489d0895a81840bc"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV4_DONE.md": {
+    "mtime": 1779981444.7598262,
+    "ast_hash": "7ebf4db7f6b28800fbfbd35295f35a42",
+    "semantic_hash": "7ebf4db7f6b28800fbfbd35295f35a42"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV4_finance.md": {
+    "mtime": 1779937255.207201,
+    "ast_hash": "538fa0d75c6004b23ba3cc37771080d1",
+    "semantic_hash": "538fa0d75c6004b23ba3cc37771080d1"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV5_agenda.md": {
+    "mtime": 1779722616.449106,
+    "ast_hash": "d955af220e0294e929e66312c1f6df80",
+    "semantic_hash": "d955af220e0294e929e66312c1f6df80"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV5_DONE.md": {
+    "mtime": 1779724781.423496,
+    "ast_hash": "86e65393c55005b1a178712affe52815",
+    "semantic_hash": "86e65393c55005b1a178712affe52815"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV6_DONE.md": {
+    "mtime": 1779805278.0142603,
+    "ast_hash": "984d175ab2979ade5441e4a6a995178a",
+    "semantic_hash": "984d175ab2979ade5441e4a6a995178a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV6_etudes.md": {
+    "mtime": 1779802840.817788,
+    "ast_hash": "a2806aefb33bee337ca2c32d8908d4ec",
+    "semantic_hash": "a2806aefb33bee337ca2c32d8908d4ec"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV7_DONE.md": {
+    "mtime": 1779637091.4464548,
+    "ast_hash": "6c5ad32a372b9f1132f56837ee354b98",
+    "semantic_hash": "6c5ad32a372b9f1132f56837ee354b98"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV7_entrainement.md": {
+    "mtime": 1779045740.8888118,
+    "ast_hash": "00dcf2231819834fcd627f73b161041b",
+    "semantic_hash": "00dcf2231819834fcd627f73b161041b"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV8_budget.md": {
+    "mtime": 1778815444.3865948,
+    "ast_hash": "b6ee86bba1530e6dcde289d7084c354a",
+    "semantic_hash": "b6ee86bba1530e6dcde289d7084c354a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV9_cuisine.md": {
+    "mtime": 1778815444.41415,
+    "ast_hash": "e77080750e24e2f23ec152969c18eb02",
+    "semantic_hash": "e77080750e24e2f23ec152969c18eb02"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV_DESIGN.md": {
+    "mtime": 1779820657.330345,
+    "ast_hash": "b8d6af9a7e841d12d1daa6efd6defdef",
+    "semantic_hash": "b8d6af9a7e841d12d1daa6efd6defdef"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\CONV_DESIGN_DONE.md": {
+    "mtime": 1779823553.0484633,
+    "ast_hash": "a7ac76498c7c348fdbcd9a178bbb1256",
+    "semantic_hash": "a7ac76498c7c348fdbcd9a178bbb1256"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\orchestration\\PLAN.md": {
+    "mtime": 1779981979.692259,
+    "ast_hash": "912cb8fd776ceacce90127efd85528ee",
+    "semantic_hash": "912cb8fd776ceacce90127efd85528ee"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\file.svg": {
+    "mtime": 1778816332.828821,
+    "ast_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71",
+    "semantic_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\globe.svg": {
+    "mtime": 1778816332.847719,
+    "ast_hash": "2aaafa6a49b6563925fe440891e32717",
+    "semantic_hash": "2aaafa6a49b6563925fe440891e32717"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\next.svg": {
+    "mtime": 1778816332.6318543,
+    "ast_hash": "8e061864f388b47f33a1c3780831193e",
+    "semantic_hash": "8e061864f388b47f33a1c3780831193e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\vercel.svg": {
+    "mtime": 1778816332.8734646,
+    "ast_hash": "c0af2f507b369b085b35ef4bbe3bcf1e",
+    "semantic_hash": "c0af2f507b369b085b35ef4bbe3bcf1e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\window.svg": {
+    "mtime": 1778816332.8800032,
+    "ast_hash": "a2760511c65806022ad20adf74370ff3",
+    "semantic_hash": "a2760511c65806022ad20adf74370ff3"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\Bracelet_01.png": {
+    "mtime": 1778939609.8353643,
+    "ast_hash": "91b1d104ae295e177d18e539839fb322",
+    "semantic_hash": "91b1d104ae295e177d18e539839fb322"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\COS_01.png": {
+    "mtime": 1778939612.3966322,
+    "ast_hash": "dc9b19dd5ab9ef03289668c5dfeb8f7f",
+    "semantic_hash": "dc9b19dd5ab9ef03289668c5dfeb8f7f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\f01.png": {
+    "mtime": 1778939642.1535213,
+    "ast_hash": "411532c072347a6c252f808d60e1db38",
+    "semantic_hash": "411532c072347a6c252f808d60e1db38"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\f02.png": {
+    "mtime": 1778939643.110057,
+    "ast_hash": "09d00a5f9ece197bef7abcbac54ff85e",
+    "semantic_hash": "09d00a5f9ece197bef7abcbac54ff85e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\Fossil01.png": {
+    "mtime": 1778939615.5454473,
+    "ast_hash": "f434c183b6e7a80db13e13c0e884ec1a",
+    "semantic_hash": "f434c183b6e7a80db13e13c0e884ec1a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\Fossil02.png": {
+    "mtime": 1778939617.8918648,
+    "ast_hash": "2a254eebb9c295df8e500f9d8cbf8341",
+    "semantic_hash": "2a254eebb9c295df8e500f9d8cbf8341"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\garmin.png": {
+    "mtime": 1778939644.0289576,
+    "ast_hash": "84ec22017868e7861ad58b16aabef3c6",
+    "semantic_hash": "84ec22017868e7861ad58b16aabef3c6"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\ghibli_01.png": {
+    "mtime": 1778939645.4938843,
+    "ast_hash": "5d0570e08ea92ef964ad32ba9b187097",
+    "semantic_hash": "5d0570e08ea92ef964ad32ba9b187097"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\GM_01.png": {
+    "mtime": 1778939619.8063157,
+    "ast_hash": "19f574d9601d6bf957b21982de783dee",
+    "semantic_hash": "19f574d9601d6bf957b21982de783dee"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\Lacoste_01.png": {
+    "mtime": 1778939625.427677,
+    "ast_hash": "c71162680e1e9edaa05ad9191251ea8c",
+    "semantic_hash": "c71162680e1e9edaa05ad9191251ea8c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\Lacoste_02.png": {
+    "mtime": 1778939626.405556,
+    "ast_hash": "b181b564d62fc73a4fd73b85591a1643",
+    "semantic_hash": "b181b564d62fc73a4fd73b85591a1643"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\Lacoste_03.png": {
+    "mtime": 1778939631.6996188,
+    "ast_hash": "2ad960c3aa2eb70aa29daa40fe9bc765",
+    "semantic_hash": "2ad960c3aa2eb70aa29daa40fe9bc765"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\lacoste_04.png": {
+    "mtime": 1778939646.1650765,
+    "ast_hash": "80184d7ad6c95de3909483301fdba127",
+    "semantic_hash": "80184d7ad6c95de3909483301fdba127"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\Musee_01.png": {
+    "mtime": 1778939633.8378148,
+    "ast_hash": "d4c40e921b1acc28b8ddbb1a4f6cad14",
+    "semantic_hash": "d4c40e921b1acc28b8ddbb1a4f6cad14"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\nike_01.png": {
+    "mtime": 1778939648.940539,
+    "ast_hash": "66f9ae911f398fbb0f10c0de7916a0af",
+    "semantic_hash": "66f9ae911f398fbb0f10c0de7916a0af"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\p01.png": {
+    "mtime": 1778939649.639577,
+    "ast_hash": "caed20395d926a5d67682263d7d58588",
+    "semantic_hash": "caed20395d926a5d67682263d7d58588"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\Ralph_01.png": {
+    "mtime": 1778939636.061193,
+    "ast_hash": "7096b6ab57e8a50fa351866c1307ed4c",
+    "semantic_hash": "7096b6ab57e8a50fa351866c1307ed4c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\RB_01.png": {
+    "mtime": 1778939635.494184,
+    "ast_hash": "16e5af4e9522755373d7ef891bf0bae2",
+    "semantic_hash": "16e5af4e9522755373d7ef891bf0bae2"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\S01.png": {
+    "mtime": 1778939637.3355608,
+    "ast_hash": "77d1e95595d9a17623222fb7d91cf36e",
+    "semantic_hash": "77d1e95595d9a17623222fb7d91cf36e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\uniqlo_01.png": {
+    "mtime": 1778939678.0652645,
+    "ast_hash": "5f06355e1e4d94c9d6ca61caac6cb99c",
+    "semantic_hash": "5f06355e1e4d94c9d6ca61caac6cb99c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\Uniqlo_02.png": {
+    "mtime": 1778939639.1604033,
+    "ast_hash": "2677cf5bb8dfb263be6835367a5f6e1c",
+    "semantic_hash": "2677cf5bb8dfb263be6835367a5f6e1c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\V01.png": {
+    "mtime": 1778939640.3947563,
+    "ast_hash": "94495a38e73956b432325932bf91082a",
+    "semantic_hash": "94495a38e73956b432325932bf91082a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\frontend\\public\\garderobe\\assets\\V02.png": {
+    "mtime": 1778939641.4932847,
+    "ast_hash": "cf4f8f40b28244af58c181a90b0d7d22",
+    "semantic_hash": "cf4f8f40b28244af58c181a90b0d7d22"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\Bracelet_01.png": {
+    "mtime": 1778903664.9554844,
+    "ast_hash": "91b1d104ae295e177d18e539839fb322",
+    "semantic_hash": "91b1d104ae295e177d18e539839fb322"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\COS_01.png": {
+    "mtime": 1778903667.616582,
+    "ast_hash": "dc9b19dd5ab9ef03289668c5dfeb8f7f",
+    "semantic_hash": "dc9b19dd5ab9ef03289668c5dfeb8f7f"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\f01.png": {
+    "mtime": 1778903726.8035219,
+    "ast_hash": "411532c072347a6c252f808d60e1db38",
+    "semantic_hash": "411532c072347a6c252f808d60e1db38"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\f02.png": {
+    "mtime": 1778903727.3402135,
+    "ast_hash": "09d00a5f9ece197bef7abcbac54ff85e",
+    "semantic_hash": "09d00a5f9ece197bef7abcbac54ff85e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\Fossil01.png": {
+    "mtime": 1778903671.3536742,
+    "ast_hash": "f434c183b6e7a80db13e13c0e884ec1a",
+    "semantic_hash": "f434c183b6e7a80db13e13c0e884ec1a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\Fossil02.png": {
+    "mtime": 1778903674.4342813,
+    "ast_hash": "2a254eebb9c295df8e500f9d8cbf8341",
+    "semantic_hash": "2a254eebb9c295df8e500f9d8cbf8341"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\garmin.png": {
+    "mtime": 1778903727.7823184,
+    "ast_hash": "84ec22017868e7861ad58b16aabef3c6",
+    "semantic_hash": "84ec22017868e7861ad58b16aabef3c6"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\ghibli_01.png": {
+    "mtime": 1778903728.5688224,
+    "ast_hash": "5d0570e08ea92ef964ad32ba9b187097",
+    "semantic_hash": "5d0570e08ea92ef964ad32ba9b187097"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\GM_01.png": {
+    "mtime": 1778903676.7223587,
+    "ast_hash": "19f574d9601d6bf957b21982de783dee",
+    "semantic_hash": "19f574d9601d6bf957b21982de783dee"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\Lacoste_01.png": {
+    "mtime": 1778903683.5296423,
+    "ast_hash": "c71162680e1e9edaa05ad9191251ea8c",
+    "semantic_hash": "c71162680e1e9edaa05ad9191251ea8c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\Lacoste_02.png": {
+    "mtime": 1778903684.4269037,
+    "ast_hash": "b181b564d62fc73a4fd73b85591a1643",
+    "semantic_hash": "b181b564d62fc73a4fd73b85591a1643"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\Lacoste_03.png": {
+    "mtime": 1778903690.103605,
+    "ast_hash": "2ad960c3aa2eb70aa29daa40fe9bc765",
+    "semantic_hash": "2ad960c3aa2eb70aa29daa40fe9bc765"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\lacoste_04.png": {
+    "mtime": 1778903728.907749,
+    "ast_hash": "80184d7ad6c95de3909483301fdba127",
+    "semantic_hash": "80184d7ad6c95de3909483301fdba127"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\Musee_01.png": {
+    "mtime": 1778903692.3878653,
+    "ast_hash": "d4c40e921b1acc28b8ddbb1a4f6cad14",
+    "semantic_hash": "d4c40e921b1acc28b8ddbb1a4f6cad14"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\nike_01.png": {
+    "mtime": 1778903730.3903592,
+    "ast_hash": "66f9ae911f398fbb0f10c0de7916a0af",
+    "semantic_hash": "66f9ae911f398fbb0f10c0de7916a0af"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\p01.png": {
+    "mtime": 1778903730.8422716,
+    "ast_hash": "a8a1657e254a3e4cc99f6484692a2513",
+    "semantic_hash": "a8a1657e254a3e4cc99f6484692a2513"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\Ralph_01.png": {
+    "mtime": 1778903695.770765,
+    "ast_hash": "7096b6ab57e8a50fa351866c1307ed4c",
+    "semantic_hash": "7096b6ab57e8a50fa351866c1307ed4c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\RB_01.png": {
+    "mtime": 1778903695.0752952,
+    "ast_hash": "16e5af4e9522755373d7ef891bf0bae2",
+    "semantic_hash": "16e5af4e9522755373d7ef891bf0bae2"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\S01.png": {
+    "mtime": 1778903697.303013,
+    "ast_hash": "77d1e95595d9a17623222fb7d91cf36e",
+    "semantic_hash": "77d1e95595d9a17623222fb7d91cf36e"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\uniqlo_01.png": {
+    "mtime": 1778903732.2263823,
+    "ast_hash": "5f06355e1e4d94c9d6ca61caac6cb99c",
+    "semantic_hash": "5f06355e1e4d94c9d6ca61caac6cb99c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\Uniqlo_02.png": {
+    "mtime": 1778903698.438336,
+    "ast_hash": "2677cf5bb8dfb263be6835367a5f6e1c",
+    "semantic_hash": "2677cf5bb8dfb263be6835367a5f6e1c"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\V01.png": {
+    "mtime": 1778903725.7704637,
+    "ast_hash": "94495a38e73956b432325932bf91082a",
+    "semantic_hash": "94495a38e73956b432325932bf91082a"
+  },
+  "C:\\Users\\germa\\Documents\\GitHub\\mission-control\\legacy_code\\habits\\assets\\V02.png": {
+    "mtime": 1778903726.3740644,
+    "ast_hash": "cf4f8f40b28244af58c181a90b0d7d22",
+    "semantic_hash": "cf4f8f40b28244af58c181a90b0d7d22"
+  }
+}
