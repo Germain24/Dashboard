@@ -1,18 +1,43 @@
-"""Modèle Budget (vide en CONV 1, rempli en CONV 8)."""
-
 import datetime as dt
-from typing import Optional
+from sqlmodel import SQLModel, Field
+from sqlalchemy import UniqueConstraint
 
-from sqlmodel import Field, SQLModel
+
+class BudgetCategory(SQLModel, table=True):
+    __tablename__ = "budget_category"
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str
+    parent_id: int | None = Field(default=None, foreign_key="budget_category.id")
+    couleur: str = "#6366f1"
 
 
-class Depense(SQLModel, table=True):
-    __tablename__ = "depense"
+class BudgetRule(SQLModel, table=True):
+    __tablename__ = "budget_rule"
+    id: int | None = Field(default=None, primary_key=True)
+    pattern: str
+    category_id: int = Field(foreign_key="budget_category.id")
+    priorite: int = 0
+    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    date: dt.date = Field(index=True)
+
+class BudgetTransaction(SQLModel, table=True):
+    __tablename__ = "budget_transaction"
+    id: int | None = Field(default=None, primary_key=True)
+    date: dt.date
     montant: float
-    devise: str = "EUR"
-    categorie: Optional[str] = None
-    libelle: Optional[str] = None
-    moyen_paiement: Optional[str] = None
+    marchand: str = ""
+    description: str = ""
+    category_id: int | None = Field(default=None, foreign_key="budget_category.id")
+    compte: str = "principal"
+    devise: str = "CAD"
+    auto: bool = False
+    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+
+
+class BudgetEnvelope(SQLModel, table=True):
+    __tablename__ = "budget_envelope"
+    id: int | None = Field(default=None, primary_key=True)
+    category_id: int = Field(foreign_key="budget_category.id")
+    mois: str
+    montant: float
+    __table_args__ = (UniqueConstraint("category_id", "mois"),)
