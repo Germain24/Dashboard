@@ -28,6 +28,7 @@ dependencies = [
     "icalendar>=6.0.0",
     "python-dateutil>=2.9.0",
     "python-multipart>=0.0.9",
+    "apscheduler>=3.11.2",
 ]
 
 [dependency-groups]
