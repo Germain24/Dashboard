@@ -1,0 +1,62 @@
+import datetime as dt
+from sqlmodel import Session, select
+from sqlalchemy.exc import IntegrityError
+from app.models.habitudes import Habit, HabitEntry
+
+DEFAULT_HABITS = [
+    {"nom": "Muscu", "type": "binaire", "source_auto": "entrainement_muscu", "ordre": 0},
+    {"nom": "Course", "type": "binaire", "source_auto": "entrainement_cardio", "ordre": 1},
+    {"nom": "Lecture", "type": "quantifiable", "unite": "minutes", "cible": 30.0, "source_auto": "livres_lecture", "ordre": 2},
+    {"nom": "Sommeil >= 7h", "type": "binaire", "ordre": 3},
+    {"nom": "Pas de junk food", "type": "binaire", "ordre": 4},
+    {"nom": "Meditation", "type": "binaire", "ordre": 5},
+]
+
+def seed_habits(session: Session) -> None:
+    existing = session.exec(select(Habit)).all()
+    if existing:
+        return
+    for h in DEFAULT_HABITS:
+        habit = Habit(**h)
+        session.add(habit)
+    session.commit()
+
+def get_today_checklist(session: Session) -> list[dict]:
+    today = dt.date.today()
+    habits = session.exec(select(Habit).where(Habit.actif == True).order_by(Habit.ordre)).all()
+    entries_today = {e.habit_id: e for e in session.exec(
+        select(HabitEntry).where(HabitEntry.date == today)
+    ).all()}
+    return [{"habit": h, "entry": entries_today.get(h.id)} for h in habits]
+
+def upsert_entry(session: Session, habit_id: int, date: dt.date,
+                 valeur: float = 1.0, auto: bool = False) -> HabitEntry:
+    existing = session.exec(
+        select(HabitEntry).where(HabitEntry.habit_id == habit_id, HabitEntry.date == date)
+    ).first()
+    if existing:
+        existing.valeur = valeur
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+        return existing
+    entry = HabitEntry(habit_id=habit_id, date=date, valeur=valeur, auto=auto)
+    try:
+        session.add(entry)
+        session.commit()
+        session.refresh(entry)
+        return entry
+    except IntegrityError:
+        session.rollback()
+        return session.exec(
+            select(HabitEntry).where(HabitEntry.habit_id == habit_id, HabitEntry.date == date)
+        ).first()
+
+def auto_check_habit(session: Session, source: str, date: dt.date, valeur: float = 1.0) -> bool:
+    habit = session.exec(
+        select(Habit).where(Habit.source_auto == source, Habit.actif == True)
+    ).first()
+    if not habit:
+        return False
+    upsert_entry(session, habit.id, date, valeur=valeur, auto=True)
+    return True

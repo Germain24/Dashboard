@@ -17,6 +17,6 @@ from app.models.finance import (  # noqa: F401
     Transaction,
 )
 from app.models.garderobe import TenueHistory, Vetement  # noqa: F401
-from app.models.habitudes import Habitude, HabitudeLog  # noqa: F401
-from app.models.livres import Livre  # noqa: F401
+from app.models.habitudes import Habit, HabitEntry  # noqa: F401
+from app.models.livres import Book, BookNote, BookQuote, ReadingSession  # noqa: F401
 from app.models.sante import Aliment, MesureSante, PlanNutrition  # noqa: F401
