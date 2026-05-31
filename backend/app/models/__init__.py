@@ -5,7 +5,7 @@ qu'Alembic puisse decouvrir toutes les tables via `SQLModel.metadata`.
 """
 
 from app.models.agenda import Evenement, RegleRecurrence, Tache  # noqa: F401
-from app.models.budget import Depense  # noqa: F401
+from app.models.budget import BudgetCategory, BudgetEnvelope, BudgetRule, BudgetTransaction  # noqa: F401
 from app.models.cuisine import Recette  # noqa: F401
 from app.models.entrainement import Seance  # noqa: F401
 from app.models.etudes import Cours, Evaluation, SessionEtude  # noqa: F401
@@ -19,4 +19,4 @@ from app.models.finance import (  # noqa: F401
 from app.models.garderobe import TenueHistory, Vetement  # noqa: F401
 from app.models.habitudes import Habitude, HabitudeLog  # noqa: F401
 from app.models.livres import Livre  # noqa: F401
-from app.models.sante import Aliment, MesureSante, NutritionGoal, PlanNutrition  # noqa: F401
+from app.models.sante import Aliment, MesureSante, PlanNutrition  # noqa: F401
