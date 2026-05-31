@@ -1,17 +1,98 @@
-"""Router squelette pour le module `cuisine` — CONV 1.
-
-Implémentation réelle dans la CONV dédiée. Pour l'instant, juste un `/ping`
-pour vérifier que le routing fonctionne et que le module apparaît dans
-l'OpenAPI.
-"""
-
-from __future__ import annotations
-
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session, select
+from app.core.db import get_session
+from app.models.cuisine import Recipe, MealPlanEntry, ShoppingListItem
+from app.services.cuisine import recipes as recipes_svc
+from app.services.cuisine import macros as macros_svc
+from app.services.cuisine import meal_plan as plan_svc
+from app.services.cuisine import shopping_list as shop_svc
+from pydantic import BaseModel
 
 router = APIRouter()
 
 
-@router.get("/ping")
-def ping() -> dict:
-    return {"module": "cuisine", "ready": False, "message": "stub — voir CONV correspondante"}
+class RecipeCreate(BaseModel):
+    titre: str
+    portions: int = 4
+    temps_prep: int = 0
+    temps_cuisson: int = 0
+    instructions: str = ""
+
+
+class MealPlanPatch(BaseModel):
+    recipe_id: int | None = None
+    notes: str = ""
+
+
+class GeneratePlanRequest(BaseModel):
+    semaine: str
+    cibles: dict = {"calories": 2500, "proteines": 180, "glucides": 300, "lipides": 80}
+
+
+@router.get("/recipes")
+def list_recipes(search: str | None = None, session: Session = Depends(get_session)):
+    return recipes_svc.get_recipes(session, search)
+
+
+@router.post("/recipes", status_code=201)
+def create_recipe(body: RecipeCreate, session: Session = Depends(get_session)):
+    return recipes_svc.create_recipe(session, **body.model_dump())
+
+
+@router.post("/recipes/from-url", status_code=201)
+def from_url(url: str, session: Session = Depends(get_session)):
+    data = recipes_svc.import_from_url(url)
+    if not data:
+        raise HTTPException(422, "Impossible de parser la recette depuis cette URL")
+    return recipes_svc.create_recipe(session, **data)
+
+
+@router.get("/recipes/{id}/macros")
+def recipe_macros(id: int, portions: int = 1, session: Session = Depends(get_session)):
+    return macros_svc.get_recipe_macros(session, id, portions)
+
+
+@router.get("/meal-plan")
+def get_plan(week: str, session: Session = Depends(get_session)):
+    return session.exec(select(MealPlanEntry).where(MealPlanEntry.semaine == week)).all()
+
+
+@router.post("/meal-plan/generate")
+def generate_plan(body: GeneratePlanRequest, session: Session = Depends(get_session)):
+    return plan_svc.generate_meal_plan(session, body.semaine, body.cibles)
+
+
+@router.patch("/meal-plan/{id}")
+def update_plan_entry(id: int, body: MealPlanPatch, session: Session = Depends(get_session)):
+    e = session.get(MealPlanEntry, id)
+    if not e:
+        raise HTTPException(404)
+    e.recipe_id = body.recipe_id
+    e.notes = body.notes
+    session.add(e)
+    session.commit()
+    return e
+
+
+@router.get("/shopping-list")
+def get_shopping(week: str, session: Session = Depends(get_session)):
+    items = session.exec(select(ShoppingListItem).where(ShoppingListItem.semaine == week)).all()
+    if not items:
+        items = shop_svc.generate_shopping_list(session, week)
+    return items
+
+
+@router.post("/shopping-list/done")
+def shopping_done(week: str, session: Session = Depends(get_session)):
+    return shop_svc.mark_done(session, week)
+
+
+@router.patch("/shopping-list/{id}")
+def update_item(id: int, achete: bool, session: Session = Depends(get_session)):
+    item = session.get(ShoppingListItem, id)
+    if not item:
+        raise HTTPException(404)
+    item.achete = achete
+    session.add(item)
+    session.commit()
+    return item

@@ -43,3 +43,21 @@ class Aliment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nom: str = Field(unique=True, index=True)
     proprietes: dict = Field(sa_column=Column(JSON))  # {Prix: x, Proteines: y, ...}
+
+
+class NutritionGoal(SQLModel, table=True):
+    """Objectif nutritionnel actif (poids cible, type de diète, etc.)."""
+
+    __tablename__ = "nutrition_goal"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    date_set: dt.date = Field(default_factory=dt.date.today, index=True)
+    poids_cible: Optional[float] = None
+    body_fat_target_pct: Optional[float] = None
+    date_cible: Optional[dt.date] = None
+    type: str = "maintenance"
+    surplus_kcal_sport: float = 0.0
+    rest_factor: float = 1.2
+    sport_days: Optional[list] = Field(default=None, sa_column=Column(JSON))
+    actif: bool = True
+    note: Optional[str] = None
