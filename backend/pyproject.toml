@@ -29,6 +29,7 @@ dependencies = [
     "python-dateutil>=2.9.0",
     "python-multipart>=0.0.9",
     "beautifulsoup4>=4.14.3",
+    "apscheduler>=3.11.2",
 ]
 
 [dependency-groups]
