@@ -11,6 +11,7 @@
   --primary: #18181b;
   --primary-foreground: #fafafa;
   --accent: #f4f4f5;
+  --sidebar: #f9f9fb;
 }
 
 @theme inline {
@@ -24,6 +25,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
+  --color-sidebar: var(--sidebar);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -40,6 +42,7 @@
     --primary: #fafafa;
     --primary-foreground: #18181b;
     --accent: #27272a;
+    --sidebar: #050505;
   }
 }
 

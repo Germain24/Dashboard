@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar } from "@/components/layout";
 
 export const metadata: Metadata = {
   title: "Mission Control",
@@ -15,7 +15,7 @@ export default function RootLayout({
       <body className="antialiased">
         <div className="flex min-h-screen">
           <Sidebar />
-          <main className="flex-1 p-6 md:p-10">{children}</main>
+          <main className="flex-1 min-w-0">{children}</main>
         </div>
       </body>
     </html>
