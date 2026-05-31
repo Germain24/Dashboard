@@ -70,7 +70,7 @@ export function ProgressionTab({ exercices }: Props) {
       </div>
 
       {loading && <div className="text-sm text-[var(--muted-foreground)]">Chargement…</div>}
-      {err && <div className="text-sm text-red-500">⚠ {err}</div>}
+      {err && <div className="text-sm text-[var(--destructive)]">⚠ {err}</div>}
 
       {data && (
         <>
@@ -126,7 +126,7 @@ function Stat({
   return (
     <div className="rounded border border-[var(--border)] p-3">
       <div className="text-xs text-[var(--muted-foreground)]">{label}</div>
-      <div className={`text-lg font-semibold ${positive ? "text-emerald-500" : negative ? "text-red-500" : ""}`}>
+      <div className={`text-lg font-semibold ${positive ? "text-[var(--success)]" : negative ? "text-[var(--destructive)]" : ""}`}>
         {value}
       </div>
     </div>

@@ -1,7 +1,5 @@
-import { ModulePlaceholder } from "@/components/ModulePlaceholder";
-import { MODULES } from "@/lib/modules";
+import { Etudes } from "@/components/etudes/Etudes";
 
 export default function EtudesPage() {
-  const m = MODULES.find((x) => x.slug === "etudes")!;
-  return <ModulePlaceholder module={m} />;
+  return <Etudes />;
 }

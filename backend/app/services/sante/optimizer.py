@@ -160,9 +160,15 @@ def optimize_nutrition(
         {"type": "ineq", "fun": lambda x: float(np.dot(x, prot_arr)) - float(targets["Protéines"])},
     ]
 
-    # Bounds : min et max par item (MinQty / MaxQty depuis le CSV)
-    # Convention : si la valeur CSV >= 1.0, elle est en grammes (divisée par 100
-    # pour obtenir l'unité interne) ; sinon elle est déjà en unités (1 = 100 g).
+    # Bounds : (0, MaxQty). MinQty est traité comme une "quantité d'achat
+    # minimale" (semi-continuous) : soit l'aliment n'est pas dans le plan
+    # (x=0), soit il y est avec au moins MinQty. Le post-traitement après
+    # SLSQP "snappe" les valeurs intermédiaires (0 < x < MinQty) soit à 0,
+    # soit à MinQty (selon la plus proche).
+    #
+    # Convention pour la valeur CSV : si >= 1.0, elle est en grammes (divisée
+    # par 100 pour obtenir l'unité interne) ; sinon elle est déjà en unités
+    # (1 = 100 g).
     def _csv_qty_to_units(v: float) -> float:
         v = float(v or 0)
         if v <= 0:
@@ -170,10 +176,10 @@ def optimize_nutrition(
         return v / 100.0 if v >= 1.0 else v
 
     bounds: list[tuple[float, float]] = []
+    minqtys: list[float] = []
     for name in food_names:
         row = df.loc[name]
 
-        # max
         max_val = MAX_DAILY_UNITS
         max_qty_csv = _csv_qty_to_units(row.get("MaxQty", 0))
         if max_qty_csv > 0:
@@ -181,13 +187,13 @@ def optimize_nutrition(
         elif "Supplement" in name or "Vitamine" in name:
             max_val = SUPPLEMENT_MAX
 
-        # min (port + correction du bug legacy : MinQty n'était pas appliqué)
-        min_val = _csv_qty_to_units(row.get("MinQty", 0))
-        # garde-fous : min ne doit pas dépasser max (sinon SLSQP refuse) ;
-        # on borne au max disponible.
-        if min_val > max_val:
-            min_val = max_val
-        bounds.append((min_val, max_val))
+        bounds.append((0.0, max_val))
+        # MinQty = seuil d'achat ; si > max_val, on l'aligne (pas de seuil
+        # plus grand que la borne max possible).
+        m = _csv_qty_to_units(row.get("MinQty", 0))
+        if m > max_val:
+            m = max_val
+        minqtys.append(m)
 
     # Initial guess (clampé dans les bounds pour ne pas démarrer infaisable)
     x0 = np.zeros(num_foods)
@@ -207,11 +213,54 @@ def optimize_nutrition(
         options={"ftol": 1e-8, "maxiter": 1000},
     )
 
+    # Fallback : si SLSQP échoue (rare maintenant que les minimums ne sont
+    # plus dures), on relâche les contraintes et retente avec juste la
+    # pénalité quadratique de l'objectif.
+    fallback_warning: Optional[str] = None
     if not res.success:
-        return None, (
-            f"Erreur d'optimisation : {res.message}. Impossible de respecter "
-            f"le budget de {budget_max_daily:.2f} CAD tout en s'approchant des objectifs."
+        res_soft = minimize(
+            objective, x0,
+            method="SLSQP",
+            bounds=bounds,
+            constraints=[],
+            options={"ftol": 1e-8, "maxiter": 1000},
         )
+        if res_soft.success:
+            res = res_soft
+            fallback_warning = (
+                "Contraintes dures non satisfaisables — plan en best-effort. "
+                "Ajuste tes cibles ou ton budget pour un résultat strict."
+            )
+        else:
+            return None, (
+                f"Erreur d'optimisation : {res.message}. Essaie d'élargir le budget "
+                f"ou de baisser les cibles macro."
+            )
+
+    # ── Post-traitement : sémantique d'achat minimum ────────────────────────
+    # MinQty = quantité d'achat minimale, pas obligatoire. Si la solution
+    # continue donne 0 < x < MinQty pour un aliment, on doit choisir entre :
+    #   - x = 0 (ne pas inclure l'aliment du tout — "pas la peine d'acheter
+    #     un paquet pour si peu")
+    #   - x = MinQty (l'inclure à la quantité d'achat minimale)
+    # Heuristique simple : si la solution continue est plus proche de 0 que
+    # de MinQty (i.e. x < MinQty/2), on snappe à 0 ; sinon à MinQty.
+    snapped: list[str] = []
+    for i, m in enumerate(minqtys):
+        if m <= 0:
+            continue
+        xi = float(res.x[i])
+        if xi <= 1e-9:
+            continue  # déjà à 0
+        if xi >= m:
+            continue  # déjà au-dessus du seuil
+        # 0 < xi < m → snap
+        if xi < m / 2.0:
+            res.x[i] = 0.0
+            snapped.append(f"{food_names[i]}→0")
+        else:
+            res.x[i] = m
+            snapped.append(f"{food_names[i]}→{m * 100:.0f}g")
 
     # Warnings post-hoc
     final_price = float(np.dot(res.x, prix_arr))
@@ -225,6 +274,9 @@ def optimize_nutrition(
     if final_calories < float(targets["Calories"]) * 0.98:
         warnings.append(f"Calories à {final_calories:.0f}kcal/{float(targets['Calories']):.0f}kcal")
     warning_msg = ("Note : Budget trop serré. " + " | ".join(warnings)) if warnings else ""
+    if fallback_warning:
+        # Concatène le warning de fallback en premier (plus important pour l'utilisateur)
+        warning_msg = fallback_warning + (" | " + warning_msg if warning_msg else "")
 
     plan: list[dict[str, Any]] = []
     for i, x in enumerate(res.x):
@@ -235,6 +287,7 @@ def optimize_nutrition(
         keep_threshold = max(lo - 1e-9, 1e-9 if lo == 0 else 0.0)
         if x < keep_threshold:
             continue
+        name = food_names[i]
         name = food_names[i]
         row = df.loc[name]
         qty_val = float(x) * 100.0

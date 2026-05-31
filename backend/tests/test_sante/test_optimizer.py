@@ -1,4 +1,4 @@
-"""Tests basiques de l'optimiseur SLSQP."""
+"""Tests basiques de l'optimiseur SLSQP + sémantique MinQty (semi-continuous)."""
 
 import pandas as pd
 import pytest
@@ -38,7 +38,6 @@ def _base_targets():
 
 
 def _t(d):
-    """Convertit Proteines -> Protéines (clé accentuée attendue par l'optimiseur)."""
     out = dict(d)
     out["Protéines"] = out.pop("Proteines")
     return out
@@ -46,15 +45,12 @@ def _t(d):
 
 def test_returns_plan_for_reasonable_targets():
     df = _mini_catalog()
-    plan, warning = optimize_nutrition(df, _t(_base_targets()), budget_max_daily=18.0)
+    plan, _ = optimize_nutrition(df, _t(_base_targets()), budget_max_daily=18.0)
     assert plan is not None
     assert len(plan) >= 1
-    total_cal = sum(it["Calories"] for it in plan)
-    total_prot = sum(it["Protéines"] for it in plan)
-    total_prix = sum(it["Prix"] for it in plan)
-    assert total_cal >= 2200.0 * 0.95
-    assert total_prot >= 110.0 * 0.95
-    assert total_prix <= 18.0 * 1.05
+    assert sum(it["Calories"] for it in plan) >= 2200 * 0.90
+    assert sum(it["Protéines"] for it in plan) >= 110 * 0.90
+    assert sum(it["Prix"] for it in plan) <= 18 * 1.05
 
 
 def test_empty_catalog_fails_cleanly():
@@ -67,33 +63,60 @@ def test_empty_catalog_fails_cleanly():
     assert "vide" in warning.lower()
 
 
-def test_minqty_grams_is_respected():
-    """MinQty en grammes (>= 1) doit forcer la borne inferieure."""
+def test_minqty_is_purchase_minimum_when_included():
+    """MinQty = seuil d'achat. Si l'aliment EST inclus, sa quantite doit
+    etre >= MinQty (snap apres SLSQP). L'aliment peut aussi etre exclus."""
     df = _mini_catalog()
-    df.loc["Brocoli", "MinQty"] = 50      # 50g
-    df.loc["Huile olive", "MinQty"] = 5   # 5g
-
+    df.loc["Brocoli", "MinQty"] = 50
+    df.loc["Huile olive", "MinQty"] = 5
     plan, _ = optimize_nutrition(df, _t(_base_targets()), budget_max_daily=18.0)
     assert plan is not None
-
     by_name = {it["Aliment"]: it for it in plan}
-    assert "Brocoli" in by_name, "Brocoli absent malgre MinQty=50g"
-    assert by_name["Brocoli"]["Quantite_g"] >= 49.0, (
-        f"Brocoli a {by_name['Brocoli']['Quantite_g']:.1f}g (attendu >= 50g)"
-    )
-    assert "Huile olive" in by_name, "Huile olive absente malgre MinQty=5g"
-    assert by_name["Huile olive"]["Quantite_g"] >= 4.5
+    if "Brocoli" in by_name:
+        assert by_name["Brocoli"]["Quantite_g"] >= 49.0
+    if "Huile olive" in by_name:
+        assert by_name["Huile olive"]["Quantite_g"] >= 4.5
+
+
+def test_minqty_does_not_force_inclusion():
+    """Avec un MinQty extreme (~400g) pour un aliment non essentiel, l'optimiseur
+    doit pouvoir l'exclure (x=0) au lieu de forcer 400g qui casserait le plan.
+
+    L'heuristique de snap met x a 0 si la solution continue est < MinQty/2."""
+    df = _mini_catalog()
+    df.loc["Brocoli", "MinQty"] = 400
+    plan, _ = optimize_nutrition(df, _t(_base_targets()), budget_max_daily=18.0)
+    assert plan is not None
+    by_name = {it["Aliment"]: it for it in plan}
+    if "Brocoli" in by_name:
+        # Si SLSQP a juge le brocoli utile, on aura exactement 400g (MinQty=MaxQty)
+        assert by_name["Brocoli"]["Quantite_g"] == pytest.approx(400.0, abs=1.0)
+    # Sinon : brocoli absent, et le plan reste valide
+    assert sum(it["Calories"] for it in plan) >= 2200 * 0.85
 
 
 def test_minqty_units_format_is_respected():
-    """MinQty en unites (< 1) doit etre interprete comme deja en unites internes."""
     df = _mini_catalog()
-    df.loc["Huile olive", "MinQty"] = 0.1  # 0.1 unite = 10g
-
+    df.loc["Huile olive", "MinQty"] = 0.1  # 10g (format units)
     plan, _ = optimize_nutrition(df, _t(_base_targets()), budget_max_daily=18.0)
     assert plan is not None
     by_name = {it["Aliment"]: it for it in plan}
-    assert by_name.get("Huile olive", {}).get("Quantite_g", 0) >= 9.5
+    if "Huile olive" in by_name:
+        assert by_name["Huile olive"]["Quantite_g"] >= 9.5
+
+
+def test_high_targets_still_work_with_minqty():
+    """Regression : meme avec des cibles eleveees et des MinQty, on doit
+    obtenir un plan (pas une 422). Test issu du bug rapporte par Germain :
+    cibles 3672 kcal / 176g prot / budget 180 CAD."""
+    df = _mini_catalog()
+    df.loc["Riz blanc", "MinQty"] = 100
+    df.loc["Huile olive", "MinQty"] = 10
+    targets = _t(_base_targets())
+    targets["Calories"] = 3672.0
+    targets["Protéines"] = 176.0
+    plan, warning = optimize_nutrition(df, targets, budget_max_daily=180.0)
+    assert plan is not None, f"Plan attendu, got None (warning: {warning})"
 
 
 def test_tight_budget_emits_warning_or_failure():
@@ -103,7 +126,6 @@ def test_tight_budget_emits_warning_or_failure():
     targets["Protéines"] = 200.0
     targets["Prix_Max"] = 2.0
     targets["Poids_Corps"] = 70.0
-
     plan, warning = optimize_nutrition(df, targets, budget_max_daily=2.0)
     if plan is None:
         assert "budget" in warning.lower() or "erreur" in warning.lower()

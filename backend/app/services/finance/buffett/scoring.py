@@ -57,13 +57,36 @@ def extract_metrics(symbol: str, info: dict) -> dict:
     }
 
 
+def _norm_date_index(df):
+    """Normalise l'index (dates) en chaînes 'YYYY-MM-DD' quel que soit le dtype source.
+
+    Corrige le bug "None of [DatetimeIndex(...)] are in the [index]" : selon que les
+    données viennent de yfinance (DatetimeIndex / datetime64[s] / Timestamps en objet /
+    tz-aware) ou du cache Excel (chaînes), les index des 3 états financiers pouvaient
+    avoir des dtypes incohérents, faisant échouer l'intersection puis le .loc, ou la
+    rendant silencieusement vide. On ramène tout à une représentation canonique unique.
+    """
+    import pandas as pd
+    if df is None or getattr(df, "empty", True):
+        return df
+    df = df.copy()
+    parsed = pd.to_datetime(df.index, errors="coerce", utc=True)
+    new_idx = [
+        p.strftime("%Y-%m-%d") if pd.notna(p) else str(o)
+        for o, p in zip(df.index, parsed)
+    ]
+    df.index = new_idx
+    # Dédupe d'éventuelles dates répétées (merge cache + yfinance)
+    df = df[~df.index.duplicated(keep="first")]
+    return df
+
+
 def _filter_incomplete(df):
+    """Filtre les lignes (dates) à >50% de valeurs manquantes puis normalise l'index."""
     import pandas as pd
     num = df.select_dtypes(include=["number"]).columns
     f = df[df[num].isnull().mean(axis=1) < 0.5] if len(num) else df
-    if isinstance(f.index, pd.DatetimeIndex):
-        f = f.copy(); f.index = f.index.strftime("%Y-%m-%d")
-    return f
+    return _norm_date_index(f)
 
 
 def analyze_financials(symbol: str, data: dict) -> tuple[float, dict]:
@@ -77,18 +100,24 @@ def analyze_financials(symbol: str, data: dict) -> tuple[float, dict]:
     if is_forced or is_etf:
         metrics["Achat"] = True
         if is_etf: metrics["Secteur"] = "ETF"
-        return 100.0, metrics
+        return 200.0, metrics  # ETF/forcé : score conventionnel = 200
 
     income, balance, cashflow = data.get("income"), data.get("balance"), data.get("cashflow")
     if income is None or income.empty or balance is None or balance.empty:
         return 0.0, metrics
 
-    for df_ in [income, balance, cashflow]:
-        if df_ is not None:
-            common = income.index.intersection(balance.index).intersection(cashflow.index)
+    # Normaliser les index en chaînes 'YYYY-MM-DD' (cf. _norm_date_index), puis réintersecter
+    income   = _filter_incomplete(income.sort_index())
+    balance  = _filter_incomplete(balance.sort_index())
+    cashflow = _filter_incomplete(cashflow.sort_index()) if cashflow is not None and not cashflow.empty else pd.DataFrame()
+    common = income.index.intersection(balance.index)
+    if not cashflow.empty:
+        common = common.intersection(cashflow.index)
     if common.empty: return 0.0, metrics
-    income, balance, cashflow = [_filter_incomplete(d.sort_index()).loc[common]
-                                  for d in [income, balance, cashflow]]
+    # Ordre préservé identique à l'origine (intersection triée ascendante par défaut)
+    income   = income.loc[common]
+    balance  = balance.loc[common]
+    cashflow = cashflow.loc[common] if not cashflow.empty else cashflow
     for df_ in [income, balance, cashflow]:
         for col in df_.columns:
             df_[col] = pd.to_numeric(df_[col], errors="coerce").fillna(0)
@@ -104,8 +133,10 @@ def analyze_financials(symbol: str, data: dict) -> tuple[float, dict]:
     nim  = _safe(lambda: income["Net Income"] / income["Total Revenue"], 1, n)
     sc   = "Ordinary Shares Number" if "Ordinary Shares Number" in balance.columns else balance.columns[0]
     eps_ = _safe(lambda: income["Net Income"] / balance[sc], 1, n)
-    cash = sum(balance[c].fillna(0) for c in ["Cash Cash Equivalents And Short Term Investments",
-               "Inventory", "Accounts Receivable"] if c in balance.columns) or pd.Series([0]*n, index=income.index)
+    cash = pd.Series([0.0] * n, index=income.index)
+    for _cc in ["Cash Cash Equivalents And Short Term Investments", "Inventory", "Accounts Receivable"]:
+        if _cc in balance.columns:
+            cash = cash + balance[_cc].fillna(0)
     def _roic():
         d = balance.get("Total Debt", balance.get("Current Debt", 0) + balance.get("Long Term Debt And Capital Lease Obligation", 0))
         return income["Operating Income"] / (d + balance["Common Stock Equity"] - balance.get("Cash Cash Equivalents And Short Term Investments", 0))

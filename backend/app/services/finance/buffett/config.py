@@ -14,9 +14,14 @@ class Config:
     TICKERS_CSV: str = "tickers.csv"
     CACHE_FILE: str = os.path.join("data", "cache_status.json")
     PARAMS_FILE: str = "params.json"
+    # Fichier de disponibilite par broker + scores (colonnes Tradding 212,
+    # Bourse Direct, Bourse Direct 2, IBKR... + Chance MOAT). Plusieurs
+    # emplacements sont testes au chargement (cf. broker_availability.find_broker_file).
+    BROKER_FILE: str = os.path.join("data", "imports", "ToutBroker.xlsx")
 
-    # Limites analyse
-    MAX_AGE_YEARS: int = 1
+    # Limites analyse -- fenetre cible : MIN_AGE_YEARS <= age <= MAX_AGE_YEARS
+    MIN_AGE_YEARS: int = 1   # < 1 an : pas de nouveau rapport annuel possible
+    MAX_AGE_YEARS: int = 2   # > 2 ans : probablement deliste
     SCORE_THRESHOLD: float = 80.0
     MAX_REQUESTS_PER_HOUR: int = 2000
     REQUESTS_PER_TICKER: int = 4
@@ -53,10 +58,10 @@ class Config:
     VINE_TRUNC_HIGH: float = 20.0
     VINE_FAMILY: str = "auto"
 
-    # Déduplication
+    # Deduplication
     DEDUP_FUZZY_THRESHOLD: float = 0.80
 
-    # Tickers forcés (ex: ETF)
+    # Tickers forces (ex: ETF)
     FORCED_BUY_TICKERS: list = []
 
     @classmethod

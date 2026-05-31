@@ -35,11 +35,11 @@ install-frontend:
 # ---------- DEV ----------
 dev:
 	cd frontend && npx concurrently -n backend,frontend -c blue,magenta \
-	  "cd ../backend && uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000" \
+	  "cd ../backend && uv run uvicorn app.main:app --reload --reload-dir app --host 127.0.0.1 --port 8000" \
 	  "next dev"
 
 dev-backend:
-	cd backend && uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+	cd backend && uv run uvicorn app.main:app --reload --reload-dir app --host 127.0.0.1 --port 8000
 
 dev-frontend:
 	cd frontend && npm run dev

@@ -1,25 +1,27 @@
-"""
-APScheduler stubs for Finance module.
-- Daily snapshot at 22:00 (every day)
+"""APScheduler stubs for Finance module.
+- Daily snapshot at 22:00
 - Monthly Buffett run on the 1st at 03:00
-
-This module is imported by CONV 13 (scheduler global) and activated there.
-Exposed here as standalone functions so they can be called manually too.
 """
 from __future__ import annotations
 
 import logging
+import threading
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# Verrou in-process : empeche deux analyses simultanees dans le meme process.
+# A la reouverture du programme le verrou est neuf -> la reprise est possible.
+_ANALYSIS_LOCK = threading.Lock()
 
-# ---------------------------------------------------------------------------
-# Job functions (called by APScheduler or manually)
-# ---------------------------------------------------------------------------
+
+def is_analysis_running() -> bool:
+    """True si une analyse Buffett tourne actuellement dans ce process."""
+    return _ANALYSIS_LOCK.locked()
+
 
 def job_daily_snapshot() -> None:
-    """Take a portfolio snapshot and store it in DB. Runs daily at 22:00."""
+    """Snapshot portefeuille quotidien (22h)."""
     try:
         from app.core.db import engine
         from sqlmodel import Session
@@ -28,11 +30,7 @@ def job_daily_snapshot() -> None:
         with Session(engine) as session:
             snap = take_snapshot_now(session)
             if snap:
-                logger.info(
-                    "Snapshot portefeuille: %.2f EUR (%s)",
-                    snap.valeur_totale,
-                    snap.date,
-                )
+                logger.info("Snapshot portefeuille: %.2f EUR (%s)", snap.valeur_totale, snap.date)
             else:
                 logger.warning("Snapshot ignore: aucune position active")
     except Exception as exc:
@@ -40,96 +38,118 @@ def job_daily_snapshot() -> None:
 
 
 def job_monthly_buffett(csv_path: str | None = None) -> None:
+    """Run Buffett (manuel ou 1er du mois 3h). BackgroundTask FastAPI.
+
+    - Verrou in-process : ignore l'appel si une analyse tourne deja ici.
+    - **Reprise** : reprend le dernier run interrompu (statut en_cours/interrompu)
+      au lieu d'en creer un nouveau ; le runner saute alors les tickers deja faits.
     """
-    Run the monthly Buffett analysis. Runs on the 1st of each month at 03:00.
-    Uses tickers.csv by default (path from Config).
-    Long-running — designed to be called in a background thread.
-    """
+    if not _ANALYSIS_LOCK.acquire(blocking=False):
+        logger.info("Analyse Buffett deja en cours dans ce process -> appel ignore")
+        return
+
     run_id: int | None = None
+    start_time = datetime.now()
+
     try:
         from app.core.db import engine
-        from sqlmodel import Session
+        from sqlmodel import Session, select
         from app.services.finance.buffett import run_buffett_analysis
         from app.services.finance.buffett.config import Config
+        from app.services.finance.buffett.runner import load_tickers
         from app.services.finance.buffett.reporting import (
             create_run, update_run_progress, finalize_run,
         )
+        from app.models.finance import BuffettRun
 
-        cfg = Config()
-        tickers_csv = csv_path or str(cfg.TICKERS_CSV)
+        Config.load_params()
+        tickers_csv = csv_path or str(Config.TICKERS_CSV)
+        tickers = load_tickers(tickers_csv)
+        n_total = len(tickers)
 
-        logger.info(
-            "Demarrage analyse Buffett mensuelle (%s)",
-            datetime.now().isoformat(),
-        )
+        params = {"csv_path": tickers_csv, "n_tickers": n_total, "max_workers": 10}
 
+        # Reprendre le dernier run non termine, sinon en creer un nouveau
         with Session(engine) as session:
-            run = create_run(session, tickers_csv)
-            run_id = run.id
+            existing = session.exec(
+                select(BuffettRun)
+                .where(BuffettRun.statut.in_(["en_cours", "interrompu"]))  # type: ignore[attr-defined]
+                .order_by(BuffettRun.run_date.desc(), BuffettRun.id.desc())  # type: ignore[attr-defined]
+            ).first()
+            if existing:
+                existing.statut = "en_cours"
+                existing.updated_at = datetime.utcnow()
+                session.add(existing)
+                session.commit()
+                session.refresh(existing)
+                run_id = existing.id
+                logger.info("Reprise du run Buffett interrompu #%d", run_id)
+            else:
+                run = create_run(session, n_total, params)
+                run_id = run.id
+                logger.info("Nouveau run Buffett #%d — %d tickers", run_id, n_total)
 
-        def on_progress(done: int, total: int, _ticker: str) -> None:
-            pct = round(done / max(total, 1) * 100, 1)
+        def on_progress(done: int, total: int) -> None:
             with Session(engine) as s:
-                update_run_progress(s, run_id, pct, done, total)
+                update_run_progress(s, run_id, done, total)
 
         result = run_buffett_analysis(
             session_factory=lambda: Session(engine),
             csv_path=tickers_csv,
-            max_workers=cfg.MAX_WORKERS,
-            n_sim=cfg.N_SIM,
+            max_workers=10,
             on_progress=on_progress,
+            run_id=run_id,
         )
+
+        duree = (datetime.now() - start_time).total_seconds()
+        erreur = result.get("error") or result.get("erreur")
 
         with Session(engine) as session:
-            finalize_run(session, run_id, result)
+            finalize_run(
+                session, run_id,
+                statut="erreur" if erreur else "termine",
+                duree_sec=duree,
+                erreur=str(erreur) if erreur else None,
+            )
 
         logger.info(
-            "Analyse Buffett terminee — run_id=%d, n_analysed=%d, duree=%.0fs",
-            run_id,
-            result.get("n_analyzed", 0),
-            result.get("duree_sec", 0),
+            "Analyse Buffett terminee — run_id=%s, n_analyses=%d, duree=%.0fs",
+            run_id, result.get("n_analyzed", 0), duree,
         )
+
     except Exception as exc:
-        logger.error("Erreur analyse Buffett mensuelle: %s", exc, exc_info=True)
+        logger.error("Erreur analyse Buffett: %s", exc, exc_info=True)
+        # On marque "interrompu" (et non "erreur") pour permettre une reprise.
         if run_id is not None:
             try:
                 from app.core.db import engine
                 from sqlmodel import Session
-                from app.services.finance.buffett.reporting import finalize_run
+                from app.models.finance import BuffettRun
                 with Session(engine) as s:
-                    finalize_run(s, run_id, {"erreur": str(exc)})
+                    run = s.get(BuffettRun, run_id)
+                    if run and run.statut == "en_cours":
+                        run.statut = "interrompu"
+                        run.erreur = str(exc)
+                        run.updated_at = datetime.utcnow()
+                        s.add(run)
+                        s.commit()
             except Exception:
                 pass
+    finally:
+        _ANALYSIS_LOCK.release()
 
 
-# ---------------------------------------------------------------------------
-# APScheduler registration (called by CONV 13 scheduler setup)
-# ---------------------------------------------------------------------------
-
-def register_finance_jobs(scheduler) -> None:  # type: ignore[type-arg]
-    """
-    Register finance jobs on the provided APScheduler instance.
-    Called from the global scheduler setup (CONV 13).
-    """
+def register_finance_jobs(scheduler) -> None:
     scheduler.add_job(
-        job_daily_snapshot,
-        trigger="cron",
-        hour=22,
-        minute=0,
+        job_daily_snapshot, trigger="cron", hour=22, minute=0,
         id="finance_daily_snapshot",
-        name="Finance — snapshot portefeuille 22h",
-        replace_existing=True,
-        misfire_grace_time=3600,
+        name="Finance snapshot portefeuille 22h",
+        replace_existing=True, misfire_grace_time=3600,
     )
     scheduler.add_job(
-        job_monthly_buffett,
-        trigger="cron",
-        day=1,
-        hour=3,
-        minute=0,
+        job_monthly_buffett, trigger="cron", day=1, hour=3, minute=0,
         id="finance_monthly_buffett",
-        name="Finance — analyse Buffett mensuelle 3h",
-        replace_existing=True,
-        misfire_grace_time=7200,
+        name="Finance analyse Buffett mensuelle 3h",
+        replace_existing=True, misfire_grace_time=7200,
     )
     logger.info("Finance jobs enregistres: snapshot@22h, buffett@1er-du-mois-3h")

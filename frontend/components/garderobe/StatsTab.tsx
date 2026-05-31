@@ -19,9 +19,9 @@ export function StatsTab({ stats }: { stats: StatsResponse }) {
         <div className="text-sm">
           <span>Neutres : {(stats.color_ratio.Neutre * 100).toFixed(0)}%</span>
           {" · "}
-          <span className="text-blue-400">Secondaires : {(stats.color_ratio.Secondaire * 100).toFixed(0)}%</span>
+          <span className="text-[var(--ring)]">Secondaires : {(stats.color_ratio.Secondaire * 100).toFixed(0)}%</span>
           {" · "}
-          <span className="text-amber-500">Accents : {(stats.color_ratio.Accent * 100).toFixed(0)}%</span>
+          <span className="text-[var(--warning)]">Accents : {(stats.color_ratio.Accent * 100).toFixed(0)}%</span>
         </div>
       </div>
       <div>
@@ -56,7 +56,7 @@ function Section({ title, entries }: { title: string; entries: { label: string; 
           <div key={e.label} className="flex items-center gap-2 text-sm">
             <div className="w-24 truncate" title={e.label}>{e.label}</div>
             <div className="flex-1 h-2 bg-[var(--muted)] rounded overflow-hidden">
-              <div className="h-full bg-blue-500" style={{ width: `${(e.count / total) * 100}%` }} />
+              <div className="h-full bg-[var(--ring)]" style={{ width: `${(e.count / total) * 100}%` }} />
             </div>
             <div className="w-8 text-right text-xs text-[var(--muted-foreground)]">{e.count}</div>
           </div>
@@ -69,7 +69,7 @@ function Section({ title, entries }: { title: string; entries: { label: string; 
 function LavanderieRow({ v }: { v: any }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="flex items-center gap-3 p-2 rounded border border-red-700 bg-red-950/20">
+    <div className="flex items-center gap-3 p-2 rounded border border-[var(--destructive)]/50 bg-[var(--destructive)]/10">
       <div className="w-10 flex justify-center">
         {!failed ? (
           <img src={assetUrl(v.id)} alt={v.nom} onError={() => setFailed(true)} style={{ imageRendering: "pixelated", height: "28px" }} />

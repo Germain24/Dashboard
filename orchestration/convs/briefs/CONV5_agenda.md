@@ -79,7 +79,13 @@ POST   /api/agenda/import-ical          # upload .ics
 ## Dépendances
 
 - Prérequis : CONV 1.
-- Consommé par : CONV 6 (Études → tâches), CONV 7 (Entraînement → slots).
+- Consommé par : CONV 6 (Études → tâches).
+- **Boucle à fermer avec CONV 7 (déjà livrée)** : afficher la séance du jour
+  dans la timeline. CONV 7 expose déjà `GET /entrainement/today` qui renvoie
+  `programme_jour` + slots. **Consommer via import in-process** (cf. note 14
+  du PLAN.md) : `from app.services.entrainement import ...`, pas de round-trip
+  HTTP. Wrap dans `try/except` avec fallback silencieux pour ne pas bloquer
+  Agenda si Entraînement échoue.
 
 ## Suggestions techniques
 

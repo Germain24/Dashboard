@@ -14,7 +14,20 @@ export async function api<T = unknown>(path: string, init?: RequestInit): Promis
     ...init,
   });
   if (!res.ok) {
-    throw new Error(`API ${path} failed: ${res.status} ${res.statusText}`);
+    // Extrait le message d'erreur du backend (FastAPI met le détail dans `detail`)
+    let detail = "";
+    try {
+      const body = await res.json();
+      detail = typeof body?.detail === "string" ? body.detail : JSON.stringify(body);
+    } catch {
+      try {
+        detail = await res.text();
+      } catch {
+        // ignore
+      }
+    }
+    const suffix = detail ? ` — ${detail}` : "";
+    throw new Error(`API ${path} ${res.status} ${res.statusText}${suffix}`);
   }
   return res.json() as Promise<T>;
 }

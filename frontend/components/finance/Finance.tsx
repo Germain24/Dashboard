@@ -4,16 +4,17 @@ import { useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { PortefeuilleTab } from "./PortefeuilleTab";
 import { SuiviTab } from "./SuiviTab";
 import { CompositionTab } from "./CompositionTab";
 import { BuffettTab } from "./BuffettTab";
 import { RebalancingTab } from "./RebalancingTab";
 import { TransactionsTab } from "./TransactionsTab";
 
-type Tab = "suivi" | "composition" | "buffett" | "rebalancing" | "transactions";
+type Tab = "portefeuille" | "suivi" | "composition" | "buffett" | "rebalancing" | "transactions";
 
 export function Finance() {
-  const [tab, setTab] = useState<Tab>("suivi");
+  const [tab, setTab] = useState<Tab>("portefeuille");
 
   return (
     <div className="space-y-4">
@@ -25,6 +26,7 @@ export function Finance() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
         <TabsList>
+          <TabsTrigger value="portefeuille">💼 Portefeuille</TabsTrigger>
           <TabsTrigger value="suivi">📈 Suivi</TabsTrigger>
           <TabsTrigger value="composition">🗂 Composition</TabsTrigger>
           <TabsTrigger value="buffett">🧠 Buffett</TabsTrigger>
@@ -32,6 +34,9 @@ export function Finance() {
           <TabsTrigger value="transactions">💳 Transactions</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="portefeuille">
+          <PortefeuilleTab />
+        </TabsContent>
         <TabsContent value="suivi">
           <SuiviTab />
         </TabsContent>

@@ -29,6 +29,20 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(api_router)
+
+    @app.on_event("startup")
+    def _sync_portfolio_history() -> None:
+        """Lit l'Excel d'historique de portefeuille au demarrage (source editable)."""
+        import logging
+        try:
+            from app.core.db import engine
+            from sqlmodel import Session
+            from app.services.finance.history_excel import sync_excel_to_db
+            with Session(engine) as session:
+                sync_excel_to_db(session)
+        except Exception as exc:  # ne jamais bloquer le demarrage
+            logging.getLogger(__name__).warning("Sync historique Excel au demarrage: %s", exc)
+
     return app
 
 

@@ -1,40 +1,150 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { financeApi, type SnapshotOut, type PerfMetrics, type HistoryPoint, type BenchmarkOut } from "@/lib/finance";
+import {
+  financeApi, type SnapshotOut, type PerfMetrics,
+  type HistoryPoint, type BenchmarkOut,
+} from "@/lib/finance";
 import { Spinner } from "@/components/ui/spinner";
-import { ChartFrame } from "@/components/ui/chart-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-function fmt(n?: number, dec = 2) {
+// Couleur de série du benchmark CW8 (demande explicite : orange)
+const CW8_COLOR = "#f97316";
+
+function fmt(n?: number | null, dec = 2) {
   if (n == null) return "—";
   return n.toLocaleString("fr-FR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
-function PerfBadge({ v }: { v?: number }) {
-  if (v == null) return <span className="text-xs text-[var(--muted-foreground)]">—</span>;
-  const variant = v >= 0 ? "success" : "destructive";
-  return <Badge variant={variant}>{v >= 0 ? "+" : ""}{fmt(v)}%</Badge>;
+function kEur(n: number) {
+  if (Math.abs(n) >= 1000) return `${(n / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} k€`;
+  return `${Math.round(n)} €`;
 }
 
-function MiniChart({ data }: { data: HistoryPoint[] }) {
-  if (!data.length) return null;
-  const vals = data.map(d => d.valeur_totale);
-  const min = Math.min(...vals), max = Math.max(...vals);
-  const range = max - min || 1;
-  const W = 400, H = 80, PAD = 4;
-  const pts = data.map((d, i) => {
-    const x = PAD + (i / (data.length - 1)) * (W - PAD * 2);
-    const y = PAD + (1 - (d.valeur_totale - min) / range) * (H - PAD * 2);
-    return `${x},${y}`;
-  }).join(" ");
-  const isUp = vals[vals.length - 1] >= vals[0];
+function PerfBadge({ v }: { v?: number | null }) {
+  if (v == null) return <span className="text-xs text-[var(--muted-foreground)]">—</span>;
+  return <Badge variant={v >= 0 ? "success" : "destructive"}>{v >= 0 ? "+" : ""}{fmt(v)}%</Badge>;
+}
+
+interface ChartProps {
+  history: HistoryPoint[];
+  cw8Serie: { date: string; valeur: number }[];
+}
+
+function PortfolioChart({ history, cw8Serie }: ChartProps) {
+  if (history.length < 2) {
+    return (
+      <p className="text-xs text-[var(--muted-foreground)] py-10 text-center">
+        Pas encore assez de données — les snapshots s'accumulent chaque jour automatiquement.
+      </p>
+    );
+  }
+
+  const W = 800, H = 260, PL = 56, PR = 56, PT = 14, PB = 30;
+  const iW = W - PL - PR, iH = H - PT - PB;
+
+  const vVals = history.map(d => d.valeur);
+  const iVals = history.map(d => d.investit);
+  const allVals = [...vVals, ...iVals];
+
+  // CW8 = simulation d'un portefeuille 100 % CW8.PA (mêmes apports), déjà en € et
+  // alignée sur les dates des snapshots par le backend. On l'aligne par date (report
+  // de la dernière valeur connue pour les jours sans point).
+  let cw8Norm: number[] = [];
+  if (cw8Serie.length > 1) {
+    const byDate = new Map(cw8Serie.map(c => [c.date, c.valeur]));
+    let last: number | null = null;
+    cw8Norm = history.map(h => {
+      const v = byDate.get(h.date);
+      if (v != null) last = v;
+      return last ?? cw8Serie[0].valeur;
+    });
+    allVals.push(...cw8Norm);
+  }
+
+  const minV = Math.min(...allVals) * 0.99;
+  const maxV = Math.max(...allVals) * 1.01;
+  const range = maxV - minV || 1;
+
+  const toX = (i: number, total: number) => PL + (i / (total - 1)) * iW;
+  const toY = (v: number) => PT + (1 - (v - minV) / range) * iH;
+  const line = (vals: number[]) => vals.map((v, i) => `${toX(i, vals.length)},${toY(v)}`).join(" ");
+
+  const ticks = [minV, minV + range * 0.25, minV + range * 0.5, minV + range * 0.75, maxV];
+  const xIdx = [0, Math.floor(history.length / 3), Math.floor((2 * history.length) / 3), history.length - 1];
+
+  const isUp = vVals[vVals.length - 1] >= vVals[0];
+  const valColor = isUp ? "var(--success)" : "var(--destructive)";
+  const area = `${line(vVals)} ${toX(vVals.length - 1, vVals.length)},${toY(minV)} ${toX(0, vVals.length)},${toY(minV)}`;
+
+  const lastX = toX(vVals.length - 1, vVals.length);
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-20">
-      <polyline fill="none" stroke={isUp ? "var(--success)" : "var(--destructive)"}
-        strokeWidth="1.5" points={pts} />
-    </svg>
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: "auto" }}>
+        <defs>
+          <linearGradient id="valFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={valColor} stopOpacity="0.18" />
+            <stop offset="100%" stopColor={valColor} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Grille + axe Y (€) */}
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={PL} x2={W - PR} y1={toY(t)} y2={toY(t)}
+              stroke="var(--border)" strokeWidth="1" strokeDasharray="2 3" />
+            <text x={PL - 8} y={toY(t) + 3} textAnchor="end" fontSize="10" fill="var(--muted-foreground)">
+              {kEur(t)}
+            </text>
+          </g>
+        ))}
+
+        {/* Axe X (dates) */}
+        {xIdx.map(i => (
+          <text key={i} x={toX(i, history.length)} y={H - 8} textAnchor="middle"
+            fontSize="10" fill="var(--muted-foreground)">
+            {history[i]?.date?.slice(0, 7) ?? ""}
+          </text>
+        ))}
+
+        {/* Aire sous la valeur */}
+        <polygon points={area} fill="url(#valFill)" />
+
+        {/* Benchmark CW8 (orange, tireté) */}
+        {cw8Norm.length > 1 && (
+          <polyline fill="none" stroke={CW8_COLOR} strokeWidth="2"
+            strokeDasharray="5 3" points={line(cw8Norm)} />
+        )}
+
+        {/* Investi (gris, tireté) */}
+        <polyline fill="none" stroke="var(--muted-foreground)" strokeWidth="1.5"
+          strokeDasharray="4 4" points={line(iVals)} />
+
+        {/* Valeur portefeuille (plein) */}
+        <polyline fill="none" stroke={valColor} strokeWidth="2.5" points={line(vVals)} />
+        <circle cx={lastX} cy={toY(vVals[vVals.length - 1])} r="3.5" fill={valColor} />
+      </svg>
+
+      {/* Légende */}
+      <div className="flex flex-wrap gap-4 text-xs text-[var(--muted-foreground)] mt-2 px-1">
+        <span className="flex items-center gap-1.5">
+          <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke={valColor} strokeWidth="2.5" /></svg>
+          Valeur portefeuille
+        </span>
+        <span className="flex items-center gap-1.5">
+          <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeDasharray="4 4" /></svg>
+          Investi
+        </span>
+        {cw8Norm.length > 1 && (
+          <span className="flex items-center gap-1.5">
+            <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke={CW8_COLOR} strokeWidth="2" strokeDasharray="5 3" /></svg>
+            CW8.PA (100% simulé)
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -46,13 +156,14 @@ export function SuiviTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [snapping, setSnapping] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const [s, p, h, b] = await Promise.all([
         financeApi.snapshot(), financeApi.perf(),
-        financeApi.history(365), financeApi.benchmarks(),
+        financeApi.history(10000), financeApi.benchmarks(),  // tout l'historique
       ]);
       setSnap(s); setPerf(p); setHistory(h); setBenchmarks(b);
     } catch (e: unknown) {
@@ -60,7 +171,18 @@ export function SuiviTab() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load().then(async () => {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const s = await financeApi.snapshot();
+        if (!s || s.date < today) {
+          await financeApi.snapshotAuto();
+          load();
+        }
+      } catch { /* silencieux */ }
+    });
+  }, [load]);
 
   const handleSnapshot = async () => {
     setSnapping(true);
@@ -69,63 +191,92 @@ export function SuiviTab() {
     finally { setSnapping(false); }
   };
 
+  // Recharge l'historique depuis Historique_portefeuille.xlsx (l'Excel = la source)
+  const handleSyncExcel = async () => {
+    setSyncing(true); setError(null);
+    try { await financeApi.historySyncExcel(); await load(); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : "Erreur rechargement Excel"); }
+    finally { setSyncing(false); }
+  };
+
   if (loading) return <Spinner label="Chargement portefeuille..." />;
   if (error) return <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>;
+
+  const valeur = perf?.valeur ?? 0;
+  const investit = perf?.investit ?? 0;
+  const plTotal = perf?.pl_total ?? 0;
+  const plPct = perf?.pl_pct ?? 0;
+  const cw8 = benchmarks.find(b => b.nom === "CW8" || b.ticker === "CW8.PA");
 
   return (
     <div className="space-y-4">
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Valeur totale", value: `${fmt(perf?.valeur_totale)} €` },
-          { label: "Investi", value: `${fmt(perf?.montant_investi)} €` },
-          { label: "+/- latente", value: `${fmt(perf?.plus_value_latente)} €`, pct: perf?.plus_value_pct },
+          { label: "Valeur totale", value: `${fmt(valeur)} €` },
+          { label: "Investi", value: `${fmt(investit)} €` },
+          { label: "+/- latente", value: `${plTotal >= 0 ? "+" : ""}${fmt(plTotal)} €`, badge: plPct },
           { label: "Max drawdown", value: perf?.max_drawdown_pct != null ? `${fmt(perf.max_drawdown_pct)}%` : "—" },
         ].map(k => (
           <div key={k.label} className="rounded-[var(--radius-lg)] border border-[var(--border)] p-3 space-y-1">
             <p className="text-xs text-[var(--muted-foreground)]">{k.label}</p>
             <p className="text-base font-semibold">{k.value}</p>
-            {"pct" in k && <PerfBadge v={k.pct} />}
+            {"badge" in k && <PerfBadge v={k.badge} />}
           </div>
         ))}
       </div>
 
       {/* Chart */}
-      <ChartFrame title={`Évolution valeur (${history.length} jours)`}
-        action={<Button size="sm" variant="secondary" onClick={handleSnapshot}
-          disabled={snapping}>{snapping ? "..." : "Snapshot maintenant"}</Button>}>
-        <MiniChart data={history} />
-      </ChartFrame>
+      <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-sm font-semibold">Évolution du portefeuille</p>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              {history.length} snapshots · vs 100 % CW8.PA (mêmes apports)
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleSyncExcel} disabled={syncing}
+              title="Relit Historique_portefeuille.xlsx (Date, Valeur, Investit)">
+              {syncing ? "..." : "↻ Recharger l'Excel"}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={handleSnapshot} disabled={snapping}>
+              {snapping ? "..." : "Snapshot maintenant"}
+            </Button>
+          </div>
+        </div>
+        <PortfolioChart history={history} cw8Serie={cw8?.serie ?? []} />
+      </div>
 
-      {/* Last snapshot */}
       {snap && (
         <p className="text-xs text-[var(--muted-foreground)]">
-          Dernier snapshot : {snap.date} — {snap.nb_lignes} ligne(s)
+          Dernier snapshot : {snap.date} · {fmt(snap.valeur)} € · investi {fmt(snap.investit)} €
         </p>
       )}
 
       {/* Benchmarks */}
       {benchmarks.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-base font-semibold">Benchmarks</h2>
+          <h2 className="text-sm font-semibold">Benchmarks</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--muted-foreground)]">
                   <th className="pb-1 pr-4">Indice</th>
-                  <th className="pb-1 pr-4">1 mois</th>
-                  <th className="pb-1 pr-4">3 mois</th>
-                  <th className="pb-1 pr-4">YTD</th>
+                  <th className="pb-1 pr-4">6 mois</th>
+                  <th className="pb-1 pr-4">MTD</th>
                   <th className="pb-1">1 an</th>
                 </tr>
               </thead>
               <tbody>
                 {benchmarks.map(b => (
-                  <tr key={b.ticker} className="border-b border-[var(--border)]">
-                    <td className="py-1.5 pr-4 font-medium">{b.nom}</td>
-                    <td className="py-1.5 pr-4"><PerfBadge v={b.perf_1m_pct} /></td>
-                    <td className="py-1.5 pr-4"><PerfBadge v={b.perf_3m_pct} /></td>
-                    <td className="py-1.5 pr-4"><PerfBadge v={b.perf_ytd_pct} /></td>
+                  <tr key={b.ticker ?? b.nom} className="border-b border-[var(--border)]">
+                    <td className="py-1.5 pr-4 font-medium"
+                      style={(b.nom === "CW8" || b.ticker === "CW8.PA") ? { color: CW8_COLOR } : {}}>
+                      {b.nom}{(b.nom === "CW8" || b.ticker === "CW8.PA") ? " (CW8.PA)" : ""}
+                    </td>
+                    <td className="py-1.5 pr-4"><PerfBadge v={b.perf_6m_pct} /></td>
+                    <td className="py-1.5 pr-4"><PerfBadge v={b.perf_mtd_pct} /></td>
                     <td className="py-1.5"><PerfBadge v={b.perf_1a_pct} /></td>
                   </tr>
                 ))}

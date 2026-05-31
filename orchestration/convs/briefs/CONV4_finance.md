@@ -141,6 +141,34 @@ POST   /api/finance/transactions/import # CSV broker
 
 ## Suggestions techniques
 
+- **Contraintes héritées de CONV 3 et CONV 7** :
+  - **Chaque fichier Python doit faire < 200 lignes** (le tool `Write` tronque
+    au-delà). Le refactor de `WarrenBuffetMensuel.py` (1920 lignes) doit
+    aboutir à **au moins 10 sous-modules** : config, rate_limiter, scoring
+    pur (sans pandas), data_fetch (yfinance), copulas, optimizer, reporting,
+    runner, etc.
+  - **Mount FUSE Windows↔Linux désynchronisé** (note 12 du PLAN). Pour tout
+    fichier Python critique de ce gros refactor, écriture finale via
+    `cat > file << 'EOF' ... EOF` en bash plutôt que `Write`, sinon risque
+    de troncation silencieuse sandbox / divergence AST côté Python.
+  - **Isoler la logique pure dans un sous-module sans pandas/scipy** (par
+    exemple `services/finance/buffett/scoring_pure.py`) pour que les tests
+    unitaires de scoring tournent en < 1 s sans la stack scientifique.
+  - **Race condition sur les seeds idempotents** (note 13 du PLAN). Si tu
+    crées un endpoint qui seed l'univers de tickers ou les paramètres
+    Buffett, attrape `IntegrityError` + `session.rollback()`, retourne
+    l'existant. Sinon React Strict Mode dev → 500 au mount de la page.
+  - **Pas de cascade FK SQLite** (note 16). Quand tu supprimes une `Position`
+    ou une `Transaction`, supprime les références liées manuellement.
+  - **Sandbox + Git Windows** : si `git add` bloque sur `.git/index` (ou
+    `HEAD.lock` stale), utiliser `GIT_INDEX_FILE=/tmp/git_index_xxx git add ...`
+    OU passer la main à Germain pour le commit final (cf. CONV 7).
+  - **Design system obligatoire** (CONV DESIGN livrée). Frontend Finance
+    doit utiliser les primitives de `frontend/components/ui/` (Button,
+    Tabs, Card, Spinner, Skeleton, EmptyState, ChartFrame, Dialog, etc.).
+    Voir `frontend/DESIGN.md` pour les patterns. Pas de couleurs Tailwind
+    hardcoded — toujours via CSS variables. Mobile-first à 375 / 768 /
+    1280 / 1920 px.
 - **Refactor Buffett** : commencer par découper le fichier en gros morceaux
   thématiques, garder la logique identique au début, tester avant chaque coupe.
   Bonne occasion d'ajouter des tests unitaires sur le scoring MOAT et

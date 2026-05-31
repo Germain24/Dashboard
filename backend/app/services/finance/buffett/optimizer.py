@@ -154,3 +154,83 @@ def optimize_portfolio(
 
     print(f"    * STARR final : {final_starr:.3f}")
     return units, final_starr
+
+
+# ---------------------------------------------------------------------------
+# Differential Evolution optimizer (remplace STARR SLSQP pour le portefeuille)
+# ---------------------------------------------------------------------------
+
+def optimize_portfolio_de(
+    tickers: list[str],
+    returns,          # pd.DataFrame de rendements journaliers
+    matrix_access: list,
+    active_brokers: list[str],
+    seed: int = 42,
+) -> tuple[np.ndarray, float]:
+    """Optimise le portefeuille via Differential Evolution (Sharpe annualisé).
+
+    Avantages vs STARR SLSQP multi-start :
+    - Exploration globale sans points de départ multiples
+    - polish=True : SLSQP final sur la meilleure solution (meilleure précision)
+    - scipy.optimize.LinearConstraint gère les égalités par broker nativement
+
+    Retourne (weights_matrix [n_tickers x n_brokers, fraction du capital TOTAL],
+    sharpe_final). La conversion en ordres réels (actions entières hors Trading212,
+    ou pies Trading212) est faite ensuite par ``allocation.discretize_allocation``
+    qui a besoin des prix — une action pouvant représenter moins de 1 %.
+    """
+    from scipy.optimize import differential_evolution, LinearConstraint
+
+    num_t = len(tickers)
+    num_b = len(active_brokers)
+    total_cap = sum(Config.BUDGET_BROKERS.values())
+    b_ratios = np.array([Config.BUDGET_BROKERS[b] / total_cap for b in active_brokers])
+
+    mean_rets = returns.mean().values * 252
+    cov_mat = returns.cov().values * 252
+
+    bounds = []
+    for i in range(num_t):
+        for j in range(num_b):
+            bounds.append((0.0, float(b_ratios[j])) if matrix_access[i][j] else (0.0, 0.0))
+
+    # Contraintes d'égalité : somme des poids par broker == b_ratios[j]
+    constraints = []
+    for j in range(num_b):
+        A = np.zeros(num_t * num_b)
+        for i in range(num_t):
+            A[i * num_b + j] = 1.0
+        constraints.append(LinearConstraint(A, b_ratios[j], b_ratios[j]))
+
+    def neg_sharpe(w_flat: np.ndarray) -> float:
+        wg = w_flat.reshape(num_t, num_b).sum(axis=1)
+        ret = float(wg @ mean_rets)
+        vol = float(np.sqrt(wg @ cov_mat @ wg))
+        if vol < 1e-8:
+            return 1e6
+        return -ret / vol
+
+    print(f"    * Differential Evolution ({num_t} tickers, {num_b} brokers)...")
+    result = differential_evolution(
+        neg_sharpe,
+        bounds=bounds,
+        constraints=constraints,
+        seed=seed,
+        maxiter=1000,
+        tol=1e-6,
+        mutation=(0.5, 1.5),
+        recombination=0.9,
+        popsize=15,
+        polish=True,      # SLSQP final pour affiner la solution
+        workers=1,        # 1 = thread-safe en contexte FastAPI
+        updating="deferred",
+    )
+
+    final_w = result.x
+    sharpe = -result.fun
+    print(f"    * Sharpe final (DE) : {sharpe:.3f}")
+
+    # Poids continus (fraction du capital total) ; bornés >= 0.
+    # La discrétisation (actions entières / pies) est déléguée à discretize_allocation.
+    wm = np.maximum(final_w.reshape(num_t, num_b), 0.0)
+    return wm, sharpe

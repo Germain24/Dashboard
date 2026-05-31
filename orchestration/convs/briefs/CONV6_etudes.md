@@ -57,12 +57,28 @@ GET    /api/etudes/deadlines             # appelle CONV 5 pour les tasks liées
 
 ## Lien avec Agenda (CONV 5)
 
-Quand on ajoute une évaluation avec une date future, créer automatiquement
-une `Task` côté agenda avec :
-- titre : `"<cours_code> - <eval_type>"`
-- deadline : date de l'évaluation
-- priorité : selon pondération
-- lien : `course_id`
+Le contrat de tâche est défini par CONV 5 (✅ livré). Quand on ajoute une
+évaluation avec une date future, créer automatiquement une `Tache` côté
+agenda via **import in-process** (cf. note 14 du PLAN) :
+
+```python
+from app.services.agenda import tasks as agenda_tasks
+agenda_tasks.create_tache(session, TacheCreate(
+    titre=f"{cours_code} - {eval_type}",
+    deadline=eval_date,
+    priorite=mapped_from_ponderation,   # ex: ponderation >= 30% → priorite 1
+    source="etudes",                    # ← obligatoire (contrat CONV 5)
+    source_id=str(evaluation_id),       # ← FK logique vers l'évaluation
+    categorie="devoir",
+))
+```
+
+Wrapper l'appel dans `try/except` + log warning : si Agenda échoue,
+l'évaluation est quand même créée côté Études (note 20 du PLAN : bridge
+silencieux par défaut).
+
+V2 : propager la complétion d'une `Tache` Agenda → marquer la note de
+l'évaluation comme attendue. Pour V1, l'utilisateur coche manuellement.
 
 ## Hors-scope
 

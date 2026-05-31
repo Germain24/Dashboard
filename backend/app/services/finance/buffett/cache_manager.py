@@ -1,4 +1,4 @@
-"""Cache JSON local pour éviter de re-télécharger des données récentes."""
+"""Cache JSON local pour eviter de re-telecharger des donnees recentes."""
 
 from __future__ import annotations
 
@@ -25,7 +25,6 @@ SUFFIX_MAP: dict[str, str] = {
 
 
 def infer_country(symbol: str) -> str:
-    """Devine le pays depuis le suffixe du ticker."""
     for suffix, country in SUFFIX_MAP.items():
         if symbol.upper().endswith(suffix):
             return country
@@ -33,7 +32,7 @@ def infer_country(symbol: str) -> str:
 
 
 class CacheManager:
-    """Gère le fichier cache_status.json (thread-safe)."""
+    """Gere le fichier cache_status.json (thread-safe)."""
 
     def __init__(self, cache_file: str = Config.CACHE_FILE) -> None:
         self.cache_file = cache_file
@@ -67,7 +66,14 @@ class CacheManager:
             }
 
     def get_cached_result(self, ticker: str) -> Optional[tuple[float, dict]]:
-        """Retourne (score, metrics) si l'analyse est récente, sinon None."""
+        """Retourne (score, metrics) si le cache est valide, sinon None.
+
+        Regles :
+        - ETF (score >= 200) : retourne toujours si cache < 60 jours, sans
+          restriction d'age financier (les ETF n'ont pas de comptes annuels).
+        - Action normale : retourne si cache < 60 jours ET age financier dans
+          [MIN_AGE_YEARS, MAX_AGE_YEARS].
+        """
         with self.lock:
             info = self.cache.get(ticker, {})
             if not info or info.get("status") != "success":
@@ -75,20 +81,34 @@ class CacheManager:
             try:
                 last_update = datetime.fromisoformat(info["last_update"])
                 age_days = (datetime.now() - last_update).days
+                if age_days >= 60 or not info.get("metrics"):
+                    return None
+                score = float(info.get("score") or 0.0)
+                metrics = dict(info.get("metrics", {}))
+                if metrics.get("Pays") == "Inconnu":
+                    metrics["Pays"] = infer_country(ticker)
+                # ETF (score=200) : pas de restriction d'age financier
+                if score >= 200:
+                    return score, metrics
+                # Action normale : verifier la fenetre d'age
                 cached_year = info.get("latest_year", 0)
                 age_fin = datetime.now().year - cached_year
-                if age_days < 60 and age_fin <= Config.MAX_AGE_YEARS and info.get("metrics"):
-                    score = float(info.get("score") or 0.0)
-                    metrics = dict(info.get("metrics", {}))
-                    if metrics.get("Pays") == "Inconnu":
-                        metrics["Pays"] = infer_country(ticker)
+                if Config.MIN_AGE_YEARS <= age_fin <= Config.MAX_AGE_YEARS:
                     return score, metrics
             except Exception:
                 pass
             return None
 
     def get_status(self, ticker: str, file_path: Path) -> str:
-        """Retourne 'local_ok' | 'update' | 'download' | 'too_old'."""
+        """Retourne le statut du ticker selon l'age de ses donnees.
+
+        Statuts possibles :
+        - too_fresh : age < MIN_AGE_YEARS (pas de nouveau rapport annuel possible)
+        - local_ok  : age == MIN_AGE_YEARS (fichier local suffisant, pas de dl)
+        - update    : MIN_AGE_YEARS < age <= MAX_AGE_YEARS (tenter mise a jour)
+        - too_old   : age > MAX_AGE_YEARS (probablement deliste - tenter quand meme)
+        - download  : aucun fichier local
+        """
         with self.lock:
             cached_year = self.cache.get(ticker, {}).get("latest_year", 0)
 
@@ -104,8 +124,10 @@ class CacheManager:
         if latest_year == 0:
             return "download"
         age = datetime.now().year - latest_year
+        if age < Config.MIN_AGE_YEARS:
+            return "too_fresh"
         if age > Config.MAX_AGE_YEARS:
             return "too_old"
-        if age <= 1:
+        if age == Config.MIN_AGE_YEARS:
             return "local_ok"
         return "update"

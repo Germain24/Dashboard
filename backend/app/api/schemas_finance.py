@@ -43,6 +43,26 @@ class PositionOut(BaseModel):
     pl_pct: float = 0.0
 
 
+class PositionCreate(BaseModel):
+    """Schema pour creer ou mettre a jour une position manuelle."""
+    ticker: str
+    quantite: float
+    pmu: Optional[float] = None         # prix moyen unitaire
+    devise: str = "EUR"
+    broker: Optional[str] = None
+
+
+class PositionIdOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    ticker: str
+    broker: Optional[str] = None
+    quantite: float
+    pmu: Optional[float] = None
+    devise: str = "EUR"
+    updated_at: Optional[dt.datetime] = None
+
+
 class PerfMetricsOut(BaseModel):
     valeur: float = 0.0
     investit: float = 0.0
@@ -171,6 +191,7 @@ class BuffettProgressOut(BaseModel):
     progress_pct: float
     n_done: Optional[int] = None
     n_total: Optional[int] = None
+    active: bool = False  # True = une analyse tourne reellement dans ce process
 
 
 # ---------------------------------------------------------------------------
@@ -180,11 +201,17 @@ class BuffettProgressOut(BaseModel):
 class RebalancingLineOut(BaseModel):
     ticker: str
     nom: str
-    allocation_actuelle_pct: float
-    allocation_cible_pct: float
+    broker: str = "—"
+    quantite_actuelle: float = 0.0
     valeur_actuelle_eur: float
+    allocation_actuelle_pct: float
+    cible_type: str = "pie"               # "pie" | "shares"
+    cible_shares: Optional[int] = None    # actions entières cibles (None si pie)
+    prix_unitaire: float = 0.0
     valeur_cible_eur: float
+    allocation_cible_pct: float
     delta_eur: float
+    delta_shares: Optional[int] = None    # actions à acheter(+)/vendre(-)
     action: str
 
 
@@ -192,6 +219,7 @@ class RebalancingDiffOut(BaseModel):
     run_id: int
     run_date: str
     valeur_totale_eur: float
+    budget_total_eur: float = 0.0
     lignes: list[RebalancingLineOut]
     n_acheter: int
     n_vendre: int

@@ -22,13 +22,19 @@ def get_history(
     date_to: Optional[dt.date] = None,
     limit: int = 365,
 ) -> list[SnapshotPortefeuille]:
-    q = select(SnapshotPortefeuille).order_by(SnapshotPortefeuille.date.asc())
+    """Retourne les `limit` snapshots les plus RECENTS, en ordre chronologique.
+
+    (Avant : renvoyait les plus anciens -> le graphique restait bloque sur 2020.)
+    """
+    q = select(SnapshotPortefeuille)
     if date_from:
         q = q.where(SnapshotPortefeuille.date >= date_from)
     if date_to:
         q = q.where(SnapshotPortefeuille.date <= date_to)
-    q = q.limit(limit)
-    return list(session.exec(q).all())
+    q = q.order_by(SnapshotPortefeuille.date.desc()).limit(limit)
+    rows = list(session.exec(q).all())
+    rows.reverse()  # remettre en ordre chronologique croissant pour l'affichage
+    return rows
 
 
 def upsert_snapshot(
@@ -86,7 +92,14 @@ def take_snapshot_now(session: Session) -> Optional[SnapshotPortefeuille]:
 
         if total_valeur == 0:
             return None
-        return upsert_snapshot(session, dt.date.today(), total_valeur, total_investit)
+        snap = upsert_snapshot(session, dt.date.today(), total_valeur, total_investit)
+        # L'Excel reste la source editable : on y reporte le snapshot du jour.
+        try:
+            from app.services.finance.history_excel import write_snapshot_to_excel
+            write_snapshot_to_excel(snap.date, snap.valeur, snap.investit)
+        except Exception:
+            pass
+        return snap
     except Exception as e:
         print(f"[snapshots] Erreur take_snapshot_now: {e}")
         return None

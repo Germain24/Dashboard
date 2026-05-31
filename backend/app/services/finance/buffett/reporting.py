@@ -14,7 +14,7 @@ def create_run(session: Session, n_total: int, params: dict) -> BuffettRun:
     """Crée un run en statut 'running'."""
     run = BuffettRun(
         run_date=dt.date.today(),
-        statut="running",
+        statut="en_cours",
         n_tickers_total=n_total,
         n_tickers_analyzed=0,
         progress_pct=0.0,
@@ -34,6 +34,8 @@ def update_run_progress(session: Session, run_id: int, n_done: int, n_total: int
         run.n_tickers_analyzed = n_done
         run.progress_pct = round(n_done / n_total * 100, 1) if n_total else 0
         run.updated_at = dt.datetime.utcnow()
+        if run.statut != "termine":
+            run.statut = "en_cours"  # un run qui progresse est bien actif (annule un "interrompu")
         session.add(run)
         session.commit()
 
@@ -46,11 +48,19 @@ def finalize_run(
     if run:
         run.statut = statut
         run.duree_sec = duree_sec
-        run.progress_pct = 100.0 if statut == "completed" else run.progress_pct
+        run.progress_pct = 100.0 if statut == "termine" else run.progress_pct
         run.erreur = erreur
         run.updated_at = dt.datetime.utcnow()
         session.add(run)
         session.commit()
+
+
+def get_done_tickers(session: Session, run_id: int) -> set[str]:
+    """Tickers deja persistes pour ce run (reprise apres fermeture du programme)."""
+    rows = session.exec(
+        select(BuffettRunResult.ticker).where(BuffettRunResult.run_id == run_id)
+    ).all()
+    return {t for t in rows}
 
 
 def upsert_result(session: Session, run_id: int, ticker: str, score: float, metrics: dict) -> None:
@@ -91,14 +101,56 @@ def upsert_result(session: Session, run_id: int, ticker: str, score: float, metr
         session.rollback()
 
 
-def update_allocations(session: Session, run_id: int, alloc: list[dict]) -> None:
-    """Met à jour allocation_pct + broker_cible depuis le résultat de l'optimiseur."""
+def update_allocations(
+    session: Session, run_id: int, alloc: list[dict], reset: bool = True
+) -> None:
+    """Persiste l'allocation cible (multi-broker) sur les BuffettRunResult.
+
+    ``alloc`` : liste de dicts produits par ``allocation.discretize_allocation`` :
+      {Ticker, Broker, shares (int|None), eur, prix, type ('pie'|'shares'),
+       'Poids total (%)'}
+
+    Agrège par ticker : ``allocation_pct`` = somme des poids (%), ``broker_cible`` =
+    broker(s), et stocke le détail par broker (nombre d'actions entières, montant €,
+    prix, type) dans ``secteurs_extra['allocations']`` — sans migration de schéma.
+    """
+    by_ticker: dict[str, list[dict]] = {}
     for a in alloc:
+        by_ticker.setdefault(a["Ticker"], []).append(a)
+
+    if reset and run_id is not None:
+        rows = session.exec(
+            select(BuffettRunResult).where(BuffettRunResult.run_id == run_id)
+        ).all()
+        for r in rows:
+            r.allocation_pct = None
+            r.broker_cible = None
+            extra = dict(r.secteurs_extra or {})
+            if "allocations" in extra:
+                extra.pop("allocations", None)
+                r.secteurs_extra = extra or None
+                session.add(r)
+
+    for ticker, items in by_ticker.items():
         row = session.exec(
-            select(BuffettRunResult).where(BuffettRunResult.ticker == a["Ticker"])
+            select(BuffettRunResult).where(BuffettRunResult.ticker == ticker)
         ).first()
-        if row:
-            row.allocation_pct = a.get("Poids total (%)")
-            row.broker_cible = a.get("Broker")
-            session.add(row)
+        if not row:
+            continue
+        total_pct = sum(float(it.get("Poids total (%)") or 0) for it in items)
+        brokers = sorted({str(it.get("Broker")) for it in items})
+        details = [{
+            "broker": it.get("Broker"),
+            "shares": it.get("shares"),
+            "eur": it.get("eur"),
+            "prix": it.get("prix"),
+            "type": it.get("type"),
+            "pct": it.get("Poids total (%)"),
+        } for it in items]
+        row.allocation_pct = round(total_pct, 4)
+        row.broker_cible = ", ".join(brokers)
+        extra = dict(row.secteurs_extra or {})
+        extra["allocations"] = details
+        row.secteurs_extra = extra
+        session.add(row)
     session.commit()

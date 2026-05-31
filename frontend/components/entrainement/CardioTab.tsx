@@ -137,7 +137,7 @@ export function CardioTab() {
             {saving ? "…" : "+ Enregistrer"}
           </button>
         </div>
-        {err && <div className="mt-2 text-sm text-red-500">⚠ {err}</div>}
+        {err && <div className="mt-2 text-sm text-[var(--destructive)]">⚠ {err}</div>}
       </div>
 
       <div className="grid grid-cols-3 gap-3 text-sm">
@@ -176,7 +176,7 @@ export function CardioTab() {
                   <td className="px-3 py-1.5 text-right">
                     <button
                       onClick={() => handleDelete(c.id)}
-                      className="text-xs text-red-500 hover:underline"
+                      className="text-xs text-[var(--destructive)] hover:underline"
                     >Suppr.</button>
                   </td>
                 </tr>
