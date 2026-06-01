@@ -9,14 +9,14 @@ export default function HomePage() {
 
   return (
     <div>
-      <header className="mb-8">
+      <header className="mb-8 animate-fade-in">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <Greeting />
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               {readyCount} module{readyCount > 1 ? "s" : ""} actif{readyCount > 1 ? "s" : ""}
               {" "}&middot;{" "}
-              {totalCount - readyCount} a venir
+              {totalCount - readyCount} à venir
             </p>
           </div>
           <HealthBadge />
@@ -28,7 +28,7 @@ export default function HomePage() {
           aria-valuemin={0}
           aria-valuemax={totalCount}
           aria-valuenow={readyCount}
-          aria-label={readyCount + " modules sur " + totalCount + " livres"}
+          aria-label={readyCount + " modules sur " + totalCount + " livrés"}
         >
           <div className="h-1 flex-1 rounded-full overflow-hidden bg-[var(--border)]">
             <div
@@ -46,7 +46,7 @@ export default function HomePage() {
         <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-[var(--muted-foreground)]">
           Modules
         </h2>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 stagger">
           {MODULES.map((m) => (
             <ModuleCard key={m.slug} module={m} />
           ))}

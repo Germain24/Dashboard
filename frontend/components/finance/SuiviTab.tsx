@@ -5,12 +5,16 @@ import {
   financeApi, type SnapshotOut, type PerfMetrics,
   type HistoryPoint, type BenchmarkOut,
 } from "@/lib/finance";
-import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 // Couleur de série du benchmark CW8 (demande explicite : orange)
 const CW8_COLOR = "#f97316";
+
+const formatCAD = (v: number) =>
+  new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(v);
+
+const formatPct = (v: number) => `${v >= 0 ? "+" : ""}${v.toFixed(2)} %`;
 
 function fmt(n?: number | null, dec = 2) {
   if (n == null) return "—";
@@ -20,6 +24,15 @@ function fmt(n?: number | null, dec = 2) {
 function kEur(n: number) {
   if (Math.abs(n) >= 1000) return `${(n / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} k€`;
   return `${Math.round(n)} €`;
+}
+
+function StatCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+      <div className="skeleton-shimmer h-3 w-20 mb-3" />
+      <div className="skeleton-shimmer h-6 w-28" />
+    </div>
+  );
 }
 
 function PerfBadge({ v }: { v?: number | null }) {
@@ -199,63 +212,89 @@ export function SuiviTab() {
     finally { setSyncing(false); }
   };
 
-  if (loading) return <Spinner label="Chargement portefeuille..." />;
-  if (error) return <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>;
-
   const valeur = perf?.valeur ?? 0;
   const investit = perf?.investit ?? 0;
   const plTotal = perf?.pl_total ?? 0;
   const plPct = perf?.pl_pct ?? 0;
   const cw8 = benchmarks.find(b => b.nom === "CW8" || b.ticker === "CW8.PA");
 
+  if (error) return <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>;
+
   return (
     <div className="space-y-4">
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Valeur totale", value: `${fmt(valeur)} €` },
-          { label: "Investi", value: `${fmt(investit)} €` },
-          { label: "+/- latente", value: `${plTotal >= 0 ? "+" : ""}${fmt(plTotal)} €`, badge: plPct },
-          { label: "Max drawdown", value: perf?.max_drawdown_pct != null ? `${fmt(perf.max_drawdown_pct)}%` : "—" },
-        ].map(k => (
-          <div key={k.label} className="rounded-[var(--radius-lg)] border border-[var(--border)] p-3 space-y-1">
-            <p className="text-xs text-[var(--muted-foreground)]">{k.label}</p>
-            <p className="text-base font-semibold">{k.value}</p>
-            {"badge" in k && <PerfBadge v={k.badge} />}
-          </div>
-        ))}
+      {/* KPIs — skeleton pendant le loading, vraies valeurs ensuite */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger">
+        {loading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            {[
+              { label: "Valeur totale", value: formatCAD(valeur), color: "" },
+              { label: "Investi",       value: formatCAD(investit), color: "" },
+              {
+                label: "+/- latente",
+                value: formatCAD(plTotal),
+                color: plTotal >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]",
+              },
+              {
+                label: "Rendement",
+                value: formatPct(plPct),
+                color: plPct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]",
+              },
+            ].map(stat => (
+              <div
+                key={stat.label}
+                className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up"
+              >
+                <p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider font-medium mb-1">
+                  {stat.label}
+                </p>
+                <p className={`text-xl font-bold font-mono ${stat.color}`}>{stat.value}</p>
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Chart */}
       <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div>
             <p className="text-sm font-semibold">Évolution du portefeuille</p>
             <p className="text-xs text-[var(--muted-foreground)]">
-              {history.length} snapshots · vs 100 % CW8.PA (mêmes apports)
+              {loading ? "Chargement…" : `${history.length} snapshots · vs 100 % CW8.PA (mêmes apports)`}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={handleSyncExcel} disabled={syncing}
+            <Button size="sm" variant="outline" onClick={handleSyncExcel} disabled={syncing || loading}
               title="Relit Historique_portefeuille.xlsx (Date, Valeur, Investit)">
               {syncing ? "..." : "↻ Recharger l'Excel"}
             </Button>
-            <Button size="sm" variant="secondary" onClick={handleSnapshot} disabled={snapping}>
+            <Button size="sm" variant="secondary" onClick={handleSnapshot} disabled={snapping || loading}>
               {snapping ? "..." : "Snapshot maintenant"}
             </Button>
           </div>
         </div>
-        <PortfolioChart history={history} cw8Serie={cw8?.serie ?? []} />
+        {loading ? (
+          <div className="skeleton-shimmer h-[260px] w-full rounded-lg" />
+        ) : (
+          <PortfolioChart history={history} cw8Serie={cw8?.serie ?? []} />
+        )}
       </div>
 
-      {snap && (
+      {snap && !loading && (
         <p className="text-xs text-[var(--muted-foreground)]">
           Dernier snapshot : {snap.date} · {fmt(snap.valeur)} € · investi {fmt(snap.investit)} €
         </p>
       )}
 
       {/* Benchmarks */}
-      {benchmarks.length > 0 && (
+      {!loading && benchmarks.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-sm font-semibold">Benchmarks</h2>
           <div className="overflow-x-auto">
