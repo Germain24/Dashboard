@@ -1,35 +1,34 @@
 'use client'
 import { useState } from 'react'
-import { BibliothequeTab } from '@/components/livres/BibliothequeTab'
+import { Library } from 'lucide-react'
+import BibliothequeTab from '@/components/livres/BibliothequeTab'
 
-type Tab = 'bibliotheque'
-
-const TABS: [Tab, string][] = [
-  ['bibliotheque', '📚 Bibliothèque'],
-]
+const TABS = [{ id: 'bibliotheque', label: 'Bibliothèque', icon: Library }]
 
 export default function LivresPage() {
-  const [tab, setTab] = useState<Tab>('bibliotheque')
-
+  const [active, setActive] = useState('bibliotheque')
   return (
-    <div className="p-6 space-y-6">
-      <header className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Livres</h1>
-      </header>
-
-      <nav className="flex gap-1 border-b border-[var(--border)] flex-wrap">
-        {TABS.map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            className={`px-3 py-2 text-sm -mb-px border-b-2 ${tab === k ? 'border-blue-500 text-[var(--foreground)]' : 'border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      {tab === 'bibliotheque' && <BibliothequeTab />}
+    <div className="space-y-0 animate-fade-in">
+      <div className="px-6 py-5 border-b border-[var(--border)]">
+        <div className="mb-4">
+          <h1 className="text-xl font-semibold tracking-tight">Livres</h1>
+          <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Bibliothèque personnelle</p>
+        </div>
+        <div className="flex gap-1">
+          {TABS.map(tab => {
+            const Icon = tab.icon
+            return (
+              <button key={tab.id} onClick={() => setActive(tab.id)}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]">
+                <Icon size={15} />{tab.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div className="p-6 animate-fade-in-up">
+        <BibliothequeTab />
+      </div>
     </div>
   )
 }

@@ -1,77 +1,92 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { fetchHabits, fetchHeatmap } from '@/lib/habitudes'
 
-export function HeatmapTab() {
-  const [habits, setHabits] = useState<any[]>([])
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [data, setData] = useState<any[]>([])
-  const year = new Date().getFullYear()
+const HABITUDES = [
+  { id: 1, nom: 'Méditation' },
+  { id: 2, nom: 'Lecture' },
+  { id: 3, nom: 'Sport' },
+  { id: 4, nom: 'Journaling' },
+  { id: 5, nom: 'Pleine nature' },
+  { id: 6, nom: 'Appel famille' },
+]
 
-  useEffect(() => {
-    fetchHabits().then(h => {
-      setHabits(h)
-      if (h.length) setSelectedId(h[0].id)
-    })
-  }, [])
-
-  useEffect(() => {
-    if (selectedId) fetchHeatmap(selectedId, year).then(setData)
-  }, [selectedId, year])
-
-  // Group by week (7 days each)
-  const weeks: any[][] = []
-  let week: any[] = []
-  data.forEach(d => {
-    week.push(d)
-    if (week.length === 7) { weeks.push(week); week = [] }
-  })
-  if (week.length) weeks.push(week)
-
-  const cellColor = (val: number) => {
-    if (!val) return 'bg-[var(--muted)]'
-    return 'bg-emerald-500'
+// Génère les 28 derniers jours
+function getLast28Days(): string[] {
+  const days: string[] = []
+  for (let i = 27; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    days.push(d.toISOString().slice(0, 10))
   }
+  return days
+}
+
+// Mock: quelques jours cochés aléatoirement (seed déterministe)
+function mockChecked(habitId: number, date: string): boolean {
+  const hash = (habitId * 13 + date.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 3
+  return hash !== 0
+}
+
+const JOURS_ABREV = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+
+export default function HeatmapTab() {
+  const days = getLast28Days()
 
   return (
-    <div className="space-y-4">
-      {habits.length > 0 && (
-        <select
-          value={String(selectedId)}
-          onChange={e => setSelectedId(Number(e.target.value))}
-          className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-        >
-          {habits.map(h => (
-            <option key={h.id} value={String(h.id)}>{h.nom}</option>
-          ))}
-        </select>
-      )}
+    <div className="space-y-6 animate-fade-in-up">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <h2 className="text-sm font-semibold mb-1">Heatmap — 28 derniers jours</h2>
+        <p className="text-xs text-[var(--muted-foreground)] mb-4">Vue d'ensemble de ta régularité</p>
 
-      {data.length === 0 ? (
-        <p className="text-sm text-[var(--muted-foreground)]">Aucune donnée pour cette habitude.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <div className="flex gap-1 min-w-max">
-            {weeks.map((w, wi) => (
-              <div key={wi} className="flex flex-col gap-1">
-                {w.map((d: any, di: number) => (
-                  <div
-                    key={di}
-                    title={`${d.date}: ${d.valeur ?? 0}`}
-                    className={`w-3 h-3 rounded-sm ${cellColor(d.valeur)}`}
-                  />
-                ))}
+        <div className="space-y-3 overflow-x-auto">
+          {/* En-tête jours */}
+          <div className="flex gap-1">
+            <div className="w-28 flex-shrink-0" />
+            {days.map((d) => {
+              const dow = new Date(d + 'T12:00:00').getDay()
+              return (
+                <div key={d} className="w-7 text-center text-[10px] text-[var(--muted-foreground)]">
+                  {JOURS_ABREV[dow]}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Lignes habitudes */}
+          {HABITUDES.map((h) => (
+            <div key={h.id} className="flex items-center gap-1">
+              <div className="w-28 flex-shrink-0 text-xs text-[var(--muted-foreground)] truncate pr-2">
+                {h.nom}
               </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-3 text-xs text-[var(--muted-foreground)]">
-            <div className="w-3 h-3 rounded-sm bg-[var(--muted)]" />
-            <span>0</span>
-            <div className="w-3 h-3 rounded-sm bg-emerald-500 ml-2" />
-            <span>Complétée</span>
-          </div>
+              {days.map((d) => {
+                const ok = mockChecked(h.id, d)
+                return (
+                  <div
+                    key={d}
+                    title={`${h.nom} — ${d}`}
+                    className={`w-7 h-7 rounded-md transition-colors duration-150 ${
+                      ok
+                        ? 'bg-[var(--success)] opacity-80'
+                        : 'bg-[var(--muted)]'
+                    }`}
+                  />
+                )
+              })}
+            </div>
+          ))}
         </div>
-      )}
+
+        {/* Légende */}
+        <div className="flex items-center gap-2 mt-4 text-xs text-[var(--muted-foreground)]">
+          <div className="w-4 h-4 rounded bg-[var(--muted)]" />
+          <span>Non fait</span>
+          <div className="w-4 h-4 rounded bg-[var(--success)] opacity-80 ml-3" />
+          <span>Complété</span>
+        </div>
+      </div>
+
+      <p className="text-xs text-[var(--muted-foreground)] animate-fade-in-up">
+        Données mock — le backend Habitudes fournira les vraies entrées.
+      </p>
     </div>
   )
 }

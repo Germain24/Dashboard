@@ -1,88 +1,75 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { fetchMealPlan, generateMealPlan } from '@/lib/cuisine'
 
-const JOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-const REPAS = ['petit_dejeuner', 'dejeuner', 'souper']
-const REPAS_LABELS: Record<string, string> = {
-  petit_dejeuner: 'Matin',
-  dejeuner: 'Midi',
-  souper: 'Soir',
+const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+const REPAS = ['Déjeuner', 'Dîner']
+
+const MOCK_PLAN: Record<string, Record<string, string>> = {
+  Lundi: { Déjeuner: 'Poulet rôti aux herbes', Dîner: 'Soupe miso' },
+  Mardi: { Déjeuner: 'Buddha bowl quinoa', Dîner: 'Pâtes carbonara' },
+  Mercredi: { Déjeuner: '', Dîner: 'Risotto aux champignons' },
+  Jeudi: { Déjeuner: 'Soupe miso', Dîner: '' },
+  Vendredi: { Déjeuner: 'Pâtes carbonara', Dîner: 'Poulet rôti aux herbes' },
+  Samedi: { Déjeuner: '', Dîner: '' },
+  Dimanche: { Déjeuner: 'Buddha bowl quinoa', Dîner: '' },
 }
 
-function getWeek() {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), 0, 1)
-  const week = Math.ceil(((now.getTime() - start.getTime()) / 86400000 + start.getDay() + 1) / 7)
-  return `${now.getFullYear()}-W${String(week).padStart(2, '0')}`
+// Obtient l'index du jour courant (0 = Lundi)
+function getTodayIndex(): number {
+  const dow = new Date().getDay()
+  return dow === 0 ? 6 : dow - 1
 }
 
-export function PlanSemaineTab() {
-  const [plan, setPlan] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const week = getWeek()
-
-  useEffect(() => {
-    fetchMealPlan(week).then(setPlan)
-  }, [])
-
-  const generate = async () => {
-    setLoading(true)
-    try {
-      await generateMealPlan(week)
-      const p = await fetchMealPlan(week)
-      setPlan(p)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const entryFor = (jour: number, repas: string) =>
-    plan.find(e => e.jour === jour && e.repas === repas)
+export default function PlanSemaineTab() {
+  const todayIdx = getTodayIndex()
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          onClick={generate}
-          disabled={loading}
-          className="rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? 'Génération...' : 'Générer automatiquement'}
-        </button>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr>
-              <th className="text-left py-2 pr-4 text-[var(--muted-foreground)] font-medium w-16">Repas</th>
-              {JOURS.map(j => (
-                <th key={j} className="text-center py-2 px-2 text-[var(--muted-foreground)] font-medium">
-                  {j}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {REPAS.map(repas => (
-              <tr key={repas} className="border-t border-[var(--border)]">
-                <td className="py-3 pr-4 text-[var(--muted-foreground)] text-xs">{REPAS_LABELS[repas]}</td>
-                {JOURS.map((_, ji) => {
-                  const entry = entryFor(ji, repas)
+    <div className="space-y-4 animate-fade-in-up">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 stagger">
+        {JOURS.map((jour, idx) => {
+          const isToday = idx === todayIdx
+          return (
+            <div
+              key={jour}
+              className={`rounded-xl border p-3 animate-fade-in-up transition-all duration-200 ${
+                isToday
+                  ? 'border-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_6%,transparent)]'
+                  : 'border-[var(--border)] bg-[var(--card)] card-hover'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                  {jour}
+                </h3>
+                {isToday && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--ring)] text-white">
+                    Auj.
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                {REPAS.map(repas => {
+                  const recette = MOCK_PLAN[jour]?.[repas] ?? ''
                   return (
-                    <td key={ji} className="py-3 px-2 text-center">
-                      {entry?.recipe_id ? (
-                        <span className="text-xs bg-[var(--muted)] px-2 py-1 rounded">#{entry.recipe_id}</span>
+                    <div key={repas} className="text-xs">
+                      <span className="text-[var(--muted-foreground)]">{repas} : </span>
+                      {recette ? (
+                        <span className="font-medium">{recette}</span>
                       ) : (
-                        <span className="text-xs text-[var(--muted-foreground)]">—</span>
+                        <span className="text-[var(--muted-foreground)] italic">—</span>
                       )}
-                    </td>
+                    </div>
                   )
                 })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center animate-fade-in-up">
+        <p className="text-sm text-[var(--muted-foreground)]">
+          Le plan de repas sera synchronisé avec le backend Cuisine.
+        </p>
       </div>
     </div>
   )

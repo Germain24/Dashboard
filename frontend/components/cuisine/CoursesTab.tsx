@@ -1,71 +1,137 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { fetchShoppingList, markShoppingDone, toggleShoppingItem } from '@/lib/cuisine'
 
-function getWeek() {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), 0, 1)
-  const week = Math.ceil(((now.getTime() - start.getTime()) / 86400000 + start.getDay() + 1) / 7)
-  return `${now.getFullYear()}-W${String(week).padStart(2, '0')}`
+import { useState } from 'react'
+
+type Item = {
+  id: number
+  nom: string
+  quantite: string
+  rayon: string
 }
 
-export function CoursesTab() {
-  const [items, setItems] = useState<any[]>([])
-  const week = getWeek()
+const MOCK_COURSES: Item[] = [
+  // Fruits & légumes
+  { id: 1, nom: 'Carottes', quantite: '500 g', rayon: 'Fruits & légumes' },
+  { id: 2, nom: 'Courgettes', quantite: '2', rayon: 'Fruits & légumes' },
+  { id: 3, nom: 'Épinards', quantite: '300 g', rayon: 'Fruits & légumes' },
+  { id: 4, nom: 'Citron', quantite: '2', rayon: 'Fruits & légumes' },
+  // Viandes
+  { id: 5, nom: 'Poitrine de poulet', quantite: '600 g', rayon: 'Viandes' },
+  { id: 6, nom: 'Bacon', quantite: '200 g', rayon: 'Viandes' },
+  // Produits laitiers
+  { id: 7, nom: 'Parmesan', quantite: '100 g', rayon: 'Produits laitiers' },
+  { id: 8, nom: 'Crème fraîche', quantite: '250 ml', rayon: 'Produits laitiers' },
+  { id: 9, nom: 'Oeufs', quantite: '12', rayon: 'Produits laitiers' },
+  // Épicerie
+  { id: 10, nom: 'Pâtes linguine', quantite: '500 g', rayon: 'Épicerie' },
+  { id: 11, nom: 'Riz à risotto', quantite: '500 g', rayon: 'Épicerie' },
+  { id: 12, nom: 'Miso blanc', quantite: '200 g', rayon: 'Épicerie' },
+  { id: 13, nom: 'Quinoa', quantite: '400 g', rayon: 'Épicerie' },
+]
 
-  const load = () => fetchShoppingList(week).then(setItems)
-  useEffect(() => { load() }, [])
+// Grouper par rayon
+function groupByRayon(items: Item[]): Record<string, Item[]> {
+  const groups: Record<string, Item[]> = {}
+  for (const item of items) {
+    if (!groups[item.rayon]) groups[item.rayon] = []
+    groups[item.rayon].push(item)
+  }
+  return groups
+}
 
-  const toggle = async (item: any) => {
-    await toggleShoppingItem(item.id, !item.achete)
-    load()
+export default function CoursesTab() {
+  const [checked, setChecked] = useState<Set<number>>(new Set())
+
+  const toggle = (id: number) => {
+    setChecked(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
-  const markDone = async () => {
-    await markShoppingDone(week)
-    load()
-  }
+  const groups = groupByRayon(MOCK_COURSES)
+  const rayons = Object.keys(groups)
 
-  const byRayon = items.reduce((acc: any, item: any) => {
-    if (!acc[item.rayon]) acc[item.rayon] = []
-    acc[item.rayon].push(item)
-    return acc
-  }, {})
-
-  const allDone = items.length > 0 && items.every(i => i.achete)
+  const totalItems = MOCK_COURSES.length
+  const checkedCount = checked.size
+  const pct = Math.round((checkedCount / totalItems) * 100)
 
   return (
     <div className="space-y-6">
-      {items.length === 0 && (
-        <p className="text-sm text-[var(--muted-foreground)]">Aucune liste de courses pour cette semaine.</p>
-      )}
-      {Object.entries(byRayon).map(([rayon, rayonItems]: any) => (
-        <div key={rayon} className="space-y-2">
-          <h3 className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">{rayon}</h3>
-          {rayonItems.map((item: any) => (
-            <button
-              key={item.id}
-              onClick={() => toggle(item)}
-              className={`w-full flex justify-between items-center px-4 py-2 rounded-md border text-left transition-colors ${
-                item.achete
-                  ? 'line-through text-[var(--muted-foreground)] bg-[var(--muted)] border-transparent'
-                  : 'border-[var(--border)] hover:bg-[var(--muted)]'
-              }`}
-            >
-              <span className="text-sm text-[var(--foreground)]">{item.ingredient}</span>
-              <span className="text-sm font-mono text-[var(--muted-foreground)]">{item.quantite} {item.unite}</span>
-            </button>
-          ))}
+      {/* Progression */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-sm font-semibold">Courses</p>
+            <p className="text-xs text-[var(--muted-foreground)]">{checkedCount} / {totalItems} articles cochés</p>
+          </div>
+          <span className="text-2xl font-bold font-mono" style={{ color: pct === 100 ? 'var(--success)' : 'var(--ring)' }}>
+            {pct}%
+          </span>
         </div>
-      ))}
-      {items.length > 0 && !allDone && (
-        <button
-          onClick={markDone}
-          className="rounded border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
-        >
-          Tout marquer comme acheté
-        </button>
-      )}
+        <div className="h-2 rounded-full bg-[var(--muted)] overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${pct}%`,
+              background: pct === 100 ? 'var(--success)' : 'var(--ring)',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Items groupés par rayon */}
+      <div className="space-y-5 stagger">
+        {rayons.map(rayon => (
+          <div key={rayon} className="animate-fade-in-up">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">
+              {rayon}
+            </h3>
+            <div className="space-y-1.5">
+              {groups[rayon].map(item => {
+                const isChecked = checked.has(item.id)
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => toggle(item.id)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-200 text-left cursor-pointer group ${
+                      isChecked
+                        ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_8%,transparent)]'
+                        : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--muted-foreground)] hover:bg-[var(--muted)]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                        isChecked ? 'bg-[var(--success)] border-[var(--success)]' : 'border-[var(--border)] group-hover:border-[var(--muted-foreground)]'
+                      }`}>
+                        {isChecked && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`text-sm font-medium transition-all duration-200 ${isChecked ? 'line-through text-[var(--muted-foreground)]' : ''}`}>
+                        {item.nom}
+                      </span>
+                    </div>
+                    <span className={`text-xs text-[var(--muted-foreground)] transition-all duration-200 ${isChecked ? 'opacity-50' : ''}`}>
+                      {item.quantite}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center animate-fade-in-up">
+        <p className="text-sm text-[var(--muted-foreground)]">
+          La liste sera générée automatiquement depuis le plan de la semaine.
+        </p>
+      </div>
     </div>
   )
 }
