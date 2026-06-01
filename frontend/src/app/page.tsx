@@ -8,7 +8,7 @@ export default function HomePage() {
   const totalCount = MODULES.length;
 
   return (
-    <div>
+    <div className="px-6 py-6 lg:px-8 lg:py-8">
       <header className="mb-8 animate-fade-in">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>

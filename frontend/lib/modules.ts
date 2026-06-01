@@ -29,6 +29,7 @@ export const MODULES: Module[] = [
     description: "Portefeuille long terme + scoring Buffett.",
     icon: LineChart,
     conv: "CONV 4",
+    ready: true,
   },
   {
     slug: "garderobe",
@@ -76,6 +77,7 @@ export const MODULES: Module[] = [
     description: "Dépenses personnelles.",
     icon: Wallet,
     conv: "CONV 8",
+    ready: true,
   },
   {
     slug: "cuisine",
@@ -83,6 +85,7 @@ export const MODULES: Module[] = [
     description: "Recettes & meal planning.",
     icon: ChefHat,
     conv: "CONV 9",
+    ready: true,
   },
   {
     slug: "habitudes",
@@ -90,6 +93,7 @@ export const MODULES: Module[] = [
     description: "Habit tracker hebdomadaire.",
     icon: ListTodo,
     conv: "CONV 10",
+    ready: true,
   },
   {
     slug: "livres",
@@ -97,6 +101,7 @@ export const MODULES: Module[] = [
     description: "Lectures en cours, à lire, lus.",
     icon: BookOpen,
     conv: "CONV 11",
+    ready: true,
   },
   {
     slug: "robot",
@@ -104,5 +109,6 @@ export const MODULES: Module[] = [
     description: "Chat avec l'agent IA.",
     icon: Briefcase,
     conv: "CONV 12",
+    ready: true,
   },
 ];

@@ -2,7 +2,8 @@ import datetime as dt
 from sqlmodel import Session
 from app.models.scheduler import JobRun, Notification
 
-def run_job(job_id: str, func, engine):
+def run_job(job_id: str, func):
+    from app.core.db import engine
     with Session(engine) as session:
         run = JobRun(job_id=job_id, started_at=dt.datetime.utcnow())
         session.add(run)
