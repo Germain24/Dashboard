@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BookOpen, Clock, CheckCircle2, Bookmark } from 'lucide-react'
+import { fetchBooks, updateBook } from '@/lib/livres'
 
 type Statut = 'en_cours' | 'a_lire' | 'lu'
 
@@ -16,15 +17,6 @@ type Livre = {
   genre: string
 }
 
-const MOCK_LIVRES: Livre[] = [
-  { id: 1, titre: 'Atomic Habits', auteur: 'James Clear', statut: 'en_cours', pages_total: 320, pages_lues: 180, genre: 'Développement personnel' },
-  { id: 2, titre: 'The Psychology of Money', auteur: 'Morgan Housel', statut: 'lu', pages_total: 256, pages_lues: 256, note: 5, genre: 'Finance' },
-  { id: 3, titre: 'Deep Work', auteur: 'Cal Newport', statut: 'a_lire', pages_total: 304, genre: 'Productivité' },
-  { id: 4, titre: 'Thinking, Fast and Slow', auteur: 'Daniel Kahneman', statut: 'lu', pages_total: 499, pages_lues: 499, note: 4, genre: 'Psychologie' },
-  { id: 5, titre: 'The Lean Startup', auteur: 'Eric Ries', statut: 'a_lire', pages_total: 336, genre: 'Business' },
-  { id: 6, titre: '1984', auteur: 'George Orwell', statut: 'lu', pages_total: 328, pages_lues: 328, note: 5, genre: 'Fiction' },
-]
-
 const STATUT_CONFIG: Record<Statut, { label: string; icon: typeof BookOpen; color: string; bg: string }> = {
   en_cours: { label: 'En cours', icon: Clock, color: '#f59e0b', bg: 'color-mix(in_srgb,#f59e0b_12%,transparent)' },
   a_lire: { label: 'À lire', icon: Bookmark, color: 'var(--ring)', bg: 'color-mix(in_srgb,var(--ring)_10%,transparent)' },
@@ -34,14 +26,23 @@ const STATUT_CONFIG: Record<Statut, { label: string; icon: typeof BookOpen; colo
 const ALL_STATUTS: Statut[] = ['en_cours', 'a_lire', 'lu']
 
 export default function BibliothequeTab() {
+  const [livres, setLivres] = useState<Livre[]>([])
   const [filtre, setFiltre] = useState<Statut | 'tous'>('tous')
+  const [loading, setLoading] = useState(true)
 
-  const livresFiltres = filtre === 'tous' ? MOCK_LIVRES : MOCK_LIVRES.filter(l => l.statut === filtre)
+  useEffect(() => {
+    fetchBooks().then(d => {
+      setLivres(Array.isArray(d) ? d : [])
+      setLoading(false)
+    })
+  }, [])
+
+  const livresFiltres = filtre === 'tous' ? livres : livres.filter((l: any) => l.statut === filtre)
 
   const counts = {
-    en_cours: MOCK_LIVRES.filter(l => l.statut === 'en_cours').length,
-    a_lire: MOCK_LIVRES.filter(l => l.statut === 'a_lire').length,
-    lu: MOCK_LIVRES.filter(l => l.statut === 'lu').length,
+    en_cours: livres.filter((l: any) => l.statut === 'en_cours').length,
+    a_lire: livres.filter((l: any) => l.statut === 'a_lire').length,
+    lu: livres.filter((l: any) => l.statut === 'lu').length,
   }
 
   return (
