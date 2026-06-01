@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { TrendingUp, BarChart3, RefreshCw, Star, LayoutGrid, CreditCard } from "lucide-react";
 import { PortefeuilleTab } from "./PortefeuilleTab";
 import { SuiviTab } from "./SuiviTab";
 import { CompositionTab } from "./CompositionTab";
@@ -11,48 +9,60 @@ import { BuffettTab } from "./BuffettTab";
 import { RebalancingTab } from "./RebalancingTab";
 import { TransactionsTab } from "./TransactionsTab";
 
-type Tab = "portefeuille" | "suivi" | "composition" | "buffett" | "rebalancing" | "transactions";
+type Tab = "suivi" | "portefeuille" | "composition" | "rebalancing" | "buffett" | "transactions";
+
+const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
+  { id: "suivi",        label: "Suivi",        icon: TrendingUp },
+  { id: "portefeuille", label: "Portefeuille",  icon: BarChart3 },
+  { id: "composition",  label: "Composition",   icon: LayoutGrid },
+  { id: "rebalancing",  label: "Rebalancing",   icon: RefreshCw },
+  { id: "buffett",      label: "Buffett",       icon: Star },
+  { id: "transactions", label: "Transactions",  icon: CreditCard },
+];
 
 export function Finance() {
-  const [tab, setTab] = useState<Tab>("portefeuille");
+  const [active, setActive] = useState<Tab>("suivi");
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-center gap-3">
-        <TrendingUp className="h-5 w-5 shrink-0" />
-        <h1 className="text-xl font-semibold tracking-tight">Finance</h1>
-        <Badge variant="outline" className="ml-auto">Portefeuille</Badge>
-      </header>
+    <div className="space-y-0 animate-fade-in">
+      {/* Header */}
+      <div className="px-6 py-5 border-b border-[var(--border)]">
+        <div className="mb-4">
+          <h1 className="text-xl font-semibold tracking-tight">Finance</h1>
+          <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Portefeuille long terme</p>
+        </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList>
-          <TabsTrigger value="portefeuille">💼 Portefeuille</TabsTrigger>
-          <TabsTrigger value="suivi">📈 Suivi</TabsTrigger>
-          <TabsTrigger value="composition">🗂 Composition</TabsTrigger>
-          <TabsTrigger value="buffett">🧠 Buffett</TabsTrigger>
-          <TabsTrigger value="rebalancing">⚖️ Rebalancing</TabsTrigger>
-          <TabsTrigger value="transactions">💳 Transactions</TabsTrigger>
-        </TabsList>
+        {/* Tabs — style Linear */}
+        <div className="flex gap-1 flex-wrap">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActive(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                  active === tab.id
+                    ? "text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
+                }`}
+              >
+                <Icon size={15} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        <TabsContent value="portefeuille">
-          <PortefeuilleTab />
-        </TabsContent>
-        <TabsContent value="suivi">
-          <SuiviTab />
-        </TabsContent>
-        <TabsContent value="composition">
-          <CompositionTab />
-        </TabsContent>
-        <TabsContent value="buffett">
-          <BuffettTab />
-        </TabsContent>
-        <TabsContent value="rebalancing">
-          <RebalancingTab />
-        </TabsContent>
-        <TabsContent value="transactions">
-          <TransactionsTab />
-        </TabsContent>
-      </Tabs>
+      {/* Content — re-mounts on tab change for fade-in-up */}
+      <div key={active} className="p-6 animate-fade-in-up">
+        {active === "suivi"        && <SuiviTab />}
+        {active === "portefeuille" && <PortefeuilleTab />}
+        {active === "composition"  && <CompositionTab />}
+        {active === "rebalancing"  && <RebalancingTab />}
+        {active === "buffett"      && <BuffettTab />}
+        {active === "transactions" && <TransactionsTab />}
+      </div>
     </div>
   );
 }
