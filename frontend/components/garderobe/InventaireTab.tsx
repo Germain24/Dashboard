@@ -32,7 +32,7 @@ export function InventaireTab({ wardrobe }: { wardrobe: Vetement[] }) {
   }, [wardrobe, cat, style, etat]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in-up">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <select value={cat} onChange={(e) => setCat(e.target.value)} className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
           <option value="">Toutes catégories</option>
@@ -53,7 +53,7 @@ export function InventaireTab({ wardrobe }: { wardrobe: Vetement[] }) {
       {filtered.length === 0 ? (
         <p className="text-sm text-[var(--muted-foreground)]">Aucun vêtement ne correspond.</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 stagger">
           {filtered.map((v) => (
             <VetementCard key={v.id} v={v} />
           ))}
@@ -71,7 +71,7 @@ function VetementCard({ v }: { v: Vetement }) {
     : "border-[var(--border)]";
 
   return (
-    <div className={`rounded-lg border ${border} bg-[var(--card)] p-3 text-center flex flex-col items-center gap-1`}>
+    <div className={`rounded-xl border ${border} bg-[var(--card)] p-3 text-center flex flex-col items-center gap-1 card-hover`}>
       {!failed ? (
         <img src={assetUrl(v.id)} alt={v.nom} onError={() => setFailed(true)} style={{ imageRendering: "pixelated", height: "56px", width: "auto" }} />
       ) : (
@@ -85,7 +85,7 @@ function VetementCard({ v }: { v: Vetement }) {
         <span className={v.needs_wash ? "text-red-500" : "text-[var(--muted-foreground)]"}>
           🧼 {v.proprete_pct.toFixed(0)}%
         </span>
-        <span className="text-blue-400">⚙ {v.vie_pct.toFixed(0)}%</span>
+        <span style={{ color: "var(--ring)" }}>⚙ {v.vie_pct.toFixed(0)}%</span>
       </div>
     </div>
   );

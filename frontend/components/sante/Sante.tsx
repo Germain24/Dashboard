@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Apple } from "lucide-react";
+import { Sun, TrendingUp, Activity, Target } from "lucide-react";
 import {
   santeApi,
   type MesureSante,
@@ -17,6 +17,13 @@ import { GoalTab } from "./GoalTab";
 import { MicrosDrawer } from "./MicrosDrawer";
 
 type Tab = "jour" | "tendance" | "composition" | "objectif";
+
+const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
+  { id: "jour", label: "Jour", Icon: Sun },
+  { id: "tendance", label: "Tendance", Icon: TrendingUp },
+  { id: "composition", label: "Composition", Icon: Activity },
+  { id: "objectif", label: "Objectif", Icon: Target },
+];
 
 export function Sante() {
   const [tab, setTab] = useState<Tab>("jour");
@@ -75,7 +82,6 @@ export function Sante() {
     const today = todayKey();
     const p = await santeApi.generatePlan({ date: today, ...opts });
     setPlan(p);
-    // Si pas de mesure pour aujourd'hui, on met à jour celle d'aujourd'hui en silencieux
     return p;
   };
 
@@ -97,57 +103,69 @@ export function Sante() {
     }
   };
 
-  if (loading) return <div className="flex items-center gap-2"><Apple className="h-5 w-5" /> Chargement…</div>;
-  if (error) return <div className="text-red-500">⚠ {error}</div>;
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4 animate-fade-in">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-20 rounded-xl border border-[var(--border)] bg-[var(--card)] skeleton-shimmer" />
+        ))}
+      </div>
+    );
+  }
+  if (error) return <div className="p-6 text-[var(--destructive)]">⚠ {error}</div>;
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-center gap-3">
-        <Apple className="h-6 w-6" />
-        <h1 className="text-2xl font-semibold tracking-tight">Santé / Nutrition</h1>
-        {goal?.poids_cible && (
-          <span className="ml-auto text-xs rounded bg-[var(--muted)] px-2 py-1 text-[var(--muted-foreground)]">
-            Cible {goal.poids_cible.toFixed(1)} kg
-            {goal.body_fat_target_pct ? ` · ${goal.body_fat_target_pct}% MG` : ""}
-          </span>
+    <div className="space-y-0 animate-fade-in">
+      <div className="px-6 py-5 border-b border-[var(--border)]">
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Santé</h1>
+            <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Nutrition &amp; mesures corporelles</p>
+          </div>
+          {goal?.poids_cible && (
+            <span className="text-xs rounded-md bg-[var(--muted)] px-2.5 py-1 text-[var(--muted-foreground)]">
+              Cible {goal.poids_cible.toFixed(1)} kg
+              {goal.body_fat_target_pct ? ` · ${goal.body_fat_target_pct}% MG` : ""}
+            </span>
+          )}
+        </div>
+        <div className="flex gap-1">
+          {TABS.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                tab === id
+                  ? "text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
+              }`}
+            >
+              <Icon size={15} />{label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div key={tab} className="p-6 animate-fade-in-up">
+        {tab === "jour" && (
+          <JourTab
+            plan={plan}
+            goal={goal}
+            onGenerate={onGeneratePlan}
+            onPlanUpdated={(p) => setPlan(p)}
+            onOpenMicros={() => setMicrosOpen(true)}
+          />
         )}
-      </header>
-
-      <nav className="flex gap-1 border-b border-[var(--border)]">
-        {([
-          ["jour", "🥗 Jour"],
-          ["tendance", "📈 Tendance"],
-          ["composition", "⚖️ Composition"],
-          ["objectif", "🎯 Objectif"],
-        ] as [Tab, string][]).map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            className={`px-3 py-2 text-sm -mb-px border-b-2 ${tab === k ? "border-blue-500 text-[var(--foreground)]" : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      {tab === "jour" && (
-        <JourTab
-          plan={plan}
-          goal={goal}
-          onGenerate={onGeneratePlan}
-          onPlanUpdated={(p) => setPlan(p)}
-          onOpenMicros={() => setMicrosOpen(true)}
-        />
-      )}
-      {tab === "tendance" && (
-        <TendanceTab mesures={mesures} projection={projection} goal={goal} />
-      )}
-      {tab === "composition" && (
-        <CompositionTab mesures={mesures} onSave={onSaveMesure} />
-      )}
-      {tab === "objectif" && goal && (
-        <GoalTab goal={goal} onSave={onSaveGoal} />
-      )}
+        {tab === "tendance" && (
+          <TendanceTab mesures={mesures} projection={projection} goal={goal} />
+        )}
+        {tab === "composition" && (
+          <CompositionTab mesures={mesures} onSave={onSaveMesure} />
+        )}
+        {tab === "objectif" && goal && (
+          <GoalTab goal={goal} onSave={onSaveGoal} />
+        )}
+      </div>
 
       <MicrosDrawer
         open={microsOpen}
