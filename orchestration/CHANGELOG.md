@@ -5,6 +5,29 @@ Maintenu à chaque fin de conversation de développement.
 
 ---
 
+## 2026-06-01 — CONV 8-15 : Implémentation complète + redesign
+
+**Commits :** `dbb53e9` (backend) → `7e93592` (redesign) → `283a078` (CI)
+
+**Backend (CONV 8-13) :**
+- Module Budget : transactions, catégories, règles regex, enveloppes, import CSV Desjardins/RBC
+- Module Habitudes : streaks, heatmap, 6 habitudes seedées, auto-cochage (Entraînement→Muscu/Course, Livres→Lecture)
+- Module Livres : bibliothèque Kanban, notes Markdown, citations, sessions, ISBN via Open Library
+- Module Cuisine : recettes, macros depuis aliments CONV3, meal plan glouton, shopping list → Budget
+- Scheduler APScheduler : snapshot 22h, plan nutrition 6h30, backup minuit, météo
+- Système de notifications (Notification, JobRun) avec widget frontend
+
+**Frontend (redesign + nouvelles pages) :**
+- Nouvelle sidebar Linear/Notion (240px fixe, groupée, active state)
+- Pages : Budget (Mois/Transactions/Enveloppes), Habitudes (Checklist/Heatmap), Livres (Kanban), Cuisine (Recettes/Plan/Courses), Jobs
+- CSS : `--sidebar` variable dark/light ajoutée
+
+**Tests/CI :**
+- 32 tests verts (fonctions pures, zéro mock DB)
+- GitHub Actions CI : pytest + tsc --noEmit sur push/PR
+
+---
+
 ## 2026-05-31 — Réorganisation structure projet
 
 **Session :** Hors CONV numérotée

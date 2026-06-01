@@ -14,6 +14,35 @@ Format :
 
 ---
 
+## 2026-06-01 — Implémentation complète CONV 8-15 + redesign frontend
+
+**Session :** Couche 1 (backend) + Couche 2 (frontend) + Couche 3 (tests/CI)
+**Backend créé :**
+- `backend/app/models/` : budget, habitudes, livres, cuisine, scheduler (Notification, JobRun)
+- `backend/app/services/` : budget (5 services), habitudes (4), livres (4), cuisine (5), scheduler (4 jobs)
+- `backend/app/api/` : routes_budget, routes_habitudes, routes_livres, routes_cuisine, routes_scheduler, routes_notifications
+- `backend/alembic/versions/0033b95bc1df` : migration toutes nouvelles tables
+- APScheduler activé : 4 jobs (snapshot 22h, nutrition 6h30, backup minuit, météo 6h)
+**Frontend créé :**
+- `frontend/components/layout/` : Sidebar Linear/Notion, PageLayout, NotificationsWidget
+- `frontend/components/budget/` : MoisTab, TransactionsTab, EnveloppesTab
+- `frontend/components/habitudes/` : AujourdhuiTab, HeatmapTab
+- `frontend/components/livres/` : BibliothequeTab
+- `frontend/components/cuisine/` : RecettesTab, PlanSemaineTab, CoursesTab
+- Pages : /budget, /habitudes, /livres, /cuisine, /jobs
+- libs : budget.ts, habitudes.ts, livres.ts, cuisine.ts, jobs.ts, notifications.ts
+**Tests/CI :**
+- 32 tests verts (budget, habitudes, livres, cuisine, scheduler)
+- `.github/workflows/ci.yml` : pytest + tsc --noEmit
+**Résultat :** Succès
+**Notes :**
+- 4 agents parallèles pour backend, 3 pour frontend, 1 pour CI
+- `settings.database_url` en minuscules (correction vs spec)
+- Migration SQLite : `_create_if_missing` pour idempotence (tables créées par create_all dans tests)
+- Agent Habitudes+Livres relancé suite erreur réseau
+- `NutritionGoal` ajouté à sante.py (import cassé pré-existant corrigé)
+- `Aliment.proprietes` est un champ JSON (pas colonnes séparées) — macros.py adapté
+
 ## 2026-05-31 — Réorganisation complète du projet
 
 **Session :** Réorganisation (hors CONV numérotée)
