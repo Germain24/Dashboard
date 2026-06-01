@@ -37,5 +37,5 @@ api_router.include_router(routes_cuisine.router, prefix="/cuisine", tags=["cuisi
 api_router.include_router(routes_habitudes.router, prefix="/habitudes", tags=["habitudes"])
 api_router.include_router(routes_livres.router, prefix="/livres", tags=["livres"])
 api_router.include_router(routes_robot.router, prefix="/robot", tags=["robot"])
-api_router.include_router(routes_scheduler.router, tags=["jobs"])
-api_router.include_router(routes_notifications.router, tags=["notifications"])
+api_router.include_router(routes_scheduler.router, prefix="/jobs", tags=["jobs"])
+api_router.include_router(routes_notifications.router, prefix="/notifications", tags=["notifications"])

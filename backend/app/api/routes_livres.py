@@ -8,7 +8,7 @@ from app.services.livres import notes as notes_svc
 from app.services.livres import sessions as sessions_svc
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/livres", tags=["livres"])
+router = APIRouter(prefix="", tags=["livres"])
 
 class BookCreate(BaseModel):
     titre: str

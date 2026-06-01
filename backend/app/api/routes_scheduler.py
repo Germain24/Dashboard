@@ -5,7 +5,7 @@ from app.core.db import get_session
 from app.models.scheduler import JobRun
 from app.services.scheduler.scheduler import get_scheduler
 
-router = APIRouter(prefix="/api/jobs", tags=["jobs"])
+router = APIRouter(prefix="", tags=["jobs"])
 
 JOB_IDS = ["portfolio_snapshot", "nutrition_plan", "backup_db", "weather_refresh"]
 

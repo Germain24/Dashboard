@@ -8,8 +8,8 @@ export function MoisTab() {
   const month = new Date().toISOString().slice(0, 7)
 
   useEffect(() => {
-    fetchSummary(month).then(setSummary)
-    fetchTransactions({ from: month + '-01' }).then(setTransactions)
+    fetchSummary(month).then(d => setSummary(d && typeof d === 'object' && !d.detail ? d : null))
+    fetchTransactions({ from: month + '-01' }).then(d => setTransactions(Array.isArray(d) ? d : []))
   }, [month])
 
   if (!summary) {

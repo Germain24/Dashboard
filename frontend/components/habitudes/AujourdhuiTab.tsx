@@ -8,8 +8,8 @@ export function AujourdhuiTab() {
   const today = new Date().toISOString().slice(0, 10)
 
   useEffect(() => {
-    fetchToday().then(setItems)
-    fetchStreaks().then(setStreaks)
+    fetchToday().then(d => setItems(Array.isArray(d) ? d : []))
+    fetchStreaks().then(d => setStreaks(Array.isArray(d) ? d : []))
   }, [])
 
   const streakFor = (id: number) => streaks.find(s => s.habit_id === id)?.streak ?? 0
@@ -20,8 +20,8 @@ export function AujourdhuiTab() {
     } else {
       await checkEntry(item.habit.id, today)
     }
-    fetchToday().then(setItems)
-    fetchStreaks().then(setStreaks)
+    fetchToday().then(d => setItems(Array.isArray(d) ? d : []))
+    fetchStreaks().then(d => setStreaks(Array.isArray(d) ? d : []))
   }
 
   if (items.length === 0) {

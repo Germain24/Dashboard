@@ -8,7 +8,7 @@ from app.services.habitudes import streaks as streaks_svc
 from app.services.habitudes import heatmap as heatmap_svc
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/habitudes", tags=["habitudes"])
+router = APIRouter(prefix="", tags=["habitudes"])
 
 class HabitCreate(BaseModel):
     nom: str

@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from app.core.db import get_session
 from app.models.scheduler import Notification
 
-router = APIRouter(prefix="/api/notifications", tags=["notifications"])
+router = APIRouter(prefix="", tags=["notifications"])
 
 @router.get("")
 def list_notifications(limit: int = 20, session: Session = Depends(get_session)):

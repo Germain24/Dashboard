@@ -11,7 +11,7 @@ const STATUTS = [
 export function BibliothequeTab() {
   const [books, setBooks] = useState<any[]>([])
 
-  useEffect(() => { fetchBooks().then(setBooks) }, [])
+  useEffect(() => { fetchBooks().then(data => setBooks(Array.isArray(data) ? data : [])) }, [])
 
   const byStatut = (s: string) => books.filter(b => b.statut === s)
 
