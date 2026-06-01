@@ -1,7 +1,43 @@
-import { ModulePlaceholder } from "@/components/ModulePlaceholder";
-import { MODULES } from "@/lib/modules";
+'use client'
+import { useState } from 'react'
+import { CheckSquare, Grid3X3 } from 'lucide-react'
+import AujourdhuiTab from '@/components/habitudes/AujourdhuiTab'
+import HeatmapTab from '@/components/habitudes/HeatmapTab'
+
+const TABS = [
+  { id: 'aujourd-hui', label: "Aujourd'hui", icon: CheckSquare },
+  { id: 'heatmap', label: 'Heatmap', icon: Grid3X3 },
+]
 
 export default function HabitudesPage() {
-  const m = MODULES.find((x) => x.slug === "habitudes")!;
-  return <ModulePlaceholder module={m} />;
+  const [active, setActive] = useState('aujourd-hui')
+  return (
+    <div className="space-y-0 animate-fade-in">
+      <div className="px-6 py-5 border-b border-[var(--border)]">
+        <div className="mb-4">
+          <h1 className="text-xl font-semibold tracking-tight">Habitudes</h1>
+          <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Streaks & suivi quotidien</p>
+        </div>
+        <div className="flex gap-1">
+          {TABS.map(tab => {
+            const Icon = tab.icon
+            return (
+              <button key={tab.id} onClick={() => setActive(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer ${
+                  active === tab.id
+                    ? 'text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]'
+                }`}>
+                <Icon size={15} />{tab.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div key={active} className="p-6 animate-fade-in-up">
+        {active === 'aujourd-hui' && <AujourdhuiTab />}
+        {active === 'heatmap' && <HeatmapTab />}
+      </div>
+    </div>
+  )
 }
