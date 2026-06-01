@@ -73,8 +73,8 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
 
   if (!plan) {
     return (
-      <div className="space-y-4">
-        <div className="rounded border border-[var(--border)] p-4 bg-[var(--muted)]/50">
+      <div className="space-y-4 animate-fade-in-up">
+        <div className="rounded-xl border border-[var(--border)] p-4 bg-[var(--card)] card-hover">
           <p className="text-sm">Aucun plan pour aujourd'hui. Génère-en un :</p>
           <div className="mt-3 flex flex-wrap items-end gap-3">
             <label className="text-xs flex flex-col">
@@ -119,9 +119,9 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
   const consoEnregistree = consumed !== null && Object.keys(consumed).some((k) => k.endsWith("_g"));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in-up">
       {/* Bandeau état */}
-      <div className="rounded border border-[var(--border)] p-3 flex flex-wrap items-center gap-3 text-sm">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 flex flex-wrap items-center gap-3 text-sm card-hover">
         <span className="font-medium">{new Date(plan.date).toLocaleDateString("fr-CA")}</span>
         <span className="text-[var(--muted-foreground)]">
           Poids : {plan.poids_used.toFixed(1)} kg
@@ -185,7 +185,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
       )}
 
       {/* Barres macros */}
-      <div className="grid gap-2">
+      <div className="grid gap-2 stagger">
         {MACRO_KEYS.map((k) => (
           <MacroBar
             key={k}
@@ -232,7 +232,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
       </div>
 
       {/* Tableau du plan */}
-      <div className="rounded border border-[var(--border)] overflow-hidden">
+      <div className="rounded-xl border border-[var(--border)] overflow-hidden animate-fade-in-up">
         <table className="w-full text-sm">
           <thead className="bg-[var(--muted)]/50 text-[var(--muted-foreground)] text-xs uppercase">
             <tr>

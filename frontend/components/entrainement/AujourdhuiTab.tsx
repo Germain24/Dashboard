@@ -70,9 +70,14 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
   const dureeStarted = seance ? new Date(seance.date) : null;
 
   return (
+<<<<<<< HEAD
     <div className="space-y-4">
       {/* Résumé du jour */}
       <div className="rounded-[var(--radius)] border border-[var(--border)] p-3 flex flex-wrap items-center gap-3 text-sm">
+=======
+    <div className="space-y-4 animate-fade-in-up">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 flex flex-wrap items-center gap-3 text-sm card-hover">
+>>>>>>> worktree-agent-a62d2a55482deb0a2
         <span className="font-medium">
           {new Date(today.date + "T12:00:00").toLocaleDateString("fr-CA", {
             weekday: "long", day: "numeric", month: "long",
@@ -85,7 +90,11 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
           Poids : {today.poids_corps_kg.toFixed(1)} kg
         </span>
         {today.kcal_estimees > 0 && (
+<<<<<<< HEAD
           <span className="ml-auto rounded-[var(--radius-sm)] bg-[var(--success-muted)] text-[var(--success-foreground)] px-2 py-0.5 text-xs">
+=======
+          <span className="ml-auto rounded-md bg-[color-mix(in_srgb,var(--success,#16a34a)_12%,transparent)] text-[var(--success,#16a34a)] px-2 py-0.5 text-xs">
+>>>>>>> worktree-agent-a62d2a55482deb0a2
             🔥 {today.kcal_estimees.toFixed(0)} kcal
           </span>
         )}
@@ -108,7 +117,7 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
       )}
 
       {!isRest && (
-        <div className="space-y-2">
+        <div className="space-y-2 stagger">
           {today.slots.map((slot, i) => (
             <SlotCard key={i} slot={slot} seance={seance} onSetAdded={reload} />
           ))}
@@ -146,7 +155,11 @@ function SlotCard({
   const isWarmup = /warm-?up/i.test(slot.label);
 
   return (
+<<<<<<< HEAD
     <div className="rounded-[var(--radius)] border border-[var(--border)] p-3">
+=======
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 card-hover">
+>>>>>>> worktree-agent-a62d2a55482deb0a2
       <div className="flex flex-wrap items-baseline gap-2 text-sm">
         <span className="font-medium">{slot.label}</span>
         {setsTarget && (
@@ -164,7 +177,13 @@ function SlotCard({
         )}
         {slot.note && <span className="text-xs italic opacity-60">{slot.note}</span>}
         {setsTarget && (
+<<<<<<< HEAD
           <span className="ml-auto text-xs">{setsDone}/{setsTarget}</span>
+=======
+          <span className="ml-auto text-xs font-medium" style={{ color: "var(--ring)" }}>
+            {setsDone}/{setsTarget}
+          </span>
+>>>>>>> worktree-agent-a62d2a55482deb0a2
         )}
       </div>
 

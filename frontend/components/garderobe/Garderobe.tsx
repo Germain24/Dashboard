@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Shirt } from "lucide-react";
+import { Shirt, Sparkles, PieChart, Clock } from "lucide-react";
 import {
   garderobeApi,
   type SlotInfo,
@@ -26,6 +26,13 @@ import { RecommandationsTab } from "./RecommandationsTab";
 
 type Tab = "tenue" | "inventaire" | "stats" | "history" | "recs";
 
+const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
+  { id: "inventaire", label: "Inventaire", Icon: Shirt },
+  { id: "recs", label: "Recommandations", Icon: Sparkles },
+  { id: "stats", label: "Stats", Icon: PieChart },
+  { id: "history", label: "Historique", Icon: Clock },
+];
+
 const SLOT_ROW_1 = ["Manteau", "Veste", "Haut", "Pantalon", "Chaussures", "Echarpe"];
 const SLOT_ROW_2 = ["Casquette", "Lunettes", "Bijoux 1", "Bijoux 2", "Montre", "Pendentif"];
 const LAST_SUGGESTION_KEY = "garderobe:lastSuggestionDate";
@@ -36,7 +43,7 @@ function todayKey(): string {
 }
 
 export function Garderobe() {
-  const [tab, setTab] = useState<Tab>("tenue");
+  const [tab, setTab] = useState<Tab>("inventaire");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -167,6 +174,7 @@ export function Garderobe() {
     return total;
   }, [tenue, useBody, wornItems]);
 
+<<<<<<< HEAD
   if (loading) return <Spinner label="Chargement de la garde-robe…" />;
   if (error) return <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>;
 
@@ -205,6 +213,83 @@ export function Garderobe() {
                   onChange={(e) => setUseBody(e.target.checked)}
                   className="rounded"
                 />
+=======
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4 animate-fade-in">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-20 rounded-xl border border-[var(--border)] bg-[var(--card)] skeleton-shimmer" />
+        ))}
+      </div>
+    );
+  }
+  if (error) {
+    return <div className="p-6 text-[var(--destructive)]">⚠ {error}</div>;
+  }
+
+  return (
+    <div className="space-y-0 animate-fade-in">
+      <div className="px-6 py-5 border-b border-[var(--border)]">
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Garde-robe</h1>
+            <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Tenues &amp; météo</p>
+          </div>
+          <span className="text-xs rounded-md bg-[var(--muted)] px-2.5 py-1 text-[var(--muted-foreground)]">
+            {wardrobe.length} pièces
+          </span>
+        </div>
+
+        {weather && <WeatherBanner weather={weather} meanTemp={suggestion?.mean_temp ?? weather.mean_window_temp} />}
+
+        <div className="flex gap-1 mt-4">
+          {/* Tenue du jour — tab spéciale sans icône dans le tableau */}
+          <button
+            onClick={() => setTab("tenue")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+              tab === "tenue"
+                ? "text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]"
+                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
+            }`}
+          >
+            <Shirt size={15} />Tenue du Jour
+          </button>
+          {TABS.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                tab === id
+                  ? "text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
+              }`}
+            >
+              <Icon size={15} />{label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div key={tab} className="p-6 animate-fade-in-up">
+        {tab === "tenue" && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2 items-center">
+              <button
+                onClick={onResuggest}
+                disabled={resuggesting}
+                className="rounded bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+              >
+                {resuggesting ? "…" : "✨ Re-suggérer"}
+              </button>
+              <button
+                onClick={onReset}
+                className="rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)]"
+              >
+                🗑 Réinitialiser
+              </button>
+              <label className="ml-2 text-sm flex items-center gap-2">
+                <input type="checkbox" checked={useBody} onChange={(e) => setUseBody(e.target.checked)} />
+>>>>>>> worktree-agent-a62d2a55482deb0a2
                 👕 Body en coton (+1.5)
               </label>
             </div>
@@ -240,6 +325,7 @@ export function Garderobe() {
             />
 
             <div className="flex justify-center">
+<<<<<<< HEAD
               <Button
                 variant="success"
                 size="lg"
@@ -265,6 +351,24 @@ export function Garderobe() {
           <RecommandationsTab recs={recs} />
         </TabsContent>
       </Tabs>
+=======
+              <button
+                onClick={onValider}
+                disabled={validating || wornItems.length === 0}
+                className="rounded bg-[var(--success,#16a34a)] text-white px-6 py-2.5 text-sm font-semibold disabled:opacity-50"
+              >
+                {validating ? "…" : "✅ PORTER CETTE TENUE AUJOURD'HUI"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {tab === "inventaire" && <InventaireTab wardrobe={wardrobe} />}
+        {tab === "stats" && stats && <StatsTab stats={stats} />}
+        {tab === "history" && <HistoriqueTab history={history} />}
+        {tab === "recs" && <RecommandationsTab recs={recs} />}
+      </div>
+>>>>>>> worktree-agent-a62d2a55482deb0a2
     </div>
   );
 }
