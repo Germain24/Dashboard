@@ -25,17 +25,14 @@ def test_ping_modules() -> None:
     tests dans tests/test_<module>/ et ne sont plus dans cette liste.
     """
     client = TestClient(app)
+    # Modules conservant un /ping stub. Les modules portés qui ont depuis
+    # remplacé leur stub par de vraies routes (budget, cuisine, habitudes,
+    # livres, garderobe, sante) ont leurs propres tests dédiés.
     modules = [
         "finance",
-        # "garderobe" - CONV 2 terminee
-        # "sante" - CONV 3 terminee
         "agenda",
         "etudes",
         "entrainement",
-        "budget",
-        "cuisine",
-        "habitudes",
-        "livres",
         "robot",
     ]
     for m in modules:
