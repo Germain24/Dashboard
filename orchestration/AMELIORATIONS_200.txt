@@ -47,8 +47,8 @@ B. ARCHITECTURE & INFRA FRONTEND (16-30)
 --------------------------------------------------------------------------------
 C. UI / UX & DESIGN SYSTEM (31-45)
 --------------------------------------------------------------------------------
-31. [S](**) Toggle thème clair/sombre persistant (les variables CSS sont déjà en place).
-32. [S](*) Page d'accueil : afficher un aperçu live par module (mini stat) dans ModuleCard plutôt qu'un simple lien.
+31. [S](**) Toggle thème clair/sombre persistant (les variables CSS sont déjà en place).   ← FINIS ✓ (ThemeToggle clair/sombre/système, data-theme + anti-flash ; Skincare aussi ajouté à la sidebar)
+32. [S](*) Page d'accueil : afficher un aperçu live par module (mini stat) dans ModuleCard plutôt qu'un simple lien.   ← FINIS ✓ (LiveModuleStat : finance/habitudes/skincare/livres, dégradation propre + point d'extension)
 33. [M](**) Palette de commandes (Cmd+K) pour naviguer/agir rapidement entre modules.
 34. [S](*) Animation de transition de page (view transitions API) entre modules.
 35. [S](**) États vides illustrés et actionnables (empty-state.tsx existe — l'utiliser partout).

@@ -21,6 +21,15 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr-CA">
+      <head>
+        {/* Anti-flash : applique le thème choisi avant le premier paint. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('mc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();",
+          }}
+        />
+      </head>
       <body className="antialiased">
         <QueryProvider>
           {/* Navigation mobile (fixed header + hamburger drawer) */}

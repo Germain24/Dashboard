@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Module } from "@/lib/modules";
+import { LiveModuleStat } from "@/components/LiveModuleStat";
 
 export function ModuleCard({ module: m }: { module: Module }) {
   const Icon = m.icon;
@@ -59,6 +60,7 @@ export function ModuleCard({ module: m }: { module: Module }) {
         <p className="mt-0.5 text-xs text-[var(--muted-foreground)] leading-snug line-clamp-2">
           {m.description}
         </p>
+        {m.ready && <LiveModuleStat slug={m.slug} />}
       </div>
     </Link>
   );

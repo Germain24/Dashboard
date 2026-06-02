@@ -85,8 +85,9 @@
   --sidebar-width: 224px;
 }
 
+/* Thème sombre automatique (OS), sauf si l'utilisateur a explicitement choisi clair. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --background: #0d0d0d;
     --background-subtle: #111111;
     --foreground: #e8e8e8;
@@ -129,6 +130,51 @@
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
   }
+}
+
+/* Thème sombre explicite (toggle manuel) — prime sur la préférence OS. */
+:root[data-theme="dark"] {
+  --background: #0d0d0d;
+  --background-subtle: #111111;
+  --foreground: #e8e8e8;
+
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --border: #262626;
+
+  --card: #111111;
+  --card-foreground: #e8e8e8;
+
+  --primary: #e8e8e8;
+  --primary-foreground: #0d0d0d;
+
+  --accent: #1a1a1a;
+  --accent-foreground: #e8e8e8;
+
+  --sidebar: #050505;
+
+  --ring: #3b82f6;
+
+  --success: #4ade80;
+  --success-muted: #14532d;
+  --success-foreground: #bbf7d0;
+
+  --warning: #fbbf24;
+  --warning-muted: #78350f;
+  --warning-foreground: #fde68a;
+
+  --destructive: #f87171;
+  --destructive-muted: #7f1d1d;
+  --destructive-foreground: #fecaca;
+
+  --info: #60a5fa;
+  --info-muted: #1e3a5f;
+  --info-foreground: #bfdbfe;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
 }
 
 @theme inline {

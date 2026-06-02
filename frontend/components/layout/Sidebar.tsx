@@ -15,8 +15,10 @@ import {
   TrendingUp,
   CreditCard,
   Settings,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 const NAV_GROUPS = [
   {
@@ -26,6 +28,7 @@ const NAV_GROUPS = [
       { href: '/livres', icon: BookOpen, label: 'Livres' },
       { href: '/garderobe', icon: Shirt, label: 'Garde-robe' },
       { href: '/cuisine', icon: ChefHat, label: 'Cuisine' },
+      { href: '/skincare', icon: Sparkles, label: 'Skincare' },
     ],
   },
   {
@@ -108,6 +111,12 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
+
+      {/* Pied : toggle de thème */}
+      <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 px-1">
+        <span className="text-xs text-[var(--muted-foreground)] select-none">Thème</span>
+        <ThemeToggle />
+      </div>
     </aside>
   )
 }
