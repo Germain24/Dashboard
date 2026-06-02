@@ -12,10 +12,6 @@ import {
   type Vetement,
   type Weather,
 } from "@/lib/garderobe";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
 import { SlotCard } from "./SlotCard";
 import { WeatherBanner } from "./WeatherBanner";
 import { ThermalScore } from "./ThermalScore";
@@ -174,46 +170,6 @@ export function Garderobe() {
     return total;
   }, [tenue, useBody, wornItems]);
 
-<<<<<<< HEAD
-  if (loading) return <Spinner label="Chargement de la garde-robe…" />;
-  if (error) return <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>;
-
-  return (
-    <div className="space-y-4">
-      <header className="flex items-center gap-3">
-        <Shirt className="h-5 w-5 shrink-0" />
-        <h1 className="text-xl font-semibold tracking-tight">Garde-robe</h1>
-        <Badge className="ml-auto">{wardrobe.length} pièces</Badge>
-      </header>
-
-      {weather && <WeatherBanner weather={weather} meanTemp={suggestion?.mean_temp ?? weather.mean_window_temp} />}
-
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList>
-          <TabsTrigger value="tenue">👔 Tenue du jour</TabsTrigger>
-          <TabsTrigger value="inventaire">📦 Inventaire</TabsTrigger>
-          <TabsTrigger value="stats">📊 Stats</TabsTrigger>
-          <TabsTrigger value="history">📜 Historique</TabsTrigger>
-          <TabsTrigger value="recs">🚀 Recommandations</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="tenue">
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2 items-center">
-              <Button onClick={onResuggest} disabled={resuggesting} size="sm">
-                {resuggesting ? "…" : "✨ Re-suggérer"}
-              </Button>
-              <Button variant="secondary" onClick={onReset} size="sm">
-                🗑 Réinitialiser
-              </Button>
-              <label className="ml-2 text-sm flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={useBody}
-                  onChange={(e) => setUseBody(e.target.checked)}
-                  className="rounded"
-                />
-=======
   if (loading) {
     return (
       <div className="p-6 space-y-4 animate-fade-in">
@@ -289,7 +245,6 @@ export function Garderobe() {
               </button>
               <label className="ml-2 text-sm flex items-center gap-2">
                 <input type="checkbox" checked={useBody} onChange={(e) => setUseBody(e.target.checked)} />
->>>>>>> worktree-agent-a62d2a55482deb0a2
                 👕 Body en coton (+1.5)
               </label>
             </div>
@@ -325,33 +280,6 @@ export function Garderobe() {
             />
 
             <div className="flex justify-center">
-<<<<<<< HEAD
-              <Button
-                variant="success"
-                size="lg"
-                onClick={onValider}
-                disabled={validating || wornItems.length === 0}
-              >
-                {validating ? "…" : "✅ Porter cette tenue aujourd'hui"}
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="inventaire">
-          <InventaireTab wardrobe={wardrobe} />
-        </TabsContent>
-        <TabsContent value="stats">
-          {stats && <StatsTab stats={stats} />}
-        </TabsContent>
-        <TabsContent value="history">
-          <HistoriqueTab history={history} />
-        </TabsContent>
-        <TabsContent value="recs">
-          <RecommandationsTab recs={recs} />
-        </TabsContent>
-      </Tabs>
-=======
               <button
                 onClick={onValider}
                 disabled={validating || wornItems.length === 0}
@@ -368,7 +296,6 @@ export function Garderobe() {
         {tab === "history" && <HistoriqueTab history={history} />}
         {tab === "recs" && <RecommandationsTab recs={recs} />}
       </div>
->>>>>>> worktree-agent-a62d2a55482deb0a2
     </div>
   );
 }

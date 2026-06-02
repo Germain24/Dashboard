@@ -10,9 +10,6 @@ import {
   type Seance,
   todayKey,
 } from "@/lib/entrainement";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
 import { AujourdhuiTab } from "./AujourdhuiTab";
 import { ProgrammeTab } from "./ProgrammeTab";
 import { ProgressionTab } from "./ProgressionTab";
@@ -73,10 +70,6 @@ export function Entrainement() {
     return () => { cancelled = true; };
   }, [reloadAll]);
 
-<<<<<<< HEAD
-  if (loading) return <Spinner label="Chargement de l'entraînement…" />;
-  if (error) return <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>;
-=======
   if (loading) {
     return (
       <div className="p-6 space-y-4 animate-fade-in">
@@ -87,59 +80,11 @@ export function Entrainement() {
     );
   }
   if (error) return <div className="p-6 text-[var(--destructive)]">⚠ {error}</div>;
->>>>>>> worktree-agent-a62d2a55482deb0a2
 
   const todayWeekday = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const todayJour = program?.jours.find((j) => j.weekday === todayWeekday);
 
   return (
-<<<<<<< HEAD
-    <div className="space-y-4">
-      <header className="flex items-center gap-3">
-        <Dumbbell className="h-5 w-5 shrink-0" />
-        <h1 className="text-xl font-semibold tracking-tight">Entraînement</h1>
-        {todayJour && (
-          <Badge className="ml-auto">
-            {todayJour.label}
-            {intensity && (
-              <span className="ml-1 opacity-70">· intensité {intensity.intensity}</span>
-            )}
-          </Badge>
-        )}
-      </header>
-
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList>
-          <TabsTrigger value="aujourdhui">🏋️ Aujourd&apos;hui</TabsTrigger>
-          <TabsTrigger value="programme">📅 Programme</TabsTrigger>
-          <TabsTrigger value="progression">📈 Progression</TabsTrigger>
-          <TabsTrigger value="cardio">🏃 Cardio</TabsTrigger>
-          <TabsTrigger value="calendrier">🗓️ Calendrier</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="aujourdhui">
-          <AujourdhuiTab onSessionsChanged={reloadAll} />
-        </TabsContent>
-        <TabsContent value="programme">
-          {program && (
-            <ProgrammeTab
-              program={program}
-              exercices={exercices}
-              onProgramChanged={reloadAll}
-            />
-          )}
-        </TabsContent>
-        <TabsContent value="progression">
-          <ProgressionTab exercices={exercices} />
-        </TabsContent>
-        <TabsContent value="cardio">
-          <CardioTab />
-        </TabsContent>
-        <TabsContent value="calendrier">
-          <CalendrierTab sessions={sessions} program={program} />
-        </TabsContent>
-      </Tabs>
-=======
     <div className="space-y-0 animate-fade-in">
       <div className="px-6 py-5 border-b border-[var(--border)]">
         <div className="mb-4 flex items-start justify-between">
@@ -194,7 +139,6 @@ export function Entrainement() {
           <CalendrierTab sessions={sessions} program={program} />
         )}
       </div>
->>>>>>> worktree-agent-a62d2a55482deb0a2
     </div>
   );
 }

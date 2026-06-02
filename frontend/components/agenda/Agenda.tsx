@@ -9,16 +9,9 @@
  */
 
 import { useEffect, useState } from "react";
-<<<<<<< HEAD
-import { CalendarDays } from "lucide-react";
-=======
 import { CalendarDays, CalendarRange, CheckSquare } from "lucide-react";
->>>>>>> worktree-agent-a62d2a55482deb0a2
 import type { AgendaJour } from "@/lib/agenda";
 import { fetchToday } from "@/lib/agenda";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
 import JourTab from "./JourTab";
 import SemaineTab from "./SemaineTab";
 import TachesTab from "./TachesTab";
@@ -45,23 +38,6 @@ export default function Agenda() {
   }, []);
 
   return (
-<<<<<<< HEAD
-    <div className="space-y-4">
-      <header className="flex items-center gap-3">
-        <CalendarDays className="h-5 w-5 shrink-0" />
-        <h1 className="text-xl font-semibold tracking-tight">Agenda</h1>
-        {todayData && todayData.taches_urgentes.length > 0 && (
-          <Badge variant="destructive" className="ml-auto">
-            ⚠ {todayData.taches_urgentes.length} urgente
-            {todayData.taches_urgentes.length > 1 ? "s" : ""}
-          </Badge>
-        )}
-      </header>
-
-      {error && (
-        <div className="rounded-[var(--radius)] border border-[var(--destructive-muted)] bg-[var(--destructive-muted)] px-4 py-3 text-sm text-[var(--destructive)]">
-          Erreur : {error}
-=======
     <div className="space-y-0 animate-fade-in">
       <div className="px-6 py-5 border-b border-[var(--border)]">
         <div className="mb-4 flex items-start justify-between">
@@ -98,35 +74,9 @@ export default function Agenda() {
               <Icon size={15} />{label}
             </button>
           ))}
->>>>>>> worktree-agent-a62d2a55482deb0a2
         </div>
       </div>
 
-<<<<<<< HEAD
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList>
-          <TabsTrigger value="jour">📅 Aujourd&apos;hui</TabsTrigger>
-          <TabsTrigger value="semaine">🗓 Semaine</TabsTrigger>
-          <TabsTrigger value="taches">✅ Tâches</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="jour">
-          {loading ? (
-            <Spinner label="Chargement du planning…" className="py-12 justify-center" />
-          ) : todayData ? (
-            <JourTab data={todayData} />
-          ) : null}
-        </TabsContent>
-
-        <TabsContent value="semaine">
-          <SemaineTab />
-        </TabsContent>
-
-        <TabsContent value="taches">
-          <TachesTab />
-        </TabsContent>
-      </Tabs>
-=======
       <div key={tab} className="p-6 animate-fade-in-up">
         {error && (
           <div className="rounded-xl border border-[var(--destructive)]/30 bg-[color-mix(in_srgb,var(--destructive)_8%,transparent)] px-4 py-3 text-sm text-[var(--destructive)] mb-4">
@@ -149,7 +99,6 @@ export default function Agenda() {
         {tab === "semaine" && <SemaineTab />}
         {tab === "taches" && <TachesTab />}
       </div>
->>>>>>> worktree-agent-a62d2a55482deb0a2
     </div>
   );
 }
