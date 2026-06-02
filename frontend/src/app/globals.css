@@ -267,6 +267,9 @@ html {
 
 .animate-fade-in-up { animation: fadeInUp 0.3s ease forwards; }
 .animate-fade-in    { animation: fadeIn 0.25s ease forwards; }
+
+/* Transition d'entrée de page (template.tsx, remonté à chaque navigation) */
+.page-transition { animation: fadeIn 0.22s ease forwards; }
 .animate-slide-left { animation: slideInLeft 0.25s ease forwards; }
 .animate-scale-in   { animation: scaleIn 0.2s ease forwards; }
 

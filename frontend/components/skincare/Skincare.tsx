@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { skincareApi, type SkincareProduct, type SkincareToday } from "@/lib/skincare";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function Skincare() {
   const [today, setToday] = useState<SkincareToday | null>(null);
@@ -63,10 +64,20 @@ export function Skincare() {
         <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Routines &amp; produits</p>
       </div>
 
-      <div className="p-6 grid gap-6 sm:grid-cols-2 animate-fade-in-up">
-        {renderRoutine("Routine matin (AM)", today?.AM ?? [])}
-        {renderRoutine("Routine soir (PM)", today?.PM ?? [])}
-      </div>
+      {(today?.AM?.length ?? 0) === 0 && (today?.PM?.length ?? 0) === 0 ? (
+        <div className="p-6 animate-fade-in-up">
+          <EmptyState
+            icon={<Sparkles className="h-6 w-6" />}
+            title="Aucun produit skincare"
+            description="Ajoute tes produits (nettoyant, sérum, SPF…) pour générer tes routines matin et soir."
+          />
+        </div>
+      ) : (
+        <div className="p-6 grid gap-6 sm:grid-cols-2 animate-fade-in-up">
+          {renderRoutine("Routine matin (AM)", today?.AM ?? [])}
+          {renderRoutine("Routine soir (PM)", today?.PM ?? [])}
+        </div>
+      )}
 
       {(today?.due?.length ?? 0) > 0 && (
         <div className="px-6 pb-2">

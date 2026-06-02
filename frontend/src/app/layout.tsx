@@ -3,6 +3,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/layout";
 import { MobileNav } from "@/components/MobileNav";
 import { QueryProvider } from "@/components/QueryProvider";
+import { CommandPalette } from "@/components/CommandPalette";
 
 export const metadata: Metadata = {
   title: "Mission Control",
@@ -32,6 +33,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <QueryProvider>
+          {/* Palette de commandes globale (Cmd/Ctrl+K) */}
+          <CommandPalette />
+
           {/* Navigation mobile (fixed header + hamburger drawer) */}
           <MobileNav />
 
