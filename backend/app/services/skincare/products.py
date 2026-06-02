@@ -76,3 +76,25 @@ def to_repurchase(session: Session, today: dt.date | None = None) -> list[Skinca
         if low or expired:
             out.append(p)
     return out
+
+
+DEFAULT_PRODUCTS = [
+    {"nom": "Nettoyant doux", "type": "nettoyant", "moment": "les_deux", "ordre": 0},
+    {"nom": "Sérum vitamine C", "type": "serum", "moment": "AM", "ordre": 1},
+    {"nom": "Hydratant", "type": "hydratant", "moment": "les_deux", "ordre": 2},
+    {"nom": "SPF 50", "type": "spf", "moment": "AM", "ordre": 3, "pas_avant_soleil": False},
+    {"nom": "Rétinoïde", "type": "retinoide", "moment": "PM", "ordre": 4, "soir_seulement": True,
+     "frequence_type": "n_par_semaine", "frequence_n": 3},
+    {"nom": "Exfoliant", "type": "exfoliant", "moment": "PM", "ordre": 5,
+     "frequence_type": "n_par_semaine", "frequence_n": 2},
+]
+
+
+def seed_skincare(session: Session) -> None:
+    """Insère des produits de démo si la table est vide (idempotent)."""
+    existing = session.exec(select(SkincareProduct)).first()
+    if existing:
+        return
+    for data in DEFAULT_PRODUCTS:
+        session.add(SkincareProduct(**data))
+    session.commit()

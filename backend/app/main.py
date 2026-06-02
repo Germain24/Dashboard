@@ -42,6 +42,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             seed_habits(session)
         except Exception as exc:
             log.warning("Seed habitudes: %s", exc)
+        # Seed produits skincare par défaut
+        try:
+            from app.services.skincare.products import seed_skincare
+            seed_skincare(session)
+        except Exception as exc:
+            log.warning("Seed skincare: %s", exc)
 
     # Démarrer APScheduler
     try:
