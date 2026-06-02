@@ -9,6 +9,7 @@ import {
   LineChart,
   ListTodo,
   Shirt,
+  Sparkles,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -101,6 +102,14 @@ export const MODULES: Module[] = [
     description: "Lectures en cours, à lire, lus.",
     icon: BookOpen,
     conv: "CONV 11",
+    ready: true,
+  },
+  {
+    slug: "skincare",
+    label: "Skincare",
+    description: "Routines matin/soir, produits, fréquence.",
+    icon: Sparkles,
+    conv: "CONV 6",
     ready: true,
   },
   {
