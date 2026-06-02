@@ -68,6 +68,21 @@ export function Skincare() {
         {renderRoutine("Routine soir (PM)", today?.PM ?? [])}
       </div>
 
+      {(today?.due?.length ?? 0) > 0 && (
+        <div className="px-6 pb-2">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+            <h2 className="text-sm font-semibold mb-2">Dû aujourd&apos;hui</h2>
+            <ul className="text-sm text-[var(--muted-foreground)] flex flex-wrap gap-2">
+              {today!.due.map((p) => (
+                <li key={p.id} className="rounded-md bg-[var(--muted)] px-2 py-0.5">
+                  {p.nom}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {repurchase.length > 0 && (
         <div className="px-6 pb-6">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">

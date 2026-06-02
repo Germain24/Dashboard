@@ -2,6 +2,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
 from app.core.db import get_session
@@ -30,6 +31,26 @@ class ProductCreate(BaseModel):
     cout: float = 0.0
 
 
+class ProductUpdate(BaseModel):
+    nom: str | None = None
+    type: str | None = None
+    moment: str | None = None
+    ordre: int | None = None
+    frequence_type: str | None = None
+    frequence_jours: str | None = None
+    frequence_n: int | None = None
+    apres_douche: bool | None = None
+    soir_seulement: bool | None = None
+    pas_avant_soleil: bool | None = None
+    duree_min: int | None = None
+    stock_qte: float | None = None
+    unite: str | None = None
+    date_ouverture: dt.date | None = None
+    date_peremption: dt.date | None = None
+    cout: float | None = None
+    actif: bool | None = None
+
+
 class LogCreate(BaseModel):
     date_jour: dt.date
     moment: str
@@ -53,8 +74,8 @@ def create_product(body: ProductCreate, session: Session = Depends(get_session))
 
 
 @router.patch("/products/{product_id}")
-def update_product(product_id: int, body: dict, session: Session = Depends(get_session)):
-    p = svc.update_product(session, product_id, body)
+def update_product(product_id: int, body: ProductUpdate, session: Session = Depends(get_session)):
+    p = svc.update_product(session, product_id, body.model_dump(exclude_unset=True))
     if not p:
         raise HTTPException(404, f"Produit {product_id} introuvable")
     return p
@@ -93,6 +114,10 @@ def to_repurchase(session: Session = Depends(get_session)):
 def create_log(body: LogCreate, session: Session = Depends(get_session)):
     log = SkincareLog(**body.model_dump())
     session.add(log)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(409, f"Log {body.moment} du {body.date_jour} existe déjà")
     session.refresh(log)
     return log

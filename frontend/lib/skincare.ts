@@ -1,6 +1,20 @@
 // Types + client API pour le module Skincare (proxy Next -> backend)
 const BASE = "/api/skincare";
 
+async function json<T>(r: Response): Promise<T> {
+  if (!r.ok) {
+    let detail = r.statusText;
+    try {
+      const body = await r.json();
+      if (body?.detail) detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`API ${r.status} ${detail}`);
+  }
+  return r.json() as Promise<T>;
+}
+
 export interface SkincareProduct {
   id: number;
   nom: string;
@@ -30,20 +44,20 @@ export interface SkincareToday {
 }
 
 export const skincareApi = {
-  list: (): Promise<SkincareProduct[]> => fetch(`${BASE}/products`).then((r) => r.json()),
-  today: (): Promise<SkincareToday> => fetch(`${BASE}/today`).then((r) => r.json()),
-  toRepurchase: (): Promise<SkincareProduct[]> => fetch(`${BASE}/to-repurchase`).then((r) => r.json()),
+  list: (): Promise<SkincareProduct[]> => fetch(`${BASE}/products`).then((r) => json<SkincareProduct[]>(r)),
+  today: (): Promise<SkincareToday> => fetch(`${BASE}/today`).then((r) => json<SkincareToday>(r)),
+  toRepurchase: (): Promise<SkincareProduct[]> => fetch(`${BASE}/to-repurchase`).then((r) => json<SkincareProduct[]>(r)),
   create: (data: Partial<SkincareProduct>): Promise<SkincareProduct> =>
     fetch(`${BASE}/products`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
-    }).then((r) => r.json()),
+    }).then((r) => json<SkincareProduct>(r)),
   update: (id: number, data: Partial<SkincareProduct>): Promise<SkincareProduct> =>
     fetch(`${BASE}/products/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
-    }).then((r) => r.json()),
+    }).then((r) => json<SkincareProduct>(r)),
   remove: (id: number): Promise<Response> => fetch(`${BASE}/products/${id}`, { method: "DELETE" }),
 };
