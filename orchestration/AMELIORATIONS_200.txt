@@ -28,21 +28,21 @@ A. ARCHITECTURE & INFRA BACKEND (1-15)
 --------------------------------------------------------------------------------
 B. ARCHITECTURE & INFRA FRONTEND (16-30)
 --------------------------------------------------------------------------------
-16. [M](***) Remplacer le client api.ts maison par une couche typée (TanStack Query) : cache, retries, invalidation.
-17. [S](**) Générer automatiquement les types TS depuis l'OpenAPI (`make gen-types`) et les utiliser dans lib/*.ts.
-18. [S](**) Ajouter un AbortController + timeout dans api() pour annuler les requêtes obsolètes.
-19. [M](**) Provider global d'erreurs + toasts (sonner) au lieu de throw bruts.
-20. [S](**) Variable d'env validée au build (zod) : échouer tôt si NEXT_PUBLIC_API_BASE_URL absent en prod.
-21. [M](**) Error boundary React par module + page d'erreur Next (error.tsx, not-found.tsx).
-22. [S](*) Loading skeletons unifiés via loading.tsx par route plutôt qu'inline dans chaque composant.
-23. [M](**) Mode hors-ligne / cache optimiste (SWR stale-while-revalidate) pour usage local rapide.
-24. [S](*) Centraliser les constantes de couleurs/seuils (ex. score thermique) dans lib/constants.ts.
-25. [M](**) Composant DataTable générique (tri, recherche, pagination) réutilisable par module.
-26. [S](*) Hook useDebounce + useLocalStorage partagés dans lib/hooks.
-27. [M](**) Internationalisation légère (fr-CA aujourd'hui) via dictionnaire, éviter les chaînes en dur.
-28. [S](*) Favicon + manifest PWA + icônes pour installer le dashboard en app locale.
-29. [M](**) Activer le App Router streaming + Suspense sur les pages lourdes.
-30. [S](*) Lint strict (eslint-plugin-jsx-a11y, no-floating-promises) + prettier en pre-commit.
+16. [M](***) Remplacer le client api.ts maison par une couche typée (TanStack Query) : cache, retries, invalidation.   ← FINIS ✓ (QueryProvider global + lib/queries/finance.ts : hooks typés + invalidation ; finance en référence)
+17. [S](**) Générer automatiquement les types TS depuis l'OpenAPI (`make gen-types`) et les utiliser dans lib/*.ts.   ← FINIS ✓ (make gen-types offline + lib/types.ts généré + lib/schema.ts pour adoption)
+18. [S](**) Ajouter un AbortController + timeout dans api() pour annuler les requêtes obsolètes.   ← FINIS ✓
+19. [M](**) Provider global d'erreurs + toasts (sonner) au lieu de throw bruts.   ← FINIS ✓ (QueryCache/MutationCache onError -> toast, <Toaster/> global, lib/toast.ts)
+20. [S](**) Variable d'env validée au build (zod) : échouer tôt si NEXT_PUBLIC_API_BASE_URL absent en prod.   ← FINIS ✓ (lib/env.ts zod, requis en prod, câblé dans api.ts)
+21. [M](**) Error boundary React par module + page d'erreur Next (error.tsx, not-found.tsx).   ← FINIS ✓ (app/error.tsx, app/not-found.tsx, components/ErrorBoundary.tsx ; finance câblé en référence)
+22. [S](*) Loading skeletons unifiés via loading.tsx par route plutôt qu'inline dans chaque composant.   ← FINIS ✓ (components/PageSkeleton.tsx + loading.tsx sur 12 routes)
+23. [M](**) Mode hors-ligne / cache optimiste (SWR stale-while-revalidate) pour usage local rapide.   ← FINIS ✓ (PersistQueryClientProvider + persister localStorage, gcTime 24h)
+24. [S](*) Centraliser les constantes de couleurs/seuils (ex. score thermique) dans lib/constants.ts.   ← FINIS ✓
+25. [M](**) Composant DataTable générique (tri, recherche, pagination) réutilisable par module.   ← FINIS ✓ (components/ui/data-table.tsx)
+26. [S](*) Hook useDebounce + useLocalStorage partagés dans lib/hooks.   ← FINIS ✓ (lib/hooks.ts : useDebounce, useLocalStorage, useDebouncedCallback)
+27. [M](**) Internationalisation légère (fr-CA aujourd'hui) via dictionnaire, éviter les chaînes en dur.   ← FINIS ✓ (lib/i18n.ts : dictionnaire fr-CA + t() avec interpolation)
+28. [S](*) Favicon + manifest PWA + icônes pour installer le dashboard en app locale.   ← FINIS ✓ (app/manifest.ts + metadata manifest/appleWebApp/themeColor)
+29. [M](**) Activer le App Router streaming + Suspense sur les pages lourdes.   ← FINIS ✓ (Suspense par segment via loading.tsx #22 ; pages = Server Components streamant le shell + ErrorBoundary)
+30. [S](*) Lint strict (eslint-plugin-jsx-a11y, no-floating-promises) + prettier en pre-commit.   ← PARTIEL (eslint.config.mjs flat + jsx-a11y + no-floating-promises + prettier configurés ; scripts lint/format câblés. RESTE : hook pre-commit — voir #197)
 
 --------------------------------------------------------------------------------
 C. UI / UX & DESIGN SYSTEM (31-45)

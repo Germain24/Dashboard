@@ -1,5 +1,10 @@
 import { Finance } from "@/components/finance/Finance";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function FinancePage() {
-  return <Finance />;
+  return (
+    <ErrorBoundary label="Finance">
+      <Finance />
+    </ErrorBoundary>
+  );
 }

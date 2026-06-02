@@ -6,26 +6,41 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "gen:types": "openapi-typescript http://127.0.0.1:8000/openapi.json -o lib/types.ts"
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "gen:types": "openapi-typescript http://127.0.0.1:8000/openapi.json -o lib/types.ts",
+    "gen:types:file": "openapi-typescript openapi.json -o lib/types.ts"
   },
   "dependencies": {
+    "@tanstack/query-sync-storage-persister": "^5.100.14",
+    "@tanstack/react-query": "^5.100.14",
+    "@tanstack/react-query-persist-client": "^5.100.14",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.460.0",
+    "next": "15.5.18",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.18",
-    "lucide-react": "^0.460.0",
-    "clsx": "^2.1.1",
+    "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.4",
-    "class-variance-authority": "^0.7.0"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "concurrently": "^9.0.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "openapi-typescript": "^7.4.0",
-    "concurrently": "^9.0.0"
+    "prettier": "^3.8.3",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "typescript-eslint": "^8.60.1"
   }
 }

@@ -67,8 +67,11 @@ test-frontend:
 	cd frontend && npm test --if-present
 
 # ---------- TYPES ----------
+# Génère frontend/lib/types.ts depuis l'OpenAPI, sans serveur en cours :
+# on exporte le schéma depuis l'app FastAPI, puis openapi-typescript.
 gen-types:
-	cd frontend && npm run gen:types
+	cd backend && uv run python -c "import json; from app.main import app; open('../frontend/openapi.json','w',encoding='utf-8').write(json.dumps(app.openapi(), ensure_ascii=False))"
+	cd frontend && npx openapi-typescript openapi.json -o lib/types.ts
 
 # ---------- LINT/FMT ----------
 fmt:
