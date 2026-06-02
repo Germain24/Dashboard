@@ -4,9 +4,10 @@ import { Sidebar } from "@/components/layout";
 import { MobileNav } from "@/components/MobileNav";
 import { QueryProvider } from "@/components/QueryProvider";
 import { CommandPalette } from "@/components/CommandPalette";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export const metadata: Metadata = {
-  title: "Mission Control",
+  title: { default: "Mission Control", template: "%s · Mission Control" },
   description:
     "Dashboard personnel — finance, nutrition, garde-robe, agenda, études, …",
   manifest: "/manifest.webmanifest",
@@ -42,7 +43,10 @@ export default function RootLayout({
           {/* Layout desktop : sidebar gauche + contenu */}
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 min-w-0">{children}</main>
+            <main className="flex-1 min-w-0">
+              <Breadcrumbs />
+              {children}
+            </main>
           </div>
         </QueryProvider>
       </body>
