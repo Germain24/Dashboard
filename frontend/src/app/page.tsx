@@ -1,6 +1,6 @@
 import { HealthBadge } from "@/components/HealthBadge";
-import { ModuleCard } from "@/components/ModuleCard";
 import { Greeting } from "@/components/Greeting";
+import { SortableModules } from "@/components/SortableModules";
 import { MODULES } from "@/lib/modules";
 
 export default function HomePage() {
@@ -44,13 +44,9 @@ export default function HomePage() {
 
       <section aria-label="Modules">
         <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-[var(--muted-foreground)]">
-          Modules
+          Modules <span className="ml-1 font-normal normal-case tracking-normal opacity-70">— glisse pour réorganiser</span>
         </h2>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 stagger">
-          {MODULES.map((m) => (
-            <ModuleCard key={m.slug} module={m} />
-          ))}
-        </div>
+        <SortableModules />
       </section>
     </div>
   );

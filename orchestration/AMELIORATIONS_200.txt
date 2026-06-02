@@ -53,7 +53,7 @@ C. UI / UX & DESIGN SYSTEM (31-45)
 34. [S](*) Animation de transition de page (view transitions API) entre modules.   ← FINIS ✓ (template.tsx + .page-transition, respecte prefers-reduced-motion)
 35. [S](**) États vides illustrés et actionnables (empty-state.tsx existe — l'utiliser partout).   ← FINIS ✓ (déjà adopté finance/agenda/entrainement ; appliqué au module Skincare)
 36. [S](*) Breadcrumbs + titre de page dans le <head> par module.   ← FINIS ✓ (composant Breadcrumbs DRY : fil d'Ariane + document.title par module, template de titre racine)
-37. [M](**) Dashboard d'accueil configurable : widgets déplaçables (drag-and-drop) par l'utilisateur.
+37. [M](**) Dashboard d'accueil configurable : widgets déplaçables (drag-and-drop) par l'utilisateur.   ← FINIS ✓ (SortableModules dnd-kit, ordre persisté localStorage ; QA interactif recommandé)
 38. [S](*) Raccourcis clavier par module (j/k navigation, n = nouveau).
 39. [S](**) Indicateur de fraîcheur des données (« mis à jour il y a 3 min ») sur chaque vue.
 40. [S](*) Densité d'affichage réglable (compact/confort) globale.
