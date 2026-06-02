@@ -132,6 +132,12 @@
   }
 }
 
+/* Densité d'affichage compacte : Tailwind v4 dimensionne en rem, donc réduire
+   la taille de police racine compacte espacements ET textes d'un seul coup. */
+:root[data-density="compact"] {
+  font-size: 14px;
+}
+
 /* Thème sombre explicite (toggle manuel) — prime sur la préférence OS. */
 :root[data-theme="dark"] {
   --background: #0d0d0d;

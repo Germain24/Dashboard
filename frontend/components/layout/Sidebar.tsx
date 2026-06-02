@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { DensityToggle } from '@/components/DensityToggle'
 
 const NAV_GROUPS = [
   {
@@ -114,8 +115,11 @@ export function Sidebar() {
 
       {/* Pied : toggle de thème */}
       <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 px-1">
-        <span className="text-xs text-[var(--muted-foreground)] select-none">Thème</span>
-        <ThemeToggle />
+        <span className="text-xs text-[var(--muted-foreground)] select-none">Affichage</span>
+        <div className="flex items-center gap-1">
+          <DensityToggle />
+          <ThemeToggle />
+        </div>
       </div>
     </aside>
   )

@@ -5,6 +5,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { QueryProvider } from "@/components/QueryProvider";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 
 export const metadata: Metadata = {
   title: { default: "Mission Control", template: "%s · Mission Control" },
@@ -28,14 +29,15 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var t=localStorage.getItem('mc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();",
+              "(function(){try{var t=localStorage.getItem('mc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);var d=localStorage.getItem('mc-density');if(d==='compact')document.documentElement.setAttribute('data-density','compact');}catch(e){}})();",
           }}
         />
       </head>
       <body className="antialiased">
         <QueryProvider>
-          {/* Palette de commandes globale (Cmd/Ctrl+K) */}
+          {/* Palette de commandes globale (Cmd/Ctrl+K) + raccourcis j/k */}
           <CommandPalette />
+          <KeyboardShortcuts />
 
           {/* Navigation mobile (fixed header + hamburger drawer) */}
           <MobileNav />

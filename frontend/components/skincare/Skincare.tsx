@@ -4,18 +4,21 @@ import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { skincareApi, type SkincareProduct, type SkincareToday } from "@/lib/skincare";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Freshness } from "@/components/Freshness";
 
 export function Skincare() {
   const [today, setToday] = useState<SkincareToday | null>(null);
   const [repurchase, setRepurchase] = useState<SkincareProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([skincareApi.today(), skincareApi.toRepurchase()])
       .then(([t, r]) => {
         setToday(t);
         setRepurchase(r);
+        setUpdatedAt(Date.now());
       })
       .catch((e) => setError(e?.message ?? "Erreur de chargement"))
       .finally(() => setLoading(false));
@@ -61,7 +64,11 @@ export function Skincare() {
           <Sparkles className="h-5 w-5 shrink-0" />
           <h1 className="text-xl font-semibold tracking-tight">Skincare</h1>
         </div>
-        <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Routines &amp; produits</p>
+        <div className="mt-0.5 flex items-center gap-2">
+          <p className="text-sm text-[var(--muted-foreground)]">Routines &amp; produits</p>
+          <span className="text-[var(--muted-foreground)]">·</span>
+          <Freshness updatedAt={updatedAt} />
+        </div>
       </div>
 
       {(today?.AM?.length ?? 0) === 0 && (today?.PM?.length ?? 0) === 0 ? (
