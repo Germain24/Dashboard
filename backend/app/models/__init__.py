@@ -21,3 +21,4 @@ from app.models.habitudes import Habit, HabitEntry  # noqa: F401
 from app.models.livres import Book, BookNote, BookQuote, ReadingSession  # noqa: F401
 from app.models.sante import Aliment, MesureSante, NutritionGoal, PlanNutrition  # noqa: F401
 from app.models.scheduler import JobRun, Notification  # noqa: F401
+from app.models.skincare import SkincareProduct, SkincareLog  # noqa: F401
