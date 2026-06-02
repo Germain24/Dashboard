@@ -7,8 +7,14 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
   "http://127.0.0.1:8000";
 
+// Préfixe de version de l'API. Aligné sur `settings.api_v1_prefix` côté backend.
+// Surchargeable via NEXT_PUBLIC_API_PREFIX (mettre "" pour cibler la racine).
+const API_PREFIX = (
+  process.env.NEXT_PUBLIC_API_PREFIX ?? "/api/v1"
+).replace(/\/$/, "");
+
 export async function api<T = unknown>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${BASE_URL}${API_PREFIX}${path}`, {
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     cache: "no-store",
     ...init,

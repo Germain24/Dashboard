@@ -2,13 +2,67 @@
 
 from __future__ import annotations
 
+import logging
+from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.api import api_router
 from app.core.config import settings
+from app.core.errors import register_exception_handlers
 from app.core.logging import setup_logging
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Cycle de vie de l'application (remplace les on_event startup/shutdown dépréciés)."""
+    log = logging.getLogger(__name__)
+    from app.core.db import engine
+    from sqlmodel import Session
+
+    with Session(engine) as session:
+        # Sync historique Excel Finance
+        try:
+            from app.services.finance.history_excel import sync_excel_to_db
+            sync_excel_to_db(session)
+        except Exception as exc:
+            log.warning("Sync Excel: %s", exc)
+        # Seed catégories Budget
+        try:
+            from app.services.budget.categories import seed_categories
+            seed_categories(session)
+        except Exception as exc:
+            log.warning("Seed budget categories: %s", exc)
+        # Seed habitudes par défaut
+        try:
+            from app.services.habitudes.entries import seed_habits
+            seed_habits(session)
+        except Exception as exc:
+            log.warning("Seed habitudes: %s", exc)
+
+    # Démarrer APScheduler
+    try:
+        from app.services.scheduler.scheduler import get_scheduler, register_all_jobs
+        from app.services.finance import register_finance_jobs
+        scheduler = get_scheduler()
+        register_all_jobs(scheduler)
+        register_finance_jobs(scheduler)
+        scheduler.start()
+        log.info("APScheduler started with %d jobs", len(scheduler.get_jobs()))
+    except Exception as exc:
+        log.warning("APScheduler startup: %s", exc)
+
+    yield
+
+    # Arrêt propre du scheduler
+    try:
+        from app.services.scheduler.scheduler import get_scheduler
+        get_scheduler().shutdown(wait=False)
+    except Exception:
+        pass
 
 
 def create_app() -> FastAPI:
@@ -20,6 +74,7 @@ def create_app() -> FastAPI:
             "API du dashboard personnel Mission Control. "
             "En CONV 1, seuls /health et les /ping de chaque module sont actifs."
         ),
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -28,51 +83,11 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.include_router(api_router)
-
-    @app.on_event("startup")
-    def _on_startup() -> None:
-        import logging
-        log = logging.getLogger(__name__)
-        from app.core.db import engine
-        from sqlmodel import Session
-        with Session(engine) as session:
-            # Sync historique Excel Finance
-            try:
-                from app.services.finance.history_excel import sync_excel_to_db
-                sync_excel_to_db(session)
-            except Exception as exc:
-                log.warning("Sync Excel: %s", exc)
-            # Seed catégories Budget
-            try:
-                from app.services.budget.categories import seed_categories
-                seed_categories(session)
-            except Exception as exc:
-                log.warning("Seed budget categories: %s", exc)
-            # Seed habitudes par défaut
-            try:
-                from app.services.habitudes.entries import seed_habits
-                seed_habits(session)
-            except Exception as exc:
-                log.warning("Seed habitudes: %s", exc)
-        # Démarrer APScheduler
-        try:
-            from app.services.scheduler.scheduler import get_scheduler, register_all_jobs
-            scheduler = get_scheduler()
-            register_all_jobs(scheduler)
-            scheduler.start()
-            log.info("APScheduler started with %d jobs", len(scheduler.get_jobs()))
-        except Exception as exc:
-            log.warning("APScheduler startup: %s", exc)
-
-    @app.on_event("shutdown")
-    def _on_shutdown() -> None:
-        try:
-            from app.services.scheduler.scheduler import get_scheduler
-            get_scheduler().shutdown(wait=False)
-        except Exception:
-            pass
-
+    # Routes principales versionnées sous /api/v1 (documentées dans l'OpenAPI).
+    app.include_router(api_router, prefix=settings.api_v1_prefix)
+    # Montage racine conservé pour rétro-compatibilité (non documenté).
+    app.include_router(api_router, include_in_schema=False)
+    register_exception_handlers(app)
     return app
 
 

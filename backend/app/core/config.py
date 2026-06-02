@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     app_host: str = "127.0.0.1"
     app_port: int = 8000
     app_log_level: str = "INFO"
+    # Format des logs : "text" (défaut, lisible) ou "json" (agrégation/observabilité).
+    log_format: str = "text"
+
+    # Préfixe de version de l'API. Les routes principales sont exposées sous
+    # ce préfixe ; un montage racine (non documenté) est conservé pour la
+    # rétro-compatibilité durant la transition.
+    api_v1_prefix: str = "/api/v1"
 
     # --- DB ---
     # URL SQLite par défaut. Le chemin est résolu par rapport au backend/.

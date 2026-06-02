@@ -1,0 +1,294 @@
+================================================================================
+MISSION CONTROL — 200 AMÉLIORATIONS & AJOUTS POSSIBLES
+Généré le 2026-06-01 · ancré sur l'état réel du code (graphe graphify à jour)
+================================================================================
+
+Légende d'effort : [S] petit  [M] moyen  [L] gros
+Légende d'impact : (*) confort  (**) valeur réelle  (***) structurant
+
+--------------------------------------------------------------------------------
+A. ARCHITECTURE & INFRA BACKEND (1-15)
+--------------------------------------------------------------------------------
+1.  [S](***) Remplacer `@app.on_event("startup"/"shutdown")` (déprécié FastAPI) par un `lifespan` asynccontextmanager dans main.py.   ← FINIS ✓
+2.  [M](***) Brancher `register_finance_jobs` au démarrage (actuellement jamais appelé) à côté de `register_all_jobs`.   ← FINIS ✓
+3.  [S](**) Ajouter un endpoint `/jobs/{id}/runs` exposant l'historique JobRun désormais journalisé par run_job.   ← FINIS ✓
+4.  [M](**) Centraliser la gestion d'erreurs via un exception_handler global (réponses JSON uniformes {code, detail}).   ← FINIS ✓
+5.  [S](**) Versionner l'API sous `/api/v1` pour permettre des évolutions sans casser le front.   ← FINIS ✓
+6.  [M](**) Introduire une couche `repository` par module pour découpler services et SQLModel.   ← FINIS ✓ (base générique app/core/repository.py + app/repositories/*.py pour les 13 modules ; finance/transactions câblé en référence)
+7.  [S](*) Ajouter `/health/ready` et `/health/live` distincts (readiness vs liveness) pour le monitoring.   ← FINIS ✓
+8.  [M](**) Pagination standardisée (limit/offset + total) sur toutes les routes de liste.   ← FINIS ✓ (helper app/core/pagination.py : ?limit&offset + en-tête X-Total-Count/Content-Range, rétro-compatible ; appliqué à finance/transactions en référence)
+9.  [M](**) Filtrage/tri génériques via query params réutilisables (helper commun).   ← FINIS ✓ (app/core/query_params.py : Sorting + apply_sort/apply_filters validés ; appliqué à finance/transactions)
+10. [S](*) Logger structuré JSON optionnel (env LOG_FORMAT=json) pour faciliter l'agrégation.   ← FINIS ✓
+11. [M](**) Cache léger (functools/lru ou Redis optionnel) sur les calculs finance coûteux (Buffett, risk).   ← FINIS ✓ (app/core/cache.py : TTLCache + @ttl_cache ; route /finance/risk cachée 5 min)
+12. [S](**) Migration Alembic de contrôle : vérifier que `alembic upgrade head` == modèles (test CI autogenerate vide).   ← FINIS ✓ (tests/test_migrations.py + env.py respecte ALEMBIC_DB_URL pour cibler une base temp)
+13. [M](***) Passer SQLite en mode WAL + busy_timeout pour réduire les locks lors des jobs concurrents.   ← FINIS ✓
+14. [S](*) Endpoint `/version` renvoyant git sha + date de build.   ← FINIS ✓
+15. [M](**) Découper routes_finance.py (609 lignes) en sous-routeurs (portfolio, buffett, rebalancing, risk).   ← FINIS ✓ (package app/api/finance/ : portfolio, risk, transactions, buffett, rebalancing ; URLs inchangées)
+
+--------------------------------------------------------------------------------
+B. ARCHITECTURE & INFRA FRONTEND (16-30)
+--------------------------------------------------------------------------------
+16. [M](***) Remplacer le client api.ts maison par une couche typée (TanStack Query) : cache, retries, invalidation.
+17. [S](**) Générer automatiquement les types TS depuis l'OpenAPI (`make gen-types`) et les utiliser dans lib/*.ts.
+18. [S](**) Ajouter un AbortController + timeout dans api() pour annuler les requêtes obsolètes.
+19. [M](**) Provider global d'erreurs + toasts (sonner) au lieu de throw bruts.
+20. [S](**) Variable d'env validée au build (zod) : échouer tôt si NEXT_PUBLIC_API_BASE_URL absent en prod.
+21. [M](**) Error boundary React par module + page d'erreur Next (error.tsx, not-found.tsx).
+22. [S](*) Loading skeletons unifiés via loading.tsx par route plutôt qu'inline dans chaque composant.
+23. [M](**) Mode hors-ligne / cache optimiste (SWR stale-while-revalidate) pour usage local rapide.
+24. [S](*) Centraliser les constantes de couleurs/seuils (ex. score thermique) dans lib/constants.ts.
+25. [M](**) Composant DataTable générique (tri, recherche, pagination) réutilisable par module.
+26. [S](*) Hook useDebounce + useLocalStorage partagés dans lib/hooks.
+27. [M](**) Internationalisation légère (fr-CA aujourd'hui) via dictionnaire, éviter les chaînes en dur.
+28. [S](*) Favicon + manifest PWA + icônes pour installer le dashboard en app locale.
+29. [M](**) Activer le App Router streaming + Suspense sur les pages lourdes.
+30. [S](*) Lint strict (eslint-plugin-jsx-a11y, no-floating-promises) + prettier en pre-commit.
+
+--------------------------------------------------------------------------------
+C. UI / UX & DESIGN SYSTEM (31-45)
+--------------------------------------------------------------------------------
+31. [S](**) Toggle thème clair/sombre persistant (les variables CSS sont déjà en place).
+32. [S](*) Page d'accueil : afficher un aperçu live par module (mini stat) dans ModuleCard plutôt qu'un simple lien.
+33. [M](**) Palette de commandes (Cmd+K) pour naviguer/agir rapidement entre modules.
+34. [S](*) Animation de transition de page (view transitions API) entre modules.
+35. [S](**) États vides illustrés et actionnables (empty-state.tsx existe — l'utiliser partout).
+36. [S](*) Breadcrumbs + titre de page dans le <head> par module.
+37. [M](**) Dashboard d'accueil configurable : widgets déplaçables (drag-and-drop) par l'utilisateur.
+38. [S](*) Raccourcis clavier par module (j/k navigation, n = nouveau).
+39. [S](**) Indicateur de fraîcheur des données (« mis à jour il y a 3 min ») sur chaque vue.
+40. [S](*) Densité d'affichage réglable (compact/confort) globale.
+41. [M](**) Graphiques interactifs cohérents via chart-frame.tsx (tooltip, zoom, légende cliquable).
+42. [S](*) Skeleton shimmer cohérent (déjà sur Santé) répliqué sur tous les modules.
+43. [S](*) Focus-visible et contrastes AA vérifiés sur les composants ui/.
+44. [M](**) Responsive tablette : la sidebar en mode rail (icônes seules) entre md et lg.
+45. [S](*) Micro-feedback de succès (checkmark animé) après chaque mutation.
+
+--------------------------------------------------------------------------------
+D. MODULE FINANCE (46-60)
+--------------------------------------------------------------------------------
+46. [M](***) Brancher une vraie source de cours (yfinance/Alpha Vantage) au lieu du stub, avec cache quotidien.
+47. [M](**) Graphique d'évolution de la valeur du portefeuille (snapshots déjà stockés).
+48. [M](**) Vue détaillée par titre : prix, P/E, score Buffett, poids, performance.
+49. [S](**) Alerte de rééquilibrage quand un poids dévie du target (> seuil).
+50. [M](**) Calcul et affichage du rendement annualisé (TWR/MWR) vs benchmark (benchmarks.py existe).
+51. [S](*) Export PDF/CSV du rapport mensuel Buffett.
+52. [M](**) Backtest simple d'une allocation cible sur l'historique importé.
+53. [S](**) Suivi des dividendes reçus + calendrier des versements.
+54. [M](**) Détail du score Buffett par critère (marge, ROE, dette) avec explication.
+55. [S](*) Devises multiples (CAD/USD) avec conversion au taux du jour.
+56. [M](**) Détection de surpondération sectorielle / mesure de diversification (risk.py).
+57. [S](*) Saisie rapide d'une transaction (achat/vente) depuis la vue portefeuille.
+58. [M](**) Objectifs d'épargne/investissement avec projection (intérêts composés).
+59. [S](**) Historique des analyses Buffett mensuelles consultable (timeline).
+60. [M](**) Notification push quand le snapshot quotidien échoue ou détecte une chute > X%.
+
+--------------------------------------------------------------------------------
+E. MODULE SANTÉ (61-72)
+--------------------------------------------------------------------------------
+61. [M](**) Courbes de poids / mesures corporelles dans le temps avec moyenne mobile.
+62. [M](**) Calcul automatique des macros cibles selon objectif (cut/maintien/bulk) et TDEE.
+63. [S](**) Journal alimentaire quotidien avec total calories/macros vs cible.
+64. [S](*) Base d'aliments réutilisables (favoris) pour saisie rapide.
+65. [M](**) Score de qualité nutritionnelle hebdomadaire.
+66. [S](*) Rappel d'hydratation et suivi de l'eau.
+67. [M](**) Intégration des séances d'entraînement pour ajuster les calories dépensées.
+68. [S](**) Suivi du sommeil (durée, qualité) avec corrélation poids/énergie.
+69. [S](*) Photos de progression (avant/après) stockées localement.
+70. [M](**) Alerte si déficit/surplus calorique trop agressif sur 7 jours.
+71. [S](*) Export du plan macros en image partageable.
+72. [M](**) Génération auto d'un plan de repas respectant les macros (lien vers module Cuisine).
+
+--------------------------------------------------------------------------------
+F. MODULE GARDE-ROBE (73-82)
+--------------------------------------------------------------------------------
+73. [M](**) Recommandation de tenue selon météo du jour (weather_refresh existe déjà).
+74. [S](**) Score thermique automatique d'une tenue = somme des pièces.
+75. [S](*) Photos des vêtements + détection couleur dominante.
+76. [M](**) Générateur de tenues (combinaisons valides haut/bas/chaussures).
+77. [S](*) Suivi de la fréquence de port (pièces jamais portées à recycler).
+78. [S](**) Filtres par saison, couleur, occasion.
+79. [M](**) Planificateur de tenues sur la semaine (lié à l'agenda).
+80. [S](*) Statistiques garde-robe (nb pièces par catégorie, valeur estimée).
+81. [S](*) Étiquettes d'entretien (lavage) par pièce.
+82. [M](**) Suggestion d'achats pour combler des manques (ex. pas assez de couches chaudes).
+
+--------------------------------------------------------------------------------
+G. MODULE AGENDA (83-92)
+--------------------------------------------------------------------------------
+83. [M](***) Synchronisation Google Calendar (lecture/écriture) — MCP déjà disponible côté assistant.
+84. [M](**) Vue calendrier mensuelle/hebdo interactive (pas seulement liste).
+85. [S](**) Rappels avec notifications (lien module notifications/scheduler).
+86. [S](*) Événements récurrents (RRULE).
+87. [M](**) Détection de conflits d'horaire à la création.
+88. [S](*) Catégories/couleurs d'événements + filtres.
+89. [M](**) Bloc de temps « focus » lié au module Études (sessions planifiées).
+90. [S](*) Vue « aujourd'hui » sur la page d'accueil (prochains événements).
+91. [S](**) Import .ics / export .ics.
+92. [M](**) Suggestion de créneaux libres (suggest_time) pour caser une tâche.
+
+--------------------------------------------------------------------------------
+H. MODULE ÉTUDES (93-102)
+--------------------------------------------------------------------------------
+93. [M](**) Timer Pomodoro intégré qui crée automatiquement une session.
+94. [M](**) Statistiques de temps d'étude par matière (graph hebdo/mensuel).
+95. [S](**) Objectifs d'heures par semaine avec barre de progression.
+96. [S](*) Tags/matières réutilisables.
+97. [M](**) Heatmap type GitHub des sessions d'étude (régularité).
+98. [S](*) Notes/résumés attachés à une session.
+99. [M](**) Système de révision espacée (spaced repetition) sur les notes.
+100. [S](**) Lien session ↔ événement agenda (planifier puis logger).
+101. [S](*) Détection de série (streak) de jours étudiés.
+102. [M](**) Rapport de fin de semaine généré automatiquement (temps total, matières).
+
+--------------------------------------------------------------------------------
+I. MODULE ENTRAÎNEMENT (103-112)
+--------------------------------------------------------------------------------
+103. [M](**) Bibliothèque d'exercices avec groupes musculaires ciblés.
+104. [M](**) Suivi de la progression de charge par exercice (graph 1RM estimé).
+105. [S](**) Modèles de séances réutilisables (push/pull/legs).
+106. [S](*) Minuteur de repos entre séries.
+107. [M](**) Volume hebdomadaire par groupe musculaire (détection sous/sur-entraînement).
+108. [S](**) Calcul du tonnage total par séance.
+109. [S](*) Historique « dernière fois » affiché pendant la séance en cours.
+110. [M](**) Programme périodisé (cycles de prise de muscle) avec progression auto.
+111. [S](*) Notes de ressenti/fatigue (RPE) par séance.
+112. [M](**) Corrélation entraînement ↔ poids/macros (lien Santé).
+
+--------------------------------------------------------------------------------
+J. MODULE BUDGET (113-122)
+--------------------------------------------------------------------------------
+113. [M](**) Graphiques dépenses par catégorie (camembert + tendance mensuelle).
+114. [S](**) Budgets mensuels par catégorie avec alerte de dépassement.
+115. [M](**) Import relevés bancaires CSV avec catégorisation auto (règles).
+116. [S](**) Dépenses récurrentes (abonnements) détectées et listées.
+117. [S](*) Vue « reste à vivre » du mois en cours.
+118. [M](**) Comparaison mois sur mois et moyenne mobile.
+119. [S](*) Tags multiples sur une dépense.
+120. [M](**) Lien Budget ↔ Cuisine (coût des courses) et Finance (épargne).
+121. [S](**) Objectif d'épargne mensuel avec progression.
+122. [S](*) Export annuel pour déclaration / bilan.
+
+--------------------------------------------------------------------------------
+K. MODULE CUISINE (123-132)
+--------------------------------------------------------------------------------
+123. [M](**) Meal planner hebdomadaire avec génération de liste de courses.
+124. [M](**) Calcul nutritionnel des recettes (lien macros Santé).
+125. [S](**) Recherche/filtre recettes par ingrédient disponible.
+126. [S](*) Échelle de portions (recalcul des quantités).
+127. [M](**) Gestion du garde-manger (stock d'ingrédients, péremption).
+128. [S](*) Favoris et notes personnelles par recette.
+129. [M](**) Suggestion de recettes selon les macros cibles du jour.
+130. [S](**) Liste de courses agrégée et cochable, groupée par rayon.
+131. [S](*) Temps de préparation/cuisson + minuteur intégré.
+132. [M](**) Import de recettes depuis une URL (parsing) — WebFetch côté assistant.
+
+--------------------------------------------------------------------------------
+L. MODULE HABITUDES (133-142)
+--------------------------------------------------------------------------------
+133. [M](**) Heatmap annuelle (style GitHub) de complétion des habitudes.
+134. [S](**) Calcul de streak (série en cours + meilleure série) par habitude.
+135. [S](*) Habitudes hebdomadaires vs quotidiennes (fréquence cible).
+136. [M](**) Rappels programmés (scheduler) si habitude non cochée.
+137. [S](*) Réorganisation par glisser-déposer + archivage.
+138. [S](**) Taux de complétion global de la semaine sur la page d'accueil.
+139. [M](**) Habitudes liées (ex. « sport » coche aussi l'entraînement).
+140. [S](*) Couleurs/icônes par habitude.
+141. [S](**) Vue calendrier mensuelle d'une habitude précise.
+142. [M](**) Système de récompense/niveau (gamification légère).
+
+--------------------------------------------------------------------------------
+M. MODULE LIVRES (143-152)
+--------------------------------------------------------------------------------
+143. [M](**) Recherche et import via API (Google Books / Open Library) : couverture, auteur, pages.
+144. [S](**) Suivi de progression de lecture (% / page courante).
+145. [S](*) Étagères : en cours / à lire / lus / abandonnés.
+146. [M](**) Statistiques annuelles (livres lus, pages, genres) — « challenge lecture ».
+147. [S](*) Notes et citations par livre.
+148. [S](**) Note/évaluation + tri par note.
+149. [M](**) Recommandations basées sur les genres lus.
+150. [S](*) Temps de lecture estimé restant selon rythme.
+151. [S](**) Objectif annuel de lecture avec progression.
+152. [M](**) Lien Livres ↔ Études (livres techniques = sessions).
+
+--------------------------------------------------------------------------------
+N. MODULE ROBOT / IA (153-165)
+--------------------------------------------------------------------------------
+153. [L](***) Implémenter réellement le module (aujourd'hui stub /ping) : chat avec l'API Claude (claude-opus-4-8).
+154. [M](***) Tool use : donner à l'agent accès en lecture aux modules (finance, santé…) via outils internes.
+155. [M](**) Prompt caching sur le contexte système pour réduire coût/latence (skill claude-api).
+156. [M](***) Mutations contrôlées : l'agent peut créer une dépense, loguer une séance, sur confirmation.
+157. [S](**) Streaming des réponses (SSE) côté frontend.
+158. [S](**) Historique de conversations persistant (table dédiée).
+159. [M](**) Récapitulatif quotidien généré par l'agent (« voici ta journée »).
+160. [M](**) Insights proactifs : l'agent repère une tendance (dépenses ↑, sommeil ↓) et alerte.
+161. [S](*) Réglage du modèle/température dans les paramètres.
+162. [M](**) RAG sur les notes/livres/sessions pour répondre avec contexte personnel.
+163. [S](**) Garde-fous : confirmation avant toute action destructive, journal des actions de l'agent.
+164. [M](**) Commandes en langage naturel (« ajoute 40$ d'épicerie hier »).
+165. [S](*) Coût d'usage API affiché (tokens, $) par conversation.
+
+--------------------------------------------------------------------------------
+O. SCHEDULER & NOTIFICATIONS (166-173)
+--------------------------------------------------------------------------------
+166. [S](**) Page UI listant les jobs, leur prochaine exécution et leur historique (run_job journalise déjà).
+167. [S](**) Bouton « exécuter maintenant » par job (route modify_job existe).
+168. [M](**) Centre de notifications front (cloche + liste non lues, le modèle Notification existe).
+169. [S](**) Marquer notifications comme lues / tout effacer.
+170. [M](**) Notifications navigateur (Web Push) pour les rappels.
+171. [S](*) Préférences de notification par module (activer/désactiver).
+172. [M](**) Job de purge des vieux JobRun/Notifications (rétention configurable).
+173. [S](*) Badge d'erreur si un job a échoué lors de sa dernière exécution.
+
+--------------------------------------------------------------------------------
+P. DONNÉES / IMPORT-EXPORT (174-181)
+--------------------------------------------------------------------------------
+174. [M](**) Export complet (backup JSON) de toutes les données depuis l'UI.
+175. [M](**) Import/restauration depuis un backup JSON.
+176. [S](**) Job de backup quotidien déjà présent : rotation + rétention (garder N derniers).
+177. [S](*) Vérification d'intégrité du backup (PRAGMA integrity_check).
+178. [M](**) Seeds de démo réalistes pour tester l'UI sans données perso.
+179. [S](*) Validation Pydantic stricte des imports legacy (rapport d'erreurs).
+180. [M](**) Migration des données vers Postgres optionnelle (si multi-appareils plus tard).
+181. [S](*) Export par module (CSV) depuis chaque vue.
+
+--------------------------------------------------------------------------------
+Q. TESTS & QUALITÉ (182-189)
+--------------------------------------------------------------------------------
+182. [M](***) Tests d'intégration end-to-end du scheduler (un job s'exécute → JobRun + Notification créés).
+183. [M](**) Couverture de tests sur run_job (succès + exception → status error).
+184. [M](**) Tests frontend (Vitest + Testing Library) sur composants ui/ et lib/*.ts.
+185. [M](**) Tests e2e Playwright sur les parcours clés (ajout dépense, log séance).
+186. [S](**) Mesure de couverture (pytest-cov) + seuil minimal en CI.
+187. [S](*) Tests de contrat OpenAPI (schemas front ↔ back synchronisés).
+188. [S](**) Fixtures DB en mémoire partagées entre modules de test.
+189. [S](*) Tests de non-régression visuelle (snapshots) sur les pages.
+
+--------------------------------------------------------------------------------
+R. SÉCURITÉ (190-194)
+--------------------------------------------------------------------------------
+190. [M](**) Authentification locale simple (mot de passe/PIN) si exposé hors localhost.
+191. [S](**) Restreindre CORS aux origines réelles (actuellement allow_methods/headers="*").
+192. [S](**) Secrets via .env validés, jamais commités ; clé API Claude chiffrée au repos.
+193. [S](*) Rate limiting sur les routes coûteuses (analyses finance, robot).
+194. [S](*) En-têtes de sécurité (CSP, X-Frame-Options) sur le front Next.
+
+--------------------------------------------------------------------------------
+S. DEVOPS / DÉPLOIEMENT (195-200)
+--------------------------------------------------------------------------------
+195. [M](**) Dockerfile backend + frontend + docker-compose pour lancer tout en une commande.
+196. [M](**) CI GitHub Actions : lint + tests back/front + build sur chaque push.
+197. [S](*) Hook pre-commit (ruff/black + eslint) + `graphify update` automatique.
+198. [S](**) Script de healthcheck post-démarrage (attend /health avant d'ouvrir le front).
+199. [S](*) Documentation : compléter README (modules livrés) + ajouter ARCHITECTURE.md.
+200. [M](**) Mode « production » : build Next statique + uvicorn workers + reverse proxy local.
+
+================================================================================
+PRIORITÉS SUGGÉRÉES (quick wins à fort impact)
+================================================================================
+- #1  lifespan FastAPI (dette technique, déprécation)
+- #2  brancher register_finance_jobs (jobs finance jamais planifiés)
+- #16/17 client typé + types générés (fiabilise tout le front)
+- #31 thème clair/sombre (variables CSS déjà prêtes)
+- #166/168 UI scheduler + centre de notifications (le backend est déjà là)
+- #153 implémenter le module Robot (seul module encore en stub)
+================================================================================

@@ -23,8 +23,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Override sqlalchemy.url avec la config Pydantic (qui résout via env / .env)
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# URL : override explicite via ALEMBIC_DB_URL (tests / CI ciblant une base
+# temporaire), sinon la config Pydantic (comportement de prod inchangé).
+import os  # noqa: E402
+
+config.set_main_option(
+    "sqlalchemy.url", os.environ.get("ALEMBIC_DB_URL") or settings.database_url
+)
 
 target_metadata = SQLModel.metadata
 

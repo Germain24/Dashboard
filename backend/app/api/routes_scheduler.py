@@ -32,6 +32,16 @@ def job_runs(job_id: str, session: Session = Depends(get_session)):
         select(JobRun).where(JobRun.job_id == job_id).order_by(JobRun.started_at.desc()).limit(20)
     ).all()
 
+@router.get("/{job_id}/runs")
+def job_runs_by_path(job_id: str, limit: int = 20, session: Session = Depends(get_session)):
+    """Historique des exécutions (JobRun) d'un job, du plus récent au plus ancien."""
+    return session.exec(
+        select(JobRun)
+        .where(JobRun.job_id == job_id)
+        .order_by(JobRun.started_at.desc())
+        .limit(max(1, min(limit, 200)))
+    ).all()
+
 @router.post("/{job_id}/run")
 def force_run(job_id: str):
     scheduler = get_scheduler()

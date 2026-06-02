@@ -49,3 +49,6 @@ Thumbs.db
 *.swp
 *.swo
 .claude/worktrees/
+
+# --- graphify build output ---
+graphify-out/

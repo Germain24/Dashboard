@@ -34,20 +34,15 @@ def list_transactions(
 
 
 def create_transaction(session: Session, data: dict) -> Transaction:
-    tx = Transaction(**data)
-    session.add(tx)
-    session.commit()
-    session.refresh(tx)
-    return tx
+    # Passe par le repository (cf. app/repositories/finance.py) pour découpler
+    # le service de la persistance SQLModel.
+    from app.repositories.finance import TransactionRepository
+    return TransactionRepository(session).create(data)
 
 
 def delete_transaction(session: Session, tx_id: int) -> bool:
-    tx = session.get(Transaction, tx_id)
-    if not tx:
-        return False
-    session.delete(tx)
-    session.commit()
-    return True
+    from app.repositories.finance import TransactionRepository
+    return TransactionRepository(session).delete_by_id(tx_id)
 
 
 # ── Parseurs CSV broker ────────────────────────────────────────────────────
