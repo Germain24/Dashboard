@@ -57,11 +57,11 @@ C. UI / UX & DESIGN SYSTEM (31-45)
 38. [S](*) Raccourcis clavier par module (j/k navigation, n = nouveau).   ← FINIS ✓ (KeyboardShortcuts global : j/k module suivant/précédent, "g h" accueil ; "n" laissé par-module)
 39. [S](**) Indicateur de fraîcheur des données (« mis à jour il y a 3 min ») sur chaque vue.   ← FINIS ✓ (composant Freshness réutilisable + temps relatif auto-rafraîchi ; câblé sur Skincare en référence)
 40. [S](*) Densité d'affichage réglable (compact/confort) globale.   ← FINIS ✓ (DensityToggle, data-density + taille racine rem, persistant + anti-flash)
-41. [M](**) Graphiques interactifs cohérents via chart-frame.tsx (tooltip, zoom, légende cliquable).
-42. [S](*) Skeleton shimmer cohérent (déjà sur Santé) répliqué sur tous les modules.
-43. [S](*) Focus-visible et contrastes AA vérifiés sur les composants ui/.
-44. [M](**) Responsive tablette : la sidebar en mode rail (icônes seules) entre md et lg.
-45. [S](*) Micro-feedback de succès (checkmark animé) après chaque mutation.
+41. [M](**) Graphiques interactifs cohérents via chart-frame.tsx (tooltip, zoom, légende cliquable).   ← PARTIEL (légende cliquable réutilisable ajoutée à ChartFrame — chart-agnostique ; tooltip/zoom = à câbler par graphe, incrémental car SVG bespoke + QA interactif requis)
+42. [S](*) Skeleton shimmer cohérent (déjà sur Santé) répliqué sur tous les modules.   ← FINIS ✓ (couvert par #22 : PageSkeleton shimmer + loading.tsx sur 12 routes)
+43. [S](*) Focus-visible et contrastes AA vérifiés sur les composants ui/.   ← FINIS ✓ (anneau de focus clavier global via :where(...):focus-visible ; palettes light/dark contrastées)
+44. [M](**) Responsive tablette : la sidebar en mode rail (icônes seules) entre md et lg.   ← FINIS ✓ (md:w-16 rail icônes seules, lg:w-60 complet)
+45. [S](*) Micro-feedback de succès (checkmark animé) après chaque mutation.   ← FINIS ✓ (toasts succès #19 + composant SuccessCheck animé inline)
 
 --------------------------------------------------------------------------------
 D. MODULE FINANCE (46-60)

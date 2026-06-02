@@ -299,6 +299,14 @@ html {
   animation: shimmer 1.5s infinite;
 }
 
+/* Accessibilité : anneau de focus clavier cohérent sur tous les interactifs.
+   :where() garde une spécificité nulle -> un composant peut surcharger. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 /* prefers-reduced-motion : désactive toutes les animations */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

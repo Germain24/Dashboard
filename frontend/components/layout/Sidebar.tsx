@@ -70,14 +70,15 @@ export function Sidebar() {
       : pathname?.startsWith(href)
 
   return (
-    <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--sidebar)] px-3 py-5">
-      {/* Logo / Titre */}
+    <aside className="hidden md:flex md:w-16 lg:w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--sidebar)] px-3 py-5">
+      {/* Logo / Titre — rail (md→lg) : icône seule */}
       <Link
         href="/"
-        className="flex items-center gap-2.5 px-3 py-2 mb-4 rounded-md transition-colors hover:bg-[var(--muted)] cursor-pointer"
+        title="Mission Control"
+        className="flex items-center justify-center lg:justify-start gap-2.5 px-3 py-2 mb-4 rounded-md transition-colors hover:bg-[var(--muted)] cursor-pointer"
       >
-        <LayoutDashboard className="h-5 w-5 text-[var(--foreground)]" />
-        <span className="text-sm font-semibold tracking-tight text-[var(--foreground)]">
+        <LayoutDashboard className="h-5 w-5 shrink-0 text-[var(--foreground)]" />
+        <span className="hidden lg:inline text-sm font-semibold tracking-tight text-[var(--foreground)]">
           Mission Control
         </span>
       </Link>
@@ -86,7 +87,7 @@ export function Sidebar() {
       <nav className="flex flex-col gap-4 flex-1 overflow-y-auto">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <p className="px-3 mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] select-none">
+            <p className="hidden lg:block px-3 mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] select-none">
               {group.label}
             </p>
             <div className="flex flex-col gap-0.5">
@@ -96,15 +97,16 @@ export function Sidebar() {
                   <Link
                     key={href}
                     href={href}
+                    title={label}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer',
+                      'flex items-center justify-center lg:justify-start gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer',
                       active
                         ? 'bg-[var(--accent)] text-[var(--foreground)]'
                         : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]'
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    <span>{label}</span>
+                    <span className="hidden lg:inline">{label}</span>
                   </Link>
                 )
               })}
@@ -114,9 +116,9 @@ export function Sidebar() {
       </nav>
 
       {/* Pied : toggle de thème */}
-      <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 px-1">
-        <span className="text-xs text-[var(--muted-foreground)] select-none">Affichage</span>
-        <div className="flex items-center gap-1">
+      <div className="mt-3 flex items-center justify-center lg:justify-between border-t border-[var(--border)] pt-3 px-1">
+        <span className="hidden lg:inline text-xs text-[var(--muted-foreground)] select-none">Affichage</span>
+        <div className="flex flex-col lg:flex-row items-center gap-1">
           <DensityToggle />
           <ThemeToggle />
         </div>
