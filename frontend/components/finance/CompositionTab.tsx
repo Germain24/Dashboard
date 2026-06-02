@@ -110,7 +110,7 @@ export function CompositionTab() {
             <thead>
               <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--muted-foreground)]">
                 <th className="pb-1 pr-3">Ticker</th>
-                <th className="pb-1 pr-3">Nom</th>
+                <th className="pb-1 pr-3">Broker</th>
                 <th className="pb-1 pr-3 text-right">Qté</th>
                 <th className="pb-1 pr-3 text-right">PRU</th>
                 <th className="pb-1 pr-3 text-right">Cours</th>
@@ -120,14 +120,14 @@ export function CompositionTab() {
             </thead>
             <tbody>
               {positions.map(p => (
-                <tr key={p.id} className="border-b border-[var(--border)] hover:bg-[var(--muted)]">
+                <tr key={`${p.ticker}-${p.broker ?? ""}`} className="border-b border-[var(--border)] hover:bg-[var(--muted)]">
                   <td className="py-1.5 pr-3 font-mono text-xs">{p.ticker}</td>
-                  <td className="py-1.5 pr-3 text-xs text-[var(--muted-foreground)]">{p.nom ?? "—"}</td>
+                  <td className="py-1.5 pr-3 text-xs text-[var(--muted-foreground)]">{p.broker ?? "—"}</td>
                   <td className="py-1.5 pr-3 text-right">{fmt(p.quantite)}</td>
-                  <td className="py-1.5 pr-3 text-right">{p.prix_moyen ? `${fmt(p.prix_moyen)} €` : "—"}</td>
+                  <td className="py-1.5 pr-3 text-right">{p.pmu ? `${fmt(p.pmu)} €` : "—"}</td>
                   <td className="py-1.5 pr-3 text-right">{p.prix_actuel ? `${fmt(p.prix_actuel)} €` : "—"}</td>
                   <td className="py-1.5 pr-3 text-right font-medium">{p.valeur_actuelle ? `${fmt(p.valeur_actuelle)} €` : "—"}</td>
-                  <td className="py-1.5 text-right"><PerfBadge v={p.plus_value_pct} /></td>
+                  <td className="py-1.5 text-right"><PerfBadge v={p.pl_pct} /></td>
                 </tr>
               ))}
             </tbody>

@@ -129,7 +129,7 @@ export function PortefeuilleTab() {
                 <input
                   type={f.type}
                   placeholder={f.placeholder}
-                  value={(form as Record<string, unknown>)[f.key] as string ?? ""}
+                  value={(form as unknown as Record<string, unknown>)[f.key] as string ?? ""}
                   onChange={e => setForm(prev => ({ ...prev, [f.key]: f.type === "number" ? parseFloat(e.target.value) || 0 : e.target.value }))}
                   className="w-full mt-1 px-2 py-1.5 text-sm rounded-[var(--radius)] border border-[var(--border)]
                              bg-[var(--background)] focus:outline-none focus:ring-1 focus:ring-[var(--ring)]"

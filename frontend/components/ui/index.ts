@@ -26,7 +26,7 @@ export { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 
 export { Spinner } from "./spinner";
 
-export { Skeleton, ModuleSkeleton } from "./skeleton";
+export { Skeleton, SkeletonCard, SkeletonTable } from "./skeleton";
 
 export { EmptyState } from "./empty-state";
 

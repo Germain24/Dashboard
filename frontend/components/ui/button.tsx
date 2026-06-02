@@ -19,6 +19,8 @@ const buttonVariants = cva(
           "bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 shadow-sm",
         secondary:
           "border border-[var(--border)] bg-transparent text-[var(--foreground)] hover:bg-[var(--accent)] shadow-sm",
+        outline:
+          "border border-[var(--border)] bg-transparent text-[var(--foreground)] hover:bg-[var(--accent)]",
         ghost:
           "bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
         destructive:

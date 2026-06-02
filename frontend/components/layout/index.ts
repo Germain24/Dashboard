@@ -1,3 +1,3 @@
 export { Sidebar } from './Sidebar'
-export { PageLayout } from './PageLayout'
+export { default as PageLayout } from './PageLayout'
 export { NotificationsWidget } from './NotificationsWidget'

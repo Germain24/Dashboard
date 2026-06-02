@@ -72,7 +72,7 @@ export default function BibliothequeTab() {
               : 'bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
           }`}
         >
-          Tous ({MOCK_LIVRES.length})
+          Tous ({livres.length})
         </button>
         {ALL_STATUTS.map(s => {
           const cfg = STATUT_CONFIG[s]
