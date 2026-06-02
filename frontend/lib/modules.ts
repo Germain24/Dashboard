@@ -109,7 +109,7 @@ export const MODULES: Module[] = [
     label: "Skincare",
     description: "Routines matin/soir, produits, fréquence.",
     icon: Sparkles,
-    conv: "CONV 6",
+    conv: "CONV 13",
     ready: true,
   },
   {
