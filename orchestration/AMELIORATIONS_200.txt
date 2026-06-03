@@ -122,7 +122,7 @@ F. MODULE GARDE-ROBE (73-82)
 G. MODULE AGENDA (83-92)
 --------------------------------------------------------------------------------
 83. [M](***) Synchronisation Google Calendar (lecture/écriture) — MCP déjà disponible côté assistant.
-84. [M](**) Vue calendrier mensuelle/hebdo interactive (pas seulement liste).
+84. [M](**) Vue calendrier mensuelle/hebdo interactive (pas seulement liste).   ← FINIS ✓ (vue Semaine (grille 7j × heures) déjà présente ; ajout onglet « Mois » MoisTab : grille mensuelle 6×7, navigation mois, événements colorés par jour (+N), jour courant mis en avant)
 85. [S](**) Rappels avec notifications (lien module notifications/scheduler).   ← FINIS ✓ (reminders.py : due_events (fenêtre ~30 min) + store anti-doublon JSON ; job scheduler agenda_reminders (toutes les 15 min) crée des Notification « ⏰ … » consommées par le centre de notifications existant ; tests TDD)
 86. [S](*) Événements récurrents (RRULE).
 87. [M](**) Détection de conflits d'horaire à la création.   ← FINIS ✓ (conflicts.py : overlaps + find_conflicts (fin manquante = 1h, ignore_id pour l'édition) ; GET /agenda/events/conflicts ; indicateur visuel + bannière de chevauchement dans SemaineTab (overlappingKeys) ; tests TDD)
