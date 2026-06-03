@@ -8,6 +8,8 @@ export function InventaireTab({ wardrobe }: { wardrobe: Vetement[] }) {
   const [cat, setCat] = useState<string>("");
   const [style, setStyle] = useState<string>("");
   const [etat, setEtat] = useState<string>("");
+  const [couleur, setCouleur] = useState<string>("");
+  const [saison, setSaison] = useState<string>("");
 
   const cats = useMemo(
     () => Array.from(new Set(wardrobe.map((v) => v.categorie).filter(Boolean))).sort(),
@@ -18,22 +20,28 @@ export function InventaireTab({ wardrobe }: { wardrobe: Vetement[] }) {
     for (const v of wardrobe) for (const st of v.style || []) s.add(st);
     return Array.from(s).sort();
   }, [wardrobe]);
+  const couleurs = useMemo(
+    () => Array.from(new Set(wardrobe.map((v) => v.couleur).filter(Boolean) as string[])).sort(),
+    [wardrobe],
+  );
 
   const filtered = useMemo(() => {
     return wardrobe.filter((v) => {
       if (cat && v.categorie !== cat) return false;
       if (style && !(v.style || []).includes(style)) return false;
+      if (couleur && v.couleur !== couleur) return false;
+      if (saison && v.saison !== "toutes" && v.saison !== saison) return false;
       if (etat === "propre" && !(v.proprete_pct >= 70 && !v.needs_wash)) return false;
       if (etat === "mi-sale" && !(v.proprete_pct >= 30 && v.proprete_pct < 70)) return false;
       if (etat === "a-laver" && !v.needs_wash) return false;
       if (etat === "hs" && !v.is_worn_out) return false;
       return true;
     });
-  }, [wardrobe, cat, style, etat]);
+  }, [wardrobe, cat, style, etat, couleur, saison]);
 
   return (
     <div className="space-y-4 animate-fade-in-up">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         <select value={cat} onChange={(e) => setCat(e.target.value)} className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
           <option value="">Toutes catégories</option>
           {cats.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -41,6 +49,16 @@ export function InventaireTab({ wardrobe }: { wardrobe: Vetement[] }) {
         <select value={style} onChange={(e) => setStyle(e.target.value)} className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
           <option value="">Tous styles</option>
           {styles.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={couleur} onChange={(e) => setCouleur(e.target.value)} className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+          <option value="">Toutes couleurs</option>
+          {couleurs.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={saison} onChange={(e) => setSaison(e.target.value)} className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+          <option value="">Toutes saisons</option>
+          <option value="hiver">❄️ Hiver</option>
+          <option value="mi-saison">🍂 Mi-saison</option>
+          <option value="été">☀️ Été</option>
         </select>
         <select value={etat} onChange={(e) => setEtat(e.target.value)} className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
           <option value="">Tous états</option>

@@ -39,6 +39,7 @@ class VetementRead(VetementBase):
     is_worn_out: bool
     ports_avant_lavage: int
     thermal_score: float
+    saison: str = "toutes"
 
     model_config = {"from_attributes": True}
 

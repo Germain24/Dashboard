@@ -33,9 +33,10 @@ export type Vetement = {
   is_worn_out: boolean;
   ports_avant_lavage: number;
   thermal_score: number;
+  saison: string;
 };
 
-export type VetementUpdate = Partial<Omit<Vetement, "id" | "proprete_pct" | "vie_pct" | "needs_wash" | "is_worn_out" | "ports_avant_lavage" | "thermal_score">>;
+export type VetementUpdate = Partial<Omit<Vetement, "id" | "proprete_pct" | "vie_pct" | "needs_wash" | "is_worn_out" | "ports_avant_lavage" | "thermal_score" | "saison">>;
 
 export type HourlyTemp = { hour: number; temp: number; apparent_temp: number };
 
@@ -123,18 +124,21 @@ export type Recommendation = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const garderobeApi = {
-  listVetements: (params?: { categorie?: string; style?: string; etat?: string }) => {
+  listVetements: (params?: { categorie?: string; style?: string; etat?: string; couleur?: string; saison?: string; occasion?: string }) => {
     const q = new URLSearchParams();
     if (params?.categorie) q.set("categorie", params.categorie);
     if (params?.style) q.set("style", params.style);
     if (params?.etat) q.set("etat", params.etat);
+    if (params?.couleur) q.set("couleur", params.couleur);
+    if (params?.saison) q.set("saison", params.saison);
+    if (params?.occasion) q.set("occasion", params.occasion);
     const qs = q.toString();
     return api<Vetement[]>(`/garderobe/vetements${qs ? "?" + qs : ""}`);
   },
 
   getVetement: (id: string) => api<Vetement>(`/garderobe/vetements/${encodeURIComponent(id)}`),
 
-  createVetement: (payload: Omit<Vetement, "proprete_pct" | "vie_pct" | "needs_wash" | "is_worn_out" | "ports_avant_lavage" | "thermal_score">) =>
+  createVetement: (payload: Omit<Vetement, "proprete_pct" | "vie_pct" | "needs_wash" | "is_worn_out" | "ports_avant_lavage" | "thermal_score" | "saison">) =>
     api<Vetement>(`/garderobe/vetements`, {
       method: "POST",
       body: JSON.stringify(payload),

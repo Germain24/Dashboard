@@ -105,16 +105,16 @@ E. MODULE SANTÉ (61-72)
 --------------------------------------------------------------------------------
 F. MODULE GARDE-ROBE (73-82)
 --------------------------------------------------------------------------------
-73. [M](**) Recommandation de tenue selon météo du jour (weather_refresh existe déjà).
-74. [S](**) Score thermique automatique d'une tenue = somme des pièces.
+73. [M](**) Recommandation de tenue selon météo du jour (weather_refresh existe déjà).   ← FINIS ✓ (déjà présent : POST /garderobe/suggest = weather.py + optimizer.suggest_outfit, cible thermique selon météo ; WeatherBanner + SlotCard côté front)
+74. [S](**) Score thermique automatique d'une tenue = somme des pièces.   ← FINIS ✓ (déjà présent : thermal.py thermal_score (matière×plage) exposé dans VetementRead + total tenue dans /suggest ; composant ThermalScore)
 75. [S](*) Photos des vêtements + détection couleur dominante.
-76. [M](**) Générateur de tenues (combinaisons valides haut/bas/chaussures).
+76. [M](**) Générateur de tenues (combinaisons valides haut/bas/chaussures).   ← FINIS ✓ (déjà présent : optimizer.suggest_outfit remplit les 12 slots ALWAYS/METEO/OPTIONAL avec contraintes thermiques + style)
 77. [S](*) Suivi de la fréquence de port (pièces jamais portées à recycler).
-78. [S](**) Filtres par saison, couleur, occasion.
+78. [S](**) Filtres par saison, couleur, occasion.   ← FINIS ✓ (filters.py : season_of (plage temp) + matches_filters ; champ dérivé VetementRead.saison ; params couleur/saison/occasion sur GET /garderobe/vetements + selects dans InventaireTab ; tests TDD)
 79. [M](**) Planificateur de tenues sur la semaine (lié à l'agenda).
 80. [S](*) Statistiques garde-robe (nb pièces par catégorie, valeur estimée).
 81. [S](*) Étiquettes d'entretien (lavage) par pièce.
-82. [M](**) Suggestion d'achats pour combler des manques (ex. pas assez de couches chaudes).
+82. [M](**) Suggestion d'achats pour combler des manques (ex. pas assez de couches chaudes).   ← FINIS ✓ (déjà présent : recommendations.get_purchase_recommendations (catégories manquantes, ratio couleurs 60/30/10, couleurs orphelines, style dominant) + GET /garderobe/recommendations + RecommandationsTab)
 
 --------------------------------------------------------------------------------
 G. MODULE AGENDA (83-92)

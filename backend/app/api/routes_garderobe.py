@@ -58,6 +58,7 @@ from app.services.garderobe import (
     thermal_score,
     vie_pct,
 )
+from app.services.garderobe.filters import matches_filters, season_of
 from app.services.garderobe.style import get_color_category
 from app.services.garderobe.weather import WeatherData, get_weather
 
@@ -100,6 +101,7 @@ def _vetement_to_read(v: Vetement) -> VetementRead:
         is_worn_out=is_worn_out(d),
         ports_avant_lavage=ports_avant_lavage(d),
         thermal_score=thermal_score(d),
+        saison=season_of(d.get("temp_min"), d.get("temp_max")),
     )
 
 
@@ -134,6 +136,9 @@ def _weather_to_out(w: WeatherData) -> WeatherOut:
 def list_vetements(
     categorie: Optional[str] = None,
     style: Optional[str] = None,
+    couleur: Optional[str] = Query(None, description="Filtre couleur exacte (insensible à la casse)"),
+    saison: Optional[str] = Query(None, description="Filtre saison : hiver, mi-saison, été"),
+    occasion: Optional[str] = Query(None, description="Filtre occasion (style ou extra.occasion)"),
     etat: Optional[str] = Query(
         None,
         description="Filtre d'état : propre, mi-sale, a-laver, hs",
@@ -154,6 +159,9 @@ def list_vetements(
             styles_list = s if isinstance(s, list) else ([s] if s else [])
             if style not in styles_list:
                 continue
+        # Filtres saison / couleur / occasion (#78)
+        if not matches_filters(d, couleur=couleur, saison=saison, occasion=occasion):
+            continue
         # Filtre état
         if etat:
             p = proprete_pct(d)
