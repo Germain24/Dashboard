@@ -57,6 +57,17 @@ export function TendanceTab({ mesures, projection, goal }: Props) {
     .map((p, i) => `${i === 0 ? "M" : "L"} ${xScale(p.date.getTime()).toFixed(1)} ${yScale(p.weight).toFixed(1)}`)
     .join(" ");
 
+  // Moyenne mobile 7 points (lissage de la tendance court terme)
+  const ma7 = last90.map((p, i) => {
+    const start = Math.max(0, i - 6);
+    const window = last90.slice(start, i + 1);
+    const avg = window.reduce((s, w) => s + w.weight, 0) / window.length;
+    return { date: p.date, weight: avg };
+  });
+  const ma7Path = ma7
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${xScale(p.date.getTime()).toFixed(1)} ${yScale(p.weight).toFixed(1)}`)
+    .join(" ");
+
   // Ligne de tendance 30j (si dispo)
   let trendLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
   if (projection?.trend_30d && last90.length >= 2) {
@@ -154,7 +165,9 @@ export function TendanceTab({ mesures, projection, goal }: Props) {
             />
           )}
           {/* Série */}
-          <path d={path} fill="none" stroke="currentColor" strokeWidth={1.5} />
+          <path d={path} fill="none" stroke="currentColor" strokeWidth={1.5} opacity={0.45} />
+          {/* Moyenne mobile 7j */}
+          <path d={ma7Path} fill="none" stroke="var(--ring)" strokeWidth={2} />
           {last90.map((p, i) => (
             <circle
               key={i}
@@ -166,7 +179,7 @@ export function TendanceTab({ mesures, projection, goal }: Props) {
           ))}
         </svg>
         <div className="text-xs text-[var(--muted-foreground)] mt-1">
-          90 derniers jours · ligne pointillée bleue = tendance 30j · pointillé vert = objectif
+          90 derniers jours · ligne bleue = <strong>moyenne mobile 7j</strong> · gris pâle = mesures brutes · pointillé vert = objectif
         </div>
       </div>
     </div>

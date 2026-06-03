@@ -87,10 +87,10 @@ D. MODULE FINANCE (46-60)
 --------------------------------------------------------------------------------
 E. MODULE SANTÉ (61-72)
 --------------------------------------------------------------------------------
-61. [M](**) Courbes de poids / mesures corporelles dans le temps avec moyenne mobile.
-62. [M](**) Calcul automatique des macros cibles selon objectif (cut/maintien/bulk) et TDEE.
-63. [S](**) Journal alimentaire quotidien avec total calories/macros vs cible.
-64. [S](*) Base d'aliments réutilisables (favoris) pour saisie rapide.
+61. [M](**) Courbes de poids / mesures corporelles dans le temps avec moyenne mobile.   ← FINIS ✓ (TendanceTab : moyenne mobile 7j superposée à la courbe brute + régression + objectif)
+62. [M](**) Calcul automatique des macros cibles selon objectif (cut/maintien/bulk) et TDEE.   ← FINIS ✓ (déjà présent : targets.py/intensity.py — TDEE poids×32 + surplus/objectif + intensité par jour sport)
+63. [S](**) Journal alimentaire quotidien avec total calories/macros vs cible.   ← FINIS ✓ (déjà présent : JourTab + ConsoDrawer + totals.py + MacroBar vs cible)
+64. [S](*) Base d'aliments réutilisables (favoris) pour saisie rapide.   ← PARTIEL (base d'aliments réutilisable présente — aliments.py/CSV+DB ; favoris curatés = à ajouter)
 65. [M](**) Score de qualité nutritionnelle hebdomadaire.
 66. [S](*) Rappel d'hydratation et suivi de l'eau.
 67. [M](**) Intégration des séances d'entraînement pour ajuster les calories dépensées.
@@ -98,7 +98,7 @@ E. MODULE SANTÉ (61-72)
 69. [S](*) Photos de progression (avant/après) stockées localement.
 70. [M](**) Alerte si déficit/surplus calorique trop agressif sur 7 jours.
 71. [S](*) Export du plan macros en image partageable.
-72. [M](**) Génération auto d'un plan de repas respectant les macros (lien vers module Cuisine).
+72. [M](**) Génération auto d'un plan de repas respectant les macros (lien vers module Cuisine).   ← FINIS ✓ (déjà présent : /sante/plan/generate + optimizer.py respectant les macros cibles)
 
 --------------------------------------------------------------------------------
 F. MODULE GARDE-ROBE (73-82)
