@@ -223,6 +223,25 @@ def buffett_run_export_csv(run_id: int, session: Session = Depends(get_session))
     )
 
 
+@router.get("/buffett/breakdown/{ticker}")
+def buffett_breakdown(ticker: str):
+    """Détail du score Buffett d'un titre par critère (marge, ROE, dette…)."""
+    from app.services.finance.buffett.runner import analyze_single_ticker
+    from app.services.finance.buffett.scoring_pure import score_breakdown
+
+    result = analyze_single_ticker(ticker.upper().strip())
+    if result is None:
+        raise HTTPException(404, f"Analyse impossible pour {ticker} (données absentes/invalides).")
+    score, metrics = result
+    ratios = metrics.get("ratios_recents") or {}
+    return {
+        "ticker": ticker.upper(),
+        "score": score,
+        "secteur": metrics.get("Secteur"),
+        "criteres": score_breakdown(ratios),
+    }
+
+
 @router.get("/backtest")
 def backtest_allocation(periode: str = "2y", session: Session = Depends(get_session)):
     """Backtest buy-and-hold de l'allocation cible du dernier run Buffett terminé.

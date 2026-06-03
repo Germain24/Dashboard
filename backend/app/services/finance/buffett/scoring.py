@@ -159,6 +159,9 @@ def analyze_financials(symbol: str, data: dict) -> tuple[float, dict]:
                "roic":_v(roic,i),"capex":_v(cpx,i),"buybacks":(_v(bb,i)>0)} for i in range(n)]
 
     score = compute_moat_score(yearly)
+    # Ratios de l'année la plus récente (index 0 = poids le plus fort) -> détail du score.
+    if yearly:
+        metrics["ratios_recents"] = yearly[0]
     growth = growth_rev = growth_eps = None
     try:
         for lbl in ("Total Revenue","Revenue"):

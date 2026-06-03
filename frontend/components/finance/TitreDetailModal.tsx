@@ -5,6 +5,11 @@
 import { useEffect, useState } from "react";
 import { financeApi, type TitreDetail } from "@/lib/finance";
 
+type Critere = {
+  cle: string; label: string; categorie: string; valeur: number;
+  seuil: number; sens: "min" | "max"; ok: boolean; sous_score: number; explication: string;
+};
+
 function fmt(n: number | null | undefined, suffix = "") {
   if (n == null) return "—";
   return n.toLocaleString("fr-CA", { maximumFractionDigits: 2 }) + suffix;
@@ -13,6 +18,17 @@ function fmt(n: number | null | undefined, suffix = "") {
 export function TitreDetailModal({ ticker, onClose }: { ticker: string; onClose: () => void }) {
   const [detail, setDetail] = useState<TitreDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [criteres, setCriteres] = useState<Critere[] | null>(null);
+  const [loadingBd, setLoadingBd] = useState(false);
+
+  const loadBreakdown = () => {
+    setLoadingBd(true);
+    financeApi
+      .buffettBreakdown(ticker)
+      .then((b) => setCriteres(b.criteres))
+      .catch((e) => setError(e?.message ?? "Erreur détail score"))
+      .finally(() => setLoadingBd(false));
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -70,14 +86,44 @@ export function TitreDetailModal({ ticker, onClose }: { ticker: string; onClose:
           ) : !detail ? (
             <p className="text-sm text-[var(--muted-foreground)]">Chargement…</p>
           ) : (
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
-              {rows.map((r) => (
-                <div key={r.label} className="flex flex-col">
-                  <dt className="text-xs text-[var(--muted-foreground)]">{r.label}</dt>
-                  <dd className="font-medium tabular-nums">{r.value}</dd>
-                </div>
-              ))}
-            </dl>
+            <>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
+                {rows.map((r) => (
+                  <div key={r.label} className="flex flex-col">
+                    <dt className="text-xs text-[var(--muted-foreground)]">{r.label}</dt>
+                    <dd className="font-medium tabular-nums">{r.value}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <div className="mt-4 border-t border-[var(--border)] pt-3">
+                {!criteres ? (
+                  <button
+                    onClick={loadBreakdown}
+                    disabled={loadingBd}
+                    className="text-sm text-[var(--ring)] hover:underline disabled:opacity-50"
+                  >
+                    {loadingBd ? "Analyse en cours…" : "Voir le détail du score Buffett"}
+                  </button>
+                ) : criteres.length === 0 ? (
+                  <p className="text-sm text-[var(--muted-foreground)]">Aucun critère disponible (ETF ou données absentes).</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {criteres.map((c) => (
+                      <li key={c.cle} className="flex items-center gap-2 text-sm" title={c.explication}>
+                        <span className={c.ok ? "text-[var(--success)]" : "text-[var(--destructive)]"}>
+                          {c.ok ? "✓" : "✕"}
+                        </span>
+                        <span className="font-medium">{c.label}</span>
+                        <span className="ml-auto tabular-nums text-[var(--muted-foreground)]">
+                          {fmt(c.valeur)} {c.sens === "min" ? "≥" : "≤"} {fmt(c.seuil)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

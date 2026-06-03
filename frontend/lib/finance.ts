@@ -242,6 +242,14 @@ export const financeApi = {
       par_ticker: Record<string, number>; par_mois: Record<string, number>;
       lignes: { date: string; ticker: string; montant: number; devise: string }[];
     }>("/dividendes"),
+  buffettBreakdown: (ticker: string) =>
+    get<{
+      ticker: string; score: number; secteur: string | null;
+      criteres: {
+        cle: string; label: string; categorie: string; valeur: number;
+        seuil: number; sens: "min" | "max"; ok: boolean; sous_score: number; explication: string;
+      }[];
+    }>(`/buffett/breakdown/${encodeURIComponent(ticker)}`),
   /** Bouton 1 — Analyser tous les tickers */
   buffettStart: (csvPath?: string) =>
     post<{ message: string; status: string }>(

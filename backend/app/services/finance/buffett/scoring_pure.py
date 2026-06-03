@@ -95,6 +95,57 @@ def compute_moat_score(yearly_ratios: list[dict]) -> float:
     return round(total * 100.0, 2)
 
 
+# Critères lisibles pour le détail du score (clé ratio, label, catégorie, seuil,
+# sens "min"=il faut ≥ seuil / "max"=il faut ≤ seuil, explication).
+_BREAKDOWN_CRITERIA = [
+    ("gpm", "Marge brute", "Marges", THRESHOLD_GPM, "min",
+     "Une marge brute élevée signale un avantage concurrentiel durable."),
+    ("nim", "Marge nette", "Marges", THRESHOLD_NIM, "min",
+     "Part du chiffre d'affaires qui finit en bénéfice net."),
+    ("roe", "ROE", "Rentabilité", THRESHOLD_ROE, "min",
+     "Rendement des capitaux propres : efficacité du capital des actionnaires."),
+    ("roic", "ROIC", "Rentabilité", THRESHOLD_ROIC, "min",
+     "Rendement du capital investi, dette incluse."),
+    ("debt_eq", "Dette / Capitaux propres", "Dette", THRESHOLD_DEBT_EQ, "max",
+     "Endettement relatif : plus c'est bas, plus la société est solide."),
+    ("lt_debt_ratio", "Dette long terme / Bénéfice", "Dette", 0.25, "max",
+     "Capacité à rembourser la dette long terme avec les bénéfices."),
+    ("capex", "CapEx / Bénéfice net", "Investissement", THRESHOLD_CAPEX, "max",
+     "Part du bénéfice réinvestie en immobilisations (faible = capital-light)."),
+]
+
+
+def score_breakdown(ratios: dict) -> list[dict]:
+    """Détail par critère du score MOAT pour une année de ratios.
+
+    Retourne une liste de dicts : {cle, label, categorie, valeur, seuil, sens,
+    ok, sous_score (0-1), explication}.
+    """
+    out: list[dict] = []
+    for cle, label, cat, seuil, sens, expl in _BREAKDOWN_CRITERIA:
+        val = ratios.get(cle)
+        if val is None or not math.isfinite(val):
+            continue
+        if sens == "min":
+            ok = val >= seuil
+            sous = max(0.0, min(1.0, val / seuil)) if seuil else 0.0
+        else:  # "max" : il faut être sous le seuil
+            ok = val <= seuil
+            sous = max(0.0, min(1.0, (1.0 - val) / seuil)) if seuil else 0.0
+        out.append({
+            "cle": cle,
+            "label": label,
+            "categorie": cat,
+            "valeur": round(val, 4),
+            "seuil": seuil,
+            "sens": sens,
+            "ok": bool(ok),
+            "sous_score": round(sous, 3),
+            "explication": expl,
+        })
+    return out
+
+
 def compute_buy_signal(
     secteur: str,
     pays: str,

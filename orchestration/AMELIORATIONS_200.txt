@@ -74,8 +74,8 @@ D. MODULE FINANCE (46-60)
 51. [S](*) Export PDF/CSV du rapport mensuel Buffett.   ← FINIS ✓ (export CSV /finance/buffett/runs/{id}/export.csv + bouton ; Excel existait déjà. PDF = optionnel, nécessiterait reportlab)
 52. [M](**) Backtest simple d'une allocation cible sur l'historique importé.   ← FINIS ✓ (simulate_allocation buy-and-hold pur + GET /finance/backtest + bouton/affichage BuffettTab ; tests TDD)
 53. [S](**) Suivi des dividendes reçus + calendrier des versements.   ← FINIS ✓ (get_dividends_summary total/par ticker/par mois + GET /finance/dividendes + bandeau TransactionsTab ; calendrier prévisionnel = incrémental)
-54. [M](**) Détail du score Buffett par critère (marge, ROE, dette) avec explication.
-55. [S](*) Devises multiples (CAD/USD) avec conversion au taux du jour.
+54. [M](**) Détail du score Buffett par critère (marge, ROE, dette) avec explication.   ← FINIS ✓ (score_breakdown pur + ratios_recents exposés + GET /finance/buffett/breakdown/{ticker} + section TitreDetailModal ; tests TDD)
+55. [S](*) Devises multiples (CAD/USD) avec conversion au taux du jour.   ← COMMENCÉ
 56. [M](**) Détection de surpondération sectorielle / mesure de diversification (risk.py).
 57. [S](*) Saisie rapide d'une transaction (achat/vente) depuis la vue portefeuille.
 58. [M](**) Objectifs d'épargne/investissement avec projection (intérêts composés).
