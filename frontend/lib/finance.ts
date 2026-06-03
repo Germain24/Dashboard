@@ -144,6 +144,7 @@ export interface RebalancingLine {
   valeur_cible_eur: number; allocation_cible_pct: number;
   delta_eur: number; delta_shares: number | null;
   action: "ACHETER" | "VENDRE" | "CONSERVER";
+  ecart_pct: number; alerte: boolean;
 }
 
 export interface RebalancingDiff {
@@ -151,6 +152,7 @@ export interface RebalancingDiff {
   valeur_totale_eur: number; budget_total_eur: number;
   lignes: RebalancingLine[];
   n_acheter: number; n_vendre: number; n_conserver: number;
+  seuil_alerte_pct: number; n_alertes: number;
 }
 
 // ---- API client ----

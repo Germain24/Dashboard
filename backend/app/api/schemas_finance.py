@@ -213,6 +213,8 @@ class RebalancingLineOut(BaseModel):
     delta_eur: float
     delta_shares: Optional[int] = None    # actions à acheter(+)/vendre(-)
     action: str
+    ecart_pct: float = 0.0
+    alerte: bool = False
 
 
 class RebalancingDiffOut(BaseModel):
@@ -224,3 +226,5 @@ class RebalancingDiffOut(BaseModel):
     n_acheter: int
     n_vendre: int
     n_conserver: int
+    seuil_alerte_pct: float = 0.0
+    n_alertes: int = 0

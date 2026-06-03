@@ -27,4 +27,6 @@ def rebalancing_diff(session: Session = Depends(get_session)):
         n_acheter=diff.n_acheter,
         n_vendre=diff.n_vendre,
         n_conserver=diff.n_conserver,
+        seuil_alerte_pct=diff.seuil_alerte_pct,
+        n_alertes=diff.n_alertes,
     )

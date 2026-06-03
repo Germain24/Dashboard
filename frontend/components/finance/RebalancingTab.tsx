@@ -136,6 +136,13 @@ export function RebalancingTab() {
         ))}
       </div>
 
+      {/* Alerte de rééquilibrage : positions trop éloignées de leur cible */}
+      {diff.n_alertes > 0 && (
+        <div className="rounded-[var(--radius-lg)] border border-[var(--destructive)]/30 bg-[color-mix(in_srgb,var(--destructive)_8%,transparent)] px-4 py-2.5 text-sm text-[var(--destructive)]">
+          ⚠ {diff.n_alertes} position{diff.n_alertes > 1 ? "s" : ""} déviée{diff.n_alertes > 1 ? "s" : ""} de plus de {fmt(diff.seuil_alerte_pct, 0)} % de leur cible — rééquilibrage conseillé.
+        </div>
+      )}
+
       {/* Astuce pie Trading212 */}
       {isPie && (
         <p className="text-xs text-[var(--muted-foreground)]">
@@ -168,9 +175,12 @@ export function RebalancingTab() {
           <tbody>
             {lignes.map((l, i) => (
               <tr key={`${l.ticker}__${l.broker}__${i}`}
-                className="border-b border-[var(--border)] hover:bg-[var(--muted)]">
+                className={`border-b border-[var(--border)] hover:bg-[var(--muted)] ${l.alerte ? "bg-[color-mix(in_srgb,var(--destructive)_6%,transparent)]" : ""}`}>
                 <td className="py-1.5 pr-3">
-                  <div className="font-mono text-xs font-semibold">{l.ticker}</div>
+                  <div className="font-mono text-xs font-semibold">
+                    {l.alerte && <span title={`Écart ${l.ecart_pct > 0 ? "+" : ""}${fmt(l.ecart_pct, 1)} pts`} className="mr-1 text-[var(--destructive)]">⚠</span>}
+                    {l.ticker}
+                  </div>
                   {!single && <div className="text-xs text-[var(--muted-foreground)]">{l.broker}</div>}
                 </td>
                 <td className="py-1.5 pr-3 text-right leading-tight">

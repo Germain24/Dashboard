@@ -43,6 +43,8 @@ class RebalancingLine:
     delta_eur: float                    # >0 acheter, <0 vendre
     delta_shares: Optional[int]         # actions à acheter(+)/vendre(-) si broker entier
     action: str                         # "ACHETER" | "VENDRE" | "CONSERVER"
+    ecart_pct: float = 0.0              # poids actuel - poids cible (points de %)
+    alerte: bool = False                # |ecart| > seuil de rééquilibrage
 
 
 @dataclass
@@ -55,6 +57,17 @@ class RebalancingDiff:
     n_acheter: int = 0
     n_vendre: int = 0
     n_conserver: int = 0
+    seuil_alerte_pct: float = 0.0
+    n_alertes: int = 0
+
+
+# Seuil (en points de %) au-delà duquel un écart poids actuel/cible déclenche une alerte.
+REBALANCE_ALERT_THRESHOLD_PCT = 5.0
+
+
+def _ecart_alerte(actuel_pct: float, cible_pct: float, seuil: float) -> tuple[float, bool]:
+    ecart = round(actuel_pct - cible_pct, 2)
+    return ecart, abs(ecart) > seuil
 
 
 def _get_last_run(session: Session) -> Optional[BuffettRun]:
@@ -179,21 +192,26 @@ def compute_rebalancing_diff(session: Session) -> Optional[RebalancingDiff]:
             delta_eur = cible_eur - val_act
             delta_shares = (int(cible_shares) - round(qte)) if cible_shares is not None else None
 
+            alloc_actuelle = round(val_act / denom_actuel * 100, 2)
+            alloc_cible = round(cible_eur / budget_total * 100, 2) if budget_total else 0.0
+            ecart, alerte = _ecart_alerte(alloc_actuelle, alloc_cible, REBALANCE_ALERT_THRESHOLD_PCT)
             lignes.append(RebalancingLine(
                 ticker=r.ticker,
                 nom=r.nom or r.ticker,
                 broker=broker,
                 quantite_actuelle=round(qte, 4),
                 valeur_actuelle_eur=round(val_act, 2),
-                allocation_actuelle_pct=round(val_act / denom_actuel * 100, 2),
+                allocation_actuelle_pct=alloc_actuelle,
                 cible_type=cible_type,
                 cible_shares=int(cible_shares) if cible_shares is not None else None,
                 prix_unitaire=round(prix, 4),
                 valeur_cible_eur=round(cible_eur, 2),
-                allocation_cible_pct=round(cible_eur / budget_total * 100, 2) if budget_total else 0.0,
+                allocation_cible_pct=alloc_cible,
                 delta_eur=round(delta_eur, 2),
                 delta_shares=delta_shares,
                 action=_action(delta_eur),
+                ecart_pct=ecart,
+                alerte=alerte,
             ))
 
     # Positions détenues hors cible -> à vendre
@@ -203,13 +221,15 @@ def compute_rebalancing_diff(session: Session) -> Optional[RebalancingDiff]:
         val_act = price * (pos.quantite or 0)
         if val_act <= 0:
             continue
+        alloc_actuelle = round(val_act / denom_actuel * 100, 2)
+        ecart, alerte = _ecart_alerte(alloc_actuelle, 0.0, REBALANCE_ALERT_THRESHOLD_PCT)
         lignes.append(RebalancingLine(
             ticker=ticker,
             nom=ticker,
             broker=pos.broker or "—",
             quantite_actuelle=round(float(pos.quantite or 0), 4),
             valeur_actuelle_eur=round(val_act, 2),
-            allocation_actuelle_pct=round(val_act / denom_actuel * 100, 2),
+            allocation_actuelle_pct=alloc_actuelle,
             cible_type="shares",
             cible_shares=0,
             prix_unitaire=round(price, 4),
@@ -218,6 +238,8 @@ def compute_rebalancing_diff(session: Session) -> Optional[RebalancingDiff]:
             delta_eur=round(-val_act, 2),
             delta_shares=-round(float(pos.quantite or 0)),
             action="VENDRE",
+            ecart_pct=ecart,
+            alerte=alerte,
         ))
 
     lignes.sort(key=lambda l: abs(l.delta_eur), reverse=True)
@@ -231,4 +253,6 @@ def compute_rebalancing_diff(session: Session) -> Optional[RebalancingDiff]:
         n_acheter=sum(1 for l in lignes if l.action == "ACHETER"),
         n_vendre=sum(1 for l in lignes if l.action == "VENDRE"),
         n_conserver=sum(1 for l in lignes if l.action == "CONSERVER"),
+        seuil_alerte_pct=REBALANCE_ALERT_THRESHOLD_PCT,
+        n_alertes=sum(1 for l in lignes if l.alerte),
     )

@@ -69,7 +69,7 @@ D. MODULE FINANCE (46-60)
 46. [M](***) Brancher une vraie source de cours (yfinance/Alpha Vantage) au lieu du stub, avec cache quotidien.   ← FINIS ✓ (app/services/finance/prices.py : cache quotidien + fetch groupé yfinance, fallback dernier cours ; câblé dans get_positions)
 47. [M](**) Graphique d'évolution de la valeur du portefeuille (snapshots déjà stockés).   ← FINIS ✓ (déjà présent : SuiviTab PortfolioChart trace valeur + investi + benchmark depuis les snapshots)
 48. [M](**) Vue détaillée par titre : prix, P/E, score Buffett, poids, performance.   ← FINIS ✓ (get_title_detail + GET /finance/titre/{ticker} + TitreDetailModal au clic sur une ligne)
-49. [S](**) Alerte de rééquilibrage quand un poids dévie du target (> seuil).
+49. [S](**) Alerte de rééquilibrage quand un poids dévie du target (> seuil).   ← FINIS ✓ (ecart_pct + alerte par ligne, seuil 5pts, bannière + surbrillance dans RebalancingTab)
 50. [M](**) Calcul et affichage du rendement annualisé (TWR/MWR) vs benchmark (benchmarks.py existe).
 51. [S](*) Export PDF/CSV du rapport mensuel Buffett.
 52. [M](**) Backtest simple d'une allocation cible sur l'historique importé.
