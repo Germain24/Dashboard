@@ -144,6 +144,37 @@ export async function fetchEvents(from?: string, to?: string): Promise<Evenement
   return api<Evenement[]>(`/agenda/events?${params}`);
 }
 
+/** Événements en conflit avec [debut, fin) côté serveur (#87). */
+export async function checkConflicts(debut: string, fin?: string, ignoreId?: number): Promise<Evenement[]> {
+  const params = new URLSearchParams({ debut });
+  if (fin) params.set("fin", fin);
+  if (ignoreId != null) params.set("ignore_id", String(ignoreId));
+  return api<Evenement[]>(`/agenda/events/conflicts?${params}`);
+}
+
+/**
+ * Repère les chevauchements parmi une liste d'événements (logique locale #87).
+ * Retourne l'ensemble des ids (ou clés début) qui chevauchent un autre événement.
+ */
+export function overlappingKeys(events: Evenement[]): Set<string> {
+  const keyOf = (e: Evenement) => (e.id != null ? String(e.id) : e.debut + "|" + e.titre);
+  const spans = events.map((e) => {
+    const start = new Date(e.debut).getTime();
+    const end = e.fin ? new Date(e.fin).getTime() : start + 3600_000;
+    return { key: keyOf(e), start, end };
+  });
+  const out = new Set<string>();
+  for (let i = 0; i < spans.length; i++) {
+    for (let j = i + 1; j < spans.length; j++) {
+      if (spans[i].start < spans[j].end && spans[j].start < spans[i].end) {
+        out.add(spans[i].key);
+        out.add(spans[j].key);
+      }
+    }
+  }
+  return out;
+}
+
 export async function createEvent(data: EvenementCreate): Promise<Evenement> {
   return api<Evenement>("/agenda/events", {
     method: "POST",

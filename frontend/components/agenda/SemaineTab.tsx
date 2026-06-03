@@ -4,9 +4,9 @@
  * Affiche les événements (ponctuels + récurrences virtuelles + entraînement).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Evenement } from "@/lib/agenda";
-import { couleurFor, fetchEvents, formatHeure } from "@/lib/agenda";
+import { couleurFor, fetchEvents, formatHeure, overlappingKeys } from "@/lib/agenda";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -63,6 +63,17 @@ export default function SemaineTab() {
     return events.filter((ev) => ev.debut.startsWith(ds));
   }
 
+  // Conflits d'horaire (#87) : on calcule par jour pour ne pas croiser deux jours différents.
+  const conflictKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of weekDates) {
+      for (const k of overlappingKeys(eventsForDay(d))) set.add(k);
+    }
+    return set;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
+  const keyOf = (e: Evenement) => (e.id != null ? String(e.id) : e.debut + "|" + e.titre);
+
   const today = isoDate(new Date());
 
   return (
@@ -87,6 +98,12 @@ export default function SemaineTab() {
       </div>
 
       {loading && <Spinner size="sm" label="Chargement…" />}
+
+      {conflictKeys.size > 0 && (
+        <div className="rounded-[var(--radius-sm)] border border-[var(--destructive)]/40 bg-[color-mix(in_srgb,var(--destructive)_8%,transparent)] px-3 py-1.5 text-xs text-[var(--destructive)]">
+          ⚠ {conflictKeys.size} événement{conflictKeys.size > 1 ? "s" : ""} en chevauchement cette semaine.
+        </div>
+      )}
 
       {/* Grille */}
       <div className="overflow-x-auto">
@@ -132,16 +149,19 @@ export default function SemaineTab() {
                     key={`${h}-${di}`}
                     className="bg-[var(--background)] min-h-[36px] border-t border-[var(--border)] p-0.5"
                   >
-                    {dayEvs.map((ev, ei) => (
-                      <div
-                        key={ei}
-                        className="rounded-[var(--radius-sm)] px-1 py-0.5 text-white text-xs mb-0.5 truncate"
-                        style={{ backgroundColor: couleurFor(ev) }}
-                        title={`${ev.titre} ${formatHeure(ev.debut)}${ev.fin ? " – " + formatHeure(ev.fin) : ""}`}
-                      >
-                        {formatHeure(ev.debut)} {ev.titre}
-                      </div>
-                    ))}
+                    {dayEvs.map((ev, ei) => {
+                      const conflict = conflictKeys.has(keyOf(ev));
+                      return (
+                        <div
+                          key={ei}
+                          className={`rounded-[var(--radius-sm)] px-1 py-0.5 text-white text-xs mb-0.5 truncate ${conflict ? "ring-2 ring-[var(--destructive)]" : ""}`}
+                          style={{ backgroundColor: couleurFor(ev) }}
+                          title={`${conflict ? "⚠ Chevauchement — " : ""}${ev.titre} ${formatHeure(ev.debut)}${ev.fin ? " – " + formatHeure(ev.fin) : ""}`}
+                        >
+                          {conflict ? "⚠ " : ""}{formatHeure(ev.debut)} {ev.titre}
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}

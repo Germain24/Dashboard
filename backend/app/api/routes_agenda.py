@@ -149,6 +149,29 @@ def _dates_in_range(start: dt.date, end: dt.date) -> list[dt.date]:
     return result
 
 
+@router.get("/events/conflicts", response_model=list[EvenementRead])
+def check_conflicts(
+    session: SessionDep,
+    debut: dt.datetime = Query(...),
+    fin: Optional[dt.datetime] = Query(None),
+    ignore_id: Optional[int] = Query(None),
+):
+    """Événements qui chevauchent l'intervalle [debut, fin) (#87)."""
+    from app.services.agenda.conflicts import find_conflicts
+
+    end = fin or debut + dt.timedelta(hours=1)
+    # On élargit la fenêtre d'1h de chaque côté pour capter les chevauchements aux bords.
+    from_dt = dt.datetime.combine(debut.date(), dt.time.min)
+    to_dt = dt.datetime.combine(end.date(), dt.time.max)
+    items = get_full_calendar(session, from_dt, to_dt)
+    for single_date in _dates_in_range(from_dt.date(), to_dt.date()):
+        blk = get_training_block_for_date(session, single_date)
+        if blk:
+            items.append(blk)
+    conflicts = find_conflicts(debut, fin, items, ignore_id=ignore_id)
+    return [_ev_to_read(e) for e in conflicts]
+
+
 @router.post("/events", response_model=EvenementRead, status_code=201)
 def create_ev(payload: EvenementCreate, session: SessionDep):
     ev = create_event(session, payload.model_dump())

@@ -125,7 +125,7 @@ G. MODULE AGENDA (83-92)
 84. [M](**) Vue calendrier mensuelle/hebdo interactive (pas seulement liste).
 85. [S](**) Rappels avec notifications (lien module notifications/scheduler).
 86. [S](*) Événements récurrents (RRULE).
-87. [M](**) Détection de conflits d'horaire à la création.
+87. [M](**) Détection de conflits d'horaire à la création.   ← FINIS ✓ (conflicts.py : overlaps + find_conflicts (fin manquante = 1h, ignore_id pour l'édition) ; GET /agenda/events/conflicts ; indicateur visuel + bannière de chevauchement dans SemaineTab (overlappingKeys) ; tests TDD)
 88. [S](*) Catégories/couleurs d'événements + filtres.
 89. [M](**) Bloc de temps « focus » lié au module Études (sessions planifiées).
 90. [S](*) Vue « aujourd'hui » sur la page d'accueil (prochains événements).
