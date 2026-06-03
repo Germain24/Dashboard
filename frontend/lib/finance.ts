@@ -242,6 +242,11 @@ export const financeApi = {
       par_ticker: Record<string, number>; par_mois: Record<string, number>;
       lignes: { date: string; ticker: string; montant: number; devise: string }[];
     }>("/dividendes"),
+  diversification: () =>
+    get<{
+      secteurs: { secteur: string; valeur: number; poids_pct: number; surpondere: boolean }[];
+      hhi_secteur: number; n_secteurs: number; seuil_pct: number; n_surponderes: number;
+    }>("/diversification"),
   fx: (base = "EUR", quotes = "USD,CAD") =>
     get<{ base: string; rates: Record<string, number> }>(`/fx?base=${base}&quotes=${quotes}`),
   buffettBreakdown: (ticker: string) =>

@@ -90,6 +90,63 @@ def get_risk_metrics(
     }
 
 
+def compute_sector_diversification(items: list[dict], seuil_pct: float = 30.0) -> dict:
+    """Diversification sectorielle + détection de surpondération.
+
+    ``items`` : liste de ``{"valeur": float, "secteur": str}``.
+    Agrège la valeur par secteur, calcule le poids de chaque secteur, flague ceux
+    au-dessus de ``seuil_pct``, et donne un HHI sectoriel (0=diversifié, 1=concentré).
+    """
+    total = sum(i.get("valeur", 0) for i in items if i.get("valeur", 0) > 0)
+    if total <= 0:
+        return {"secteurs": [], "hhi_secteur": 0.0, "n_secteurs": 0,
+                "seuil_pct": seuil_pct, "n_surponderes": 0}
+
+    by_sec: dict[str, float] = {}
+    for i in items:
+        v = i.get("valeur", 0)
+        if v > 0:
+            sec = i.get("secteur") or "Inconnu"
+            by_sec[sec] = by_sec.get(sec, 0) + v
+
+    secteurs = [
+        {
+            "secteur": s,
+            "valeur": round(v, 2),
+            "poids_pct": round(v / total * 100, 2),
+            "surpondere": (v / total * 100) > seuil_pct,
+        }
+        for s, v in sorted(by_sec.items(), key=lambda kv: kv[1], reverse=True)
+    ]
+    hhi = sum((v / total) ** 2 for v in by_sec.values())
+    return {
+        "secteurs": secteurs,
+        "hhi_secteur": round(hhi, 4),
+        "n_secteurs": len(by_sec),
+        "seuil_pct": seuil_pct,
+        "n_surponderes": sum(1 for x in secteurs if x["surpondere"]),
+    }
+
+
+def get_sector_diversification(session, seuil_pct: float = 30.0) -> dict:
+    """Diversification sectorielle réelle : joint les positions aux secteurs Buffett."""
+    from app.services.finance.portfolio import get_positions
+    from app.models.finance import BuffettRunResult
+    from sqlmodel import select
+
+    positions = get_positions(session)
+    secteur_par_ticker = {
+        r.ticker: r.secteur
+        for r in session.exec(select(BuffettRunResult)).all()
+        if r.secteur
+    }
+    items = [
+        {"valeur": p.get("valeur_actuelle", 0), "secteur": secteur_par_ticker.get(p["ticker"], "Inconnu")}
+        for p in positions
+    ]
+    return compute_sector_diversification(items, seuil_pct)
+
+
 def get_treemap_data(positions: list[dict]) -> list[dict]:
     """Données pour treemap secteurs/pays/devises."""
     total = sum(p.get("valeur_actuelle", 0) for p in positions)

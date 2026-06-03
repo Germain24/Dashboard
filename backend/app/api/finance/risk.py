@@ -12,9 +12,15 @@ from app.api.schemas_finance import (
 from app.services.finance.snapshots import get_history
 from app.services.finance.portfolio import get_positions
 from app.services.finance.benchmarks import get_portfolio_vs_benchmarks
-from app.services.finance.risk import get_risk_metrics, get_treemap_data
+from app.services.finance.risk import get_risk_metrics, get_treemap_data, get_sector_diversification
 
 router = APIRouter()
+
+
+@router.get("/diversification")
+def diversification(session: Session = Depends(get_session)):
+    """Diversification sectorielle + détection de surpondération (> seuil)."""
+    return get_sector_diversification(session)
 
 
 @router.get("/benchmarks", response_model=list[BenchmarkOut])
