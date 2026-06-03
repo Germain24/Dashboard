@@ -144,6 +144,18 @@ export const santeApi = {
 
   listAliments: () => api<Aliment[]>(`/sante/aliments`),
 
+  // Hydratation (#66)
+  waterToday: () => api<{ date: string; eau_ml: number; cible_ml: number; pct: number }>(`/sante/water/today`),
+  addWater: (ml: number) =>
+    api<{ date: string; eau_ml: number; cible_ml: number; pct: number }>(`/sante/water?ml=${ml}`, { method: "POST" }),
+
+  // Sommeil (#68)
+  logSleep: (heures: number, qualite?: number) =>
+    api<{ date: string; sommeil_h: number; sommeil_q?: number }>(
+      `/sante/sleep?heures=${heures}${qualite != null ? `&qualite=${qualite}` : ""}`, { method: "POST" }),
+  sleepSummary: (days = 30) =>
+    api<{ n: number; correlation: number | null; sommeil_moyen_h: number | null }>(`/sante/sleep/summary?days=${days}`),
+
   getGoal: () => api<NutritionGoal>(`/sante/goal`),
   updateGoal: (payload: NutritionGoalUpdate) =>
     api<NutritionGoal>(`/sante/goal`, {

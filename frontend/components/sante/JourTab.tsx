@@ -11,6 +11,7 @@ import {
 } from "@/lib/sante";
 import { MacroBar } from "./MacroBar";
 import { ConsoDrawer } from "./ConsoDrawer";
+import { WaterWidget } from "./WaterWidget";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -120,6 +121,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
 
   return (
     <div className="space-y-4 animate-fade-in-up">
+      <WaterWidget />
       {/* Bandeau état */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 flex flex-wrap items-center gap-3 text-sm card-hover">
         <span className="font-medium">{new Date(plan.date).toLocaleDateString("fr-CA")}</span>

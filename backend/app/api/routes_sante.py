@@ -182,6 +182,34 @@ def delete_mesure(date: dt.date, session: Session = Depends(get_session)):
     session.commit()
 
 
+@router.post("/water")
+def add_water(date: dt.date | None = None, ml: float = 250, session: Session = Depends(get_session)):
+    """Ajoute de l'eau (ml) au total du jour (#66 hydratation)."""
+    from app.services.sante.wellbeing import add_water as _add
+    return _add(session, date or dt.date.today(), ml)
+
+
+@router.get("/water/today")
+def water_today(session: Session = Depends(get_session)):
+    from app.services.sante.wellbeing import get_water
+    return get_water(session, dt.date.today())
+
+
+@router.post("/sleep")
+def log_sleep(heures: float, qualite: int | None = None, date: dt.date | None = None,
+              session: Session = Depends(get_session)):
+    """Enregistre le sommeil du jour (#68)."""
+    from app.services.sante.wellbeing import set_sleep
+    return set_sleep(session, date or dt.date.today(), heures, qualite)
+
+
+@router.get("/sleep/summary")
+def sleep_summary(days: int = 30, session: Session = Depends(get_session)):
+    """Corrélation sommeil ↔ poids sur la période."""
+    from app.services.sante.wellbeing import sleep_weight_summary
+    return sleep_weight_summary(session, days)
+
+
 @router.get("/aliments", response_model=list[AlimentRead])
 def list_aliments(session: Session = Depends(get_session)):
     """Liste le catalogue d'aliments lu depuis data/imports/aliments.csv.
