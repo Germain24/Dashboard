@@ -17,6 +17,7 @@ import { NutritionQualityWidget } from "./NutritionQualityWidget";
 import { WorkoutBurnWidget } from "./WorkoutBurnWidget";
 import { EnergyBalanceAlert } from "./EnergyBalanceAlert";
 import { Button } from "@/components/ui/button";
+import { exportMacrosImage } from "@/lib/exportMacrosImage";
 
 type Props = {
   plan: PlanResponse | null;
@@ -240,6 +241,14 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
           size="sm"
         >
           🔬 Voir tous les micronutriments
+        </Button>
+        <Button
+          onClick={() => exportMacrosImage(plan).catch(() => setErr("Export image impossible"))}
+          variant="secondary"
+          size="sm"
+          title="Génère une image PNG partageable de tes macros du jour"
+        >
+          📤 Partager mes macros
         </Button>
       </div>
 
