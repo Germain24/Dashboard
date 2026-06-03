@@ -22,7 +22,19 @@ export function ProgressionTab() {
   };
 
   useEffect(() => {
-    load().catch((e) => setErr(e?.message ?? "Erreur de chargement"));
+    let active = true;
+    void (async () => {
+      try {
+        const list = await santeApi.listPhotos();
+        if (!active) return;
+        setPhotos(list);
+        setBeforeIdx(0);
+        setAfterIdx(Math.max(0, list.length - 1));
+      } catch (e: any) {
+        if (active) setErr(e?.message ?? "Erreur de chargement");
+      }
+    })();
+    return () => { active = false; };
   }, []);
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +70,7 @@ export function ProgressionTab() {
           ref={fileRef}
           type="file"
           accept="image/*"
-          onChange={onPick}
+          onChange={(e) => void onPick(e)}
           className="hidden"
         />
         <span className="text-xs text-[var(--muted-foreground)]">
@@ -135,7 +147,6 @@ function PhotoPane({
         </select>
       </div>
       {photo && (
-        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={mediaUrl(photo.photo_url)}
           alt={`Progression ${title} ${photo.date}`}

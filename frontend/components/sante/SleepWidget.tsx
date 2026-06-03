@@ -81,7 +81,7 @@ export function SleepWidget() {
           </div>
         </div>
         <button
-          onClick={save}
+          onClick={() => void save()}
           disabled={saving || !heures}
           className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs hover:bg-[var(--muted)] disabled:opacity-50"
         >

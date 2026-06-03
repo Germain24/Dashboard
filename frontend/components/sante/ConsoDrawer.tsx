@@ -153,7 +153,7 @@ export function ConsoDrawer({ open, onClose, planItems, initialConsumed, onSave 
               <div key={nom} className="flex items-center gap-2 text-sm">
                 <span className="flex-1 truncate" title={nom}>{nom}</span>
                 <button
-                  onClick={() => toggleFavorite(nom)}
+                  onClick={() => void toggleFavorite(nom)}
                   title={favorites.includes(nom) ? "Retirer des favoris" : "Ajouter aux favoris"}
                   className="text-xs"
                 >
@@ -219,7 +219,7 @@ export function ConsoDrawer({ open, onClose, planItems, initialConsumed, onSave 
               Ajouter
             </button>
             <button
-              onClick={() => { if (catalog.includes(picker)) toggleFavorite(picker); }}
+              onClick={() => { if (catalog.includes(picker)) void toggleFavorite(picker); }}
               disabled={!catalog.includes(picker)}
               title="Ajouter/retirer des favoris"
               className="rounded border border-[var(--border)] px-2 py-1 text-xs hover:bg-[var(--muted)] disabled:opacity-50"
