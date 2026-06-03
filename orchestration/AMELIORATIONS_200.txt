@@ -109,7 +109,7 @@ F. MODULE GARDE-ROBE (73-82)
 74. [S](**) Score thermique automatique d'une tenue = somme des pièces.   ← FINIS ✓ (déjà présent : thermal.py thermal_score (matière×plage) exposé dans VetementRead + total tenue dans /suggest ; composant ThermalScore)
 75. [S](*) Photos des vêtements + détection couleur dominante.
 76. [M](**) Générateur de tenues (combinaisons valides haut/bas/chaussures).   ← FINIS ✓ (déjà présent : optimizer.suggest_outfit remplit les 12 slots ALWAYS/METEO/OPTIONAL avec contraintes thermiques + style)
-77. [S](*) Suivi de la fréquence de port (pièces jamais portées à recycler).
+77. [S](*) Suivi de la fréquence de port (pièces jamais portées à recycler).   ← FINIS ✓ (frequency.py wear_buckets (jamais/moins/plus portées via compteur portes) + GET /garderobe/frequence ; sections « à recycler » + « les plus portées » dans StatsTab ; tests TDD)
 78. [S](**) Filtres par saison, couleur, occasion.   ← FINIS ✓ (filters.py : season_of (plage temp) + matches_filters ; champ dérivé VetementRead.saison ; params couleur/saison/occasion sur GET /garderobe/vetements + selects dans InventaireTab ; tests TDD)
 79. [M](**) Planificateur de tenues sur la semaine (lié à l'agenda).
 80. [S](*) Statistiques garde-robe (nb pièces par catégorie, valeur estimée).

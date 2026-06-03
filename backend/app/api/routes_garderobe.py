@@ -59,6 +59,7 @@ from app.services.garderobe import (
     vie_pct,
 )
 from app.services.garderobe.filters import matches_filters, season_of
+from app.services.garderobe.frequency import wear_buckets
 from app.services.garderobe.style import get_color_category
 from app.services.garderobe.weather import WeatherData, get_weather
 
@@ -425,6 +426,25 @@ def stats(session: Session = Depends(get_session)) -> StatsResponse:
 # ─────────────────────────────────────────────────────────────────────────────
 # /recommendations
 # ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/frequence")
+def frequence(top_n: int = Query(5, ge=1, le=20), session: Session = Depends(get_session)) -> dict:
+    """Fréquence de port : jamais portées (à recycler), moins / plus portées (#77)."""
+    rows = list(session.exec(select(Vetement)).all())
+    by_id = {v.id: v for v in rows}
+    buckets = wear_buckets([_vetement_to_dict(v) for v in rows], top_n=top_n)
+
+    def resolve(ids: list[str]) -> list[VetementRead]:
+        return [_vetement_to_read(by_id[i]) for i in ids if i in by_id]
+
+    return {
+        "total": buckets["total"],
+        "never_worn_count": buckets["never_worn_count"],
+        "never_worn": resolve(buckets["never_worn"]),
+        "least_worn": resolve(buckets["least_worn"]),
+        "most_worn": resolve(buckets["most_worn"]),
+    }
+
 
 @router.get("/recommendations", response_model=list[RecommendationOut])
 def recommendations(session: Session = Depends(get_session)) -> list[RecommendationOut]:

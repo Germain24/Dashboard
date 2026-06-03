@@ -119,6 +119,14 @@ export type Recommendation = {
   type: string;
 };
 
+export type WearFrequency = {
+  total: number;
+  never_worn_count: number;
+  never_worn: Vetement[];
+  least_worn: Vetement[];
+  most_worn: Vetement[];
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Endpoints
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,6 +188,8 @@ export const garderobeApi = {
   stats: () => api<StatsResponse>(`/garderobe/stats`),
 
   recommendations: () => api<Recommendation[]>(`/garderobe/recommendations`),
+
+  frequence: (topN = 5) => api<WearFrequency>(`/garderobe/frequence?top_n=${topN}`),
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

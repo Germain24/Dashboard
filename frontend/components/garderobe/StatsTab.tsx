@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import type { StatsResponse } from "@/lib/garderobe";
-import { emojiForCategorie, assetUrl } from "@/lib/garderobe";
+import { useEffect, useState } from "react";
+import type { StatsResponse, WearFrequency, Vetement } from "@/lib/garderobe";
+import { emojiForCategorie, assetUrl, garderobeApi } from "@/lib/garderobe";
 
 export function StatsTab({ stats }: { stats: StatsResponse }) {
+  const [freq, setFreq] = useState<WearFrequency | null>(null);
+
+  useEffect(() => {
+    garderobeApi.frequence(5).then(setFreq).catch(() => {});
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -42,7 +48,44 @@ export function StatsTab({ stats }: { stats: StatsResponse }) {
           </div>
         </div>
       )}
+
+      {/* Fréquence de port (#77) */}
+      {freq && (
+        <div className="space-y-4">
+          {freq.never_worn.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold mb-2">
+                🗑️ Jamais portées — à recycler ? ({freq.never_worn_count})
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {freq.never_worn.map((v) => <WearChip key={v.id} v={v} />)}
+              </div>
+            </div>
+          )}
+          {freq.most_worn.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold mb-2">❤️ Les plus portées</h3>
+              <div className="flex flex-wrap gap-2">
+                {freq.most_worn.map((v) => <WearChip key={v.id} v={v} showCount />)}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+function WearChip({ v, showCount }: { v: Vetement; showCount?: boolean }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--card)] px-2.5 py-1 text-xs"
+      title={v.nom}
+    >
+      <span>{emojiForCategorie(v.categorie)}</span>
+      <span className="max-w-[10rem] truncate">{v.nom}</span>
+      {showCount && <span className="text-[var(--muted-foreground)] tabular-nums">{v.portes}×</span>}
+    </span>
   );
 }
 
