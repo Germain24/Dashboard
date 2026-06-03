@@ -113,7 +113,7 @@ F. MODULE GARDE-ROBE (73-82)
 78. [S](**) Filtres par saison, couleur, occasion.   ← FINIS ✓ (filters.py : season_of (plage temp) + matches_filters ; champ dérivé VetementRead.saison ; params couleur/saison/occasion sur GET /garderobe/vetements + selects dans InventaireTab ; tests TDD)
 79. [M](**) Planificateur de tenues sur la semaine (lié à l'agenda).
 80. [S](*) Statistiques garde-robe (nb pièces par catégorie, valeur estimée).   ← FINIS ✓ (stats par catégorie/couleur/style + ratio couleurs déjà présents ; ajout valeur_estimee/valeur_count (somme extra.prix) dans /stats + cartes résumé (pièces / valeur / à laver) en tête de StatsTab)
-81. [S](*) Étiquettes d'entretien (lavage) par pièce.
+81. [S](*) Étiquettes d'entretien (lavage) par pièce.   ← FINIS ✓ (care.py care_label : consigne lavage/température/séchage dérivée de la matière (10 matières + générique) ; champ dérivé VetementRead.entretien ; affichage sur la carte vêtement (InventaireTab) ; tests TDD)
 82. [M](**) Suggestion d'achats pour combler des manques (ex. pas assez de couches chaudes).   ← FINIS ✓ (déjà présent : recommendations.get_purchase_recommendations (catégories manquantes, ratio couleurs 60/30/10, couleurs orphelines, style dominant) + GET /garderobe/recommendations + RecommandationsTab)
 
 --------------------------------------------------------------------------------

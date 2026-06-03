@@ -58,6 +58,7 @@ from app.services.garderobe import (
     thermal_score,
     vie_pct,
 )
+from app.services.garderobe.care import care_label
 from app.services.garderobe.filters import matches_filters, season_of
 from app.services.garderobe.frequency import wear_buckets
 from app.services.garderobe.style import get_color_category
@@ -103,6 +104,7 @@ def _vetement_to_read(v: Vetement) -> VetementRead:
         ports_avant_lavage=ports_avant_lavage(d),
         thermal_score=thermal_score(d),
         saison=season_of(d.get("temp_min"), d.get("temp_max")),
+        entretien=care_label(d.get("matiere")),
     )
 
 

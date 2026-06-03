@@ -34,9 +34,20 @@ export type Vetement = {
   ports_avant_lavage: number;
   thermal_score: number;
   saison: string;
+  entretien: CareLabel | null;
 };
 
-export type VetementUpdate = Partial<Omit<Vetement, "id" | "proprete_pct" | "vie_pct" | "needs_wash" | "is_worn_out" | "ports_avant_lavage" | "thermal_score" | "saison">>;
+export type CareLabel = {
+  matiere: string | null;
+  lavage: string;
+  temperature: number;
+  sechage: string;
+  icones: string;
+  delicat: boolean;
+  resume: string;
+};
+
+export type VetementUpdate = Partial<Omit<Vetement, "id" | "proprete_pct" | "vie_pct" | "needs_wash" | "is_worn_out" | "ports_avant_lavage" | "thermal_score" | "saison" | "entretien">>;
 
 export type HourlyTemp = { hour: number; temp: number; apparent_temp: number };
 
@@ -148,7 +159,7 @@ export const garderobeApi = {
 
   getVetement: (id: string) => api<Vetement>(`/garderobe/vetements/${encodeURIComponent(id)}`),
 
-  createVetement: (payload: Omit<Vetement, "proprete_pct" | "vie_pct" | "needs_wash" | "is_worn_out" | "ports_avant_lavage" | "thermal_score" | "saison">) =>
+  createVetement: (payload: Omit<Vetement, "proprete_pct" | "vie_pct" | "needs_wash" | "is_worn_out" | "ports_avant_lavage" | "thermal_score" | "saison" | "entretien">) =>
     api<Vetement>(`/garderobe/vetements`, {
       method: "POST",
       body: JSON.stringify(payload),

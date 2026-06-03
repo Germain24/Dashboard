@@ -40,6 +40,7 @@ class VetementRead(VetementBase):
     ports_avant_lavage: int
     thermal_score: float
     saison: str = "toutes"
+    entretien: Optional[dict] = None  # consigne de lavage dérivée de la matière (#81)
 
     model_config = {"from_attributes": True}
 

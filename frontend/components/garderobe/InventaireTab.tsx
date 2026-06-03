@@ -105,6 +105,18 @@ function VetementCard({ v }: { v: Vetement }) {
         </span>
         <span style={{ color: "var(--ring)" }}>⚙ {v.vie_pct.toFixed(0)}%</span>
       </div>
+      {v.entretien && (
+        <div
+          className="text-[10px] text-[var(--muted-foreground)] flex items-center gap-1"
+          title={`Entretien (${v.matiere ?? "matière inconnue"}) : ${v.entretien.resume}`}
+        >
+          <span>{v.entretien.icones}</span>
+          <span className="truncate">
+            {v.entretien.temperature ? `${v.entretien.temperature}°C` : v.entretien.lavage}
+            {v.entretien.delicat ? " · délicat" : ""}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
