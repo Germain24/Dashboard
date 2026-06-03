@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Vetement } from "@/lib/garderobe";
-import { emojiForCategorie, assetUrl } from "@/lib/garderobe";
+import { emojiForCategorie, assetUrl, mediaUrl, garderobeApi } from "@/lib/garderobe";
+import { dominantColorFromFile } from "@/lib/dominantColor";
 
-export function InventaireTab({ wardrobe }: { wardrobe: Vetement[] }) {
+export function InventaireTab({ wardrobe, onReload }: { wardrobe: Vetement[]; onReload?: () => void }) {
   const [cat, setCat] = useState<string>("");
   const [style, setStyle] = useState<string>("");
   const [etat, setEtat] = useState<string>("");
@@ -73,7 +74,7 @@ export function InventaireTab({ wardrobe }: { wardrobe: Vetement[] }) {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 stagger">
           {filtered.map((v) => (
-            <VetementCard key={v.id} v={v} />
+            <VetementCard key={v.id} v={v} onReload={onReload} />
           ))}
         </div>
       )}
@@ -81,16 +82,46 @@ export function InventaireTab({ wardrobe }: { wardrobe: Vetement[] }) {
   );
 }
 
-function VetementCard({ v }: { v: Vetement }) {
+function VetementCard({ v, onReload }: { v: Vetement; onReload?: () => void }) {
   const [failed, setFailed] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const photoUrl = (v.extra?.photo_url as string | undefined) || undefined;
   const border =
     v.needs_wash ? "border-red-500"
     : v.proprete_pct < 50 ? "border-amber-500"
     : "border-[var(--border)]";
 
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const couleur = (await dominantColorFromFile(file)) ?? undefined;
+      await garderobeApi.uploadPhoto(v.id, file, couleur);
+      onReload?.();
+    } catch {
+      /* toast global */
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
   return (
-    <div className={`rounded-xl border ${border} bg-[var(--card)] p-3 text-center flex flex-col items-center gap-1 card-hover`}>
-      {!failed ? (
+    <div className={`relative rounded-xl border ${border} bg-[var(--card)] p-3 text-center flex flex-col items-center gap-1 card-hover`}>
+      <button
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        title="Ajouter une photo (couleur dominante détectée)"
+        className="absolute top-1 right-1 text-xs opacity-60 hover:opacity-100"
+      >
+        {uploading ? "…" : "📷"}
+      </button>
+      <input ref={fileRef} type="file" accept="image/*" onChange={(e) => void onPick(e)} className="hidden" />
+      {photoUrl ? (
+        <img src={mediaUrl(photoUrl)} alt={v.nom} style={{ height: "56px", width: "auto", objectFit: "cover", borderRadius: "6px" }} />
+      ) : !failed ? (
         <img src={assetUrl(v.id)} alt={v.nom} onError={() => setFailed(true)} style={{ imageRendering: "pixelated", height: "56px", width: "auto" }} />
       ) : (
         <div className="text-2xl">{emojiForCategorie(v.categorie)}</div>

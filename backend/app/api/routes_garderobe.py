@@ -20,7 +20,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlmodel import Session, select
 
 from app.api.schemas_garderobe import (
@@ -219,6 +219,29 @@ def update_vetement(
     session.add(v)
     session.commit()
     session.refresh(v)
+    return _vetement_to_read(v)
+
+
+@router.post("/vetements/{vetement_id}/photo", response_model=VetementRead)
+async def upload_vetement_photo(
+    vetement_id: str,
+    file: UploadFile = File(...),
+    couleur_dominante: Optional[str] = None,
+    session: Session = Depends(get_session),
+) -> VetementRead:
+    """Téléverse une photo pour un vêtement + couleur dominante détectée (#75)."""
+    from app.services.garderobe.photos import save_vetement_photo
+
+    content = await file.read()
+    try:
+        v = save_vetement_photo(
+            session, vetement_id, file.filename or "photo.jpg", content,
+            couleur_dominante=couleur_dominante,
+        )
+    except KeyError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"vetement '{vetement_id}' introuvable")
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
     return _vetement_to_read(v)
 
 

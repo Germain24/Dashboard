@@ -291,7 +291,12 @@ export function Garderobe() {
           </div>
         )}
 
-        {tab === "inventaire" && <InventaireTab wardrobe={wardrobe} />}
+        {tab === "inventaire" && (
+          <InventaireTab
+            wardrobe={wardrobe}
+            onReload={() => { garderobeApi.listVetements().then(setWardrobe).catch(() => {}); }}
+          />
+        )}
         {tab === "stats" && stats && <StatsTab stats={stats} />}
         {tab === "history" && <HistoriqueTab history={history} />}
         {tab === "recs" && <RecommandationsTab recs={recs} />}

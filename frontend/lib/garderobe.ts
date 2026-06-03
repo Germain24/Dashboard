@@ -203,7 +203,29 @@ export const garderobeApi = {
   recommendations: () => api<Recommendation[]>(`/garderobe/recommendations`),
 
   frequence: (topN = 5) => api<WearFrequency>(`/garderobe/frequence?top_n=${topN}`),
+
+  // Photo d'un vêtement + couleur dominante détectée (#75)
+  uploadPhoto: (id: string, file: File, couleurDominante?: string) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
+    const q = couleurDominante ? `?couleur_dominante=${encodeURIComponent(couleurDominante)}` : "";
+    return fetch(`${base}/garderobe/vetements/${encodeURIComponent(id)}/photo${q}`, {
+      method: "POST",
+      body: fd,
+    }).then((r) => {
+      if (!r.ok) throw new Error(`Upload failed: ${r.status}`);
+      return r.json() as Promise<Vetement>;
+    });
+  },
 };
+
+/** Préfixe une URL media relative (/media/garderobe/...) avec la base backend. */
+export function mediaUrl(path: string): string {
+  if (/^https?:\/\//.test(path)) return path;
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
+  return `${base}${path}`;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers UI
