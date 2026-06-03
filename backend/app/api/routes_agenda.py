@@ -285,6 +285,35 @@ def slots_endpoint(
     return [SlotLibre(**s) for s in raw]
 
 
+# ── Export iCal ───────────────────────────────────────────────────────────────
+
+@router.get("/export-ical")
+def export_ical(
+    session: SessionDep,
+    from_: Optional[dt.datetime] = Query(None, alias="from"),
+    to: Optional[dt.datetime] = Query(None),
+):
+    """Exporte les événements de la fenêtre au format .ics (#91)."""
+    from fastapi import Response
+    from app.services.agenda.ical_adapter import serialize_ics
+
+    today = dt.date.today()
+    from_dt = from_ or dt.datetime.combine(today - dt.timedelta(days=7), dt.time.min)
+    to_dt = to or dt.datetime.combine(today + dt.timedelta(days=30), dt.time.max)
+
+    items = get_full_calendar(session, from_dt, to_dt)
+    for single_date in _dates_in_range(from_dt.date(), to_dt.date()):
+        blk = get_training_block_for_date(session, single_date)
+        if blk:
+            items.append(blk)
+    ics = serialize_ics(items)
+    return Response(
+        content=ics,
+        media_type="text/calendar",
+        headers={"Content-Disposition": 'attachment; filename="mission-control.ics"'},
+    )
+
+
 # ── Import iCal ───────────────────────────────────────────────────────────────
 
 @router.post("/import-ical", response_model=ImportIcalResponse)

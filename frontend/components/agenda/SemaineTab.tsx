@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Evenement } from "@/lib/agenda";
-import { couleurFor, fetchEvents, formatHeure, overlappingKeys } from "@/lib/agenda";
+import { couleurFor, fetchEvents, formatHeure, overlappingKeys, exportIcsUrl } from "@/lib/agenda";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -95,6 +95,13 @@ export default function SemaineTab() {
         >
           Aujourd&apos;hui
         </Button>
+        <a
+          href={exportIcsUrl(isoDate(weekDates[0]) + "T00:00:00", isoDate(weekDates[6]) + "T23:59:59")}
+          className="rounded-md px-2.5 py-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
+          title="Exporter cette semaine au format .ics"
+        >
+          ⬇ .ics
+        </a>
       </div>
 
       {loading && <Spinner size="sm" label="Chargement…" />}

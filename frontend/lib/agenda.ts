@@ -144,6 +144,16 @@ export async function fetchEvents(from?: string, to?: string): Promise<Evenement
   return api<Evenement[]>(`/agenda/events?${params}`);
 }
 
+/** URL de téléchargement .ics de la fenêtre donnée (#91). */
+export function exportIcsUrl(from?: string, to?: string): string {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const qs = params.toString();
+  return `${base}/agenda/export-ical${qs ? "?" + qs : ""}`;
+}
+
 /** Événements en conflit avec [debut, fin) côté serveur (#87). */
 export async function checkConflicts(debut: string, fin?: string, ignoreId?: number): Promise<Evenement[]> {
   const params = new URLSearchParams({ debut });

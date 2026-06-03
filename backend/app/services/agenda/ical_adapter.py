@@ -98,3 +98,56 @@ def parse_ics(content: bytes) -> list[dict[str, Any]]:
         })
 
     return results
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Export .ics (#91) — génération manuelle, sans dépendance icalendar
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _ics_escape(text: str) -> str:
+    """Échappe une valeur TEXT iCal (RFC 5545 §3.3.11)."""
+    return (
+        str(text)
+        .replace("\\", "\\\\")
+        .replace(";", "\\;")
+        .replace(",", "\\,")
+        .replace("\n", "\\n")
+    )
+
+
+def _fmt_dt(value: dt.datetime) -> str:
+    return value.strftime("%Y%m%dT%H%M%S")
+
+
+def serialize_ics(events: list[dict[str, Any]], *, prodid: str = "-//Mission Control//Agenda//FR") -> str:
+    """Sérialise une liste d'événements en VCALENDAR (.ics).
+
+    Chaque event : dict avec `titre`, `debut` (datetime), `fin` (datetime|None),
+    et optionnellement `lieu`, `description`, `id`/`source_id`.
+    """
+    now = dt.datetime.utcnow()
+    lines: list[str] = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        f"PRODID:{prodid}",
+        "CALSCALE:GREGORIAN",
+    ]
+    for e in events:
+        debut = e.get("debut")
+        if not isinstance(debut, dt.datetime):
+            continue
+        fin = e.get("fin") if isinstance(e.get("fin"), dt.datetime) else debut + dt.timedelta(hours=1)
+        uid = str(e.get("source_id") or e.get("id") or f"{_fmt_dt(debut)}-{abs(hash(e.get('titre', ''))) % 100000}")
+        lines.append("BEGIN:VEVENT")
+        lines.append(f"UID:{uid}@mission-control")
+        lines.append(f"DTSTAMP:{_fmt_dt(now)}")
+        lines.append(f"DTSTART:{_fmt_dt(debut)}")
+        lines.append(f"DTEND:{_fmt_dt(fin)}")
+        lines.append(f"SUMMARY:{_ics_escape(e.get('titre', 'Sans titre'))}")
+        if e.get("lieu"):
+            lines.append(f"LOCATION:{_ics_escape(e['lieu'])}")
+        if e.get("description"):
+            lines.append(f"DESCRIPTION:{_ics_escape(e['description'])}")
+        lines.append("END:VEVENT")
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(lines) + "\r\n"

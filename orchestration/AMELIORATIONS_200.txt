@@ -129,8 +129,8 @@ G. MODULE AGENDA (83-92)
 88. [S](*) Catégories/couleurs d'événements + filtres.
 89. [M](**) Bloc de temps « focus » lié au module Études (sessions planifiées).
 90. [S](*) Vue « aujourd'hui » sur la page d'accueil (prochains événements).
-91. [S](**) Import .ics / export .ics.
-92. [M](**) Suggestion de créneaux libres (suggest_time) pour caser une tâche.
+91. [S](**) Import .ics / export .ics.   ← FINIS ✓ (import déjà présent : parse_ics + POST /agenda/import-ical ; ajout export : serialize_ics (VCALENDAR manuel, sans dépendance, échappement RFC5545) + GET /agenda/export-ical + bouton « ⬇ .ics » dans SemaineTab ; tests TDD)
+92. [M](**) Suggestion de créneaux libres (suggest_time) pour caser une tâche.   ← FINIS ✓ (déjà présent : slots.py free_slots (fusion d'intervalles occupés) + GET /agenda/slots + slots_libres dans /today ; affichés dans JourTab)
 
 --------------------------------------------------------------------------------
 H. MODULE ÉTUDES (93-102)
