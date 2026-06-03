@@ -112,3 +112,13 @@ class Position(SQLModel, table=True):
     pmu: Optional[float] = None  # prix moyen unitaire
     devise: str = "EUR"
     updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+
+
+class FinanceSettings(SQLModel, table=True):
+    """Paramètres Finance éditables (mono-ligne) : taux de taxe estimés, devise."""
+    __tablename__ = "finance_settings"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    taux_plus_value_pct: float = 25.0
+    taux_dividende_pct: float = 15.0
+    devise_affichage: str = "EUR"
+    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)

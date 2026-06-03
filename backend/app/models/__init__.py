@@ -12,6 +12,7 @@ from app.models.etudes import Cours, Evaluation, SessionEtude  # noqa: F401
 from app.models.finance import (  # noqa: F401
     BuffettRun,
     BuffettRunResult,
+    FinanceSettings,
     Position,
     SnapshotPortefeuille,
     Transaction,

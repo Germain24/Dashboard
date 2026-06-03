@@ -39,6 +39,19 @@ def get_tax_params(session) -> dict:
     return dict(DEFAULT_TAXE)
 
 
+def get_or_create_settings(session):
+    """Retourne la ligne FinanceSettings (créée avec les défauts si absente)."""
+    from app.models.finance import FinanceSettings
+    from sqlmodel import select
+    s = session.exec(select(FinanceSettings)).first()
+    if not s:
+        s = FinanceSettings()
+        session.add(s)
+        session.commit()
+        session.refresh(s)
+    return s
+
+
 def get_portfolio_state(session) -> dict:
     """État dérivé complet (caché ; invalidé à l'écriture)."""
     cached = _state_cache.get("state")

@@ -54,6 +54,46 @@ def cash(session: Session = Depends(get_session)):
     return {"cash_par_broker": st["cash_par_broker"], "cash_total": st["cash_total"]}
 
 
+@router.get("/tax")
+def tax(session: Session = Depends(get_session)):
+    """Détail des taxes estimées (plus-value réalisée + dividendes) au taux configuré."""
+    from app.services.finance.portfolio_state import get_portfolio_state
+    return get_portfolio_state(session)["taxes"]
+
+
+@router.get("/settings")
+def get_settings(session: Session = Depends(get_session)):
+    """Paramètres Finance (taux de taxe estimés, devise)."""
+    from app.services.finance.portfolio_state import get_or_create_settings
+    s = get_or_create_settings(session)
+    return {
+        "taux_plus_value_pct": s.taux_plus_value_pct,
+        "taux_dividende_pct": s.taux_dividende_pct,
+        "devise_affichage": s.devise_affichage,
+    }
+
+
+@router.patch("/settings")
+def patch_settings(body: dict, session: Session = Depends(get_session)):
+    """Met à jour les taux de taxe / la devise d'affichage."""
+    import datetime as _dt
+    from app.services.finance.portfolio_state import get_or_create_settings, invalidate_state
+    s = get_or_create_settings(session)
+    for k in ("taux_plus_value_pct", "taux_dividende_pct", "devise_affichage"):
+        if k in body and body[k] is not None:
+            setattr(s, k, body[k])
+    s.updated_at = _dt.datetime.utcnow()
+    session.add(s)
+    session.commit()
+    session.refresh(s)
+    invalidate_state()  # les taxes dépendent des taux
+    return {
+        "taux_plus_value_pct": s.taux_plus_value_pct,
+        "taux_dividende_pct": s.taux_dividende_pct,
+        "devise_affichage": s.devise_affichage,
+    }
+
+
 @router.get("/projection")
 def projection(
     initial: float = 0,
