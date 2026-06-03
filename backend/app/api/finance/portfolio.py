@@ -12,7 +12,7 @@ from app.api.schemas_finance import (
     PositionCreate, PositionIdOut,
 )
 from app.services.finance.snapshots import get_latest_snapshot, get_history, take_snapshot_now
-from app.services.finance.portfolio import get_positions, get_perf_metrics
+from app.services.finance.portfolio import get_positions, get_perf_metrics, get_title_detail
 
 router = APIRouter()
 
@@ -31,6 +31,12 @@ def portfolio(session: Session = Depends(get_session)):
 def portfolio_perf(session: Session = Depends(get_session)):
     m = get_perf_metrics(session)
     return PerfMetricsOut(**m) if m else PerfMetricsOut()
+
+
+@router.get("/titre/{ticker}")
+def titre_detail(ticker: str, session: Session = Depends(get_session)):
+    """Vue détaillée d'un titre : cours, P/E, score Buffett, poids, performance."""
+    return get_title_detail(session, ticker)
 
 
 @router.get("/snapshot/latest", response_model=Optional[SnapshotOut])

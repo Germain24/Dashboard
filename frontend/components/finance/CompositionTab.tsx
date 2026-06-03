@@ -5,6 +5,7 @@ import { financeApi, type PositionOut, type TreemapNode } from "@/lib/finance";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { TitreDetailModal } from "./TitreDetailModal";
 
 type GroupBy = "secteur" | "pays" | "devise";
 
@@ -62,6 +63,7 @@ export function CompositionTab() {
   const [groupBy, setGroupBy] = useState<GroupBy>("secteur");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [detailTicker, setDetailTicker] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -120,7 +122,12 @@ export function CompositionTab() {
             </thead>
             <tbody>
               {positions.map(p => (
-                <tr key={`${p.ticker}-${p.broker ?? ""}`} className="border-b border-[var(--border)] hover:bg-[var(--muted)]">
+                <tr
+                  key={`${p.ticker}-${p.broker ?? ""}`}
+                  onClick={() => setDetailTicker(p.ticker)}
+                  className="border-b border-[var(--border)] hover:bg-[var(--muted)] cursor-pointer"
+                  title={`Détail ${p.ticker}`}
+                >
                   <td className="py-1.5 pr-3 font-mono text-xs">{p.ticker}</td>
                   <td className="py-1.5 pr-3 text-xs text-[var(--muted-foreground)]">{p.broker ?? "—"}</td>
                   <td className="py-1.5 pr-3 text-right">{fmt(p.quantite)}</td>
@@ -134,6 +141,9 @@ export function CompositionTab() {
           </table>
         </div>
       </div>
+      {detailTicker && (
+        <TitreDetailModal ticker={detailTicker} onClose={() => setDetailTicker(null)} />
+      )}
     </div>
   );
 }

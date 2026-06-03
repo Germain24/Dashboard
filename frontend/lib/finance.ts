@@ -29,6 +29,22 @@ export interface PositionOut {
   pl_pct: number;
 }
 
+export interface TitreDetail {
+  ticker: string;
+  nom: string | null;
+  secteur: string | null;
+  pays: string | null;
+  prix: number;
+  per: number | null;
+  score_buffett: number | null;
+  quantite: number;
+  pmu: number;
+  valeur: number;
+  poids_pct: number;
+  pl_pct: number;
+  detenu: boolean;
+}
+
 export interface PositionManuelle {
   id: number;
   ticker: string;
@@ -182,6 +198,7 @@ export const financeApi = {
   // Portfolio
   portfolio: () => get<PositionOut[]>("/portfolio"),
   perf: () => get<PerfMetrics>("/portfolio/perf"),
+  titreDetail: (ticker: string) => get<TitreDetail>(`/titre/${encodeURIComponent(ticker)}`),
 
   // Positions manuelles
   positionsList: () => get<PositionManuelle[]>("/positions/list"),

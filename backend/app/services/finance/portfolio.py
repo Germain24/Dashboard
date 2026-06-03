@@ -11,19 +11,19 @@ from app.models.finance import Position, SnapshotPortefeuille, Transaction
 
 
 def get_positions(session: Session) -> list[dict]:
-    """Retourne les positions enrichies (prix courant + P&L latent via yfinance)."""
+    """Retourne les positions enrichies (prix courant + P&L latent).
+
+    Les cours passent par le cache quotidien (app.services.finance.prices) : un
+    seul appel groupé par jour au lieu d'une requête yfinance par position.
+    """
     positions = list(session.exec(select(Position)).all())
     if not positions:
         return []
+    from app.services.finance.prices import get_prices
+    cours = get_prices([pos.ticker for pos in positions])
     result = []
     for pos in positions:
-        prix_actuel = 0.0
-        try:
-            import yfinance as yf
-            info = yf.Ticker(pos.ticker).fast_info
-            prix_actuel = float(info.get("last_price", 0) or 0)
-        except Exception:
-            pass
+        prix_actuel = float(cours.get(pos.ticker, 0) or 0)
         valeur_actuelle = prix_actuel * pos.quantite
         pmu = pos.pmu or 0.0
         pl_latent = (prix_actuel - pmu) * pos.quantite if pmu else 0.0
@@ -40,6 +40,48 @@ def get_positions(session: Session) -> list[dict]:
             "pl_pct": pl_pct,
         })
     return result
+
+
+def get_title_detail(session: Session, ticker: str) -> dict:
+    """Détail consolidé d'un titre : cours, P/E, score Buffett, poids, performance.
+
+    Agrège les positions (tous brokers) + le dernier résultat Buffett du ticker.
+    Fonctionne même si le titre n'est pas détenu (vue analyse).
+    """
+    ticker = ticker.upper().strip()
+    positions = [p for p in session.exec(select(Position)).all() if p.ticker.upper() == ticker]
+    qte = sum(p.quantite for p in positions)
+    cost = sum((p.pmu or 0) * p.quantite for p in positions)
+    pmu = cost / qte if qte > 0 else 0.0
+
+    from app.services.finance.prices import get_prices
+    prix = float(get_prices([ticker]).get(ticker, 0) or 0)
+    valeur = prix * qte
+    pl_pct = ((prix / pmu) - 1) * 100 if pmu > 0 else 0.0
+
+    total = sum(p["valeur_actuelle"] for p in get_positions(session))
+    poids_pct = (valeur / total * 100) if total > 0 else 0.0
+
+    from app.models.finance import BuffettRunResult
+    br = session.exec(
+        select(BuffettRunResult).where(BuffettRunResult.ticker == ticker)
+    ).first()
+
+    return {
+        "ticker": ticker,
+        "nom": br.nom if br else None,
+        "secteur": br.secteur if br else None,
+        "pays": br.pays if br else None,
+        "prix": round(prix, 2),
+        "per": round(br.per, 2) if br and br.per else None,
+        "score_buffett": round(br.chance_moat, 2) if br and br.chance_moat is not None else None,
+        "quantite": qte,
+        "pmu": round(pmu, 2),
+        "valeur": round(valeur, 2),
+        "poids_pct": round(poids_pct, 2),
+        "pl_pct": round(pl_pct, 2),
+        "detenu": qte > 0,
+    }
 
 
 def rebuild_positions_from_transactions(session: Session) -> list[Position]:
