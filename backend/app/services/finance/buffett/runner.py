@@ -6,10 +6,14 @@ Flow exact (conforme au diagramme + regles utilisateur) :
     1. Charger donnees locales
     2. Si ETF (peu importe l'age) -> Score=200, Achat=True
     3. Si non-ETF ET trop frais (< MIN_AGE_YEARS) -> skip
-    4. Telecharger yfinance si necessaire
+    4. Telecharger yfinance si necessaire. Si internet est coupe -> attendre
+       puis retenter LE MEME ticker (jamais le suivant) ; si yfinance echoue
+       alors qu'internet est present -> garder le ticker pour un prochain run.
     5. Re-verifier si ETF apres download -> Score=200
-    6. Si non-ETF ET age > MAX_AGE_YEARS -> supprimer fichier + tickers.csv
-    7. Scorer normalement
+    6. Supprimer fichier + tickers.csv UNIQUEMENT si yfinance a repondu avec
+       des financials VIDES (action delistee / invalide). JAMAIS sur l'age,
+       JAMAIS sur une coupure reseau.
+    7. Scorer normalement (persistance immediate, un ticker a la fois)
   Optimisation DE sur les eligibles.
 """
 
