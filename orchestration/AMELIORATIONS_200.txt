@@ -126,7 +126,7 @@ G. MODULE AGENDA (83-92)
 85. [S](**) Rappels avec notifications (lien module notifications/scheduler).
 86. [S](*) Événements récurrents (RRULE).
 87. [M](**) Détection de conflits d'horaire à la création.   ← FINIS ✓ (conflicts.py : overlaps + find_conflicts (fin manquante = 1h, ignore_id pour l'édition) ; GET /agenda/events/conflicts ; indicateur visuel + bannière de chevauchement dans SemaineTab (overlappingKeys) ; tests TDD)
-88. [S](*) Catégories/couleurs d'événements + filtres.
+88. [S](*) Catégories/couleurs d'événements + filtres.   ← FINIS ✓ (catégorie/couleur déjà sur le modèle + CATEGORIE_COLORS/couleurFor ; ajout de chips de filtre par catégorie (= légende cliquable) dans SemaineTab, masquage par catégorie répercuté sur l'affichage et la détection de conflits)
 89. [M](**) Bloc de temps « focus » lié au module Études (sessions planifiées).
 90. [S](*) Vue « aujourd'hui » sur la page d'accueil (prochains événements).
 91. [S](**) Import .ics / export .ics.   ← FINIS ✓ (import déjà présent : parse_ics + POST /agenda/import-ical ; ajout export : serialize_ics (VCALENDAR manuel, sans dépendance, échappement RFC5545) + GET /agenda/export-ical + bouton « ⬇ .ics » dans SemaineTab ; tests TDD)

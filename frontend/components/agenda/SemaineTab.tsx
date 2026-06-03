@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Evenement } from "@/lib/agenda";
-import { couleurFor, fetchEvents, formatHeure, overlappingKeys, exportIcsUrl } from "@/lib/agenda";
+import { couleurFor, fetchEvents, formatHeure, overlappingKeys, exportIcsUrl, CATEGORIE_COLORS } from "@/lib/agenda";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -33,6 +33,7 @@ export default function SemaineTab() {
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
   const [events, setEvents] = useState<Evenement[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -58,9 +59,21 @@ export default function SemaineTab() {
     setWeekStart((d) => { const n = new Date(d); n.setDate(d.getDate() + 7); return n; });
   }
 
+  const catOf = (ev: Evenement) => ev.categorie || "autre";
+  const presentCats = useMemo(
+    () => Array.from(new Set(events.map(catOf))).sort(),
+    [events],
+  );
+  const toggleCat = (c: string) =>
+    setHidden((h) => {
+      const n = new Set(h);
+      if (n.has(c)) n.delete(c); else n.add(c);
+      return n;
+    });
+
   function eventsForDay(date: Date): Evenement[] {
     const ds = isoDate(date);
-    return events.filter((ev) => ev.debut.startsWith(ds));
+    return events.filter((ev) => ev.debut.startsWith(ds) && !hidden.has(catOf(ev)));
   }
 
   // Conflits d'horaire (#87) : on calcule par jour pour ne pas croiser deux jours différents.
@@ -71,7 +84,7 @@ export default function SemaineTab() {
     }
     return set;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events]);
+  }, [events, hidden]);
   const keyOf = (e: Evenement) => (e.id != null ? String(e.id) : e.debut + "|" + e.titre);
 
   const today = isoDate(new Date());
@@ -103,6 +116,27 @@ export default function SemaineTab() {
           ⬇ .ics
         </a>
       </div>
+
+      {/* Filtres / légende par catégorie (#88) */}
+      {presentCats.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {presentCats.map((c) => {
+            const active = !hidden.has(c);
+            const color = CATEGORIE_COLORS[c] || "#6B7280";
+            return (
+              <button
+                key={c}
+                onClick={() => toggleCat(c)}
+                aria-pressed={active}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-opacity ${active ? "border-[var(--border)]" : "border-transparent opacity-40"}`}
+              >
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+                {c}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {loading && <Spinner size="sm" label="Chargement…" />}
 
