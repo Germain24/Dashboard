@@ -70,6 +70,8 @@ export interface PerfMetrics {
   pl_pct: number;
   max_drawdown_pct: number;
   ytd_pct: number;
+  twr_pct?: number;
+  twr_annualise_pct?: number;
   date_snapshot?: string;
 }
 

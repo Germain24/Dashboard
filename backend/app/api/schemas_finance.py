@@ -70,6 +70,8 @@ class PerfMetricsOut(BaseModel):
     pl_pct: float = 0.0
     max_drawdown_pct: float = 0.0
     ytd_pct: float = 0.0
+    twr_pct: float = 0.0
+    twr_annualise_pct: float = 0.0
     date_snapshot: Optional[str] = None
 
 

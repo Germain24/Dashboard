@@ -129,6 +129,38 @@ def rebuild_positions_from_transactions(session: Session) -> list[Position]:
     return new_positions
 
 
+def time_weighted_return(snaps: list[tuple]) -> dict:
+    """Rendement pondéré dans le temps (TWR) à partir des snapshots.
+
+    ``snaps`` : liste de tuples ``(date, valeur, investit)`` triés par date.
+    Le TWR retire l'effet des apports/retraits : pour chaque sous-période, le
+    facteur de rendement est ``(valeur_i - apport_i) / valeur_{i-1}`` où
+    ``apport_i = investit_i - investit_{i-1}``. On chaîne les facteurs puis on
+    annualise sur la durée totale.
+    """
+    if len(snaps) < 2:
+        return {"twr_pct": 0.0, "twr_annualise_pct": 0.0, "n_jours": 0}
+
+    factor = 1.0
+    for (_, v_prev, inv_prev), (_, v_cur, inv_cur) in zip(snaps, snaps[1:]):
+        if v_prev <= 0:
+            continue
+        apport = inv_cur - inv_prev
+        factor *= (v_cur - apport) / v_prev
+
+    twr_pct = (factor - 1) * 100
+    n_jours = (snaps[-1][0] - snaps[0][0]).days
+    if n_jours > 0 and factor > 0:
+        twr_annualise = (factor ** (365.25 / n_jours) - 1) * 100
+    else:
+        twr_annualise = twr_pct
+    return {
+        "twr_pct": round(twr_pct, 2),
+        "twr_annualise_pct": round(twr_annualise, 2),
+        "n_jours": n_jours,
+    }
+
+
 def get_perf_metrics(session: Session) -> dict:
     """Métriques de performance depuis l'historique des snapshots."""
     snaps = list(session.exec(
@@ -152,6 +184,9 @@ def get_perf_metrics(session: Session) -> dict:
     snap_debut = next((s for s in snaps if s.date >= debut_annee), snaps[0])
     ytd = ((valeur / snap_debut.valeur) - 1) * 100 if snap_debut.valeur > 0 else 0.0
 
+    # Rendement pondéré dans le temps (retire l'effet des apports)
+    twr = time_weighted_return([(s.date, s.valeur, s.investit) for s in snaps])
+
     return {
         "valeur": valeur,
         "investit": investit,
@@ -159,5 +194,7 @@ def get_perf_metrics(session: Session) -> dict:
         "pl_pct": round(pl_pct, 2),
         "max_drawdown_pct": round(mdd, 2),
         "ytd_pct": round(ytd, 2),
+        "twr_pct": twr["twr_pct"],
+        "twr_annualise_pct": twr["twr_annualise_pct"],
         "date_snapshot": latest.date.isoformat(),
     }
