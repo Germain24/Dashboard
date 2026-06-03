@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { type PlanItem } from "@/lib/sante";
+import { useEffect, useMemo, useState } from "react";
+import { santeApi, type PlanItem } from "@/lib/sante";
 
 type Props = {
   open: boolean;
@@ -24,6 +24,20 @@ export function ConsoDrawer({ open, onClose, planItems, initialConsumed, onSave 
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // Favoris (#64) + lignes ajoutées hors plan
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [catalog, setCatalog] = useState<string[]>([]);
+  const [extra, setExtra] = useState<string[]>([]);
+  const [picker, setPicker] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    santeApi.listFavorites().then(setFavorites).catch(() => {});
+    santeApi.listAliments().then((al) => setCatalog(al.map((a) => a.nom))).catch(() => {});
+  }, [open]);
+
+  const planNames = useMemo(() => new Set(planItems.map((it) => it.aliment)), [planItems]);
+
   useEffect(() => {
     if (!open) return;
     const next: Record<string, number> = {};
@@ -43,14 +57,44 @@ export function ConsoDrawer({ open, onClose, planItems, initialConsumed, onSave 
         }
       }
     }
+    // Lignes hors plan déjà déclarées → on les garde visibles
+    const seededExtra: string[] = [];
+    if (initialConsumed) {
+      for (const k of Object.keys(initialConsumed)) {
+        if (k.endsWith("_g")) {
+          const aliment = k.slice(0, -2);
+          if (!planNames.has(aliment)) seededExtra.push(aliment);
+        }
+      }
+    }
+    setExtra(seededExtra);
     setGrams(next);
     setErr(null);
-  }, [open, planItems, initialConsumed]);
+  }, [open, planItems, initialConsumed, planNames]);
 
   if (!open) return null;
 
   const setQty = (aliment: string, qty: number) => {
     setGrams((g) => ({ ...g, [aliment]: Math.max(0, qty) }));
+  };
+
+  const addRow = (aliment: string) => {
+    if (!aliment) return;
+    if (!planNames.has(aliment) && !extra.includes(aliment)) {
+      setExtra((e) => [...e, aliment]);
+    }
+    setGrams((g) => ({ ...g, [aliment]: g[aliment] || 100 }));
+  };
+
+  const toggleFavorite = async (aliment: string) => {
+    try {
+      const next = favorites.includes(aliment)
+        ? await santeApi.removeFavorite(aliment)
+        : await santeApi.addFavorite(aliment);
+      setFavorites(next);
+    } catch {
+      /* toast global */
+    }
   };
 
   const handleSave = async () => {
@@ -102,9 +146,88 @@ export function ConsoDrawer({ open, onClose, planItems, initialConsumed, onSave 
           ))}
         </div>
 
-        {planItems.length === 0 && (
+        {/* Lignes hors plan (ajoutées via favoris / recherche) */}
+        {extra.length > 0 && (
+          <div className="mt-2 space-y-2 border-t border-[var(--border)] pt-2">
+            {extra.map((nom) => (
+              <div key={nom} className="flex items-center gap-2 text-sm">
+                <span className="flex-1 truncate" title={nom}>{nom}</span>
+                <button
+                  onClick={() => toggleFavorite(nom)}
+                  title={favorites.includes(nom) ? "Retirer des favoris" : "Ajouter aux favoris"}
+                  className="text-xs"
+                >
+                  {favorites.includes(nom) ? "⭐" : "☆"}
+                </button>
+                <input
+                  type="number"
+                  min={0}
+                  step={10}
+                  value={grams[nom] ?? 0}
+                  onChange={(e) => setQty(nom, parseFloat(e.target.value) || 0)}
+                  className="w-20 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm text-right"
+                />
+                <span className="text-xs">g</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {planItems.length === 0 && extra.length === 0 && (
           <div className="text-sm text-[var(--muted-foreground)]">Aucun item dans le plan.</div>
         )}
+
+        {/* Favoris — saisie rapide (#64) */}
+        <div className="mt-4 border-t border-[var(--border)] pt-3">
+          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-2">⭐ Favoris — saisie rapide</p>
+          {favorites.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {favorites.map((nom) => (
+                <button
+                  key={nom}
+                  onClick={() => addRow(nom)}
+                  title={`Ajouter ${nom}`}
+                  className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs hover:bg-[var(--muted)]"
+                >
+                  + {nom}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Aucun favori. Ajoute un aliment ci-dessous pour le retrouver vite.
+            </p>
+          )}
+          <div className="mt-2 flex gap-2">
+            <input
+              list="conso-catalog"
+              value={picker}
+              onChange={(e) => setPicker(e.target.value)}
+              placeholder="Chercher un aliment…"
+              className="flex-1 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm"
+            />
+            <datalist id="conso-catalog">
+              {catalog.map((nom) => (
+                <option key={nom} value={nom} />
+              ))}
+            </datalist>
+            <button
+              onClick={() => { if (catalog.includes(picker)) { addRow(picker); setPicker(""); } }}
+              disabled={!catalog.includes(picker)}
+              className="rounded border border-[var(--border)] px-2 py-1 text-xs hover:bg-[var(--muted)] disabled:opacity-50"
+            >
+              Ajouter
+            </button>
+            <button
+              onClick={() => { if (catalog.includes(picker)) toggleFavorite(picker); }}
+              disabled={!catalog.includes(picker)}
+              title="Ajouter/retirer des favoris"
+              className="rounded border border-[var(--border)] px-2 py-1 text-xs hover:bg-[var(--muted)] disabled:opacity-50"
+            >
+              {favorites.includes(picker) ? "⭐" : "☆"}
+            </button>
+          </div>
+        </div>
 
         {err && <div className="mt-3 text-sm text-[var(--destructive)]">⚠ {err}</div>}
 

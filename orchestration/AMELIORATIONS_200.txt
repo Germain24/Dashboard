@@ -90,7 +90,7 @@ E. MODULE SANTÉ (61-72)
 61. [M](**) Courbes de poids / mesures corporelles dans le temps avec moyenne mobile.   ← FINIS ✓ (TendanceTab : moyenne mobile 7j superposée à la courbe brute + régression + objectif)
 62. [M](**) Calcul automatique des macros cibles selon objectif (cut/maintien/bulk) et TDEE.   ← FINIS ✓ (déjà présent : targets.py/intensity.py — TDEE poids×32 + surplus/objectif + intensité par jour sport)
 63. [S](**) Journal alimentaire quotidien avec total calories/macros vs cible.   ← FINIS ✓ (déjà présent : JourTab + ConsoDrawer + totals.py + MacroBar vs cible)
-64. [S](*) Base d'aliments réutilisables (favoris) pour saisie rapide.   ← PARTIEL (base d'aliments réutilisable présente — aliments.py/CSV+DB ; favoris curatés = à ajouter)
+64. [S](*) Base d'aliments réutilisables (favoris) pour saisie rapide.   ← FINIS ✓ (favorites.py : store JSON local data/sante_favorites.json, validé contre le catalogue CSV ; GET/POST/DELETE /sante/favorites ; ConsoDrawer : section favoris (chips +saisie rapide), recherche catalogue (datalist) et étoile pour curer)
 65. [M](**) Score de qualité nutritionnelle hebdomadaire.   ← FINIS ✓ (quality.py pur : score_day vs cibles — atteinte protéines/fibres, proximité calories, pénalité limites *_Max — + weekly_nutrition_quality ; GET /sante/quality/weekly + NutritionQualityWidget dans JourTab ; tests TDD)
 66. [S](*) Rappel d'hydratation et suivi de l'eau.   ← FINIS ✓ (wellbeing add_water/get_water via MesureSante.extra + POST/GET /sante/water + WaterWidget dans JourTab ; tests TDD)
 67. [M](**) Intégration des séances d'entraînement pour ajuster les calories dépensées.   ← FINIS ✓ (l'intensité réelle pilotait déjà la cible via CONV 7 ; ajout de la dépense calorique mesurée : sante/workout.py burned_kcal_for_date -> entrainement kcal_for_date + GET /sante/workout-burn + WorkoutBurnWidget (dépensé + apport net) dans JourTab ; tests TDD)
@@ -99,6 +99,8 @@ E. MODULE SANTÉ (61-72)
 70. [M](**) Alerte si déficit/surplus calorique trop agressif sur 7 jours.   ← FINIS ✓ (energy.py : classify_balance + weekly_energy_balance (conso vs maintenance poids×32, seuils 750/1000 kcal/j) ; GET /sante/energy/balance + EnergyBalanceAlert (bandeau warning/alert) dans JourTab ; tests TDD)
 71. [S](*) Export du plan macros en image partageable.   ← FINIS ✓ (lib/exportMacrosImage.ts : rendu canvas PNG (barres macros conso/cible) + Web Share API avec repli téléchargement ; bouton « Partager mes macros » dans JourTab)
 72. [M](**) Génération auto d'un plan de repas respectant les macros (lien vers module Cuisine).   ← FINIS ✓ (déjà présent : /sante/plan/generate + optimizer.py respectant les macros cibles)
+
+>>> SECTION E (Santé, 61-72) TERMINÉE <<<
 
 --------------------------------------------------------------------------------
 F. MODULE GARDE-ROBE (73-82)

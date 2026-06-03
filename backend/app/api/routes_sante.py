@@ -255,6 +255,30 @@ def energy_balance(days: int = Query(7, ge=1, le=31), session: Session = Depends
     return weekly_energy_balance(session, days=days)
 
 
+@router.get("/favorites")
+def get_favorites():
+    """Liste des aliments favoris pour saisie rapide (#64)."""
+    from app.services.sante.favorites import list_favorites
+    return {"favorites": list_favorites()}
+
+
+@router.post("/favorites")
+def add_favorite_route(nom: str):
+    """Ajoute un aliment aux favoris."""
+    from app.services.sante.favorites import add_favorite
+    try:
+        return {"favorites": add_favorite(nom)}
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+
+
+@router.delete("/favorites")
+def remove_favorite_route(nom: str):
+    """Retire un aliment des favoris."""
+    from app.services.sante.favorites import remove_favorite
+    return {"favorites": remove_favorite(nom)}
+
+
 @router.get("/aliments", response_model=list[AlimentRead])
 def list_aliments(session: Session = Depends(get_session)):
     """Liste le catalogue d'aliments lu depuis data/imports/aliments.csv.

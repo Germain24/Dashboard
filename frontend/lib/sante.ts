@@ -184,6 +184,13 @@ export const santeApi = {
 
   listAliments: () => api<Aliment[]>(`/sante/aliments`),
 
+  // Favoris d'aliments — saisie rapide (#64)
+  listFavorites: () => api<{ favorites: string[] }>(`/sante/favorites`).then((r) => r.favorites),
+  addFavorite: (nom: string) =>
+    api<{ favorites: string[] }>(`/sante/favorites?nom=${encodeURIComponent(nom)}`, { method: "POST" }).then((r) => r.favorites),
+  removeFavorite: (nom: string) =>
+    api<{ favorites: string[] }>(`/sante/favorites?nom=${encodeURIComponent(nom)}`, { method: "DELETE" }).then((r) => r.favorites),
+
   // Hydratation (#66)
   waterToday: () => api<{ date: string; eau_ml: number; cible_ml: number; pct: number }>(`/sante/water/today`),
   addWater: (ml: number) =>
