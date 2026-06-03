@@ -114,6 +114,15 @@ export type ProjectionResponse = {
   trend_30d: WeightTrend | null;
 };
 
+export type WeeklyQuality = {
+  days: number;
+  score: number | null;
+  daily: { date: string; score: number; criteria: Record<string, number> }[];
+  criteria_avg?: Record<string, number>;
+  worst: string | null;
+  best: string | null;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Endpoints
 // ─────────────────────────────────────────────────────────────────────────────
@@ -155,6 +164,10 @@ export const santeApi = {
       `/sante/sleep?heures=${heures}${qualite != null ? `&qualite=${qualite}` : ""}`, { method: "POST" }),
   sleepSummary: (days = 30) =>
     api<{ n: number; correlation: number | null; sommeil_moyen_h: number | null }>(`/sante/sleep/summary?days=${days}`),
+
+  // Qualité nutritionnelle hebdo (#65)
+  weeklyQuality: (days = 7) =>
+    api<WeeklyQuality>(`/sante/quality/weekly?days=${days}`),
 
   getGoal: () => api<NutritionGoal>(`/sante/goal`),
   updateGoal: (payload: NutritionGoalUpdate) =>

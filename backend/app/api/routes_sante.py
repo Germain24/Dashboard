@@ -210,6 +210,13 @@ def sleep_summary(days: int = 30, session: Session = Depends(get_session)):
     return sleep_weight_summary(session, days)
 
 
+@router.get("/quality/weekly")
+def quality_weekly(days: int = Query(7, ge=1, le=31), session: Session = Depends(get_session)):
+    """Score de qualité nutritionnelle sur la fenêtre glissante (#65)."""
+    from app.services.sante.quality import weekly_nutrition_quality
+    return weekly_nutrition_quality(session, days=days)
+
+
 @router.get("/aliments", response_model=list[AlimentRead])
 def list_aliments(session: Session = Depends(get_session)):
     """Liste le catalogue d'aliments lu depuis data/imports/aliments.csv.

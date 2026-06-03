@@ -13,6 +13,7 @@ import { MacroBar } from "./MacroBar";
 import { ConsoDrawer } from "./ConsoDrawer";
 import { WaterWidget } from "./WaterWidget";
 import { SleepWidget } from "./SleepWidget";
+import { NutritionQualityWidget } from "./NutritionQualityWidget";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -126,6 +127,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
         <WaterWidget />
         <SleepWidget />
       </div>
+      <NutritionQualityWidget />
       {/* Bandeau état */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 flex flex-wrap items-center gap-3 text-sm card-hover">
         <span className="font-medium">{new Date(plan.date).toLocaleDateString("fr-CA")}</span>
