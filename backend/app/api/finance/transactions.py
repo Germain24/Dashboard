@@ -55,7 +55,7 @@ def transactions_create(body: TransactionCreate,
                         session: Session = Depends(get_session)):
     data = {
         "ticker": body.ticker.upper(),
-        "type": body.type_transaction,
+        "type": body.type_transaction.lower(),  # normalisé (casse front incohérente)
         "date": dt.datetime.combine(body.date_transaction, dt.time.min),
         "quantite": body.quantite,
         "prix_unitaire": body.prix_unitaire,

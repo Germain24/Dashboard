@@ -77,12 +77,26 @@ def create_transaction(session: Session, data: dict) -> Transaction:
     # Passe par le repository (cf. app/repositories/finance.py) pour découpler
     # le service de la persistance SQLModel.
     from app.repositories.finance import TransactionRepository
-    return TransactionRepository(session).create(data)
+    tx = TransactionRepository(session).create(data)
+    _invalidate_state()
+    return tx
 
 
 def delete_transaction(session: Session, tx_id: int) -> bool:
     from app.repositories.finance import TransactionRepository
-    return TransactionRepository(session).delete_by_id(tx_id)
+    ok = TransactionRepository(session).delete_by_id(tx_id)
+    if ok:
+        _invalidate_state()
+    return ok
+
+
+def _invalidate_state() -> None:
+    """Invalide l'état dérivé du portefeuille après écriture (best-effort)."""
+    try:
+        from app.services.finance.portfolio_state import invalidate_state
+        invalidate_state()
+    except Exception:
+        pass
 
 
 # ── Parseurs CSV broker ────────────────────────────────────────────────────
@@ -185,4 +199,6 @@ def import_csv(session: Session, content: str, broker_hint: str = "auto") -> dic
             errors.append(f"Ligne {i+2}: {e}")
             skipped += 1
 
+    if imported:
+        _invalidate_state()
     return {"imported": imported, "skipped": skipped, "errors": errors}

@@ -119,7 +119,7 @@ class TreemapNodeOut(BaseModel):
 
 class TransactionCreate(BaseModel):
     ticker: str
-    type_transaction: str = Field(..., pattern="^(achat|vente|dividende|frais)$")
+    type_transaction: str = Field(..., pattern="^(?i:(achat|vente|dividende|frais|depot|retrait))$")
     date_transaction: dt.date
     quantite: float
     prix_unitaire: float

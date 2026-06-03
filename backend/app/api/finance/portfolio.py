@@ -39,6 +39,21 @@ def titre_detail(ticker: str, session: Session = Depends(get_session)):
     return get_title_detail(session, ticker)
 
 
+@router.get("/state")
+def portfolio_state(session: Session = Depends(get_session)):
+    """État dérivé complet du portefeuille (positions, cash, P&L réalisé/latent, taxes)."""
+    from app.services.finance.portfolio_state import get_portfolio_state
+    return get_portfolio_state(session)
+
+
+@router.get("/cash")
+def cash(session: Session = Depends(get_session)):
+    """Liquidités par broker + total, dérivées des dépôts/retraits/mouvements."""
+    from app.services.finance.portfolio_state import get_portfolio_state
+    st = get_portfolio_state(session)
+    return {"cash_par_broker": st["cash_par_broker"], "cash_total": st["cash_total"]}
+
+
 @router.get("/projection")
 def projection(
     initial: float = 0,

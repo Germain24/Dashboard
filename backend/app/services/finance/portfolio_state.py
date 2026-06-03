@@ -8,7 +8,57 @@ dividendes, allocation (cash inclus) et taxes estimées. Sans DB ni réseau.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any
+
+from app.core.cache import TTLCache
+
+# Cache de l'état dérivé, invalidé explicitement à chaque écriture de transaction.
+_state_cache = TTLCache(ttl_seconds=300.0)
+
+# Paramètres de taxe par défaut (remplacés par FinanceSettings en phase 3).
+DEFAULT_TAXE = {"taux_plus_value_pct": 25.0, "taux_dividende_pct": 15.0}
+
+
+def invalidate_state() -> None:
+    """À appeler après toute création/modif/suppression de transaction."""
+    _state_cache.clear()
+
+
+def get_tax_params(session) -> dict:
+    """Paramètres de taxe courants (FinanceSettings si présent, sinon défauts)."""
+    try:
+        from app.models.finance import FinanceSettings  # type: ignore
+        from sqlmodel import select
+        s = session.exec(select(FinanceSettings)).first()
+        if s:
+            return {
+                "taux_plus_value_pct": s.taux_plus_value_pct,
+                "taux_dividende_pct": s.taux_dividende_pct,
+            }
+    except Exception:
+        pass
+    return dict(DEFAULT_TAXE)
+
+
+def get_portfolio_state(session) -> dict:
+    """État dérivé complet (caché ; invalidé à l'écriture)."""
+    cached = _state_cache.get("state")
+    if cached is not None:
+        return cached
+
+    from sqlmodel import select
+    from app.models.finance import Transaction
+    from app.services.finance.prices import get_prices
+
+    txs = list(session.exec(select(Transaction)).all())
+    tickers = {
+        (t.ticker or "").upper()
+        for t in txs
+        if t.type in ("achat", "vente", "dividende") and t.ticker and t.ticker.upper() != "CASH"
+    }
+    prix = get_prices(list(tickers)) if tickers else {}
+    state = compute_portfolio_state(txs, prix, get_tax_params(session))
+    _state_cache.set("state", state)
+    return state
 
 
 def _montant(t) -> float:
