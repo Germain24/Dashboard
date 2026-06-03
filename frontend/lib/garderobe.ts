@@ -110,6 +110,8 @@ export type StatsResponse = {
   a_laver: Vetement[];
   hs: Vetement[];
   color_ratio: { Neutre: number; Secondaire: number; Accent: number };
+  valeur_estimee: number;
+  valeur_count: number;
 };
 
 export type Recommendation = {

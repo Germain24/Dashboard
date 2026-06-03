@@ -412,6 +412,15 @@ def stats(session: Session = Depends(get_session)) -> StatsResponse:
     a_laver_rows = [_vetement_to_read(v) for v in rows if needs_wash(_vetement_to_dict(v))]
     hs_rows = [_vetement_to_read(v) for v in rows if is_worn_out(_vetement_to_dict(v))]
 
+    # Valeur estimée : somme des prix renseignés dans extra.prix (#80)
+    valeur = 0.0
+    valeur_count = 0
+    for it in items:
+        prix = (it.get("extra") or {}).get("prix")
+        if isinstance(prix, (int, float)) and prix > 0:
+            valeur += float(prix)
+            valeur_count += 1
+
     return StatsResponse(
         total=total,
         par_categorie=_count("categorie"),
@@ -420,6 +429,8 @@ def stats(session: Session = Depends(get_session)) -> StatsResponse:
         a_laver=a_laver_rows,
         hs=hs_rows,
         color_ratio=color_ratio,
+        valeur_estimee=round(valeur, 2),
+        valeur_count=valeur_count,
     )
 
 

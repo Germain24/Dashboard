@@ -180,6 +180,8 @@ class StatsResponse(BaseModel):
     a_laver: list[VetementRead]
     hs: list[VetementRead]
     color_ratio: dict[str, float]   # {Neutre: 0.6, Secondaire: 0.3, Accent: 0.1}
+    valeur_estimee: float = 0.0     # somme des prix connus (extra.prix), #80
+    valeur_count: int = 0           # nb de pièces avec un prix renseigné
 
 
 # ─────────────────────────────────────────────────────────────────────────────

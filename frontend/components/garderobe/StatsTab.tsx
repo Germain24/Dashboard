@@ -13,6 +13,15 @@ export function StatsTab({ stats }: { stats: StatsResponse }) {
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <StatCard label="Pièces" value={String(stats.total)} />
+        <StatCard
+          label="Valeur estimée"
+          value={`${stats.valeur_estimee.toLocaleString("fr-CA", { maximumFractionDigits: 0 })} $`}
+          hint={stats.valeur_count < stats.total ? `${stats.valeur_count}/${stats.total} avec prix` : undefined}
+        />
+        <StatCard label="À laver" value={String(stats.a_laver.length)} />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Section title="Par catégorie" entries={stats.par_categorie} />
         <Section title="Par couleur" entries={stats.par_couleur} />
@@ -86,6 +95,16 @@ function WearChip({ v, showCount }: { v: Vetement; showCount?: boolean }) {
       <span className="max-w-[10rem] truncate">{v.nom}</span>
       {showCount && <span className="text-[var(--muted-foreground)] tabular-nums">{v.portes}×</span>}
     </span>
+  );
+}
+
+function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-3">
+      <div className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">{label}</div>
+      <div className="text-lg font-semibold tabular-nums">{value}</div>
+      {hint && <div className="text-[10px] text-[var(--muted-foreground)]">{hint}</div>}
+    </div>
   );
 }
 
