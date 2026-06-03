@@ -1,6 +1,7 @@
 import { HealthBadge } from "@/components/HealthBadge";
 import { Greeting } from "@/components/Greeting";
 import { SortableModules } from "@/components/SortableModules";
+import { TodayAgenda } from "@/components/TodayAgenda";
 import { MODULES } from "@/lib/modules";
 
 export default function HomePage() {
@@ -41,6 +42,8 @@ export default function HomePage() {
           </span>
         </div>
       </header>
+
+      <TodayAgenda />
 
       <section aria-label="Modules">
         <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-[var(--muted-foreground)]">
