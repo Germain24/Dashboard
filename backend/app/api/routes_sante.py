@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlmodel import Session, select
 
 from app.api.schemas_sante import (
@@ -208,6 +208,30 @@ def sleep_summary(days: int = 30, session: Session = Depends(get_session)):
     """Corrélation sommeil ↔ poids sur la période."""
     from app.services.sante.wellbeing import sleep_weight_summary
     return sleep_weight_summary(session, days)
+
+
+@router.post("/photo", response_model=MesureSanteRead)
+async def upload_progress_photo(
+    file: UploadFile = File(...),
+    date: dt.date | None = None,
+    session: Session = Depends(get_session),
+):
+    """Téléverse une photo de progression pour une date (#69)."""
+    from app.services.sante.photos import save_progress_photo
+
+    content = await file.read()
+    try:
+        m = save_progress_photo(session, date or dt.date.today(), file.filename or "photo.jpg", content)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+    return MesureSanteRead.model_validate(m)
+
+
+@router.get("/photos")
+def list_photos(session: Session = Depends(get_session)):
+    """Liste les mesures avec photo, triées par date (avant/après, #69)."""
+    from app.services.sante.photos import list_progress_photos
+    return list_progress_photos(session)
 
 
 @router.get("/workout-burn")

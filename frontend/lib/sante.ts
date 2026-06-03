@@ -123,6 +123,19 @@ export type WeeklyQuality = {
   best: string | null;
 };
 
+export type ProgressPhoto = {
+  date: string;
+  photo_url: string;
+  poids: number | null;
+};
+
+/** Préfixe une URL media relative (/media/sante/...) avec la base backend. */
+export function mediaUrl(path: string): string {
+  if (/^https?:\/\//.test(path)) return path;
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
+  return `${base}${path}`;
+}
+
 export type WorkoutBurn = {
   date: string;
   total_kcal: number;
@@ -180,6 +193,21 @@ export const santeApi = {
   // Calories dépensées en séance — intégration Entraînement (#67)
   workoutBurn: (date?: string) =>
     api<WorkoutBurn>(`/sante/workout-burn${date ? `?date=${date}` : ""}`),
+
+  // Photos de progression avant/après (#69)
+  listPhotos: () => api<ProgressPhoto[]>(`/sante/photos`),
+  uploadPhoto: (file: File, date?: string) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
+    return fetch(`${base}/sante/photo${date ? `?date=${date}` : ""}`, {
+      method: "POST",
+      body: fd,
+    }).then((r) => {
+      if (!r.ok) throw new Error(`Upload failed: ${r.status}`);
+      return r.json() as Promise<MesureSante>;
+    });
+  },
 
   getGoal: () => api<NutritionGoal>(`/sante/goal`),
   updateGoal: (payload: NutritionGoalUpdate) =>

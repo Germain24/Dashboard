@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Sun, TrendingUp, Activity, Target } from "lucide-react";
+import { Sun, TrendingUp, Activity, Target, Camera } from "lucide-react";
 import {
   santeApi,
   type MesureSante,
@@ -14,14 +14,16 @@ import { JourTab } from "./JourTab";
 import { TendanceTab } from "./TendanceTab";
 import { CompositionTab } from "./CompositionTab";
 import { GoalTab } from "./GoalTab";
+import { ProgressionTab } from "./ProgressionTab";
 import { MicrosDrawer } from "./MicrosDrawer";
 
-type Tab = "jour" | "tendance" | "composition" | "objectif";
+type Tab = "jour" | "tendance" | "composition" | "objectif" | "progression";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "jour", label: "Jour", Icon: Sun },
   { id: "tendance", label: "Tendance", Icon: TrendingUp },
   { id: "composition", label: "Composition", Icon: Activity },
+  { id: "progression", label: "Progression", Icon: Camera },
   { id: "objectif", label: "Objectif", Icon: Target },
 ];
 
@@ -162,6 +164,7 @@ export function Sante() {
         {tab === "composition" && (
           <CompositionTab mesures={mesures} onSave={onSaveMesure} />
         )}
+        {tab === "progression" && <ProgressionTab />}
         {tab === "objectif" && goal && (
           <GoalTab goal={goal} onSave={onSaveGoal} />
         )}

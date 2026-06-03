@@ -94,6 +94,18 @@ def create_app() -> FastAPI:
     # Montage racine conservé pour rétro-compatibilité (non documenté).
     app.include_router(api_router, include_in_schema=False)
     register_exception_handlers(app)
+
+    # Photos de progression Santé (#69) servies en local depuis data/sante_photos/.
+    try:
+        from fastapi.staticfiles import StaticFiles
+        from app.services.sante.photos import photos_dir
+
+        media = photos_dir()
+        media.mkdir(parents=True, exist_ok=True)
+        app.mount("/media/sante", StaticFiles(directory=str(media)), name="sante-photos")
+    except Exception:  # pragma: no cover — défensif (ne bloque pas le démarrage)
+        logging.getLogger(__name__).warning("Montage /media/sante indisponible", exc_info=True)
+
     return app
 
 
