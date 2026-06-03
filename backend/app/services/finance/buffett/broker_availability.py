@@ -89,6 +89,92 @@ def _match_broker_column(broker_name: str, columns) -> str | None:
     return best
 
 
+# Attribut BuffettRunResult -> colonne ToutBroker.xlsx. Seules les colonnes
+# déjà présentes dans le fichier sont écrites (on n'invente pas de colonnes).
+_RESULT_TO_BROKER_COL = {
+    "chance_moat": "Chance MOAT",
+    "achat": "Achat",
+    "nom": "Nom",
+    "pays": "Pays",
+    "secteur": "Secteur",
+    "prix": "Prix",
+    "eps": "EPS",
+    "per": "PER",
+    "croissance": "Croissance",
+    "peg": "PEG",
+    "volume": "Volume",
+}
+
+
+def update_broker_file_scores(rows, path: str | None = None,
+                              ticker_col: str = "Ticker Yahoo Finance") -> int:
+    """Écrit les scores/indicateurs de l'analyse dans ToutBroker.xlsx (upsert par ticker).
+
+    ``rows`` : itérable d'objets type ``BuffettRunResult`` (attributs ``ticker``,
+    ``chance_moat``, ``achat``, ``nom``, ``pays``, ``secteur``, ``prix``, ``eps``,
+    ``per``, ``croissance``, ``peg``, ``volume``).
+
+    - Ticker déjà présent -> met à jour ses cellules (Chance MOAT, Achat, indicateurs).
+    - Ticker absent -> ajoute une nouvelle ligne.
+    - Les autres colonnes (disponibilité broker incluse) sont **préservées**.
+
+    Retourne le nombre de tickers traités. Sans fichier -> 0 (aucune écriture).
+    """
+    path = path or find_broker_file()
+    if not path:
+        return 0
+    try:
+        import pandas as pd
+
+        df = pd.read_excel(path)
+        tcol = _find_ticker_col(df.columns, ticker_col) or ticker_col
+        if tcol not in df.columns:
+            return 0
+
+        # Colonnes du fichier qu'on sait remplir.
+        writable = {attr: col for attr, col in _RESULT_TO_BROKER_COL.items() if col in df.columns}
+
+        # Excel relit souvent les colonnes "entières" (8.0, 12.0…) en int64 ;
+        # passer en object évite un rejet de dtype lors de l'écriture d'un float.
+        for col in set(writable.values()):
+            df[col] = df[col].astype(object)
+
+        # Index ticker (nettoyé) -> position de ligne (première occurrence).
+        index: dict[str, int] = {}
+        for i, k in df[tcol].astype(str).str.strip().items():
+            index.setdefault(k, i)
+
+        new_rows: list[dict] = []
+        n = 0
+        for r in rows:
+            tk = str(getattr(r, "ticker", "") or "").strip()
+            if not tk:
+                continue
+            payload = {}
+            for attr, col in writable.items():
+                val = getattr(r, attr, None)
+                if attr == "achat":
+                    val = bool(val)
+                payload[col] = val
+            if tk in index:
+                for col, val in payload.items():
+                    df.at[index[tk], col] = val
+            else:
+                row = {tcol: tk}
+                row.update(payload)
+                new_rows.append(row)
+            n += 1
+
+        if new_rows:
+            df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
+
+        df.to_excel(path, index=False)
+        return n
+    except Exception as e:
+        print(f"[broker_availability] Écriture scores ToutBroker: {e}")
+        return 0
+
+
 def merge_broker_columns(df_m, ticker_col: str = "Ticker Yahoo Finance"):
     """Ajoute à ``df_m`` une colonne de disponibilité par broker de Config.BUDGET_BROKERS,
     renommée exactement comme la clé Config pour que l'optimiseur la retrouve.

@@ -369,6 +369,22 @@ def run_buffett_analysis(
         except Exception as e:
             print(f"[runner] Rechargement DB: {e}")
 
+    # Reporter les scores/indicateurs dans ToutBroker.xlsx (upsert par ticker,
+    # disponibilite broker preservee). Une fois, mono-thread, jamais bloquant.
+    if run_id is not None:
+        try:
+            from .broker_availability import update_broker_file_scores
+            from app.models.finance import BuffettRunResult
+            from sqlmodel import select as _sel_b
+            with session_factory() as session:
+                bres = list(session.exec(
+                    _sel_b(BuffettRunResult).where(BuffettRunResult.run_id == run_id)
+                ).all())
+            n_written = update_broker_file_scores(bres)
+            print(f"[runner] {n_written} scores ecrits dans ToutBroker.xlsx")
+        except Exception as e:
+            print(f"[runner] Ecriture ToutBroker: {e}")
+
     # Optimisation DE
     try:
         from .dedup import deduplicate_tickers
