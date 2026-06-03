@@ -13,9 +13,31 @@ from app.models.finance import Position, SnapshotPortefeuille, Transaction
 def get_positions(session: Session) -> list[dict]:
     """Retourne les positions enrichies (prix courant + P&L latent).
 
-    Les cours passent par le cache quotidien (app.services.finance.prices) : un
-    seul appel groupé par jour au lieu d'une requête yfinance par position.
+    S'il existe des transactions, les positions sont **dérivées automatiquement**
+    du ledger (app.services.finance.portfolio_state) — l'utilisateur ne saisit
+    que ses mouvements. Sinon, fallback sur la table Position (saisie manuelle).
+    Les cours passent par le cache quotidien (un seul appel groupé par jour).
     """
+    from app.models.finance import Transaction
+    has_tx = session.exec(select(Transaction).limit(1)).first() is not None
+    if has_tx:
+        from app.services.finance.portfolio_state import get_portfolio_state
+        st = get_portfolio_state(session)
+        return [
+            {
+                "ticker": p["ticker"],
+                "broker": p["broker"],
+                "quantite": p["quantite"],
+                "pmu": p["acb"],
+                "devise": "EUR",
+                "prix_actuel": p["prix"],
+                "valeur_actuelle": p["valeur"],
+                "pl_latent": p["pl_latent"],
+                "pl_pct": p["pl_pct"],
+            }
+            for p in st["positions"]
+        ]
+
     positions = list(session.exec(select(Position)).all())
     if not positions:
         return []

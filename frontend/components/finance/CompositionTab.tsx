@@ -66,8 +66,8 @@ export function CompositionTab() {
   const [detailTicker, setDetailTicker] = useState<string | null>(null);
   const [divers, setDivers] = useState<{ secteurs: { secteur: string; poids_pct: number; surpondere: boolean }[]; n_surponderes: number; seuil_pct: number } | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
-  const [quick, setQuick] = useState<{ ticker: string; type: "ACHAT" | "VENTE"; quantite: number; prix: number }>(
-    { ticker: "", type: "ACHAT", quantite: 0, prix: 0 },
+  const [quick, setQuick] = useState<{ ticker: string; type: "achat" | "vente"; quantite: number; prix: number }>(
+    { ticker: "", type: "achat", quantite: 0, prix: 0 },
   );
   const [quickSaving, setQuickSaving] = useState(false);
 
@@ -84,7 +84,7 @@ export function CompositionTab() {
         devise: "EUR",
       };
       await financeApi.createTransaction(tx);
-      setQuick({ ticker: "", type: "ACHAT", quantite: 0, prix: 0 });
+      setQuick({ ticker: "", type: "achat", quantite: 0, prix: 0 });
       setQuickOpen(false);
       await load();
     } catch (e: unknown) {
@@ -158,11 +158,11 @@ export function CompositionTab() {
           />
           <select
             value={quick.type}
-            onChange={(e) => setQuick({ ...quick, type: e.target.value as "ACHAT" | "VENTE" })}
+            onChange={(e) => setQuick({ ...quick, type: e.target.value as "achat" | "vente" })}
             className="px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--background)]"
           >
-            <option value="ACHAT">Achat</option>
-            <option value="VENTE">Vente</option>
+            <option value="achat">Achat</option>
+            <option value="vente">Vente</option>
           </select>
           <input
             type="number" placeholder="Qté" value={quick.quantite || ""}

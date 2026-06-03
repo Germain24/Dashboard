@@ -16,7 +16,7 @@ function fmt(n: number) {
 }
 
 const EMPTY_TX: TransactionCreate = {
-  ticker: "", type_transaction: "ACHAT", date_transaction: new Date().toISOString().slice(0, 10),
+  ticker: "", type_transaction: "achat", date_transaction: new Date().toISOString().slice(0, 10),
   quantite: 0, prix_unitaire: 0, frais: 0, devise: "EUR",
 };
 
@@ -108,9 +108,12 @@ export function TransactionsTab() {
               onChange={e => up("ticker", e.target.value.toUpperCase())} />
             <Select label="Type *" value={form.type_transaction}
               onChange={e => up("type_transaction", e.target.value)}>
-              <option value="ACHAT">ACHAT</option>
-              <option value="VENTE">VENTE</option>
-              <option value="DIVIDENDE">DIVIDENDE</option>
+              <option value="achat">Achat</option>
+              <option value="vente">Vente</option>
+              <option value="dividende">Dividende</option>
+              <option value="depot">Dépôt (cash)</option>
+              <option value="retrait">Retrait (cash)</option>
+              <option value="frais">Frais</option>
             </Select>
             <Input label="Date *" type="date" value={form.date_transaction}
               onChange={e => up("date_transaction", e.target.value)} />
@@ -153,12 +156,12 @@ export function TransactionsTab() {
             <tbody>
               {txs.map(t => (
                 <tr key={t.id} className="border-b border-[var(--border)] hover:bg-[var(--muted)]">
-                  <td className="py-1.5 pr-3 text-xs">{t.date_transaction}</td>
+                  <td className="py-1.5 pr-3 text-xs">{(t.date ?? "").slice(0, 10)}</td>
                   <td className="py-1.5 pr-3 font-mono text-xs">{t.ticker}</td>
                   <td className="py-1.5 pr-3">
-                    <Badge variant={t.type_transaction === "ACHAT" ? "success"
-                      : t.type_transaction === "VENTE" ? "destructive" : "info"}>
-                      {t.type_transaction}
+                    <Badge variant={t.type === "achat" || t.type === "depot" ? "success"
+                      : t.type === "vente" || t.type === "retrait" ? "destructive" : "info"}>
+                      {t.type}
                     </Badge>
                   </td>
                   <td className="py-1.5 pr-3 text-right">{fmt(t.quantite)}</td>

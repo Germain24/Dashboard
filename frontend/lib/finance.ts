@@ -97,16 +97,35 @@ export interface TreemapNode {
   id: string; parent: string; valeur: number; label: string;
 }
 
+export type TransactionType = "achat" | "vente" | "dividende" | "depot" | "retrait" | "frais";
+
 export interface TransactionOut {
-  id: number; ticker: string; type_transaction: string;
-  date_transaction: string; quantite: number; prix_unitaire: number;
+  id: number; ticker: string; type: string;
+  date: string; quantite: number; prix_unitaire: number;
   frais: number; devise: string; broker?: string; note?: string; created_at: string;
 }
 
 export interface TransactionCreate {
-  ticker: string; type_transaction: "ACHAT" | "VENTE" | "DIVIDENDE";
+  ticker: string; type_transaction: TransactionType;
   date_transaction: string; quantite: number; prix_unitaire: number;
   frais?: number; devise?: string; broker?: string; note?: string;
+}
+
+export interface PortfolioStateOut {
+  positions: { ticker: string; broker: string; quantite: number; acb: number; prix: number; valeur: number; pl_latent: number; pl_pct: number; poids_pct: number }[];
+  cash_par_broker: Record<string, number>;
+  cash_total: number;
+  investi_net: number;
+  valeur_totale: number;
+  pl_realise: number;
+  pl_latent_total: number;
+  dividendes_total: number;
+  allocation: { label: string; valeur: number; poids_pct: number }[];
+  taxes: { base_pv: number; impot_pv: number; base_div: number; impot_div: number; total: number; taux_plus_value_pct: number; taux_dividende_pct: number };
+}
+
+export interface FinanceSettingsOut {
+  taux_plus_value_pct: number; taux_dividende_pct: number; devise_affichage: string;
 }
 
 export interface ImportResult { imported: number; skipped: number; errors: string[] }
@@ -190,6 +209,16 @@ async function del(path: string): Promise<void> {
   if (!r.ok && r.status !== 204) throw new Error(`${r.status} ${r.statusText}`);
 }
 
+async function patch<T>(path: string, body: unknown): Promise<T> {
+  const r = await fetch(`${BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return r.json();
+}
+
 export const financeApi = {
   // Snapshots & historique
   snapshot: () => get<SnapshotOut | null>("/snapshot/latest"),
@@ -248,6 +277,11 @@ export const financeApi = {
       valeur_finale: number; total_verse: number; total_interets: number;
       objectif?: number; mois_pour_objectif?: number | null;
     }>(`/projection?initial=${p.initial}&mensuel=${p.mensuel}&taux=${p.taux}&mois=${p.mois}&objectif=${p.objectif ?? 0}`),
+  state: () => get<PortfolioStateOut>("/state"),
+  cash: () => get<{ cash_par_broker: Record<string, number>; cash_total: number }>("/cash"),
+  taxInfo: () => get<PortfolioStateOut["taxes"]>("/tax"),
+  settings: () => get<FinanceSettingsOut>("/settings"),
+  patchSettings: (s: Partial<FinanceSettingsOut>) => patch<FinanceSettingsOut>("/settings", s),
   diversification: () =>
     get<{
       secteurs: { secteur: string; valeur: number; poids_pct: number; surpondere: boolean }[];
