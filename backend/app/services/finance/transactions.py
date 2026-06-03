@@ -33,6 +33,46 @@ def list_transactions(
     return list(session.exec(q.limit(limit)).all())
 
 
+def get_dividends_summary(session: Session) -> dict:
+    """Dividendes reçus (transactions de type 'dividende') : total, par ticker, par mois.
+
+    Montant d'une ligne = quantité × prix_unitaire (montant total versé).
+    """
+    divs = list(session.exec(
+        select(Transaction)
+        .where(Transaction.type == "dividende")
+        .order_by(Transaction.date.desc())
+    ).all())
+
+    def _montant(t: Transaction) -> float:
+        return round((t.quantite or 0) * (t.prix_unitaire or 0), 2)
+
+    total = round(sum(_montant(t) for t in divs), 2)
+
+    par_ticker: dict[str, float] = {}
+    par_mois: dict[str, float] = {}
+    lignes = []
+    for t in divs:
+        m = _montant(t)
+        par_ticker[t.ticker] = round(par_ticker.get(t.ticker, 0) + m, 2)
+        mois = t.date.strftime("%Y-%m")
+        par_mois[mois] = round(par_mois.get(mois, 0) + m, 2)
+        lignes.append({
+            "date": t.date.date().isoformat() if hasattr(t.date, "date") else str(t.date),
+            "ticker": t.ticker,
+            "montant": m,
+            "devise": t.devise,
+        })
+
+    return {
+        "total_recu": total,
+        "n_versements": len(divs),
+        "par_ticker": par_ticker,
+        "par_mois": dict(sorted(par_mois.items())),
+        "lignes": lignes,
+    }
+
+
 def create_transaction(session: Session, data: dict) -> Transaction:
     # Passe par le repository (cf. app/repositories/finance.py) pour découpler
     # le service de la persistance SQLModel.

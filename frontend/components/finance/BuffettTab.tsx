@@ -46,6 +46,19 @@ export function BuffettTab() {
   const [starting, setStarting] = useState(false);
   const [creatingPortfolio, setCreatingPortfolio] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [backtest, setBacktest] = useState<{ rendement_pct: number; equity: number[]; n_points: number } | null>(null);
+  const [backtesting, setBacktesting] = useState(false);
+
+  const runBacktest = async () => {
+    setBacktesting(true); setBacktest(null);
+    try {
+      setBacktest(await financeApi.backtest("2y"));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erreur backtest");
+    } finally {
+      setBacktesting(false);
+    }
+  };
 
   // Ticker unique
   const [tickerInput, setTickerInput] = useState("");
@@ -143,16 +156,19 @@ export function BuffettTab() {
     } finally { setCreatingPortfolio(false); }
   };
 
-  const exportExcel = async (runId: number, runDate: string) => {
+  const exportRun = async (runId: number, runDate: string, fmt: "xlsx" | "csv") => {
     try {
-      const res = await fetch(`/api/finance/buffett/runs/${runId}/export`);
+      const path = fmt === "csv" ? `export.csv` : `export`;
+      const res = await fetch(`/api/finance/buffett/runs/${runId}/${path}`);
       if (!res.ok) throw new Error("Erreur export");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = `buffett_run_${runId}_${runDate}.xlsx`;
+      a.href = url; a.download = `buffett_run_${runId}_${runDate}.${fmt}`;
       a.click(); URL.revokeObjectURL(url);
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Erreur export Excel"); }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : `Erreur export ${fmt}`);
+    }
   };
 
   if (loading) return <Spinner label="Chargement analyses Buffett..." />;
@@ -165,12 +181,32 @@ export function BuffettTab() {
           <Button variant="ghost" size="sm" onClick={() => setSelected(null)}>← Retour</Button>
           <h2 className="text-base font-semibold">Run du {selected.run.run_date}</h2>
           <StatusBadge s={selected.run.statut} />
-          <Button variant="outline" size="sm"
-            onClick={() => exportExcel(selected.run.id, selected.run.run_date)}
-            className="ml-auto">
-            📊 Exporter Excel
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={runBacktest} loading={backtesting}>
+              📈 Backtest 2 ans
+            </Button>
+            <Button variant="outline" size="sm"
+              onClick={() => exportRun(selected.run.id, selected.run.run_date, "xlsx")}>
+              📊 Excel
+            </Button>
+            <Button variant="outline" size="sm"
+              onClick={() => exportRun(selected.run.id, selected.run.run_date, "csv")}>
+              📄 CSV
+            </Button>
+          </div>
         </div>
+        {backtest && (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm flex items-center gap-3 flex-wrap">
+            <span className="text-[var(--muted-foreground)]">Backtest buy-and-hold (2 ans) de l&apos;allocation cible :</span>
+            {backtest.n_points > 0 ? (
+              <span className={`font-mono font-semibold ${backtest.rendement_pct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}>
+                {backtest.rendement_pct >= 0 ? "+" : ""}{backtest.rendement_pct.toFixed(2)} %
+              </span>
+            ) : (
+              <span className="text-[var(--muted-foreground)]">données indisponibles</span>
+            )}
+          </div>
+        )}
         {selected.run.resume && (
           <p className="text-sm text-[var(--muted-foreground)]">{selected.run.resume}</p>
         )}

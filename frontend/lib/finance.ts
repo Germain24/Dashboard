@@ -232,6 +232,16 @@ export const financeApi = {
   buffettRun: (id: number) => get<BuffettRunDetail>(`/buffett/runs/${id}`),
   buffettLatest: () => get<BuffettRunOut | null>("/buffett/latest"),
   buffettProgress: () => get<BuffettProgress>("/buffett/progress"),
+  backtest: (periode = "2y") =>
+    get<{ dates: string[]; equity: number[]; rendement_pct: number; n_points: number; tickers: string[] }>(
+      `/backtest?periode=${periode}`,
+    ),
+  dividendes: () =>
+    get<{
+      total_recu: number; n_versements: number;
+      par_ticker: Record<string, number>; par_mois: Record<string, number>;
+      lignes: { date: string; ticker: string; montant: number; devise: string }[];
+    }>("/dividendes"),
   /** Bouton 1 — Analyser tous les tickers */
   buffettStart: (csvPath?: string) =>
     post<{ message: string; status: string }>(

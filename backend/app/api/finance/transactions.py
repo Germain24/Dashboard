@@ -14,7 +14,7 @@ from app.api.schemas_finance import (
     TransactionCreate, TransactionOut, ImportResultOut,
 )
 from app.services.finance.transactions import (
-    create_transaction, delete_transaction, import_csv,
+    create_transaction, delete_transaction, import_csv, get_dividends_summary,
 )
 
 router = APIRouter()
@@ -42,6 +42,12 @@ def transactions_list(
     else:
         stmt = stmt.order_by(Transaction.date.desc())
     return paginate(session, stmt, response, page)
+
+
+@router.get("/dividendes")
+def dividendes(session: Session = Depends(get_session)):
+    """Dividendes reçus : total, par ticker, par mois, détail des versements."""
+    return get_dividends_summary(session)
 
 
 @router.post("/transactions", response_model=TransactionOut, status_code=201)

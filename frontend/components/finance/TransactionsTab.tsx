@@ -29,11 +29,15 @@ export function TransactionsTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [div, setDiv] = useState<{ total_recu: number; n_versements: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
-    try { setTxs(await financeApi.transactions()); }
+    try {
+      setTxs(await financeApi.transactions());
+      financeApi.dividendes().then(setDiv).catch(() => {});
+    }
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Erreur réseau"); }
     finally { setLoading(false); }
   }, []);
@@ -67,6 +71,15 @@ export function TransactionsTab() {
   return (
     <div className="space-y-4">
       {error && <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>}
+      {div && div.n_versements > 0 && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm flex items-center gap-2 flex-wrap">
+          <span className="text-[var(--muted-foreground)]">💰 Dividendes reçus</span>
+          <span className="font-mono font-semibold text-[var(--success)]">
+            {div.total_recu.toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+          </span>
+          <span className="text-xs text-[var(--muted-foreground)]">· {div.n_versements} versement{div.n_versements > 1 ? "s" : ""}</span>
+        </div>
+      )}
       {importResult && (
         <div className="text-sm p-3 rounded-[var(--radius)] bg-[var(--success-muted)] text-[var(--success-foreground)]">
           Import : {importResult.imported} importées, {importResult.skipped} ignorées

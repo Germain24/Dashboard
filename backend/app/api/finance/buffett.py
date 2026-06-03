@@ -182,6 +182,101 @@ def buffett_run_export(run_id: int, session: Session = Depends(get_session)):
     )
 
 
+@router.get("/buffett/runs/{run_id}/export.csv")
+def buffett_run_export_csv(run_id: int, session: Session = Depends(get_session)):
+    """Exporte les résultats d'un run Buffett en CSV (sans dépendance)."""
+    import csv
+    import io as _io
+
+    run = session.get(BuffettRun, run_id)
+    if not run:
+        raise HTTPException(404, f"Run {run_id} introuvable")
+
+    results = list(session.exec(
+        select(BuffettRunResult)
+        .where(BuffettRunResult.run_id == run_id)
+        .order_by(BuffettRunResult.chance_moat.desc())
+    ).all())
+
+    buf = _io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "Ticker", "Nom", "Secteur", "Pays", "Score MOAT", "Achat",
+        "Allocation cible (%)", "Broker cible", "PER", "Prix",
+    ])
+    for r in results:
+        writer.writerow([
+            r.ticker, r.nom or "", r.secteur or "", r.pays or "",
+            round(r.chance_moat, 2) if r.chance_moat is not None else "",
+            "oui" if r.achat else "",
+            round(r.allocation_pct, 2) if r.allocation_pct is not None else "",
+            r.broker_cible or "",
+            round(r.per, 2) if r.per else "",
+            round(r.prix, 2) if r.prix else "",
+        ])
+    buf.seek(0)
+    filename = f"buffett_run_{run_id}_{run.run_date}.csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/backtest")
+def backtest_allocation(periode: str = "2y", session: Session = Depends(get_session)):
+    """Backtest buy-and-hold de l'allocation cible du dernier run Buffett terminé.
+
+    Renvoie {dates, equity (base 100), rendement_pct, n_points, tickers}.
+    """
+    run = session.exec(
+        select(BuffettRun).where(BuffettRun.statut == "termine").order_by(BuffettRun.run_date.desc())
+    ).first()
+    if not run:
+        raise HTTPException(404, "Aucun run Buffett terminé")
+
+    rows = list(session.exec(
+        select(BuffettRunResult)
+        .where(BuffettRunResult.run_id == run.id)
+        .where(BuffettRunResult.allocation_pct.isnot(None))  # type: ignore[attr-defined]
+    ).all())
+    weights = {r.ticker: float(r.allocation_pct or 0) for r in rows if (r.allocation_pct or 0) > 0}
+    if not weights:
+        return {"dates": [], "equity": [], "rendement_pct": 0.0, "n_points": 0, "tickers": []}
+
+    from app.services.finance.backtest import simulate_allocation
+    dates: list[str] = []
+    prices: dict[str, list[float]] = {}
+    try:
+        import yfinance as yf
+        import pandas as pd
+        t_list = list(weights.keys())
+        raw = yf.download(t_list, period=periode, interval="1d", progress=False, group_by="ticker")
+        if not raw.empty:
+            if len(t_list) == 1:
+                cd = raw["Close"].to_frame(); cd.columns = t_list
+            else:
+                cd = pd.DataFrame({
+                    t: raw[t]["Close"] for t in t_list
+                    if t in raw.columns.get_level_values(0)
+                })
+            cd = cd.dropna(how="all").ffill().dropna()
+            dates = [d.strftime("%Y-%m-%d") for d in cd.index]
+            prices = {t: [float(x) for x in cd[t].tolist()] for t in cd.columns}
+    except Exception as exc:
+        logger.warning("Backtest download: %s", exc)
+
+    sim = simulate_allocation(prices, weights)
+    dates = dates[: sim["n_points"]]
+    return {
+        "dates": dates,
+        "equity": sim["equity"],
+        "rendement_pct": sim["rendement_pct"],
+        "n_points": sim["n_points"],
+        "tickers": list(prices.keys()),
+    }
+
+
 # --- Bouton 1 : Analyser tous les tickers ---
 
 @router.post("/buffett/run", status_code=202)
