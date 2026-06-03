@@ -93,7 +93,7 @@ E. MODULE SANTÉ (61-72)
 64. [S](*) Base d'aliments réutilisables (favoris) pour saisie rapide.   ← PARTIEL (base d'aliments réutilisable présente — aliments.py/CSV+DB ; favoris curatés = à ajouter)
 65. [M](**) Score de qualité nutritionnelle hebdomadaire.   ← FINIS ✓ (quality.py pur : score_day vs cibles — atteinte protéines/fibres, proximité calories, pénalité limites *_Max — + weekly_nutrition_quality ; GET /sante/quality/weekly + NutritionQualityWidget dans JourTab ; tests TDD)
 66. [S](*) Rappel d'hydratation et suivi de l'eau.   ← FINIS ✓ (wellbeing add_water/get_water via MesureSante.extra + POST/GET /sante/water + WaterWidget dans JourTab ; tests TDD)
-67. [M](**) Intégration des séances d'entraînement pour ajuster les calories dépensées.
+67. [M](**) Intégration des séances d'entraînement pour ajuster les calories dépensées.   ← FINIS ✓ (l'intensité réelle pilotait déjà la cible via CONV 7 ; ajout de la dépense calorique mesurée : sante/workout.py burned_kcal_for_date -> entrainement kcal_for_date + GET /sante/workout-burn + WorkoutBurnWidget (dépensé + apport net) dans JourTab ; tests TDD)
 68. [S](**) Suivi du sommeil (durée, qualité) avec corrélation poids/énergie.   ← FINIS ✓ (backend set_sleep + sleep_weight_summary ; SleepWidget UI dans JourTab : saisie durée/qualité + résumé moyenne/corrélation poids)
 69. [S](*) Photos de progression (avant/après) stockées localement.
 70. [M](**) Alerte si déficit/surplus calorique trop agressif sur 7 jours.

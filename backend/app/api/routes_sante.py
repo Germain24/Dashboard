@@ -210,6 +210,13 @@ def sleep_summary(days: int = 30, session: Session = Depends(get_session)):
     return sleep_weight_summary(session, days)
 
 
+@router.get("/workout-burn")
+def workout_burn(date: dt.date | None = None, session: Session = Depends(get_session)):
+    """Calories dépensées en séance ce jour (intégration Entraînement, #67)."""
+    from app.services.sante.workout import burned_kcal_for_date
+    return burned_kcal_for_date(session, date or dt.date.today())
+
+
 @router.get("/quality/weekly")
 def quality_weekly(days: int = Query(7, ge=1, le=31), session: Session = Depends(get_session)):
     """Score de qualité nutritionnelle sur la fenêtre glissante (#65)."""

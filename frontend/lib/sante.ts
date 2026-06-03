@@ -123,6 +123,14 @@ export type WeeklyQuality = {
   best: string | null;
 };
 
+export type WorkoutBurn = {
+  date: string;
+  total_kcal: number;
+  kcal_muscu: number;
+  kcal_cardio: number;
+  available: boolean;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Endpoints
 // ─────────────────────────────────────────────────────────────────────────────
@@ -168,6 +176,10 @@ export const santeApi = {
   // Qualité nutritionnelle hebdo (#65)
   weeklyQuality: (days = 7) =>
     api<WeeklyQuality>(`/sante/quality/weekly?days=${days}`),
+
+  // Calories dépensées en séance — intégration Entraînement (#67)
+  workoutBurn: (date?: string) =>
+    api<WorkoutBurn>(`/sante/workout-burn${date ? `?date=${date}` : ""}`),
 
   getGoal: () => api<NutritionGoal>(`/sante/goal`),
   updateGoal: (payload: NutritionGoalUpdate) =>
