@@ -79,8 +79,10 @@ D. MODULE FINANCE (46-60)
 56. [M](**) Détection de surpondération sectorielle / mesure de diversification (risk.py).   ← FINIS ✓ (compute_sector_diversification + HHI sectoriel + GET /finance/diversification + bandeau d'alerte CompositionTab ; tests TDD)
 57. [S](*) Saisie rapide d'une transaction (achat/vente) depuis la vue portefeuille.   ← FINIS ✓ (formulaire compact « + Saisie rapide » dans CompositionTab -> createTransaction + reload)
 58. [M](**) Objectifs d'épargne/investissement avec projection (intérêts composés).   ← FINIS ✓ (projection.py pur + GET /finance/projection + ProjectionTool dans SuiviTab ; tests TDD)
-59. [S](**) Historique des analyses Buffett mensuelles consultable (timeline).
-60. [M](**) Notification push quand le snapshot quotidien échoue ou détecte une chute > X%.
+59. [S](**) Historique des analyses Buffett mensuelles consultable (timeline).   ← FINIS ✓ (liste runs + frise verticale avec pastilles de statut dans BuffettTab)
+60. [M](**) Notification push quand le snapshot quotidien échoue ou détecte une chute > X%.   ← FINIS ✓ (drop_alert_pct + Notification warning chute>5% / error échec dans job_daily_snapshot ; bug valeur_totale->valeur corrigé ; tests TDD)
+
+>>> SECTION D (Finance, 46-60) TERMINÉE <<<
 
 --------------------------------------------------------------------------------
 E. MODULE SANTÉ (61-72)

@@ -20,21 +20,62 @@ def is_analysis_running() -> bool:
     return _ANALYSIS_LOCK.locked()
 
 
-def job_daily_snapshot() -> None:
-    """Snapshot portefeuille quotidien (22h)."""
-    try:
-        from app.core.db import engine
-        from sqlmodel import Session
-        from app.services.finance.snapshots import take_snapshot_now
+# Seuil (%) de baisse quotidienne déclenchant une notification.
+SNAPSHOT_DROP_ALERT_PCT = 5.0
 
+
+def _notify(session, titre: str, message: str, level: str) -> None:
+    """Crée une notification (best-effort)."""
+    try:
+        from app.models.scheduler import Notification
+        session.add(Notification(source="finance_snapshot", titre=titre, message=message, level=level))
+        session.commit()
+    except Exception as exc:
+        logger.warning("Notification snapshot: %s", exc)
+
+
+def job_daily_snapshot() -> None:
+    """Snapshot portefeuille quotidien (22h).
+
+    Crée une notification si le snapshot échoue (error) ou si la valeur chute de
+    plus de SNAPSHOT_DROP_ALERT_PCT vs le snapshot précédent (warning).
+    """
+    from app.core.db import engine
+    from sqlmodel import Session
+    from app.services.finance.snapshots import (
+        take_snapshot_now, get_latest_snapshot, drop_alert_pct,
+    )
+
+    try:
         with Session(engine) as session:
+            prev = get_latest_snapshot(session)
+            prev_val = prev.valeur if prev else None
+
             snap = take_snapshot_now(session)
-            if snap:
-                logger.info("Snapshot portefeuille: %.2f EUR (%s)", snap.valeur_totale, snap.date)
-            else:
+            if not snap:
                 logger.warning("Snapshot ignore: aucune position active")
+                return
+
+            logger.info("Snapshot portefeuille: %.2f EUR (%s)", snap.valeur, snap.date)
+
+            # Alerte de chute (on ignore le cas où prev == le snapshot du jour ré-écrit)
+            if prev and prev.date != snap.date:
+                drop = drop_alert_pct(prev_val, snap.valeur, SNAPSHOT_DROP_ALERT_PCT)
+                if drop is not None:
+                    _notify(
+                        session,
+                        titre=f"Chute du portefeuille : -{drop:.1f} %",
+                        message=f"Valeur passée de {prev_val:.0f} à {snap.valeur:.0f} EUR depuis le {prev.date}.",
+                        level="warning",
+                    )
     except Exception as exc:
         logger.error("Erreur snapshot quotidien: %s", exc, exc_info=True)
+        try:
+            with Session(engine) as session:
+                _notify(session, titre="Échec du snapshot quotidien",
+                        message=str(exc), level="error")
+        except Exception:
+            pass
 
 
 def job_monthly_buffett(csv_path: str | None = None) -> None:

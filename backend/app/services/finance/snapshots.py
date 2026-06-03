@@ -66,6 +66,17 @@ def upsert_snapshot(
         return existing
 
 
+def drop_alert_pct(prev_valeur: float, new_valeur: float, seuil_pct: float = 5.0) -> Optional[float]:
+    """Retourne le % de baisse si la chute dépasse ``seuil_pct``, sinon None.
+
+    Ex. prev=100, new=92, seuil=5 -> 8.0 (alerte). prev=100, new=97 -> None.
+    """
+    if prev_valeur is None or prev_valeur <= 0 or new_valeur is None:
+        return None
+    drop = (prev_valeur - new_valeur) / prev_valeur * 100
+    return round(drop, 2) if drop > seuil_pct else None
+
+
 def take_snapshot_now(session: Session) -> Optional[SnapshotPortefeuille]:
     """Prend un snapshot live depuis yfinance (positions DB + prix courants).
 

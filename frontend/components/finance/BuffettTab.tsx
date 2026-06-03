@@ -351,26 +351,39 @@ export function BuffettTab() {
         </div>
       </div>
 
-      {/* Liste des runs */}
+      {/* Timeline des analyses mensuelles */}
       {!runs.length ? (
         <EmptyState title="Aucune analyse" description="Lancez votre première analyse Buffett." />
       ) : (
-        <div className="space-y-2">
-          {runs.map(r => (
-            <button key={r.id} onClick={() => openRun(r.id)}
-              className="w-full text-left rounded-[var(--radius-lg)] border border-[var(--border)]
-                p-3 hover:bg-[var(--muted)] transition-colors">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{r.run_date}</span>
-                <StatusBadge s={r.statut} />
-              </div>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                {r.n_tickers_analyzed ?? 0} tickers analysés
-                {r.duree_sec ? ` · ${Math.round(r.duree_sec / 60)} min` : ""}
-              </p>
-              {r.resume && <p className="text-xs mt-1 text-[var(--foreground)]">{r.resume}</p>}
-            </button>
-          ))}
+        <div>
+          <h3 className="text-sm font-semibold mb-3">Historique des analyses</h3>
+          <ol className="relative ml-3 border-l border-[var(--border)] space-y-2">
+            {runs.map(r => (
+              <li key={r.id} className="relative pl-5">
+                <span
+                  className={`absolute -left-[5px] top-3 h-2.5 w-2.5 rounded-full ring-2 ring-[var(--background)] ${
+                    r.statut === "termine" ? "bg-[var(--success)]"
+                      : r.statut === "erreur" ? "bg-[var(--destructive)]"
+                      : "bg-[var(--ring)]"
+                  }`}
+                  aria-hidden="true"
+                />
+                <button onClick={() => openRun(r.id)}
+                  className="w-full text-left rounded-[var(--radius-lg)] border border-[var(--border)]
+                    p-3 hover:bg-[var(--muted)] transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{r.run_date}</span>
+                    <StatusBadge s={r.statut} />
+                  </div>
+                  <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                    {r.n_tickers_analyzed ?? 0} tickers analysés
+                    {r.duree_sec ? ` · ${Math.round(r.duree_sec / 60)} min` : ""}
+                  </p>
+                  {r.resume && <p className="text-xs mt-1 text-[var(--foreground)]">{r.resume}</p>}
+                </button>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
     </div>
