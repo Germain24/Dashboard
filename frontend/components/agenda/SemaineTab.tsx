@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Evenement } from "@/lib/agenda";
-import { couleurFor, fetchEvents, formatHeure, overlappingKeys, exportIcsUrl, syncIcalUrl, CATEGORIE_COLORS } from "@/lib/agenda";
+import { couleurFor, fetchEvents, formatHeure, overlappingKeys, exportIcsUrl, syncIcalUrl, gcalStatus, gcalPull, CATEGORIE_COLORS } from "@/lib/agenda";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -34,6 +34,11 @@ export default function SemaineTab() {
   const [events, setEvents] = useState<Evenement[]>([]);
   const [loading, setLoading] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [gcalReady, setGcalReady] = useState(false);
+
+  useEffect(() => {
+    gcalStatus().then((s) => setGcalReady(s.configured)).catch(() => {});
+  }, []);
 
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -60,14 +65,23 @@ export default function SemaineTab() {
   }
 
   async function handleGoogleSync() {
-    const url = window.prompt("Adresse secrète au format iCal (Google Calendar) :");
-    if (!url) return;
     try {
-      const r = await syncIcalUrl(url);
-      window.alert(`Sync : ${r.created_events} ajouté(s), ${r.skipped_duplicates} déjà présent(s).`);
+      if (gcalReady) {
+        // Intégration OAuth : import direct depuis Google Calendar.
+        const from = isoDate(weekDates[0]) + "T00:00:00";
+        const to = isoDate(weekDates[6]) + "T23:59:59";
+        const r = await gcalPull(from, to);
+        window.alert(`Google Calendar : ${r.created_events} ajouté(s), ${r.skipped_duplicates} déjà présent(s).`);
+      } else {
+        // Repli sans OAuth : adresse secrète .ics.
+        const url = window.prompt("Adresse secrète au format iCal (Google Calendar) :");
+        if (!url) return;
+        const r = await syncIcalUrl(url);
+        window.alert(`Sync : ${r.created_events} ajouté(s), ${r.skipped_duplicates} déjà présent(s).`);
+      }
       setWeekStart((d) => new Date(d));
     } catch {
-      window.alert("Sync impossible (URL invalide ou inaccessible).");
+      window.alert("Sync Google impossible.");
     }
   }
 
@@ -131,9 +145,9 @@ export default function SemaineTab() {
           variant="ghost"
           size="sm"
           onClick={() => void handleGoogleSync()}
-          title="Importer un calendrier Google via son URL .ics secrète"
+          title={gcalReady ? "Synchroniser depuis Google Calendar (OAuth)" : "Importer un calendrier Google via son URL .ics secrète"}
         >
-          ⇄ Google
+          ⇄ Google{gcalReady ? " ✓" : ""}
         </Button>
       </div>
 

@@ -144,6 +144,24 @@ export async function fetchEvents(from?: string, to?: string): Promise<Evenement
   return api<Evenement[]>(`/agenda/events?${params}`);
 }
 
+/** Statut de l'intégration Google Calendar OAuth (#83). */
+export async function gcalStatus(): Promise<{ configured: boolean; calendar_id: string }> {
+  return api(`/agenda/gcal/status`);
+}
+
+/** Import des événements Google Calendar via OAuth (Google → app, #83). */
+export async function gcalPull(from?: string, to?: string): Promise<{ created_events: number; skipped_duplicates: number }> {
+  const q = new URLSearchParams();
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  return api(`/agenda/gcal/pull?${q}`, { method: "POST" });
+}
+
+/** Pousse un événement local vers Google Calendar (app → Google, #83). */
+export async function gcalPush(eventId: number): Promise<Evenement> {
+  return api<Evenement>(`/agenda/gcal/push/${eventId}`, { method: "POST" });
+}
+
 /** Sync entrante via URL .ics distante (Google Calendar, #83). */
 export async function syncIcalUrl(url: string): Promise<{ created_events: number; skipped_duplicates: number; created_rules: number }> {
   return api(`/agenda/sync-ical-url?url=${encodeURIComponent(url)}`, { method: "POST" });

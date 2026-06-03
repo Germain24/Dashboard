@@ -51,6 +51,15 @@ class Settings(BaseSettings):
     # --- CORS ---
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
+    # --- Google Calendar (Agenda #83, OAuth) ---
+    # Identifiants OAuth « installed app ». Obtenus via la console Google Cloud,
+    # le refresh_token via scripts/google_oauth_setup.py. Vides = intégration
+    # désactivée (le module agenda fonctionne sans).
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_refresh_token: str = ""
+    google_calendar_id: str = "primary"
+
     # --- Garde-robe (CONV 2) ---
     openweather_api_key: str = ""
     garderobe_lat: float = 45.5017

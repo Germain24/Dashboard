@@ -29,6 +29,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from sqlmodel import Session
 
+from app.core.config import settings
 from app.api.schemas_agenda import (
     AgendaJourResponse,
     EvenementCreate,
@@ -324,6 +325,77 @@ def plan_focus(
         "source": "etudes_focus",
         "description": cours,
     })
+    return EvenementRead.model_validate(ev)
+
+
+# ── Google Calendar (OAuth, #83) ──────────────────────────────────────────────
+
+@router.get("/gcal/status")
+def gcal_status():
+    """Indique si l'intégration Google Calendar est configurée."""
+    from app.services.agenda import gcal
+    return {"configured": gcal.is_configured(), "calendar_id": settings.google_calendar_id}
+
+
+@router.post("/gcal/pull", response_model=ImportIcalResponse)
+def gcal_pull(
+    session: SessionDep,
+    from_: Optional[dt.datetime] = Query(None, alias="from"),
+    to: Optional[dt.datetime] = Query(None),
+):
+    """Importe les événements Google Calendar de la fenêtre (Google → app, #83)."""
+    from sqlmodel import select
+    from app.services.agenda import gcal
+
+    if not gcal.is_configured():
+        raise HTTPException(503, "Google Calendar non configuré (cf. scripts/google_oauth_setup.py).")
+
+    today = dt.date.today()
+    from_dt = from_ or dt.datetime.combine(today - dt.timedelta(days=7), dt.time.min)
+    to_dt = to or dt.datetime.combine(today + dt.timedelta(days=30), dt.time.max)
+    try:
+        events = gcal.list_events(from_dt, to_dt)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"Lecture Google Calendar impossible : {e}")
+
+    created = skipped = 0
+    for item in events:
+        uid = item.get("source_id")
+        existing = session.exec(
+            select(Evenement).where(Evenement.source_id == uid)
+        ).first() if uid else None
+        if existing:
+            skipped += 1
+            continue
+        create_event(session, item)
+        created += 1
+    return ImportIcalResponse(created_events=created, skipped_duplicates=skipped, created_rules=0)
+
+
+@router.post("/gcal/push/{event_id}", response_model=EvenementRead)
+def gcal_push(event_id: int, session: SessionDep):
+    """Pousse un événement local vers Google Calendar (app → Google, #83)."""
+    from app.services.agenda import gcal
+
+    if not gcal.is_configured():
+        raise HTTPException(503, "Google Calendar non configuré.")
+    ev = get_event(session, event_id)
+    if ev is None:
+        raise HTTPException(404, "Événement introuvable")
+    payload = {
+        "titre": ev.titre, "debut": ev.debut, "fin": ev.fin,
+        "lieu": ev.lieu, "description": ev.description,
+    }
+    try:
+        if ev.source == "gcal" and ev.source_id:
+            gcal.update_event(ev.source_id, payload)
+        else:
+            created = gcal.create_event(payload)
+            # On mémorise l'id Google pour éviter un doublon au prochain pull.
+            updated = update_event(session, event_id, {"source": "gcal", "source_id": created.get("id")})
+            ev = updated or ev
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"Écriture Google Calendar impossible : {e}")
     return EvenementRead.model_validate(ev)
 
 
