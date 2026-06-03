@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Evenement } from "@/lib/agenda";
-import { couleurFor, fetchEvents, formatHeure, overlappingKeys, exportIcsUrl, CATEGORIE_COLORS } from "@/lib/agenda";
+import { couleurFor, fetchEvents, formatHeure, overlappingKeys, exportIcsUrl, syncIcalUrl, CATEGORIE_COLORS } from "@/lib/agenda";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -57,6 +57,18 @@ export default function SemaineTab() {
   }
   function nextWeek() {
     setWeekStart((d) => { const n = new Date(d); n.setDate(d.getDate() + 7); return n; });
+  }
+
+  async function handleGoogleSync() {
+    const url = window.prompt("Adresse secrète au format iCal (Google Calendar) :");
+    if (!url) return;
+    try {
+      const r = await syncIcalUrl(url);
+      window.alert(`Sync : ${r.created_events} ajouté(s), ${r.skipped_duplicates} déjà présent(s).`);
+      setWeekStart((d) => new Date(d));
+    } catch {
+      window.alert("Sync impossible (URL invalide ou inaccessible).");
+    }
   }
 
   const catOf = (ev: Evenement) => ev.categorie || "autre";
@@ -115,6 +127,14 @@ export default function SemaineTab() {
         >
           ⬇ .ics
         </a>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => void handleGoogleSync()}
+          title="Importer un calendrier Google via son URL .ics secrète"
+        >
+          ⇄ Google
+        </Button>
       </div>
 
       {/* Filtres / légende par catégorie (#88) */}

@@ -144,6 +144,11 @@ export async function fetchEvents(from?: string, to?: string): Promise<Evenement
   return api<Evenement[]>(`/agenda/events?${params}`);
 }
 
+/** Sync entrante via URL .ics distante (Google Calendar, #83). */
+export async function syncIcalUrl(url: string): Promise<{ created_events: number; skipped_duplicates: number; created_rules: number }> {
+  return api(`/agenda/sync-ical-url?url=${encodeURIComponent(url)}`, { method: "POST" });
+}
+
 /** Planifie un bloc focus Études dans un créneau libre (#89). */
 export async function planFocus(params: {
   duree_min?: number;

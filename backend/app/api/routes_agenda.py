@@ -60,7 +60,6 @@ from app.services.agenda import (
     list_recurrence_rules,
     list_tasks,
     mark_done,
-    parse_ics,
     tasks_due_today,
     update_event,
     update_recurrence_rule,
@@ -361,45 +360,28 @@ def export_ical(
 
 @router.post("/import-ical", response_model=ImportIcalResponse)
 async def import_ical(file: UploadFile, session: SessionDep):
-    content = await file.read()
-    parsed = parse_ics(content)
+    from app.services.agenda.ical_import import import_ics_bytes
+    counts = import_ics_bytes(session, await file.read())
+    return ImportIcalResponse(**counts)
 
-    created_events = skipped = created_rules = 0
-    for item in parsed:
-        rrule = item.pop("_rrule", None)
-        uid = item.get("source_id", "")
 
-        # Déduplication par UID iCal
-        from sqlmodel import select
-        existing = session.exec(
-            select(Evenement).where(Evenement.source_id == uid).where(Evenement.source == "ical")
-        ).first() if uid else None
+@router.post("/sync-ical-url", response_model=ImportIcalResponse)
+def sync_ical_url(session: SessionDep, url: str = Query(..., description="URL .ics distante (ex. adresse secrète Google Calendar)")):
+    """Sync entrante Google Calendar (et autres) via URL .ics (#83).
 
-        if existing:
-            skipped += 1
-            continue
+    Récupère un calendrier .ics distant et l'importe (dédup par UID). C'est la
+    voie sans OAuth : coller l'« adresse secrète au format iCal » de Google
+    Calendar. L'export #91 couvre le sens inverse (app → Google via import .ics).
+    """
+    import httpx
+    from app.services.agenda.ical_import import import_ics_bytes
 
-        rule_id = None
-        if rrule:
-            rule_data = {
-                "titre": item["titre"],
-                "weekdays": rrule["weekdays"],
-                "start_time": rrule["start_time"],
-                "end_time": rrule["end_time"],
-                "until": rrule["until"],
-                "categorie": item.get("categorie"),
-                "lieu": item.get("lieu"),
-            }
-            rule = create_recurrence_rule(session, rule_data)
-            rule_id = rule.id
-            created_rules += 1
-
-        item["recurrence_id"] = rule_id
-        create_event(session, item)
-        created_events += 1
-
-    return ImportIcalResponse(
-        created_events=created_events,
-        skipped_duplicates=skipped,
-        created_rules=created_rules,
-    )
+    if not url.lower().startswith(("http://", "https://")):
+        raise HTTPException(400, "URL invalide (http/https attendu).")
+    try:
+        resp = httpx.get(url, timeout=15.0, follow_redirects=True)
+        resp.raise_for_status()
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"Récupération du calendrier impossible : {e}")
+    counts = import_ics_bytes(session, resp.content)
+    return ImportIcalResponse(**counts)
