@@ -170,6 +170,22 @@ export function SuiviTab() {
   const [error, setError] = useState<string | null>(null);
   const [snapping, setSnapping] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [currency, setCurrency] = useState<"EUR" | "USD" | "CAD">("EUR");
+  const [rate, setRate] = useState(1);
+
+  useEffect(() => {
+    if (currency === "EUR") { setRate(1); return; }
+    let cancelled = false;
+    financeApi.fx("EUR", currency)
+      .then((r) => !cancelled && setRate(r.rates[currency] || 1))
+      .catch(() => !cancelled && setRate(1));
+    return () => { cancelled = true; };
+  }, [currency]);
+
+  const money = useCallback(
+    (v: number) => new Intl.NumberFormat("fr-CA", { style: "currency", currency }).format(v * rate),
+    [currency, rate],
+  );
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -222,6 +238,24 @@ export function SuiviTab() {
 
   return (
     <div className="space-y-4">
+      {/* Sélecteur de devise (conversion au taux du jour) */}
+      <div className="flex items-center justify-end gap-1.5">
+        <span className="text-xs text-[var(--muted-foreground)]">Devise</span>
+        {(["EUR", "USD", "CAD"] as const).map((c) => (
+          <button
+            key={c}
+            onClick={() => setCurrency(c)}
+            className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+              currency === c
+                ? "bg-[var(--accent)] text-[var(--foreground)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
+            }`}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
       {/* KPIs — skeleton pendant le loading, vraies valeurs ensuite */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger">
         {loading ? (
@@ -234,11 +268,11 @@ export function SuiviTab() {
         ) : (
           <>
             {[
-              { label: "Valeur totale", value: formatCAD(valeur), color: "" },
-              { label: "Investi",       value: formatCAD(investit), color: "" },
+              { label: "Valeur totale", value: money(valeur), color: "" },
+              { label: "Investi",       value: money(investit), color: "" },
               {
                 label: "+/- latente",
-                value: formatCAD(plTotal),
+                value: money(plTotal),
                 color: plTotal >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]",
               },
               {

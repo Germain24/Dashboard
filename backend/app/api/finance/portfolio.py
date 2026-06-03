@@ -39,6 +39,17 @@ def titre_detail(ticker: str, session: Session = Depends(get_session)):
     return get_title_detail(session, ticker)
 
 
+@router.get("/fx")
+def fx_rates(base: str = "EUR", quotes: str = "USD,CAD"):
+    """Taux de change du jour : 1 base = X quote, pour chaque devise demandée."""
+    from app.services.finance.fx import get_rate
+    wanted = [q.strip().upper() for q in quotes.split(",") if q.strip()]
+    return {
+        "base": base.upper(),
+        "rates": {q: get_rate(base, q) for q in wanted},
+    }
+
+
 @router.get("/snapshot/latest", response_model=Optional[SnapshotOut])
 def snapshot_latest(session: Session = Depends(get_session)):
     return get_latest_snapshot(session)
