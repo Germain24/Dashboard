@@ -123,7 +123,7 @@ G. MODULE AGENDA (83-92)
 --------------------------------------------------------------------------------
 83. [M](***) Synchronisation Google Calendar (lecture/écriture) — MCP déjà disponible côté assistant.
 84. [M](**) Vue calendrier mensuelle/hebdo interactive (pas seulement liste).
-85. [S](**) Rappels avec notifications (lien module notifications/scheduler).
+85. [S](**) Rappels avec notifications (lien module notifications/scheduler).   ← FINIS ✓ (reminders.py : due_events (fenêtre ~30 min) + store anti-doublon JSON ; job scheduler agenda_reminders (toutes les 15 min) crée des Notification « ⏰ … » consommées par le centre de notifications existant ; tests TDD)
 86. [S](*) Événements récurrents (RRULE).
 87. [M](**) Détection de conflits d'horaire à la création.   ← FINIS ✓ (conflicts.py : overlaps + find_conflicts (fin manquante = 1h, ignore_id pour l'édition) ; GET /agenda/events/conflicts ; indicateur visuel + bannière de chevauchement dans SemaineTab (overlappingKeys) ; tests TDD)
 88. [S](*) Catégories/couleurs d'événements + filtres.   ← FINIS ✓ (catégorie/couleur déjà sur le modèle + CATEGORIE_COLORS/couleurFor ; ajout de chips de filtre par catégorie (= légende cliquable) dans SemaineTab, masquage par catégorie répercuté sur l'affichage et la détection de conflits)
