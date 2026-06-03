@@ -7,6 +7,7 @@ import {
 } from "@/lib/finance";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProjectionTool } from "./ProjectionTool";
 
 // Couleur de série du benchmark CW8 (demande explicite : orange)
 const CW8_COLOR = "#f97316";
@@ -375,6 +376,8 @@ export function SuiviTab() {
           </div>
         </div>
       )}
+
+      <ProjectionTool />
     </div>
   );
 }

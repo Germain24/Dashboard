@@ -39,6 +39,23 @@ def titre_detail(ticker: str, session: Session = Depends(get_session)):
     return get_title_detail(session, ticker)
 
 
+@router.get("/projection")
+def projection(
+    initial: float = 0,
+    mensuel: float = 0,
+    taux: float = 5.0,
+    mois: int = 120,
+    objectif: float = 0,
+):
+    """Projection d'épargne à intérêts composés (+ mois pour atteindre un objectif)."""
+    from app.services.finance.projection import project_savings, mois_pour_objectif
+    res = project_savings(initial, mensuel, taux, mois)
+    if objectif and objectif > 0:
+        res["objectif"] = objectif
+        res["mois_pour_objectif"] = mois_pour_objectif(initial, mensuel, taux, objectif)
+    return res
+
+
 @router.get("/fx")
 def fx_rates(base: str = "EUR", quotes: str = "USD,CAD"):
     """Taux de change du jour : 1 base = X quote, pour chaque devise demandée."""

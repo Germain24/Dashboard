@@ -242,6 +242,12 @@ export const financeApi = {
       par_ticker: Record<string, number>; par_mois: Record<string, number>;
       lignes: { date: string; ticker: string; montant: number; devise: string }[];
     }>("/dividendes"),
+  projection: (p: { initial: number; mensuel: number; taux: number; mois: number; objectif?: number }) =>
+    get<{
+      courbe: { mois: number; valeur: number; verse: number; interets: number }[];
+      valeur_finale: number; total_verse: number; total_interets: number;
+      objectif?: number; mois_pour_objectif?: number | null;
+    }>(`/projection?initial=${p.initial}&mensuel=${p.mensuel}&taux=${p.taux}&mois=${p.mois}&objectif=${p.objectif ?? 0}`),
   diversification: () =>
     get<{
       secteurs: { secteur: string; valeur: number; poids_pct: number; surpondere: boolean }[];
