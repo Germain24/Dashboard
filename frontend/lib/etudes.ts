@@ -187,3 +187,32 @@ export async function createSession(data: { cours_id?: number; duree_min: number
 export async function deleteSession(id: number): Promise<void> {
   await fetch(`${BASE}/sessions/${id}`, { method: "DELETE" });
 }
+
+// ── Statistiques & objectif (#94/#95/#97/#101/#102) ─────────────────
+
+export interface EtudesStats {
+  days: number;
+  by_course: { cours_id: number | null; label: string; minutes: number }[];
+  daily: Record<string, number>;
+  streak: { current: number; best: number };
+  weekly: {
+    week_start: string;
+    week_end: string;
+    total_minutes: number;
+    sessions: number;
+    by_course: { cours_id: number | null; label: string; minutes: number }[];
+  };
+  goal: { weekly_hours: number; done_hours: number; progress_pct: number };
+}
+
+export async function fetchEtudesStats(days = 120): Promise<EtudesStats> {
+  const r = await fetch(`${BASE}/stats?days=${days}`);
+  if (!r.ok) throw new Error("Erreur chargement stats");
+  return r.json();
+}
+
+export async function setEtudesGoal(weeklyHours: number): Promise<{ weekly_hours: number }> {
+  const r = await fetch(`${BASE}/goal?weekly_hours=${weeklyHours}`, { method: "PUT" });
+  if (!r.ok) throw new Error("Erreur enregistrement objectif");
+  return r.json();
+}

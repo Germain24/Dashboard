@@ -1,18 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, AlarmClock, Clock, Award } from "lucide-react";
+import { BookOpen, AlarmClock, Clock, Award, BarChart3 } from "lucide-react";
 import { CoursTab } from "./CoursTab";
 import { DeadlinesTab } from "./DeadlinesTab";
 import { GpaTab } from "./GpaTab";
 import { SessionsTab } from "./SessionsTab";
+import { StatistiquesTab } from "./StatistiquesTab";
 
-type Tab = "cours" | "deadlines" | "sessions" | "gpa";
+type Tab = "cours" | "deadlines" | "sessions" | "stats" | "gpa";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "cours", label: "Cours", Icon: BookOpen },
   { id: "deadlines", label: "Deadlines", Icon: AlarmClock },
   { id: "sessions", label: "Sessions", Icon: Clock },
+  { id: "stats", label: "Stats", Icon: BarChart3 },
   { id: "gpa", label: "GPA", Icon: Award },
 ];
 
@@ -48,6 +50,7 @@ export function Etudes() {
         {tab === "deadlines" && <DeadlinesTab />}
         {tab === "gpa" && <GpaTab />}
         {tab === "sessions" && <SessionsTab />}
+        {tab === "stats" && <StatistiquesTab />}
       </div>
     </div>
   );
