@@ -15,6 +15,7 @@ import { WaterWidget } from "./WaterWidget";
 import { SleepWidget } from "./SleepWidget";
 import { NutritionQualityWidget } from "./NutritionQualityWidget";
 import { WorkoutBurnWidget } from "./WorkoutBurnWidget";
+import { EnergyBalanceAlert } from "./EnergyBalanceAlert";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -128,6 +129,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
         <WaterWidget />
         <SleepWidget />
       </div>
+      <EnergyBalanceAlert />
       <NutritionQualityWidget />
       <WorkoutBurnWidget consumedCalories={consumed?.["Calories"] as number | undefined} />
       {/* Bandeau état */}

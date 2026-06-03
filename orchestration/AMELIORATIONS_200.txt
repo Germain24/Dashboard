@@ -96,7 +96,7 @@ E. MODULE SANTÉ (61-72)
 67. [M](**) Intégration des séances d'entraînement pour ajuster les calories dépensées.   ← FINIS ✓ (l'intensité réelle pilotait déjà la cible via CONV 7 ; ajout de la dépense calorique mesurée : sante/workout.py burned_kcal_for_date -> entrainement kcal_for_date + GET /sante/workout-burn + WorkoutBurnWidget (dépensé + apport net) dans JourTab ; tests TDD)
 68. [S](**) Suivi du sommeil (durée, qualité) avec corrélation poids/énergie.   ← FINIS ✓ (backend set_sleep + sleep_weight_summary ; SleepWidget UI dans JourTab : saisie durée/qualité + résumé moyenne/corrélation poids)
 69. [S](*) Photos de progression (avant/après) stockées localement.   ← FINIS ✓ (sante/photos.py save/list -> data/sante_photos/ + photo_url dans MesureSante ; montage StaticFiles /media/sante ; POST /sante/photo + GET /sante/photos ; ProgressionTab (upload + comparateur avant/après + delta poids) ; tests TDD)
-70. [M](**) Alerte si déficit/surplus calorique trop agressif sur 7 jours.
+70. [M](**) Alerte si déficit/surplus calorique trop agressif sur 7 jours.   ← FINIS ✓ (energy.py : classify_balance + weekly_energy_balance (conso vs maintenance poids×32, seuils 750/1000 kcal/j) ; GET /sante/energy/balance + EnergyBalanceAlert (bandeau warning/alert) dans JourTab ; tests TDD)
 71. [S](*) Export du plan macros en image partageable.
 72. [M](**) Génération auto d'un plan de repas respectant les macros (lien vers module Cuisine).   ← FINIS ✓ (déjà présent : /sante/plan/generate + optimizer.py respectant les macros cibles)
 

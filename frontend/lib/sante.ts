@@ -123,6 +123,16 @@ export type WeeklyQuality = {
   best: string | null;
 };
 
+export type EnergyBalance = {
+  days: number;
+  avg_balance: number | null;
+  avg_consumed?: number;
+  avg_maintenance?: number;
+  level: "ok" | "warning" | "alert";
+  direction: "déficit" | "surplus" | null;
+  message: string | null;
+};
+
 export type ProgressPhoto = {
   date: string;
   photo_url: string;
@@ -189,6 +199,10 @@ export const santeApi = {
   // Qualité nutritionnelle hebdo (#65)
   weeklyQuality: (days = 7) =>
     api<WeeklyQuality>(`/sante/quality/weekly?days=${days}`),
+
+  // Bilan énergétique + alerte déficit/surplus agressif (#70)
+  energyBalance: (days = 7) =>
+    api<EnergyBalance>(`/sante/energy/balance?days=${days}`),
 
   // Calories dépensées en séance — intégration Entraînement (#67)
   workoutBurn: (date?: string) =>

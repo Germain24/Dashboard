@@ -248,6 +248,13 @@ def quality_weekly(days: int = Query(7, ge=1, le=31), session: Session = Depends
     return weekly_nutrition_quality(session, days=days)
 
 
+@router.get("/energy/balance")
+def energy_balance(days: int = Query(7, ge=1, le=31), session: Session = Depends(get_session)):
+    """Bilan énergétique moyen + alerte déficit/surplus agressif (#70)."""
+    from app.services.sante.energy import weekly_energy_balance
+    return weekly_energy_balance(session, days=days)
+
+
 @router.get("/aliments", response_model=list[AlimentRead])
 def list_aliments(session: Session = Depends(get_session)):
     """Liste le catalogue d'aliments lu depuis data/imports/aliments.csv.
