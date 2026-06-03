@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { financeApi, type PositionOut, type TreemapNode } from "@/lib/finance";
+import { financeApi, type PositionOut, type TreemapNode, type TransactionCreate } from "@/lib/finance";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +65,34 @@ export function CompositionTab() {
   const [error, setError] = useState<string | null>(null);
   const [detailTicker, setDetailTicker] = useState<string | null>(null);
   const [divers, setDivers] = useState<{ secteurs: { secteur: string; poids_pct: number; surpondere: boolean }[]; n_surponderes: number; seuil_pct: number } | null>(null);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quick, setQuick] = useState<{ ticker: string; type: "ACHAT" | "VENTE"; quantite: number; prix: number }>(
+    { ticker: "", type: "ACHAT", quantite: 0, prix: 0 },
+  );
+  const [quickSaving, setQuickSaving] = useState(false);
+
+  const submitQuick = async () => {
+    if (!quick.ticker || quick.quantite <= 0) return;
+    setQuickSaving(true);
+    try {
+      const tx: TransactionCreate = {
+        ticker: quick.ticker.toUpperCase(),
+        type_transaction: quick.type,
+        date_transaction: new Date().toISOString().slice(0, 10),
+        quantite: quick.quantite,
+        prix_unitaire: quick.prix,
+        devise: "EUR",
+      };
+      await financeApi.createTransaction(tx);
+      setQuick({ ticker: "", type: "ACHAT", quantite: 0, prix: 0 });
+      setQuickOpen(false);
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erreur saisie");
+    } finally {
+      setQuickSaving(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -112,7 +140,48 @@ export function CompositionTab() {
             {g.charAt(0).toUpperCase() + g.slice(1)}
           </button>
         ))}
+        <button
+          onClick={() => setQuickOpen((o) => !o)}
+          className="ml-auto text-xs px-3 py-1.5 rounded-full border border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--ring)] hover:text-[var(--foreground)]"
+        >
+          + Saisie rapide
+        </button>
       </div>
+
+      {/* Saisie rapide d'une transaction depuis le portefeuille */}
+      {quickOpen && (
+        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
+          <input
+            placeholder="Ticker" value={quick.ticker}
+            onChange={(e) => setQuick({ ...quick, ticker: e.target.value })}
+            className="w-28 px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--background)] uppercase"
+          />
+          <select
+            value={quick.type}
+            onChange={(e) => setQuick({ ...quick, type: e.target.value as "ACHAT" | "VENTE" })}
+            className="px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--background)]"
+          >
+            <option value="ACHAT">Achat</option>
+            <option value="VENTE">Vente</option>
+          </select>
+          <input
+            type="number" placeholder="Qté" value={quick.quantite || ""}
+            onChange={(e) => setQuick({ ...quick, quantite: parseFloat(e.target.value) || 0 })}
+            className="w-24 px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--background)]"
+          />
+          <input
+            type="number" placeholder="Prix €" value={quick.prix || ""}
+            onChange={(e) => setQuick({ ...quick, prix: parseFloat(e.target.value) || 0 })}
+            className="w-24 px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--background)]"
+          />
+          <button
+            onClick={submitQuick} disabled={quickSaving || !quick.ticker || quick.quantite <= 0}
+            className="rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+          >
+            {quickSaving ? "…" : "Enregistrer"}
+          </button>
+        </div>
+      )}
 
       {/* Treemap bars */}
       <FlatTreemap nodes={treemap} />

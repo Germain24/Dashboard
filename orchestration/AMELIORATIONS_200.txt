@@ -77,7 +77,7 @@ D. MODULE FINANCE (46-60)
 54. [M](**) Détail du score Buffett par critère (marge, ROE, dette) avec explication.   ← FINIS ✓ (score_breakdown pur + ratios_recents exposés + GET /finance/buffett/breakdown/{ticker} + section TitreDetailModal ; tests TDD)
 55. [S](*) Devises multiples (CAD/USD) avec conversion au taux du jour.   ← FINIS ✓ (fx.py cache quotidien + repli inverse + GET /finance/fx + sélecteur EUR/USD/CAD dans SuiviTab ; tests TDD)
 56. [M](**) Détection de surpondération sectorielle / mesure de diversification (risk.py).   ← FINIS ✓ (compute_sector_diversification + HHI sectoriel + GET /finance/diversification + bandeau d'alerte CompositionTab ; tests TDD)
-57. [S](*) Saisie rapide d'une transaction (achat/vente) depuis la vue portefeuille.
+57. [S](*) Saisie rapide d'une transaction (achat/vente) depuis la vue portefeuille.   ← FINIS ✓ (formulaire compact « + Saisie rapide » dans CompositionTab -> createTransaction + reload)
 58. [M](**) Objectifs d'épargne/investissement avec projection (intérêts composés).
 59. [S](**) Historique des analyses Buffett mensuelles consultable (timeline).
 60. [M](**) Notification push quand le snapshot quotidien échoue ou détecte une chute > X%.
