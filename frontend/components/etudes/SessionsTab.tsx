@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { fetchSessions, createSession, deleteSession, fetchCours, type SessionEtude, type Cours } from "@/lib/etudes";
 import { planFocus } from "@/lib/agenda";
+import { PomodoroTimer } from "./PomodoroTimer";
 
 export function SessionsTab() {
   const [sessions, setSessions] = useState<SessionEtude[]>([]);
@@ -48,6 +49,9 @@ export function SessionsTab() {
   };
 
   const coursMap = Object.fromEntries(cours.map(c => [c.id, c.code]));
+  const sujetsReutilisables = Array.from(
+    new Set(sessions.map(s => s.sujet).filter((x): x is string => !!x)),
+  ).slice(0, 30);
   const totalMin = sessions.reduce((s, se) => s + se.duree_min, 0);
   const totalH = Math.floor(totalMin / 60);
   const totalRem = totalMin % 60;
@@ -72,6 +76,8 @@ export function SessionsTab() {
       </div>
       {focusMsg && <div className="text-xs text-[var(--muted)]">{focusMsg}</div>}
 
+      <PomodoroTimer cours={cours} onLogged={load} />
+
       {adding && (
         <div className="border rounded p-3 space-y-2 text-sm bg-[var(--card-bg)]">
           <div className="flex gap-2 items-center">
@@ -89,8 +95,11 @@ export function SessionsTab() {
           </div>
           <div className="flex gap-2 items-center">
             <label className="w-24 shrink-0 text-[var(--muted)]">Sujet</label>
-            <input className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ex: Révision Ch.3"
+            <input list="sujets-reutilisables" className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ex: Révision Ch.3"
               value={form.sujet} onChange={e => setForm(f => ({ ...f, sujet: e.target.value }))} />
+            <datalist id="sujets-reutilisables">
+              {sujetsReutilisables.map(s => <option key={s} value={s} />)}
+            </datalist>
           </div>
           <div className="flex gap-2 items-center">
             <label className="w-24 shrink-0 text-[var(--muted)]">Note</label>
