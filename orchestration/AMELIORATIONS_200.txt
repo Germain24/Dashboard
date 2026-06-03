@@ -94,7 +94,7 @@ E. MODULE SANTÉ (61-72)
 65. [M](**) Score de qualité nutritionnelle hebdomadaire.
 66. [S](*) Rappel d'hydratation et suivi de l'eau.   ← FINIS ✓ (wellbeing add_water/get_water via MesureSante.extra + POST/GET /sante/water + WaterWidget dans JourTab ; tests TDD)
 67. [M](**) Intégration des séances d'entraînement pour ajuster les calories dépensées.
-68. [S](**) Suivi du sommeil (durée, qualité) avec corrélation poids/énergie.   ← PARTIEL (backend complet : set_sleep + sleep_weight_summary via MesureSante.extra + POST /sante/sleep + GET /sante/sleep/summary, tests TDD ; widget UI à ajouter)
+68. [S](**) Suivi du sommeil (durée, qualité) avec corrélation poids/énergie.   ← FINIS ✓ (backend set_sleep + sleep_weight_summary ; SleepWidget UI dans JourTab : saisie durée/qualité + résumé moyenne/corrélation poids)
 69. [S](*) Photos de progression (avant/après) stockées localement.
 70. [M](**) Alerte si déficit/surplus calorique trop agressif sur 7 jours.
 71. [S](*) Export du plan macros en image partageable.
