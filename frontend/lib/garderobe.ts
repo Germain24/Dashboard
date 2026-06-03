@@ -132,6 +132,15 @@ export type Recommendation = {
   type: string;
 };
 
+export type PlannerEvent = { titre: string; categorie: string | null; heure: string };
+export type PlannerDay = {
+  date: string;
+  weekday: number;
+  tenue: Record<string, Vetement | null>;
+  events: PlannerEvent[];
+};
+export type WeekPlan = { start: string; days: PlannerDay[] };
+
 export type WearFrequency = {
   total: number;
   never_worn_count: number;
@@ -203,6 +212,14 @@ export const garderobeApi = {
   recommendations: () => api<Recommendation[]>(`/garderobe/recommendations`),
 
   frequence: (topN = 5) => api<WearFrequency>(`/garderobe/frequence?top_n=${topN}`),
+
+  // Planificateur de tenues hebdomadaire (#79)
+  getPlanner: (start?: string) => api<WeekPlan>(`/garderobe/planner${start ? `?start=${start}` : ""}`),
+  setPlannerDay: (date: string, tenue: Record<string, string | null>) =>
+    api<{ date: string; tenue: Record<string, Vetement | null> }>(`/garderobe/planner/${date}`, {
+      method: "PUT",
+      body: JSON.stringify({ tenue }),
+    }),
 
   // Photo d'un vêtement + couleur dominante détectée (#75)
   uploadPhoto: (id: string, file: File, couleurDominante?: string) => {

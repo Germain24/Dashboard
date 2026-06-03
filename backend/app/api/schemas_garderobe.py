@@ -189,6 +189,11 @@ class StatsResponse(BaseModel):
 # Recommandations
 # ─────────────────────────────────────────────────────────────────────────────
 
+class PlannerDayUpdate(BaseModel):
+    """Tenue planifiée pour un jour : {slot_id: vetement_id | null}."""
+    tenue: dict[str, Optional[str]] = {}
+
+
 class RecommendationOut(BaseModel):
     nom: str
     raison: str
