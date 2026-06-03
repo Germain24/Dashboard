@@ -285,6 +285,49 @@ def slots_endpoint(
     return [SlotLibre(**s) for s in raw]
 
 
+# ── Bloc focus Études (#89) ───────────────────────────────────────────────────
+
+@router.post("/focus", response_model=EvenementRead, status_code=201)
+def plan_focus(
+    session: SessionDep,
+    duree_min: int = Query(60, ge=15, le=480),
+    date: Optional[dt.date] = Query(None),
+    titre: Optional[str] = Query(None),
+    cours: Optional[str] = Query(None, description="Code/nom du cours à réviser"),
+    day_start_h: int = Query(8, ge=0, le=23),
+    day_end_h: int = Query(23, ge=1, le=24),
+):
+    """Planifie un bloc focus Études dans le premier créneau libre suffisant."""
+    from app.services.agenda.focus import pick_slot
+
+    target = date or dt.date.today()
+    from_dt = dt.datetime.combine(target, dt.time.min)
+    to_dt = dt.datetime.combine(target, dt.time.max)
+    items = get_full_calendar(session, from_dt, to_dt)
+    blk = get_training_block_for_date(session, target)
+    if blk:
+        items.append(blk)
+    occupied = [
+        (e["debut"], e["fin"] or e["debut"] + dt.timedelta(hours=1))
+        for e in items if e.get("fin")
+    ]
+    slots = free_slots(target, occupied, duree_min, day_start_h, day_end_h)
+    chosen = pick_slot(slots, duree_min)
+    if chosen is None:
+        raise HTTPException(409, f"Aucun créneau libre de {duree_min} min le {target}.")
+
+    label = titre or (f"Focus — {cours}" if cours else "Focus études")
+    ev = create_event(session, {
+        "titre": label,
+        "debut": chosen["debut"],
+        "fin": chosen["fin"],
+        "categorie": "etudes",
+        "source": "etudes_focus",
+        "description": cours,
+    })
+    return EvenementRead.model_validate(ev)
+
+
 # ── Export iCal ───────────────────────────────────────────────────────────────
 
 @router.get("/export-ical")

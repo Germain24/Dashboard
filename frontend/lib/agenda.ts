@@ -144,6 +144,21 @@ export async function fetchEvents(from?: string, to?: string): Promise<Evenement
   return api<Evenement[]>(`/agenda/events?${params}`);
 }
 
+/** Planifie un bloc focus Études dans un créneau libre (#89). */
+export async function planFocus(params: {
+  duree_min?: number;
+  date?: string;
+  titre?: string;
+  cours?: string;
+}): Promise<Evenement> {
+  const q = new URLSearchParams();
+  if (params.duree_min) q.set("duree_min", String(params.duree_min));
+  if (params.date) q.set("date", params.date);
+  if (params.titre) q.set("titre", params.titre);
+  if (params.cours) q.set("cours", params.cours);
+  return api<Evenement>(`/agenda/focus?${q}`, { method: "POST" });
+}
+
 /** URL de téléchargement .ics de la fenêtre donnée (#91). */
 export function exportIcsUrl(from?: string, to?: string): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
