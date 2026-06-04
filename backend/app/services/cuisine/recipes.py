@@ -25,6 +25,7 @@ def create_recipe(session: Session, titre: str, portions: int = 4, temps_prep: i
         ))
     if ingredients:
         session.commit()
+        session.refresh(r)  # sinon l'objet est expiré → réponse vide
     return r
 
 
