@@ -58,6 +58,7 @@ from app.services.agenda import (
     get_recurrence_rule,
     get_task,
     get_training_block_for_date,
+    list_events_for_window,
     list_recurrence_rules,
     list_tasks,
     mark_done,
@@ -66,6 +67,7 @@ from app.services.agenda import (
     update_recurrence_rule,
     update_task,
 )
+from app.services.agenda.planner import TYPE_META, cycle_window, plan_cycle
 from app.models.agenda import Evenement
 
 log = logging.getLogger(__name__)
@@ -114,6 +116,97 @@ def today(session: SessionDep):
         slots_libres=[SlotLibre(**s) for s in slots],
         taches_urgentes=[TacheRead.model_validate(t) for t in urgentes],
     )
+
+
+# ── Planificateur automatique ────────────────────────────────────────────────
+# Voir docs/superpowers/specs/2026-06-04-agenda-auto-planner-design.md
+
+
+def _gather_planner_inputs(session: Session, run_date: dt.date):
+    """Construit les obstacles fixes (par jour) + les cours du cycle.
+
+    Les blocs `source="planner"` sont ignorés (idempotence) : un nouveau calcul
+    ne se planifie pas autour de ses propres blocs précédents.
+    """
+    start, end = cycle_window(run_date)
+    from_dt = dt.datetime.combine(start, dt.time.min)
+    to_dt = dt.datetime.combine(end, dt.time.max)
+    cal = get_full_calendar(session, from_dt, to_dt)
+
+    fixed_by_day: dict[dt.date, list[tuple[dt.datetime, dt.datetime]]] = {}
+    courses: list[str] = []
+    seen: set[str] = set()
+    for it in cal:
+        if it.get("source") == "planner" or not it.get("fin"):
+            continue
+        debut, fin = it["debut"], it["fin"]
+        fixed_by_day.setdefault(debut.date(), []).append((debut, fin))
+        if it.get("categorie") == "cours":
+            name = it.get("titre") or "Cours"
+            if name not in seen:
+                seen.add(name)
+                courses.append(name)
+    return fixed_by_day, courses
+
+
+def _serialize_plan(prop) -> dict:
+    return {
+        "fenetre": {
+            "debut": prop.window_start.isoformat(),
+            "fin": prop.window_end.isoformat(),
+        },
+        "blocs": [
+            {
+                "date": b.date.isoformat(),
+                "debut": b.debut.isoformat(),
+                "fin": b.fin.isoformat(),
+                "type": b.type,
+                "titre": b.titre,
+            }
+            for b in prop.blocks
+        ],
+        "non_places": prop.non_places,
+    }
+
+
+@router.get("/plan/preview")
+def plan_preview(session: SessionDep, date: Optional[dt.date] = None) -> dict:
+    """Calcule le planning du cycle. Lecture seule (aucune écriture)."""
+    run_date = date or dt.date.today()
+    fixed, courses = _gather_planner_inputs(session, run_date)
+    return _serialize_plan(plan_cycle(run_date, fixed, courses))
+
+
+@router.post("/plan/commit")
+def plan_commit(session: SessionDep, date: Optional[dt.date] = None) -> dict:
+    """Recalcule côté serveur, remplace les blocs planner du cycle, écrit en local."""
+    run_date = date or dt.date.today()
+    fixed, courses = _gather_planner_inputs(session, run_date)
+    prop = plan_cycle(run_date, fixed, courses)
+
+    from_dt = dt.datetime.combine(prop.window_start, dt.time.min)
+    to_dt = dt.datetime.combine(prop.window_end, dt.time.max)
+    for ev in list_events_for_window(session, from_dt, to_dt):
+        if ev.source == "planner" and ev.id is not None:
+            delete_event(session, ev.id)
+
+    created = 0
+    for b in prop.blocks:
+        meta = TYPE_META.get(b.type, {"categorie": "autre", "couleur": None})
+        create_event(
+            session,
+            {
+                "titre": b.titre,
+                "debut": b.debut,
+                "fin": b.fin,
+                "categorie": meta["categorie"],
+                "couleur": meta["couleur"],
+                "source": "planner",
+                "description": "Bloc planifié automatiquement.",
+            },
+        )
+        created += 1
+    return {**_serialize_plan(prop), "created": created}
 
 
 # ── Événements ───────────────────────────────────────────────────────────────
