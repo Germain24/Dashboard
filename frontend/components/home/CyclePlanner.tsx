@@ -17,6 +17,8 @@ import { CalendarPlus, TriangleAlert } from "lucide-react";
 import {
   planPreview,
   planCommit,
+  planPush,
+  gcalStatus,
   PLAN_TYPE_COLOR,
   type PlanProposition,
   type PlanBloc,
@@ -49,11 +51,16 @@ export function CyclePlanner() {
   const [committing, setCommitting] = useState(false);
   const [committed, setCommitted] = useState(false);
   const [plan, setPlan] = useState<PlanProposition | null>(null);
+  const [gcalOk, setGcalOk] = useState(false);
+  const [pushing, setPushing] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setCookingDay(COOKING_DAYS.includes(new Date().getDay()));
+    gcalStatus()
+      .then((s) => setGcalOk(s.configured))
+      .catch(() => setGcalOk(false));
   }, []);
 
   // Gestion focus + fermeture quand le modal est ouvert (sans onClick sur div).
@@ -103,6 +110,18 @@ export function CyclePlanner() {
     }
   }
 
+  async function push() {
+    setPushing(true);
+    try {
+      const res = await planPush();
+      toast.success(`${res.pushed} blocs envoyés sur Google Agenda.`);
+    } catch {
+      toast.error("Échec de l'envoi vers Google Agenda.");
+    } finally {
+      setPushing(false);
+    }
+  }
+
   if (!cookingDay) return null;
 
   return (
@@ -124,12 +143,24 @@ export function CyclePlanner() {
           </div>
         </div>
         {committed ? (
-          <Link
-            href="/agenda"
-            className="shrink-0 rounded-md border border-[var(--border)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]"
-          >
-            Voir l'agenda
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            {gcalOk && (
+              <button
+                type="button"
+                onClick={() => void push()}
+                disabled={pushing}
+                className="rounded-md bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-[var(--primary-foreground)] transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                {pushing ? "Envoi…" : "Envoyer sur Google Agenda"}
+              </button>
+            )}
+            <Link
+              href="/agenda"
+              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]"
+            >
+              Voir l'agenda
+            </Link>
+          </div>
         ) : (
           <button
             type="button"
@@ -201,14 +232,11 @@ export function CyclePlanner() {
             </div>
 
             <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] px-4 py-3">
-              <button
-                type="button"
-                disabled
-                title="Bientôt : envoi vers Google Calendar"
-                className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted-foreground)] opacity-60"
-              >
-                Envoyer sur Google Agenda
-              </button>
+              <span className="text-xs text-[var(--muted-foreground)]">
+                {gcalOk
+                  ? "Après validation : envoi possible vers Google Agenda."
+                  : "Écrit dans l'agenda local."}
+              </span>
               <button
                 type="button"
                 onClick={() => void validate()}

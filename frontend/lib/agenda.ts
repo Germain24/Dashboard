@@ -310,6 +310,11 @@ export async function planCommit(
   return api(`/agenda/plan/commit${date ? `?date=${date}` : ""}`, { method: "POST" });
 }
 
+/** Pousse les blocs planner du cycle vers Google Calendar (#83). */
+export async function planPush(date?: string): Promise<{ pushed: number }> {
+  return api(`/agenda/plan/push${date ? `?date=${date}` : ""}`, { method: "POST" });
+}
+
 /** Couleur d'un type de bloc (aligné sur TYPE_META côté backend). */
 export const PLAN_TYPE_COLOR: Record<string, string> = {
   sommeil: "#6366F1",

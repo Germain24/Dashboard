@@ -68,6 +68,10 @@ from app.services.agenda import (
     update_task,
 )
 from app.services.agenda.planner import TYPE_META, cycle_window, plan_cycle
+from app.services.agenda.gcal import (
+    create_event as gcal_create_event,
+    is_configured as gcal_is_configured,
+)
 from app.models.agenda import Evenement
 
 log = logging.getLogger(__name__)
@@ -207,6 +211,44 @@ def plan_commit(session: SessionDep, date: Optional[dt.date] = None) -> dict:
         )
         created += 1
     return {**_serialize_plan(prop), "created": created}
+
+
+@router.post("/plan/push")
+def plan_push(session: SessionDep, date: Optional[dt.date] = None) -> dict:
+    """Pousse les blocs planner du cycle vers Google Calendar (#83).
+
+    Ne pousse que les blocs `source="planner"` pas encore synchronisés (sans
+    `source_id`) ; stocke l'id Google retourné pour éviter les doublons.
+    """
+    if not gcal_is_configured():
+        raise HTTPException(
+            503,
+            "Google Calendar non configuré. Renseigne GOOGLE_* dans .env "
+            "(voir scripts/google_oauth_setup.py).",
+        )
+    run_date = date or dt.date.today()
+    start, end = cycle_window(run_date)
+    from_dt = dt.datetime.combine(start, dt.time.min)
+    to_dt = dt.datetime.combine(end, dt.time.max)
+
+    pushed = 0
+    for ev in list_events_for_window(session, from_dt, to_dt):
+        if ev.source != "planner" or ev.source_id:
+            continue
+        res = gcal_create_event(
+            {
+                "titre": ev.titre,
+                "debut": ev.debut,
+                "fin": ev.fin,
+                "lieu": ev.lieu,
+                "description": ev.description,
+            }
+        )
+        ev.source_id = res.get("id")
+        session.add(ev)
+        pushed += 1
+    session.commit()
+    return {"pushed": pushed}
 
 
 # ── Événements ───────────────────────────────────────────────────────────────
