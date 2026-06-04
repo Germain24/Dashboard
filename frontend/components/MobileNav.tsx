@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, X, Menu } from "lucide-react";
-import { MODULES } from "@/lib/modules";
+import { MODULE_GROUPS } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
@@ -37,7 +37,7 @@ export function MobileNav() {
           <span className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--foreground)] text-[var(--background)] text-[9px] font-bold shrink-0">
             MC
           </span>
-          <span className="text-sm font-semibold tracking-tight">Mission Control</span>
+          <span className="font-display text-base font-semibold tracking-tight">Mission Control</span>
         </Link>
         <button
           onClick={() => setOpen(true)}
@@ -78,7 +78,7 @@ export function MobileNav() {
           )}
         >
           <div className="flex items-center justify-between px-3 mb-4">
-            <span className="text-sm font-semibold tracking-tight">Mission Control</span>
+            <span className="font-display text-base font-semibold tracking-tight">Mission Control</span>
             <button
               ref={closeRef}
               onClick={() => setOpen(false)}
@@ -96,7 +96,7 @@ export function MobileNav() {
               className={cn(
                 "flex items-center gap-3 rounded-[var(--radius)] px-3 py-2 text-sm transition-colors",
                 isActive("")
-                  ? "bg-[var(--background)] text-[var(--foreground)] font-medium shadow-sm"
+                  ? "nav-active font-medium"
                   : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
               )}
             >
@@ -105,34 +105,38 @@ export function MobileNav() {
             </Link>
           </nav>
 
-          <div className="mt-4 mb-1 px-3">
-            <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted-foreground)]/60">
-              Modules
-            </span>
-          </div>
-
-          <nav className="flex flex-col gap-0.5" aria-label="Modules">
-            {MODULES.map((m) => {
-              const Icon = m.icon;
-              const active = isActive(m.slug);
-              return (
-                <Link
-                  key={m.slug}
-                  href={"/" + m.slug}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex items-center gap-3 rounded-[var(--radius)] px-3 py-2 text-sm transition-colors",
-                    active
-                      ? "bg-[var(--background)] text-[var(--foreground)] font-medium shadow-sm"
-                      : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span className="flex-1 min-w-0 truncate">{m.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+          {/* Modules groupés — même source et même ordre que la sidebar desktop. */}
+          {MODULE_GROUPS.map((group) => (
+            <div key={group.group}>
+              <div className="mt-4 mb-1 px-3">
+                <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted-foreground)]/60">
+                  {group.group}
+                </span>
+              </div>
+              <nav className="flex flex-col gap-0.5" aria-label={group.group}>
+                {group.items.map((m) => {
+                  const Icon = m.icon;
+                  const active = isActive(m.slug);
+                  return (
+                    <Link
+                      key={m.slug}
+                      href={"/" + m.slug}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex items-center gap-3 rounded-[var(--radius)] px-3 py-2 text-sm transition-colors",
+                        active
+                          ? "nav-active font-medium"
+                          : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span className="flex-1 min-w-0 truncate">{m.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          ))}
         </aside>
       </div>
     </>

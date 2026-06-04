@@ -1,44 +1,48 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════
-   Mission Control — Design System (CONV DESIGN)
-   Mood : Minimal Mono + Blue accent (Notion/Bear style)
+   Mission Control — Design System
+   Mood : City Boy / Savile Row — flanelle grise + marine + bordeaux
+   Clair = costume de jour · Sombre = club du soir
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Backgrounds ───────────────────────────────────────── */
-  --background: #ffffff;
-  --background-subtle: #fafafa;
+  /* ── Backgrounds (gris flanelle) ───────────────────────── */
+  --background: #ECEDEF;
+  --background-subtle: #E4E6EA;
 
-  /* ── Foreground ────────────────────────────────────────── */
-  --foreground: #111111;
+  /* ── Foreground (encre marine) ─────────────────────────── */
+  --foreground: #16223D;
 
   /* ── Surfaces neutres ──────────────────────────────────── */
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --border: #e8e8e8;
+  --muted: #E2E5E9;
+  --muted-foreground: #525E70;
+  --border: #D6DAE0;
 
-  /* ── Cartes ────────────────────────────────────────────── */
-  --card: #ffffff;
-  --card-foreground: #111111;
+  /* ── Cartes (blanc cassé froid, au-dessus du gris) ─────── */
+  --card: #FBFBFC;
+  --card-foreground: #16223D;
 
-  /* ── Font ──────────────────────────────────────────────── */
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* ── Fonts (auto-hébergées via next/font, cf. layout.tsx) ── */
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
 
-  /* ── Actions primaires (boutons noirs) ─────────────────── */
-  --primary: #111111;
-  --primary-foreground: #ffffff;
+  /* ── Actions primaires (blazer marine) ─────────────────── */
+  --primary: #1B2A4A;
+  --primary-foreground: #F5F6F7;
 
   /* ── Hover / surfaces secondaires ─────────────────────── */
-  --accent: #f5f5f5;
-  --accent-foreground: #111111;
+  --accent: #E2E5E9;
+  --accent-foreground: #16223D;
 
-  /* ── Sidebar ───────────────────────────────────────────── */
-  --sidebar: #f9f9fb;
+  /* ── Sidebar (flanelle légèrement plus froide) ─────────── */
+  --sidebar: #E6E8EC;
 
-  /* ── Accent interactif (bleu) ──────────────────────────── */
-  --ring: #2563eb;
+  /* ── Accent interactif (bordeaux / cravate) ────────────── */
+  --ring: #6E2B3E;
+  /* Texte/icône d'un item de nav actif, lisible (≥ 4.5:1) sur le lavis
+     bordeaux 12 % — cf. .nav-active. */
+  --nav-active-fg: #6E2B3E;
 
   /* ── Sémantiques ───────────────────────────────────────── */
   --success: #16a34a;
@@ -88,26 +92,27 @@
 /* Thème sombre automatique (OS), sauf si l'utilisateur a explicitement choisi clair. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #0d0d0d;
-    --background-subtle: #111111;
-    --foreground: #e8e8e8;
+    --background: #15181C;
+    --background-subtle: #1A1E22;
+    --foreground: #E6E8EC;
 
-    --muted: #1a1a1a;
-    --muted-foreground: #a3a3a3;
-    --border: #262626;
+    --muted: #23282E;
+    --muted-foreground: #9AA2AD;
+    --border: #2B313A;
 
-    --card: #111111;
-    --card-foreground: #e8e8e8;
+    --card: #1B1F24;
+    --card-foreground: #E6E8EC;
 
-    --primary: #e8e8e8;
-    --primary-foreground: #0d0d0d;
+    --primary: #E6E8EC;
+    --primary-foreground: #15181C;
 
-    --accent: #1a1a1a;
-    --accent-foreground: #e8e8e8;
+    --accent: #23282E;
+    --accent-foreground: #E6E8EC;
 
-    --sidebar: #050505;
+    --sidebar: #101418;
 
-    --ring: #3b82f6;
+    --ring: #C57385;
+    --nav-active-fg: #DDA0AC;
 
     --success: #4ade80;
     --success-muted: #14532d;
@@ -140,26 +145,27 @@
 
 /* Thème sombre explicite (toggle manuel) — prime sur la préférence OS. */
 :root[data-theme="dark"] {
-  --background: #0d0d0d;
-  --background-subtle: #111111;
-  --foreground: #e8e8e8;
+  --background: #15181C;
+  --background-subtle: #1A1E22;
+  --foreground: #E6E8EC;
 
-  --muted: #1a1a1a;
-  --muted-foreground: #a3a3a3;
-  --border: #262626;
+  --muted: #23282E;
+  --muted-foreground: #9AA2AD;
+  --border: #2B313A;
 
-  --card: #111111;
-  --card-foreground: #e8e8e8;
+  --card: #1B1F24;
+  --card-foreground: #E6E8EC;
 
-  --primary: #e8e8e8;
-  --primary-foreground: #0d0d0d;
+  --primary: #E6E8EC;
+  --primary-foreground: #15181C;
 
-  --accent: #1a1a1a;
-  --accent-foreground: #e8e8e8;
+  --accent: #23282E;
+  --accent-foreground: #E6E8EC;
 
-  --sidebar: #050505;
+  --sidebar: #101418;
 
-  --ring: #3b82f6;
+  --ring: #C57385;
+  --nav-active-fg: #DDA0AC;
 
   --success: #4ade80;
   --success-muted: #14532d;
@@ -209,6 +215,15 @@ body {
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.6;
+}
+
+/* Titres en serif éditorial (Savile Row). Les labels de section (h2/h3) et l'UI
+   restent en sans pour la lisibilité des données denses. `.font-display` permet
+   d'étendre le serif à un élément précis (ex. le wordmark). */
+h1,
+.font-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
 }
 
 /* ── Focus visible global ──────────────────────────────────── */
@@ -331,11 +346,14 @@ html {
   cursor: pointer;
 }
 
-/* Nav item actif avec glow bleu subtil */
+/* Item de navigation actif (« vous êtes ici »).
+   Trois indices cumulés : lavis bleu (fond plein, présent vs transparent —
+   indice non chromatique perceptible en daltonisme), teinte bleue du texte et
+   de l'icône (l'icône hérite de currentColor), et aria-current côté markup.
+   --nav-active-fg est assombri en clair pour rester ≥ 4.5:1 sur le lavis. */
 .nav-active {
-  background: color-mix(in srgb, var(--ring) 12%, transparent);
-  color: var(--ring);
-  box-shadow: inset 2px 0 0 var(--ring);
+  background-color: color-mix(in srgb, var(--ring) 12%, transparent);
+  color: var(--nav-active-fg);
 }
 
 /* Focus ring global */

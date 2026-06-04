@@ -12,15 +12,10 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { MODULES } from "@/lib/modules";
-
-const EXTRA_LABELS: Record<string, string> = {
-  jobs: "Jobs",
-};
+import { moduleForSlug } from "@/lib/modules";
 
 function labelFor(slug: string): string {
-  const m = MODULES.find((x) => x.slug === slug);
-  return m?.label ?? EXTRA_LABELS[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
+  return moduleForSlug(slug)?.label ?? slug.charAt(0).toUpperCase() + slug.slice(1);
 }
 
 export function Breadcrumbs() {

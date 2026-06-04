@@ -22,7 +22,7 @@ export function HealthBadge() {
   }, []);
 
   const base =
-    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors duration-[var(--transition)]";
+    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors";
 
   if (state.kind === "loading") {
     return (
@@ -63,12 +63,12 @@ export function HealthBadge() {
         "border-[var(--success)]/30 bg-[var(--success-muted)] text-[var(--success-foreground)]",
       )}
       aria-live="polite"
-      aria-label={"Backend OK version " + data.version}
-      title={"env=" + data.env + " db=" + data.db}
+      aria-label={"Backend en ligne, version " + data.version}
+      title={"v" + data.version + " · env=" + data.env + " · db=" + data.db}
     >
       <Server className="h-3 w-3" aria-hidden="true" />
       <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" aria-hidden="true" />
-      v{data.version}
+      OK
     </span>
   );
 }

@@ -3,8 +3,12 @@
 > **Contrat de référence.** Toutes les CONV qui touchent le frontend (CONV 4, 6, 8-15)
 > doivent respecter ce document. Ne pas dériver sans mettre ce fichier à jour.
 >
-> **Mood** : Minimal Mono + Blue accent (Notion/Bear/iA Writer)
+> **Mood** : City Boy / Savile Row — flanelle grise + marine + bordeaux.
+> Clair = costume de jour, sombre = club du soir. Titres en serif éditorial.
 > **Généré** : CONV DESIGN (2026-05-26)
+> **Mis à jour** : 2026-06-04 — reskin Savile Row (palette + serif titres),
+> police (next/font), toggles thème/densité, nav source unique + état actif,
+> accueil tableau de bord, cloche notifications.
 
 ---
 
@@ -13,45 +17,48 @@
 Toutes les valeurs vivent dans `src/app/globals.css`.
 Ne jamais coder une couleur en dur dans un composant : toujours utiliser les `var(--...)`.
 
-### Backgrounds
+### Backgrounds (gris flanelle / ardoise)
 
 | Token | Light | Dark |
 |---|---|---|
-| `--background` | `#ffffff` | `#0d0d0d` |
-| `--background-subtle` | `#fafafa` | `#111111` |
-| `--muted` | `#f5f5f5` | `#1a1a1a` |
-| `--card` | `#ffffff` | `#111111` |
+| `--background` | `#ECEDEF` | `#15181C` |
+| `--background-subtle` | `#E4E6EA` | `#1A1E22` |
+| `--muted` | `#E2E5E9` | `#23282E` |
+| `--card` | `#FBFBFC` | `#1B1F24` |
 
-### Texte
+### Texte (encre marine / ivoire froid)
 
 | Token | Light | Dark |
 |---|---|---|
-| `--foreground` | `#111111` | `#e8e8e8` |
-| `--muted-foreground` | `#737373` | `#a3a3a3` |
-| `--card-foreground` | `#111111` | `#e8e8e8` |
+| `--foreground` | `#16223D` | `#E6E8EC` |
+| `--muted-foreground` | `#525E70` | `#9AA2AD` |
+| `--card-foreground` | `#16223D` | `#E6E8EC` |
 
 ### Bordures
 
 | Token | Light | Dark |
 |---|---|---|
-| `--border` | `#e8e8e8` | `#262626` |
+| `--border` | `#D6DAE0` | `#2B313A` |
 
-### Primaire (boutons actions principales)
-
-| Token | Light | Dark |
-|---|---|---|
-| `--primary` | `#111111` | `#e8e8e8` |
-| `--primary-foreground` | `#ffffff` | `#0d0d0d` |
-| `--accent` | `#f5f5f5` | `#1a1a1a` |
-| `--accent-foreground` | `#111111` | `#e8e8e8` |
-
-### Accent interactif (bleu)
+### Primaire (boutons — blazer marine)
 
 | Token | Light | Dark |
 |---|---|---|
-| `--ring` | `#2563eb` | `#3b82f6` |
+| `--primary` | `#1B2A4A` | `#E6E8EC` |
+| `--primary-foreground` | `#F5F6F7` | `#15181C` |
+| `--accent` | `#E2E5E9` | `#23282E` |
+| `--accent-foreground` | `#16223D` | `#E6E8EC` |
 
-Utilisé pour : tabs actifs, focus rings, liens, progress bars.
+### Accent interactif (bordeaux / cravate)
+
+| Token | Light | Dark |
+|---|---|---|
+| `--ring` | `#6E2B3E` | `#C57385` |
+| `--nav-active-fg` | `#6E2B3E` | `#DDA0AC` |
+
+`--ring` : tabs actifs, focus rings, liens, progress bars, lavis d'état actif.
+`--nav-active-fg` : texte/icône d'un item de nav actif (assombri/éclairci pour
+rester ≥ 4.5:1 sur le lavis bordeaux 12 %).
 
 ### Couleurs sémantiques
 
@@ -74,9 +81,14 @@ Utilisé pour : tabs actifs, focus rings, liens, progress bars.
 
 ## 2. Typographie
 
-**Famille** : `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` (zero latence)
+**Corps & UI** : **Plus Jakarta Sans**, auto-hébergée via `next/font/google` (cf.
+`layout.tsx`), exposée par `var(--font-jakarta)` → `--font-sans`. Pas de requête
+bloquante ni de FOUT. Fallback : `ui-sans-serif, system-ui, -apple-system`.
+**Titres** : **Source Serif 4** (serif éditorial Savile Row), `var(--font-serif)`.
+Appliqué aux `h1` et au wordmark via `.font-display`. Les labels de section
+(`h2`/`h3`) et les données denses restent en sans pour la lisibilité.
 **Mono** : `ui-monospace, SFMono-Regular, Menlo, monospace`
-**Taille de base** : `15px`, `line-height: 1.6`
+**Taille de base** : `15px`, `line-height: 1.6` (réduite à `14px` en densité compacte)
 
 ### Échelle en usage
 
@@ -105,10 +117,18 @@ ou clair). `font-semibold` est le maximum.
 
 ---
 
-## 4. Thème dark/light
+## 4. Thème dark/light + densité
 
-**Stratégie** : CSS media query `(prefers-color-scheme: dark)` — suit l'OS.
-Pas de toggle manuel (V1). Si besoin futur : ajouter `next-themes` et `ThemeProvider`.
+**Thème** : trois états — `système` (suit `prefers-color-scheme`), `clair`, `sombre`.
+Le toggle (`ThemeToggle`, pied de sidebar) écrit `data-theme` sur `<html>` et
+persiste dans `localStorage` (`mc-theme`). Le CSS : `@media (prefers-color-scheme: dark)`
+pour le mode système, surchargé par `[data-theme="dark"]` / `[data-theme="light"]`.
+
+**Densité** : `confort` (défaut) / `compact`. `DensityToggle` écrit `data-density`
+(persisté `mc-density`) ; `[data-density="compact"]` réduit la taille racine à 14px.
+
+**Anti-flash** : un script inline dans `layout.tsx` applique thème + densité avant
+le premier paint (pas de flash de thème incorrect).
 
 **Règle** : tout composant doit être testé en light ET dark. Les valeurs hardcodées
 (`bg-gray-100`, `text-blue-600`, etc.) sont **interdites**.
@@ -219,9 +239,21 @@ export function MonModule() {
 
 ### Navigation
 
-- **≥ md** : Sidebar fixe gauche `w-56`, toujours visible.
-- **< md** : `MobileNav` — header fixe (hauteur `h-12`) + bouton hamburger → drawer overlay.
+**Source unique** : `lib/modules.ts` (slug, label, icône, groupe). La sidebar
+desktop, le drawer mobile et la palette de commandes en dérivent tous — un module
+ajouté là apparaît partout, dans le même ordre, avec la même icône. Ne jamais
+redéclarer une liste de modules ailleurs.
+
+- **≥ md** : Sidebar fixe gauche `md:w-56 lg:w-60`, libellés toujours visibles,
+  groupée (Vie quotidienne / Santé & Sport / Organisation / Finances / Outils).
+- **< md** : `MobileNav` — header fixe (`h-12`) + hamburger → drawer (mêmes groupes).
 - **Règle** : `hidden md:flex` sur la Sidebar. `md:hidden` sur MobileNav.
+- **État actif** (« vous êtes ici ») : classe `.nav-active` = lavis bleu 12 % +
+  texte/icône `var(--nav-active-fg)` (bleu assombri AA) + `aria-current="page"`.
+  Jamais de barre latérale (side-stripe) : fond plein + teinte.
+- **Accès** : lien d'évitement (skip link) en tête de `<body>` → `#main-content` ;
+  palette de commandes `⌘K`/`Ctrl K` (`CommandTrigger` visible + `CommandPalette`) ;
+  aide raccourcis `?` (`ShortcutsHelp`).
 
 ### Tableaux et grilles denses
 
@@ -272,9 +304,13 @@ export function MonModule() {
 
 ## 10. Ce qui N'EST PAS dans ce design system (V2+)
 
-- Toggle dark/light manuel → ajouter `next-themes` + `ThemeProvider`
-- Animations (`framer-motion`) → Framer Motion V2
-- Toast notifications → sonner ou radix-toast V2
+- Animations avancées (`framer-motion`) → V2. (Les transitions actuelles passent
+  par CSS + keyframes maison dans `globals.css`.)
 - i18n → full français pour l'instant
 - Palette de couleurs par module (ex. violet pour Finance) → possible en V2
   via `data-module` CSS attribute sur le layout
+
+**Déjà livrés** (n'étaient pas dans la V1 d'origine) : toggle thème clair/sombre/système
+manuel + densité, toasts (`sonner`, montés dans `QueryProvider`), palette de commandes
+`⌘K`, aide raccourcis `?`, et l'accueil en **tableau de bord** (`TodayPanel` +
+`DaySignals`) plutôt qu'une grille de lancement.

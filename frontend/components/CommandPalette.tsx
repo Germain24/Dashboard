@@ -14,9 +14,8 @@ import { MODULES } from "@/lib/modules";
 type Command = { id: string; label: string; href: string; hint?: string };
 
 const COMMANDS: Command[] = [
-  { id: "home", label: "Accueil", href: "/", hint: "Dashboard" },
+  { id: "home", label: "Accueil", href: "/", hint: "Tableau de bord" },
   ...MODULES.map((m) => ({ id: m.slug, label: m.label, href: "/" + m.slug, hint: m.description })),
-  { id: "jobs", label: "Jobs", href: "/jobs", hint: "Tâches planifiées" },
 ];
 
 export function CommandPalette() {
@@ -25,6 +24,8 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
 
   // Ouverture/fermeture via Cmd/Ctrl+K.
   useEffect(() => {
@@ -40,13 +41,53 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Ouverture via un déclencheur visible (bouton « Rechercher » de la sidebar).
   useEffect(() => {
-    if (open) {
-      setQuery("");
-      setActive(0);
-      // focus après le rendu
-      setTimeout(() => inputRef.current?.focus(), 0);
+    function open() {
+      setOpen(true);
     }
+    window.addEventListener("mc:command-palette", open);
+    return () => window.removeEventListener("mc:command-palette", open);
+  }, []);
+
+  // À l'ouverture : reset, focus de l'input, piège à focus (Tab reste dans le
+  // modal), fermeture au clic extérieur, et restauration du focus à la fermeture.
+  useEffect(() => {
+    if (!open) return;
+    setQuery("");
+    setActive(0);
+    restoreRef.current = document.activeElement as HTMLElement | null;
+    const t = setTimeout(() => inputRef.current?.focus(), 0);
+
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button, input, [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    function onPointer(e: MouseEvent) {
+      if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPointer);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPointer);
+      restoreRef.current?.focus();
+    };
   }, [open]);
 
   const results = useMemo(() => {
@@ -66,16 +107,13 @@ export function CommandPalette() {
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[15vh]"
-      onClick={() => setOpen(false)}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Palette de commandes"
-    >
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[15vh]">
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Palette de commandes"
         className="w-full max-w-lg overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-lg)]"
-        onClick={(e) => e.stopPropagation()}
       >
         <input
           ref={inputRef}

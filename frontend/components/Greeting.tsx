@@ -12,15 +12,27 @@ function getGreeting(hour: number): string {
 
 export function Greeting() {
   const [greeting, setGreeting] = useState("Mission Control");
+  const [date, setDate] = useState<string | null>(null);
 
   useEffect(() => {
-    const hour = new Date().getHours();
-    setGreeting(getGreeting(hour));
+    const now = new Date();
+    setGreeting(getGreeting(now.getHours()));
+    setDate(
+      now.toLocaleDateString("fr-CA", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }),
+    );
   }, []);
 
   return (
-    <h1 className="text-2xl font-semibold tracking-tight">
-      {greeting}, Germain
-    </h1>
+    <div>
+      <h1 className="text-2xl font-semibold tracking-tight">{greeting}, Germain</h1>
+      {/* Réserve la hauteur de ligne avant montage pour éviter tout saut. */}
+      <p className="mt-1 text-sm text-[var(--muted-foreground)] first-letter:uppercase">
+        {date ?? " "}
+      </p>
+    </div>
   );
 }
