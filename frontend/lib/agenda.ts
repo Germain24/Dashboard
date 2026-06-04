@@ -279,3 +279,42 @@ export async function fetchSlots(
 ): Promise<SlotLibre[]> {
   return api<SlotLibre[]>(`/agenda/slots?date=${date}&min_duration=${minDuration}`);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Planificateur automatique (#planner — cf. spec 2026-06-04)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type PlanBloc = {
+  date: string;     // YYYY-MM-DD
+  debut: string;    // ISO datetime
+  fin: string;
+  type: string; // sommeil | repas | cuisine | revision | sport
+  titre: string;
+};
+
+export type PlanProposition = {
+  fenetre: { debut: string; fin: string };
+  blocs: PlanBloc[];
+  non_places: string[];
+};
+
+/** Calcule le planning du cycle (lecture seule). `date` = jour de lancement. */
+export async function planPreview(date?: string): Promise<PlanProposition> {
+  return api<PlanProposition>(`/agenda/plan/preview${date ? `?date=${date}` : ""}`);
+}
+
+/** Valide : écrit les blocs planner du cycle dans l'agenda (idempotent). */
+export async function planCommit(
+  date?: string,
+): Promise<PlanProposition & { created: number }> {
+  return api(`/agenda/plan/commit${date ? `?date=${date}` : ""}`, { method: "POST" });
+}
+
+/** Couleur d'un type de bloc (aligné sur TYPE_META côté backend). */
+export const PLAN_TYPE_COLOR: Record<string, string> = {
+  sommeil: "#6366F1",
+  repas: "#14B8A6",
+  cuisine: "#16A34A",
+  revision: "#2563EB",
+  sport: "#F59E0B",
+};

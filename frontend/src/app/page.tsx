@@ -2,6 +2,7 @@ import { HealthBadge } from "@/components/HealthBadge";
 import { Greeting } from "@/components/Greeting";
 import { TodayPanel } from "@/components/home/TodayPanel";
 import { DaySignals } from "@/components/home/DaySignals";
+import { CyclePlanner } from "@/components/home/CyclePlanner";
 
 export default function HomePage() {
   return (
@@ -12,6 +13,7 @@ export default function HomePage() {
       </header>
 
       <TodayPanel />
+      <CyclePlanner />
       <DaySignals />
     </div>
   );
