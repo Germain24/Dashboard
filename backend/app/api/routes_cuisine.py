@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from app.core.db import get_session
-from app.models.cuisine import Recipe, MealPlanEntry, ShoppingListItem
+from app.models.cuisine import Recipe, RecipeIngredient, MealPlanEntry, ShoppingListItem
 from app.services.cuisine import recipes as recipes_svc
 from app.services.cuisine import macros as macros_svc
 from app.services.cuisine import meal_plan as plan_svc
@@ -11,12 +11,19 @@ from pydantic import BaseModel
 router = APIRouter()
 
 
+class IngredientIn(BaseModel):
+    nom_libre: str
+    quantite: float = 0
+    unite: str = ""
+
+
 class RecipeCreate(BaseModel):
     titre: str
     portions: int = 4
     temps_prep: int = 0
     temps_cuisson: int = 0
     instructions: str = ""
+    ingredients: list[IngredientIn] = []
 
 
 class MealPlanPatch(BaseModel):
@@ -31,7 +38,16 @@ class GeneratePlanRequest(BaseModel):
 
 @router.get("/recipes")
 def list_recipes(search: str | None = None, session: Session = Depends(get_session)):
-    return recipes_svc.get_recipes(session, search)
+    recs = recipes_svc.get_recipes(session, search)
+    out = []
+    for r in recs:
+        n = len(
+            session.exec(
+                select(RecipeIngredient).where(RecipeIngredient.recipe_id == r.id)
+            ).all()
+        )
+        out.append({**r.model_dump(), "ingredient_count": n})
+    return out
 
 
 @router.post("/recipes", status_code=201)

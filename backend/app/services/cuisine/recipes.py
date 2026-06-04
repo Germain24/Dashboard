@@ -1,17 +1,39 @@
 from sqlmodel import Session, select
-from app.models.cuisine import Recipe
+from app.models.cuisine import Recipe, RecipeIngredient
 
 
 def create_recipe(session: Session, titre: str, portions: int = 4, temps_prep: int = 0,
                   temps_cuisson: int = 0, instructions: str = "",
-                  source_url: str | None = None, image_url: str | None = None) -> Recipe:
+                  source_url: str | None = None, image_url: str | None = None,
+                  ingredients: list[dict] | None = None) -> Recipe:
     r = Recipe(titre=titre, portions=portions, temps_prep=temps_prep,
                temps_cuisson=temps_cuisson, instructions=instructions,
                source_url=source_url, image_url=image_url)
     session.add(r)
     session.commit()
     session.refresh(r)
+    # Ingrédients structurés (nom libre + quantité + unité) — base de la liste de courses.
+    for ing in ingredients or []:
+        nom = (ing.get("nom_libre") or "").strip()
+        if not nom:
+            continue
+        session.add(RecipeIngredient(
+            recipe_id=r.id,
+            nom_libre=nom,
+            quantite=float(ing.get("quantite") or 0),
+            unite=(ing.get("unite") or "").strip(),
+        ))
+    if ingredients:
+        session.commit()
     return r
+
+
+def get_recipe_ingredients(session: Session, recipe_id: int) -> list[RecipeIngredient]:
+    return list(
+        session.exec(
+            select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe_id)
+        ).all()
+    )
 
 
 def get_recipes(session: Session, search: str | None = None) -> list[Recipe]:
