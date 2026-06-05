@@ -106,6 +106,13 @@ export type ProgressionResponse = {
   delta_4w_pct: number | null;
 };
 
+export type MuscleVolume = {
+  muscle: string;
+  sets: number;
+  tonnage_kg: number;
+  status: "sous" | "optimal" | "sur";
+};
+
 export type CourseCardio = {
   id: number;
   date: string;
@@ -245,6 +252,8 @@ export const entrainementApi = {
     api<{ exercice_id: number; nom: string; current_1rm_kg: number; formula: string }>(
       `/entrainement/1rm/${exercice_id}`,
     ),
+  getMuscleVolume: (days = 7) =>
+    api<MuscleVolume[]>(`/entrainement/volume/muscles?days=${days}`),
 
   // Cardio
   listCardio: (params?: { from?: string; to?: string }) => {

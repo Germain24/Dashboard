@@ -16,6 +16,7 @@ from app.api.schemas_entrainement import (
     ExerciceRead,
     ExerciceUpdate,
     IntensityResponse,
+    MuscleVolumeOut,
     OneRMResponse,
     ProgrammeJourRead,
     ProgrammeJourUpdate,
@@ -53,6 +54,7 @@ from app.services.entrainement import (
     pace_sec_per_km,
     progression_for_exercice,
     update_program_day,
+    weekly_muscle_volume,
 )
 from app.services.entrainement.exercises import (
     delete_exercice as _delete_exercice,
@@ -242,6 +244,12 @@ def get_one_rm(exercice_id: int, session: Session = Depends(get_session)):
     if e is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "exercice introuvable")
     return OneRMResponse(exercice_id=exercice_id, nom=e.nom, current_1rm_kg=current_1rm(session, exercice_id))
+
+
+@router.get("/volume/muscles", response_model=list[MuscleVolumeOut])
+def get_muscle_volume(days: int = Query(7, ge=1, le=90), session: Session = Depends(get_session)):
+    """Volume hebdo (séries) par groupe musculaire + statut sous/optimal/sur (#107)."""
+    return [MuscleVolumeOut(**vars(mv)) for mv in weekly_muscle_volume(session, days=days)]
 
 
 # ── Cardio ──

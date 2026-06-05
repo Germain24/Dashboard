@@ -56,6 +56,10 @@ from app.services.entrainement.programs import (
     program_day_for_date,
     update_program_day,
 )
+from app.services.entrainement.muscle_volume import (
+    classify_volume,
+    weekly_muscle_volume,
+)
 from app.services.entrainement.progression import (
     current_1rm,
     progression_for_exercice,
@@ -88,6 +92,7 @@ __all__ = [
     "baseline_weight",
     "best_1rm_from_sets",
     "classify_intensity_for_session",
+    "classify_volume",
     "compute_intensity_for_date",
     "create_course",
     "create_exercice",
@@ -118,4 +123,5 @@ __all__ = [
     "resolve_poids_corps",
     "suggested_weight",
     "update_program_day",
+    "weekly_muscle_volume",
 ]

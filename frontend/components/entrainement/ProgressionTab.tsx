@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   entrainementApi,
   type Exercice,
+  type MuscleVolume,
   type ProgressionResponse,
 } from "@/lib/entrainement";
 
@@ -39,6 +40,8 @@ export function ProgressionTab({ exercices }: Props) {
 
   return (
     <div className="space-y-4">
+      <MuscleVolumePanel />
+
       <div className="flex flex-wrap items-end gap-2 text-xs">
         <label className="flex flex-col">
           Exercice
@@ -115,6 +118,78 @@ export function ProgressionTab({ exercices }: Props) {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+const VOLUME_STATUS: Record<MuscleVolume["status"], { label: string; cls: string }> = {
+  sous: { label: "Sous-entraîné", cls: "text-[var(--destructive)] border-[var(--destructive)]" },
+  optimal: { label: "Optimal", cls: "text-[var(--success)] border-[var(--success)]" },
+  sur: { label: "Sur-entraîné", cls: "text-amber-600 border-amber-600" },
+};
+
+function MuscleVolumePanel() {
+  const [days, setDays] = useState<number>(7);
+  const [vols, setVols] = useState<MuscleVolume[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    entrainementApi
+      .getMuscleVolume(days)
+      .then((d) => { if (!cancelled) { setVols(d); setErr(null); } })
+      .catch((e) => { if (!cancelled) setErr(e?.message ?? "Erreur"); });
+    return () => { cancelled = true; };
+  }, [days]);
+
+  return (
+    <div className="rounded border border-[var(--border)] p-3 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Volume par groupe musculaire</h3>
+        <select
+          value={days}
+          onChange={(e) => setDays(parseInt(e.target.value, 10))}
+          className="rounded border border-[var(--border)] bg-transparent px-2 py-1 text-xs"
+        >
+          <option value={7}>7 j</option>
+          <option value={14}>14 j</option>
+          <option value={30}>30 j</option>
+        </select>
+      </div>
+
+      {err && <div className="text-sm text-[var(--destructive)]">⚠ {err}</div>}
+      {vols && vols.length === 0 && (
+        <div className="text-sm text-[var(--muted-foreground)]">
+          Aucune série enregistrée sur la période.
+        </div>
+      )}
+
+      {vols && vols.length > 0 && (
+        <div className="space-y-1.5">
+          {vols.map((v) => {
+            const st = VOLUME_STATUS[v.status];
+            const pct = Math.min(100, (v.sets / 20) * 100);
+            return (
+              <div key={v.muscle} className="flex items-center gap-3 text-sm">
+                <span className="w-28 shrink-0 capitalize">{v.muscle}</span>
+                <div className="relative h-2 flex-1 overflow-hidden rounded bg-[var(--muted)]">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded bg-current opacity-70"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className="w-14 shrink-0 text-right tabular-nums">{v.sets} séries</span>
+                <span className={`w-28 shrink-0 rounded border px-1.5 py-0.5 text-center text-xs ${st.cls}`}>
+                  {st.label}
+                </span>
+              </div>
+            );
+          })}
+          <p className="pt-1 text-xs text-[var(--muted-foreground)]">
+            Repères&nbsp;: &lt; 10 séries/sem = sous-entraînement, &gt; 20 = sur-entraînement (MEV/MRV).
+          </p>
+        </div>
       )}
     </div>
   );

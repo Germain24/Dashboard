@@ -169,6 +169,13 @@ class OneRMResponse(BaseModel):
     formula: str = "epley"
 
 
+class MuscleVolumeOut(BaseModel):
+    muscle: str
+    sets: int
+    tonnage_kg: float
+    status: str  # "sous" | "optimal" | "sur"
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Cardio
 # ─────────────────────────────────────────────────────────────────────────────
