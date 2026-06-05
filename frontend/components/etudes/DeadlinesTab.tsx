@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { fetchDeadlines, fetchCours, createEvaluation, deleteEvaluation, type Evaluation, type Cours } from "@/lib/etudes";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const URGENCE_COLOR = (j: number | undefined) => {
   if (j == null) return "text-[var(--muted-foreground)]";
@@ -13,28 +15,45 @@ const URGENCE_COLOR = (j: number | undefined) => {
 export function DeadlinesTab() {
   const [deadlines, setDeadlines] = useState<Evaluation[]>([]);
   const [cours, setCours] = useState<Cours[]>([]);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ cours_id: "", titre: "", type_eval: "devoir", date_limite: "" });
+  const [confirmId, setConfirmId] = useState<number | null>(null);
 
-  const load = async () => {
-    const [dl, cl] = await Promise.all([fetchDeadlines(90), fetchCours()]);
-    setDeadlines(dl);
-    setCours(cl);
-  };
-
-  useEffect(() => { load(); }, []);
+  const load = useCallback(() => {
+    let active = true;
+    Promise.all([fetchDeadlines(90), fetchCours()])
+      .then(([dl, cl]) => { if (active) { setDeadlines(dl); setCours(cl); setStatus("ready"); } })
+      .catch(() => active && setStatus("error"));
+    return () => { active = false; };
+  }, []);
+  useEffect(() => load(), [load]);
 
   const handleAdd = async () => {
     if (!form.cours_id || !form.titre) return;
-    await createEvaluation({
-      cours_id: Number(form.cours_id),
-      titre: form.titre,
-      type_eval: form.type_eval,
-      date_limite: form.date_limite || undefined,
-    });
-    setForm({ cours_id: "", titre: "", type_eval: "devoir", date_limite: "" });
-    setAdding(false);
-    load();
+    try {
+      await createEvaluation({
+        cours_id: Number(form.cours_id),
+        titre: form.titre,
+        type_eval: form.type_eval,
+        date_limite: form.date_limite || undefined,
+      });
+      setForm({ cours_id: "", titre: "", type_eval: "devoir", date_limite: "" });
+      setAdding(false);
+      load();
+    } catch {
+      toast.error("Impossible de créer l'évaluation.");
+    }
+  };
+
+  const remove = async (id: number) => {
+    try {
+      await deleteEvaluation(id);
+      load();
+    } catch {
+      setConfirmId(null);
+      toast.error("Suppression impossible.");
+    }
   };
 
   const coursMap = Object.fromEntries(cours.map(c => [c.id, c.code]));
@@ -81,8 +100,23 @@ export function DeadlinesTab() {
       )}
 
       <div className="space-y-2">
-        {deadlines.length === 0 && <p className="text-[var(--muted-foreground)] text-sm">Aucune deadline dans les 90 prochains jours.</p>}
-        {deadlines.map(ev => (
+        {status === "loading" && <Skeleton lines={4} />}
+
+        {status === "error" && (
+          <div className="flex flex-col items-start gap-2 py-2">
+            <p className="text-sm text-[var(--muted-foreground)]">Deadlines indisponibles pour le moment.</p>
+            <button onClick={() => { setStatus("loading"); load(); }}
+              className="rounded border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--accent)]">
+              Réessayer
+            </button>
+          </div>
+        )}
+
+        {status === "ready" && deadlines.length === 0 && (
+          <p className="text-[var(--muted-foreground)] text-sm">Aucune deadline dans les 90 prochains jours.</p>
+        )}
+
+        {status === "ready" && deadlines.map(ev => (
           <div key={ev.id} className="border rounded p-3 flex items-center gap-3 bg-[var(--card)]">
             <div className="w-2 h-2 rounded-full bg-[var(--ring)] shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -95,9 +129,17 @@ export function DeadlinesTab() {
             <span className={`text-xs ${URGENCE_COLOR(ev.jours_restants)}`}>
               {ev.jours_restants != null ? (ev.jours_restants === 0 ? "Aujourd'hui" : `J-${ev.jours_restants}`) : "—"}
             </span>
-            <button onClick={async () => { await deleteEvaluation(ev.id); load(); }}
-              aria-label="Supprimer l'évaluation"
-              className="text-xs text-[var(--muted-foreground)] hover:text-[var(--destructive)]">✕</button>
+            {confirmId === ev.id ? (
+              <span className="flex shrink-0 items-center gap-1">
+                <button onClick={() => void remove(ev.id)} aria-label="Confirmer la suppression"
+                  className="text-xs font-medium text-[var(--destructive)]">Supprimer</button>
+                <button onClick={() => setConfirmId(null)} aria-label="Annuler"
+                  className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]">✕</button>
+              </span>
+            ) : (
+              <button onClick={() => setConfirmId(ev.id)} aria-label="Supprimer l'évaluation"
+                className="shrink-0 text-xs text-[var(--muted-foreground)] hover:text-[var(--destructive)]">✕</button>
+            )}
           </div>
         ))}
       </div>

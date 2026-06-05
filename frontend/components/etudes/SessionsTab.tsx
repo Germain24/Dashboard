@@ -1,36 +1,55 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { fetchSessions, createSession, deleteSession, fetchCours, type SessionEtude, type Cours } from "@/lib/etudes";
 import { planFocus } from "@/lib/agenda";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PomodoroTimer } from "./PomodoroTimer";
 
 export function SessionsTab() {
   const [sessions, setSessions] = useState<SessionEtude[]>([]);
   const [cours, setCours] = useState<Cours[]>([]);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ cours_id: "", duree_min: "25", sujet: "", note: "" });
   const [focusMsg, setFocusMsg] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
 
-  const load = async () => {
-    const [s, c] = await Promise.all([fetchSessions(), fetchCours()]);
-    setSessions(s);
-    setCours(c);
-  };
-
-  useEffect(() => { load(); }, []);
+  const load = useCallback(() => {
+    let active = true;
+    Promise.all([fetchSessions(), fetchCours()])
+      .then(([s, c]) => { if (active) { setSessions(s); setCours(c); setStatus("ready"); } })
+      .catch(() => active && setStatus("error"));
+    return () => { active = false; };
+  }, []);
+  useEffect(() => load(), [load]);
 
   const handleAdd = async () => {
     if (!form.duree_min) return;
-    await createSession({
-      cours_id: form.cours_id ? Number(form.cours_id) : undefined,
-      duree_min: Number(form.duree_min),
-      sujet: form.sujet || undefined,
-      note: form.note || undefined,
-    });
-    setForm({ cours_id: "", duree_min: "25", sujet: "", note: "" });
-    setAdding(false);
-    load();
+    try {
+      await createSession({
+        cours_id: form.cours_id ? Number(form.cours_id) : undefined,
+        duree_min: Number(form.duree_min),
+        sujet: form.sujet || undefined,
+        note: form.note || undefined,
+      });
+      setForm({ cours_id: "", duree_min: "25", sujet: "", note: "" });
+      setAdding(false);
+      load();
+    } catch {
+      toast.error("Impossible d'enregistrer la session.");
+    }
+  };
+
+  const remove = async (id: number) => {
+    try {
+      await deleteSession(id);
+      load();
+    } catch {
+      setConfirmId(null);
+      toast.error("Suppression impossible.");
+    }
   };
 
   const handlePlanFocus = async () => {
@@ -111,8 +130,23 @@ export function SessionsTab() {
       )}
 
       <div className="space-y-2">
-        {sessions.length === 0 && <p className="text-[var(--muted-foreground)] text-sm">Aucune session enregistrée.</p>}
-        {sessions.map(se => (
+        {status === "loading" && <Skeleton lines={4} />}
+
+        {status === "error" && (
+          <div className="flex flex-col items-start gap-2 py-2">
+            <p className="text-sm text-[var(--muted-foreground)]">Sessions indisponibles pour le moment.</p>
+            <button onClick={() => { setStatus("loading"); load(); }}
+              className="rounded border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--accent)]">
+              Réessayer
+            </button>
+          </div>
+        )}
+
+        {status === "ready" && sessions.length === 0 && (
+          <p className="text-[var(--muted-foreground)] text-sm">Aucune session enregistrée.</p>
+        )}
+
+        {status === "ready" && sessions.map(se => (
           <div key={se.id} className="border rounded p-3 flex items-start gap-3 bg-[var(--card)]">
             <div className="text-[var(--ring)] font-mono text-sm shrink-0 pt-0.5">
               {se.duree_min >= 60
@@ -127,9 +161,17 @@ export function SessionsTab() {
               <div className="text-xs text-[var(--muted-foreground)]">{se.date}</div>
               {se.note && <div className="text-xs text-[var(--muted-foreground)] mt-0.5 italic">{se.note}</div>}
             </div>
-            <button onClick={async () => { await deleteSession(se.id); load(); }}
-              aria-label="Supprimer la session"
-              className="shrink-0 text-xs text-[var(--muted-foreground)] hover:text-[var(--destructive)]">✕</button>
+            {confirmId === se.id ? (
+              <span className="flex shrink-0 items-center gap-1">
+                <button onClick={() => void remove(se.id)} aria-label="Confirmer la suppression"
+                  className="text-xs font-medium text-[var(--destructive)]">Supprimer</button>
+                <button onClick={() => setConfirmId(null)} aria-label="Annuler"
+                  className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]">✕</button>
+              </span>
+            ) : (
+              <button onClick={() => setConfirmId(se.id)} aria-label="Supprimer la session"
+                className="shrink-0 text-xs text-[var(--muted-foreground)] hover:text-[var(--destructive)]">✕</button>
+            )}
           </div>
         ))}
       </div>

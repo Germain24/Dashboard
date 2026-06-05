@@ -2,8 +2,10 @@
 
 /** Stats d'étude : objectif (#95), temps/matière (#94), streak (#101), heatmap (#97), rapport hebdo (#102). */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { fetchEtudesStats, setEtudesGoal, type EtudesStats } from "@/lib/etudes";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function fmtH(min: number): string {
   const h = Math.floor(min / 60);
@@ -16,18 +18,39 @@ export function StatistiquesTab() {
   const [goalInput, setGoalInput] = useState("");
   const [savingGoal, setSavingGoal] = useState(false);
 
-  const load = () => fetchEtudesStats(120).then(setStats).catch(() => {});
-  useEffect(() => { void load(); }, []);
+  const [error, setError] = useState(false);
+
+  const load = useCallback(() => {
+    let active = true;
+    fetchEtudesStats(120)
+      .then((s) => { if (active) { setStats(s); setError(false); } })
+      .catch(() => active && setError(true));
+    return () => { active = false; };
+  }, []);
+  useEffect(() => load(), [load]);
 
   const saveGoal = async () => {
     const h = parseFloat(goalInput);
     if (!Number.isFinite(h) || h < 0) return;
     setSavingGoal(true);
-    try { await setEtudesGoal(h); await load(); setGoalInput(""); }
+    try { await setEtudesGoal(h); setGoalInput(""); load(); }
+    catch { toast.error("Impossible d'enregistrer l'objectif."); }
     finally { setSavingGoal(false); }
   };
 
-  if (!stats) return <p className="text-sm text-[var(--muted-foreground)]">Chargement des stats…</p>;
+  if (error) {
+    return (
+      <div className="flex flex-col items-start gap-2 py-2">
+        <p className="text-sm text-[var(--muted-foreground)]">Statistiques indisponibles pour le moment.</p>
+        <button onClick={() => { setError(false); load(); }}
+          className="rounded border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--accent)]">
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  if (!stats) return <Skeleton lines={6} />;
 
   const maxCourse = Math.max(1, ...stats.by_course.map((c) => c.minutes));
 

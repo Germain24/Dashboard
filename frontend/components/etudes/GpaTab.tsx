@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { fetchGpa, fetchCours, type GpaResult, type Cours } from "@/lib/etudes";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const GPA_COLOR = (gpa: number) => {
   if (gpa >= 3.7) return "var(--success)";
@@ -11,6 +12,7 @@ const GPA_COLOR = (gpa: number) => {
 
 export function GpaTab() {
   const [result, setResult] = useState<GpaResult | null>(null);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [semestre, setSemestre] = useState("");
   const [semestres, setSemestres] = useState<string[]>([]);
 
@@ -18,12 +20,17 @@ export function GpaTab() {
     fetchCours().then(cours => {
       const s = [...new Set(cours.map(c => c.semestre))].sort();
       setSemestres(s);
-    });
+    }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    fetchGpa(semestre || undefined).then(setResult);
+  const loadGpa = useCallback(() => {
+    let active = true;
+    fetchGpa(semestre || undefined)
+      .then((r) => { if (active) { setResult(r); setStatus("ready"); } })
+      .catch(() => active && setStatus("error"));
+    return () => { active = false; };
   }, [semestre]);
+  useEffect(() => loadGpa(), [loadGpa]);
 
   const gpaVal = result?.gpa;
   const radius = 54;
@@ -41,7 +48,19 @@ export function GpaTab() {
         </select>
       </div>
 
-      {result && (
+      {status === "loading" && <Skeleton lines={5} />}
+
+      {status === "error" && (
+        <div className="flex flex-col items-start gap-2 py-2">
+          <p className="text-sm text-[var(--muted-foreground)]">GPA indisponible pour le moment.</p>
+          <button onClick={() => { setStatus("loading"); loadGpa(); }}
+            className="rounded border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--accent)]">
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {status === "ready" && result && (
         <>
           {/* Jauge circulaire SVG */}
           <div className="flex justify-center">

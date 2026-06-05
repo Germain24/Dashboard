@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { fetchCours, createCours, patchCours, deleteCours, type Cours } from "@/lib/etudes";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const LETTRE_COLOR: Record<string, string> = {
   "A+": "text-[var(--success)]", A: "text-[var(--success)]", "A-": "text-[var(--success)]",
@@ -11,39 +13,62 @@ const LETTRE_COLOR: Record<string, string> = {
 
 export function CoursTab() {
   const [cours, setCours] = useState<Cours[]>([]);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [semestre, setSemestre] = useState("");
   const [editId, setEditId] = useState<number | null>(null);
   const [editNote, setEditNote] = useState("");
   const [form, setForm] = useState({ code: "", nom: "", semestre: "", credits: "3", prof: "", local: "" });
   const [adding, setAdding] = useState(false);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
 
-  const load = async () => {
-    const data = await fetchCours(semestre ? { semestre } : undefined);
-    setCours(data);
-  };
-
-  useEffect(() => { load(); }, [semestre]);
+  const load = useCallback(() => {
+    let active = true;
+    fetchCours(semestre ? { semestre } : undefined)
+      .then((data) => { if (active) { setCours(data); setStatus("ready"); } })
+      .catch(() => active && setStatus("error"));
+    return () => { active = false; };
+  }, [semestre]);
+  useEffect(() => load(), [load]);
 
   const handleAdd = async () => {
     if (!form.code || !form.nom || !form.semestre) return;
-    await createCours({ ...form, credits: Number(form.credits) });
-    setForm({ code: "", nom: "", semestre: "", credits: "3", prof: "", local: "" });
-    setAdding(false);
-    load();
+    try {
+      await createCours({ ...form, credits: Number(form.credits) });
+      setForm({ code: "", nom: "", semestre: "", credits: "3", prof: "", local: "" });
+      setAdding(false);
+      load();
+    } catch {
+      toast.error("Impossible de créer le cours.");
+    }
   };
 
   const handleNoteFinale = async (id: number) => {
     const n = parseFloat(editNote);
     if (isNaN(n) || n < 0 || n > 100) return;
-    await patchCours(id, { note_finale: n });
-    setEditId(null);
-    load();
+    try {
+      await patchCours(id, { note_finale: n });
+      setEditId(null);
+      load();
+    } catch {
+      toast.error("Impossible d'enregistrer la note.");
+    }
+  };
+
+  const remove = async (id: number) => {
+    try {
+      await deleteCours(id);
+      load();
+    } catch {
+      setConfirmId(null);
+      toast.error("Suppression impossible.");
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex gap-2 items-center">
         <input className="border rounded px-2 py-1 text-sm bg-transparent" placeholder="Semestre (ex: A2026)"
+          aria-label="Filtrer par semestre"
           value={semestre} onChange={e => setSemestre(e.target.value)} />
         <button onClick={() => setAdding(a => !a)}
           className="ml-auto px-3 py-1 bg-[var(--primary)] text-[var(--primary-foreground)] rounded text-sm hover:opacity-90">
@@ -71,8 +96,23 @@ export function CoursTab() {
       )}
 
       <div className="space-y-2">
-        {cours.length === 0 && <p className="text-[var(--muted-foreground)] text-sm">Aucun cours.</p>}
-        {cours.map(c => (
+        {status === "loading" && <Skeleton lines={5} />}
+
+        {status === "error" && (
+          <div className="flex flex-col items-start gap-2 py-2">
+            <p className="text-sm text-[var(--muted-foreground)]">Cours indisponibles pour le moment.</p>
+            <button onClick={() => { setStatus("loading"); load(); }}
+              className="rounded border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--accent)]">
+              Réessayer
+            </button>
+          </div>
+        )}
+
+        {status === "ready" && cours.length === 0 && (
+          <p className="text-[var(--muted-foreground)] text-sm">Aucun cours.</p>
+        )}
+
+        {status === "ready" && cours.map(c => (
           <div key={c.id} className="border rounded p-3 flex items-center gap-3 bg-[var(--card)]">
             <div className="flex-1 min-w-0">
               <div className="font-medium">{c.code} <span className="text-[var(--muted-foreground)] text-sm">— {c.nom}</span></div>
@@ -83,6 +123,7 @@ export function CoursTab() {
               {editId === c.id ? (
                 <div className="flex gap-1 items-center">
                   <input type="number" className="w-16 border rounded px-1 py-0.5 text-sm bg-transparent" placeholder="/100"
+                    aria-label="Note finale sur 100"
                     value={editNote} onChange={e => setEditNote(e.target.value)} />
                   <button onClick={() => handleNoteFinale(c.id)} aria-label="Valider la note" className="text-xs text-[var(--success)]">✓</button>
                   <button onClick={() => setEditId(null)} aria-label="Annuler la saisie" className="text-xs text-[var(--muted-foreground)]">✕</button>
@@ -101,9 +142,18 @@ export function CoursTab() {
                 </button>
               )}
             </div>
-            <button onClick={async () => { await deleteCours(c.id); load(); }}
-              aria-label={`Supprimer ${c.code}`}
-              className="text-xs text-[var(--muted-foreground)] hover:text-[var(--destructive)]">✕</button>
+            {confirmId === c.id ? (
+              <span className="flex shrink-0 items-center gap-1">
+                <button onClick={() => void remove(c.id)} aria-label="Confirmer la suppression"
+                  className="text-xs font-medium text-[var(--destructive)]">Supprimer</button>
+                <button onClick={() => setConfirmId(null)} aria-label="Annuler"
+                  className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]">✕</button>
+              </span>
+            ) : (
+              <button onClick={() => setConfirmId(c.id)}
+                aria-label={`Supprimer ${c.code}`}
+                className="shrink-0 text-xs text-[var(--muted-foreground)] hover:text-[var(--destructive)]">✕</button>
+            )}
           </div>
         ))}
       </div>
