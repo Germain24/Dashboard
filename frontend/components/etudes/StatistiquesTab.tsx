@@ -63,8 +63,8 @@ export function StatistiquesTab() {
 
         <div className="rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-4 flex items-center gap-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-violet-400">🔥 {stats.streak.current}</div>
-            <div className="text-xs text-[var(--muted)]">jours d&apos;affilée</div>
+            <div className="text-3xl font-bold text-[var(--tertiary)]">🔥 {stats.streak.current}</div>
+            <div className="text-xs text-[var(--muted-foreground)]">jours d&apos;affilée</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold">{stats.streak.best}</div>

@@ -126,7 +126,7 @@ export function ProgressionTab({ exercices }: Props) {
 const VOLUME_STATUS: Record<MuscleVolume["status"], { label: string; cls: string }> = {
   sous: { label: "Sous-entraîné", cls: "text-[var(--destructive)] border-[var(--destructive)]" },
   optimal: { label: "Optimal", cls: "text-[var(--success)] border-[var(--success)]" },
-  sur: { label: "Sur-entraîné", cls: "text-amber-600 border-amber-600" },
+  sur: { label: "Sur-entraîné", cls: "text-[var(--warning)] border-[var(--warning)]" },
 };
 
 function MuscleVolumePanel() {
