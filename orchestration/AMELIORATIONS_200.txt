@@ -143,10 +143,12 @@ H. MODULE ÉTUDES (93-102)
 96. [S](*) Tags/matières réutilisables.   ← FINIS ✓ (matières = Cours déjà réutilisables partout (sélecteurs Pomodoro/Session/Focus) ; ajout d'une datalist des sujets déjà utilisés dans le formulaire de session pour réemploi rapide)
 97. [M](**) Heatmap type GitHub des sessions d'étude (régularité).   ← FINIS ✓ (stats.daily_minutes + heatmap 18 semaines (5 paliers de couleur) dans StatistiquesTab)
 98. [S](*) Notes/résumés attachés à une session.   ← FINIS ✓ (déjà présent : SessionEtude.sujet (ce qui a été travaillé) + SessionEtude.note (ressenti/bilan), éditables dans le formulaire de session ; affichés dans la liste)
-99. [M](**) Système de révision espacée (spaced repetition) sur les notes.
+99. [M](**) Système de révision espacée (spaced repetition) sur les notes.   ← FINIS ✓ (revision.py : SM-2 simplifié pur (schedule) + store JSON local data/etudes_revision.json (add/review/delete/due_cards, date injectable) ; routes /etudes/revision/cards (GET due_only, POST, POST {id}/review qualité 0-5, DELETE) ; onglet RevisionTab (création de fiches, mode révision recto/verso + notation Raté/Difficile/Bien/Facile, liste) ; tests TDD)
 100. [S](**) Lien session ↔ événement agenda (planifier puis logger).   ← FINIS ✓ (via #89 : bouton « Planifier un focus » dans SessionsTab crée un événement agenda (catégorie etudes) dans un créneau libre ; on planifie côté agenda puis on logge la session côté études)
 101. [S](*) Détection de série (streak) de jours étudiés.   ← FINIS ✓ (stats.study_streak (série courante ancrée aujourd'hui/hier + meilleure série) ; affiché 🔥 dans StatistiquesTab ; tests TDD)
 102. [M](**) Rapport de fin de semaine généré automatiquement (temps total, matières).   ← FINIS ✓ (stats.weekly_summary (total + nb + par matière sur la semaine) dans /etudes/stats ; bloc « Cette semaine » dans StatistiquesTab)
+
+>>> SECTION H (Études, 93-102) TERMINÉE <<<
 
 --------------------------------------------------------------------------------
 I. MODULE ENTRAÎNEMENT (103-112)

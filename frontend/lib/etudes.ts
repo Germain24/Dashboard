@@ -216,3 +216,42 @@ export async function setEtudesGoal(weeklyHours: number): Promise<{ weekly_hours
   if (!r.ok) throw new Error("Erreur enregistrement objectif");
   return r.json();
 }
+
+// ── Révision espacée (#99) ──────────────────────────────────────────
+
+export interface RevisionCard {
+  id: number;
+  cours_id: number | null;
+  recto: string;
+  verso: string;
+  ease: number;
+  interval: number;
+  reps: number;
+  due: string;
+}
+
+export async function fetchRevisionCards(dueOnly = false): Promise<RevisionCard[]> {
+  const r = await fetch(`${BASE}/revision/cards?due_only=${dueOnly}`);
+  if (!r.ok) throw new Error("Erreur chargement fiches");
+  return r.json();
+}
+
+export async function addRevisionCard(recto: string, verso: string, coursId?: number): Promise<RevisionCard> {
+  const r = await fetch(`${BASE}/revision/cards`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ recto, verso, cours_id: coursId }),
+  });
+  if (!r.ok) throw new Error("Erreur création fiche");
+  return r.json();
+}
+
+export async function reviewRevisionCard(id: number, quality: number): Promise<RevisionCard> {
+  const r = await fetch(`${BASE}/revision/cards/${id}/review?quality=${quality}`, { method: "POST" });
+  if (!r.ok) throw new Error("Erreur révision");
+  return r.json();
+}
+
+export async function deleteRevisionCard(id: number): Promise<void> {
+  await fetch(`${BASE}/revision/cards/${id}`, { method: "DELETE" });
+}
