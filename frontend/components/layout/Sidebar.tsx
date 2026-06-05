@@ -1,8 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, LayoutDashboard, CircleHelp } from 'lucide-react'
+import { Home, LayoutDashboard, CircleHelp, ChevronRight } from 'lucide-react'
 import { MODULE_GROUPS } from '@/lib/modules'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -12,6 +13,24 @@ import { NotificationsWidget } from '@/components/layout/NotificationsWidget'
 
 export function Sidebar() {
   const pathname = usePathname()
+  const activeSlug = pathname?.split('/').filter(Boolean)[0]
+  const activeGroup =
+    MODULE_GROUPS.find((g) => g.items.some((m) => m.slug === activeSlug))?.group ?? null
+
+  // Accordéon : les modules d'un groupe ne s'affichent qu'une fois le groupe
+  // déplié. Le groupe de la page courante est déplié automatiquement.
+  const [open, setOpen] = useState<Set<string>>(() => new Set(activeGroup ? [activeGroup] : []))
+  useEffect(() => {
+    if (activeGroup) setOpen((prev) => (prev.has(activeGroup) ? prev : new Set(prev).add(activeGroup)))
+  }, [activeGroup])
+
+  const toggle = (g: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev)
+      if (next.has(g)) next.delete(g)
+      else next.add(g)
+      return next
+    })
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname?.startsWith(href)
@@ -39,26 +58,46 @@ export function Sidebar() {
 
       <div className="my-3 h-px bg-[var(--border)]" aria-hidden="true" />
 
-      {/* Navigation groupée — dérivée de lib/modules.ts (source unique) */}
-      <nav className="flex flex-col gap-4 flex-1 overflow-y-auto" aria-label="Modules">
-        {MODULE_GROUPS.map((group) => (
-          <div key={group.group}>
-            <p className="px-3 mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] select-none">
-              {group.group}
-            </p>
-            <div className="flex flex-col gap-0.5">
-              {group.items.map((m) => (
-                <NavLink
-                  key={m.slug}
-                  href={'/' + m.slug}
-                  label={m.label}
-                  icon={m.icon}
-                  active={!!isActive('/' + m.slug)}
+      {/* Navigation groupée repliable — dérivée de lib/modules.ts (source unique) */}
+      <nav className="flex flex-col gap-1 flex-1 overflow-y-auto" aria-label="Modules">
+        {MODULE_GROUPS.map((group) => {
+          const expanded = open.has(group.group)
+          const hasActive = group.items.some((m) => m.slug === activeSlug)
+          return (
+            <div key={group.group}>
+              <button
+                type="button"
+                onClick={() => toggle(group.group)}
+                aria-expanded={expanded}
+                className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)] select-none"
+              >
+                <span className="flex items-center gap-1.5">
+                  {group.group}
+                  {!expanded && hasActive && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--ring)]" aria-hidden="true" />
+                  )}
+                </span>
+                <ChevronRight
+                  className={cn('h-3.5 w-3.5 shrink-0 transition-transform duration-150', expanded && 'rotate-90')}
+                  aria-hidden="true"
                 />
-              ))}
+              </button>
+              {expanded && (
+                <div className="mt-0.5 flex flex-col gap-0.5">
+                  {group.items.map((m) => (
+                    <NavLink
+                      key={m.slug}
+                      href={'/' + m.slug}
+                      label={m.label}
+                      icon={m.icon}
+                      active={!!isActive('/' + m.slug)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </nav>
 
       {/* Pied : notifications + aide · densité + thème */}

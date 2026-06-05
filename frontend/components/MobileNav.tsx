@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, X, Menu } from "lucide-react";
+import { Home, X, Menu, ChevronRight } from "lucide-react";
 import { MODULE_GROUPS } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,24 @@ export function MobileNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
+
+  const activeSlug = pathname?.split("/").filter(Boolean)[0];
+  const activeGroup =
+    MODULE_GROUPS.find((g) => g.items.some((m) => m.slug === activeSlug))?.group ?? null;
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(activeGroup ? [activeGroup] : []),
+  );
+  useEffect(() => {
+    if (activeGroup)
+      setOpenGroups((prev) => (prev.has(activeGroup) ? prev : new Set(prev).add(activeGroup)));
+  }, [activeGroup]);
+  const toggleGroup = (g: string) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(g)) next.delete(g);
+      else next.add(g);
+      return next;
+    });
 
   useEffect(() => { setOpen(false); }, [pathname]);
 
@@ -105,38 +123,56 @@ export function MobileNav() {
             </Link>
           </nav>
 
-          {/* Modules groupés — même source et même ordre que la sidebar desktop. */}
-          {MODULE_GROUPS.map((group) => (
-            <div key={group.group}>
-              <div className="mt-4 mb-1 px-3">
-                <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--muted-foreground)]/60">
-                  {group.group}
-                </span>
+          {/* Modules groupés repliables — même source que la sidebar desktop. */}
+          {MODULE_GROUPS.map((group) => {
+            const expanded = openGroups.has(group.group);
+            const hasActive = group.items.some((m) => m.slug === activeSlug);
+            return (
+              <div key={group.group}>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.group)}
+                  aria-expanded={expanded}
+                  className="mt-3 flex w-full items-center justify-between gap-2 rounded-[var(--radius)] px-3 py-1.5 text-[10px] font-medium uppercase tracking-widest text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+                >
+                  <span className="flex items-center gap-1.5">
+                    {group.group}
+                    {!expanded && hasActive && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--ring)]" aria-hidden="true" />
+                    )}
+                  </span>
+                  <ChevronRight
+                    className={cn("h-3.5 w-3.5 shrink-0 transition-transform duration-150", expanded && "rotate-90")}
+                    aria-hidden="true"
+                  />
+                </button>
+                {expanded && (
+                  <nav className="mt-0.5 flex flex-col gap-0.5" aria-label={group.group}>
+                    {group.items.map((m) => {
+                      const Icon = m.icon;
+                      const active = isActive(m.slug);
+                      return (
+                        <Link
+                          key={m.slug}
+                          href={"/" + m.slug}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(
+                            "flex items-center gap-3 rounded-[var(--radius)] px-3 py-2 text-sm transition-colors",
+                            active
+                              ? "nav-active font-medium"
+                              : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
+                          )}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          <span className="flex-1 min-w-0 truncate">{m.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </nav>
+                )}
               </div>
-              <nav className="flex flex-col gap-0.5" aria-label={group.group}>
-                {group.items.map((m) => {
-                  const Icon = m.icon;
-                  const active = isActive(m.slug);
-                  return (
-                    <Link
-                      key={m.slug}
-                      href={"/" + m.slug}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex items-center gap-3 rounded-[var(--radius)] px-3 py-2 text-sm transition-colors",
-                        active
-                          ? "nav-active font-medium"
-                          : "text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)]",
-                      )}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      <span className="flex-1 min-w-0 truncate">{m.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-          ))}
+            );
+          })}
         </aside>
       </div>
     </>
