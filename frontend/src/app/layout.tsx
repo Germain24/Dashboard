@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Source_Serif_4 } from "next/font/google";
+import { Public_Sans, Libre_Caslon_Text } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout";
 
-// Polices auto-hébergées via next/font : zéro requête bloquante, pas de FOUT.
-// Corps et UI : Plus Jakarta Sans (variable font-jakarta, reliée à font-sans).
-const jakarta = Plus_Jakarta_Sans({
+// Polices auto-hébergées via next/font (Heritage Editorial).
+// Corps et UI : Public Sans (clarté institutionnelle) → font-sans.
+const publicSans = Public_Sans({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-jakarta",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-public-sans",
   display: "swap",
 });
 
-// Titres : Source Serif 4, serif éditorial « Savile Row » (variable font-serif).
-const sourceSerif = Source_Serif_4({
+// Titres : Libre Caslon Text (voix éditoriale littéraire) → font-serif.
+const libreCaslon = Libre_Caslon_Text({
   subsets: ["latin"],
-  weight: ["400", "600"],
+  weight: ["400", "700"],
   style: ["normal", "italic"],
-  variable: "--font-source-serif",
+  variable: "--font-libre-caslon",
   display: "swap",
 });
 import { MobileNav } from "@/components/MobileNav";
@@ -36,14 +36,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#15181C",
+  themeColor: "#0B121E",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr-CA" className={`${jakarta.variable} ${sourceSerif.variable}`}>
+    <html lang="fr-CA" className={`${publicSans.variable} ${libreCaslon.variable}`}>
       <head>
         {/* Anti-flash : applique le thème choisi avant le premier paint. */}
         <script

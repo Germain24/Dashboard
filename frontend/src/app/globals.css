@@ -2,76 +2,80 @@
 
 /* ═══════════════════════════════════════════════════════════
    Mission Control — Design System
-   Mood : City Boy / Savile Row — flanelle grise + marine + bordeaux
-   Clair = costume de jour · Sombre = club du soir
+   Mood : Heritage Editorial — « Paper & Ink », Old Money / City Boy.
+   Crème + encre marine, accents bordeaux & vert anglais, serif Libre Caslon.
+   Clair = papier ; Sombre = marine minuit + laiton.
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Backgrounds (gris flanelle) ───────────────────────── */
-  --background: #ECEDEF;
-  --background-subtle: #E4E6EA;
+  /* ── Backgrounds (crème / papier) ──────────────────────── */
+  --background: #faf9f5;
+  --background-subtle: #f4f4f0;
 
-  /* ── Foreground (encre marine) ─────────────────────────── */
-  --foreground: #16223D;
+  /* ── Foreground (encre) ────────────────────────────────── */
+  --foreground: #1b1c1a;
 
-  /* ── Surfaces neutres ──────────────────────────────────── */
-  --muted: #E2E5E9;
-  --muted-foreground: #525E70;
-  --border: #D6DAE0;
+  /* ── Surfaces neutres (couches tonales) ────────────────── */
+  --muted: #efeeea;
+  --muted-foreground: #44474d;
+  --border: #c5c6ce;
 
-  /* ── Cartes (blanc cassé froid, au-dessus du gris) ─────── */
-  --card: #FBFBFC;
-  --card-foreground: #16223D;
+  /* ── Cartes (blanc pur, soulevé du papier crème) ───────── */
+  --card: #ffffff;
+  --card-foreground: #1b1c1a;
 
   /* ── Fonts (auto-hébergées via next/font, cf. layout.tsx) ── */
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-libre-caslon), Georgia, "Times New Roman", serif;
 
-  /* ── Actions primaires (blazer marine) ─────────────────── */
-  --primary: #1B2A4A;
-  --primary-foreground: #F5F6F7;
+  /* ── Actions primaires (marine académique) ─────────────── */
+  --primary: #04142c;
+  --primary-foreground: #ffffff;
 
   /* ── Hover / surfaces secondaires ─────────────────────── */
-  --accent: #E2E5E9;
-  --accent-foreground: #16223D;
+  --accent: #efeeea;
+  --accent-foreground: #1b1c1a;
 
-  /* ── Sidebar (flanelle légèrement plus froide) ─────────── */
-  --sidebar: #E6E8EC;
+  /* ── Sidebar (couche papier légèrement distincte) ──────── */
+  --sidebar: #f4f4f0;
 
-  /* ── Accent interactif (bordeaux / cravate) ────────────── */
-  --ring: #6E2B3E;
-  /* Texte/icône d'un item de nav actif, lisible (≥ 4.5:1) sur le lavis
-     bordeaux 12 % — cf. .nav-active. */
-  --nav-active-fg: #6E2B3E;
+  /* ── Accent interactif (marine : focus, nav active, liens) ─ */
+  --ring: #04142c;
+  /* Texte/icône d'un item de nav actif, sur le lavis 12 %. */
+  --nav-active-fg: #04142c;
+  /* Bordeaux éditorial (états actifs, surlignages, puces) */
+  --tertiary: #501312;
+  --tertiary-muted: #ffdad7;
+  --tertiary-foreground: #501312;
 
-  /* ── Sémantiques ───────────────────────────────────────── */
-  --success: #16a34a;
-  --success-muted: #dcfce7;
-  --success-foreground: #14532d;
+  /* ── Sémantiques (vert anglais / bordeaux / gris) ──────── */
+  --success: #536252;
+  --success-muted: #d4e4d0;
+  --success-foreground: #2f3a2e;
 
-  --warning: #d97706;
-  --warning-muted: #fef3c7;
-  --warning-foreground: #78350f;
+  --warning: #8a6d1f;
+  --warning-muted: #f1e7c8;
+  --warning-foreground: #574311;
 
-  --destructive: #dc2626;
-  --destructive-muted: #fee2e2;
-  --destructive-foreground: #7f1d1d;
+  --destructive: #ba1a1a;
+  --destructive-muted: #ffdad6;
+  --destructive-foreground: #93000a;
 
-  --info: #2563eb;
-  --info-muted: #dbeafe;
-  --info-foreground: #1e40af;
+  --info: #384762;
+  --info-muted: #d6e3ff;
+  --info-foreground: #0b1b34;
 
-  /* ── Rayons de bordure ─────────────────────────────────── */
-  --radius-sm: 4px;
-  --radius: 6px;
+  /* ── Rayons de bordure (soft but structured) ───────────── */
+  --radius-sm: 2px;
+  --radius: 4px;
   --radius-lg: 8px;
   --radius-full: 9999px;
 
-  /* ── Ombres ────────────────────────────────────────────── */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  /* ── Ombres (lithograph : net, flou large, faible opacité) ─ */
+  --shadow-sm: 0 1px 2px 0 rgb(26 41 66 / 0.04);
+  --shadow: 0 2px 8px 0 rgb(26 41 66 / 0.06);
+  --shadow-md: 0 4px 16px -2px rgb(26 41 66 / 0.08);
+  --shadow-lg: 0 4px 20px 0 rgb(26 41 66 / 0.10);
 
   /* ── Transitions ───────────────────────────────────────── */
   --transition-fast: 100ms ease;
@@ -92,43 +96,46 @@
 /* Thème sombre automatique (OS), sauf si l'utilisateur a explicitement choisi clair. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #15181C;
-    --background-subtle: #1A1E22;
-    --foreground: #E6E8EC;
+    --background: #0B121E;
+    --background-subtle: #111a2a;
+    --foreground: #f2f1ed;
 
-    --muted: #23282E;
-    --muted-foreground: #9AA2AD;
-    --border: #2B313A;
+    --muted: #18222f;
+    --muted-foreground: #9aa3b0;
+    --border: #243042;
 
-    --card: #1B1F24;
-    --card-foreground: #E6E8EC;
+    --card: #111a2a;
+    --card-foreground: #f2f1ed;
 
-    --primary: #E6E8EC;
-    --primary-foreground: #15181C;
+    --primary: #c8d6f0;
+    --primary-foreground: #0b1b34;
 
-    --accent: #23282E;
-    --accent-foreground: #E6E8EC;
+    --accent: #18222f;
+    --accent-foreground: #f2f1ed;
 
-    --sidebar: #101418;
+    --sidebar: #0e1622;
 
-    --ring: #C57385;
-    --nav-active-fg: #DDA0AC;
+    --ring: #C5A059;
+    --nav-active-fg: #d8be8a;
+    --tertiary: #d17771;
+    --tertiary-muted: #501312;
+    --tertiary-foreground: #ffb3ad;
 
-    --success: #4ade80;
-    --success-muted: #14532d;
-    --success-foreground: #bbf7d0;
+    --success: #bbcbb8;
+    --success-muted: #3c4a3c;
+    --success-foreground: #d7e7d3;
 
-    --warning: #fbbf24;
-    --warning-muted: #78350f;
-    --warning-foreground: #fde68a;
+    --warning: #C5A059;
+    --warning-muted: #574311;
+    --warning-foreground: #f1e7c8;
 
-    --destructive: #f87171;
-    --destructive-muted: #7f1d1d;
-    --destructive-foreground: #fecaca;
+    --destructive: #ffb4ab;
+    --destructive-muted: #93000a;
+    --destructive-foreground: #ffdad6;
 
-    --info: #60a5fa;
-    --info-muted: #1e3a5f;
-    --info-foreground: #bfdbfe;
+    --info: #b8c7e7;
+    --info-muted: #1a2942;
+    --info-foreground: #d6e3ff;
 
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
@@ -145,43 +152,46 @@
 
 /* Thème sombre explicite (toggle manuel) — prime sur la préférence OS. */
 :root[data-theme="dark"] {
-  --background: #15181C;
-  --background-subtle: #1A1E22;
-  --foreground: #E6E8EC;
+  --background: #0B121E;
+  --background-subtle: #111a2a;
+  --foreground: #f2f1ed;
 
-  --muted: #23282E;
-  --muted-foreground: #9AA2AD;
-  --border: #2B313A;
+  --muted: #18222f;
+  --muted-foreground: #9aa3b0;
+  --border: #243042;
 
-  --card: #1B1F24;
-  --card-foreground: #E6E8EC;
+  --card: #111a2a;
+  --card-foreground: #f2f1ed;
 
-  --primary: #E6E8EC;
-  --primary-foreground: #15181C;
+  --primary: #c8d6f0;
+  --primary-foreground: #0b1b34;
 
-  --accent: #23282E;
-  --accent-foreground: #E6E8EC;
+  --accent: #18222f;
+  --accent-foreground: #f2f1ed;
 
-  --sidebar: #101418;
+  --sidebar: #0e1622;
 
-  --ring: #C57385;
-  --nav-active-fg: #DDA0AC;
+  --ring: #C5A059;
+  --nav-active-fg: #d8be8a;
+  --tertiary: #d17771;
+  --tertiary-muted: #501312;
+  --tertiary-foreground: #ffb3ad;
 
-  --success: #4ade80;
-  --success-muted: #14532d;
-  --success-foreground: #bbf7d0;
+  --success: #bbcbb8;
+  --success-muted: #3c4a3c;
+  --success-foreground: #d7e7d3;
 
-  --warning: #fbbf24;
-  --warning-muted: #78350f;
-  --warning-foreground: #fde68a;
+  --warning: #C5A059;
+  --warning-muted: #574311;
+  --warning-foreground: #f1e7c8;
 
-  --destructive: #f87171;
-  --destructive-muted: #7f1d1d;
-  --destructive-foreground: #fecaca;
+  --destructive: #ffb4ab;
+  --destructive-muted: #93000a;
+  --destructive-foreground: #ffdad6;
 
-  --info: #60a5fa;
-  --info-muted: #1e3a5f;
-  --info-foreground: #bfdbfe;
+  --info: #b8c7e7;
+  --info-muted: #1a2942;
+  --info-foreground: #d6e3ff;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);

@@ -3,12 +3,14 @@
 > **Contrat de référence.** Toutes les CONV qui touchent le frontend (CONV 4, 6, 8-15)
 > doivent respecter ce document. Ne pas dériver sans mettre ce fichier à jour.
 >
-> **Mood** : City Boy / Savile Row — flanelle grise + marine + bordeaux.
-> Clair = costume de jour, sombre = club du soir. Titres en serif éditorial.
+> **Mood** : **Heritage Editorial** — « Paper & Ink » (Old Money / City Boy).
+> Crème + encre marine, accents bordeaux & vert anglais, hairlines plutôt qu'ombres.
+> Titres serif **Libre Caslon Text**, corps **Public Sans**. Clair = papier ;
+> sombre = marine minuit + laiton.
 > **Généré** : CONV DESIGN (2026-05-26)
-> **Mis à jour** : 2026-06-04 — reskin Savile Row (palette + serif titres),
-> police (next/font), toggles thème/densité, nav source unique + état actif,
-> accueil tableau de bord, cloche notifications.
+> **Mis à jour** : 2026-06-04 — reskin **Heritage Editorial** (réf. StyleVoulu) :
+> palette crème/marine, polices Libre Caslon + Public Sans, rayons 4/8, ombres
+> lithograph. Historique : Savile Row, accueil tableau de bord, planificateur, cuisine.
 
 ---
 
@@ -17,48 +19,48 @@
 Toutes les valeurs vivent dans `src/app/globals.css`.
 Ne jamais coder une couleur en dur dans un composant : toujours utiliser les `var(--...)`.
 
-### Backgrounds (gris flanelle / ardoise)
+### Backgrounds (crème papier / marine minuit)
 
 | Token | Light | Dark |
 |---|---|---|
-| `--background` | `#ECEDEF` | `#15181C` |
-| `--background-subtle` | `#E4E6EA` | `#1A1E22` |
-| `--muted` | `#E2E5E9` | `#23282E` |
-| `--card` | `#FBFBFC` | `#1B1F24` |
+| `--background` | `#faf9f5` | `#0B121E` |
+| `--background-subtle` | `#f4f4f0` | `#111a2a` |
+| `--muted` | `#efeeea` | `#18222f` |
+| `--card` | `#ffffff` | `#111a2a` |
 
-### Texte (encre marine / ivoire froid)
-
-| Token | Light | Dark |
-|---|---|---|
-| `--foreground` | `#16223D` | `#E6E8EC` |
-| `--muted-foreground` | `#525E70` | `#9AA2AD` |
-| `--card-foreground` | `#16223D` | `#E6E8EC` |
-
-### Bordures
+### Texte (encre / crème)
 
 | Token | Light | Dark |
 |---|---|---|
-| `--border` | `#D6DAE0` | `#2B313A` |
+| `--foreground` | `#1b1c1a` | `#f2f1ed` |
+| `--muted-foreground` | `#44474d` | `#9aa3b0` |
+| `--card-foreground` | `#1b1c1a` | `#f2f1ed` |
 
-### Primaire (boutons — blazer marine)
-
-| Token | Light | Dark |
-|---|---|---|
-| `--primary` | `#1B2A4A` | `#E6E8EC` |
-| `--primary-foreground` | `#F5F6F7` | `#15181C` |
-| `--accent` | `#E2E5E9` | `#23282E` |
-| `--accent-foreground` | `#16223D` | `#E6E8EC` |
-
-### Accent interactif (bordeaux / cravate)
+### Bordures (hairlines)
 
 | Token | Light | Dark |
 |---|---|---|
-| `--ring` | `#6E2B3E` | `#C57385` |
-| `--nav-active-fg` | `#6E2B3E` | `#DDA0AC` |
+| `--border` | `#c5c6ce` | `#243042` |
 
-`--ring` : tabs actifs, focus rings, liens, progress bars, lavis d'état actif.
-`--nav-active-fg` : texte/icône d'un item de nav actif (assombri/éclairci pour
-rester ≥ 4.5:1 sur le lavis bordeaux 12 %).
+### Primaire (marine académique)
+
+| Token | Light | Dark |
+|---|---|---|
+| `--primary` | `#04142c` | `#c8d6f0` |
+| `--primary-foreground` | `#ffffff` | `#0b1b34` |
+| `--accent` | `#efeeea` | `#18222f` |
+| `--accent-foreground` | `#1b1c1a` | `#f2f1ed` |
+
+### Accent interactif (marine clair / laiton sombre)
+
+| Token | Light | Dark |
+|---|---|---|
+| `--ring` | `#04142c` | `#C5A059` |
+| `--nav-active-fg` | `#04142c` | `#d8be8a` |
+| `--tertiary` (bordeaux éditorial) | `#501312` | `#d17771` |
+
+`--ring` : focus, nav active, liens, lavis d'état actif (marine en clair, laiton
+en sombre). `--tertiary` : bordeaux pour surlignages/puces éditoriales.
 
 ### Couleurs sémantiques
 
@@ -81,12 +83,12 @@ rester ≥ 4.5:1 sur le lavis bordeaux 12 %).
 
 ## 2. Typographie
 
-**Corps & UI** : **Plus Jakarta Sans**, auto-hébergée via `next/font/google` (cf.
-`layout.tsx`), exposée par `var(--font-jakarta)` → `--font-sans`. Pas de requête
-bloquante ni de FOUT. Fallback : `ui-sans-serif, system-ui, -apple-system`.
-**Titres** : **Source Serif 4** (serif éditorial Savile Row), `var(--font-serif)`.
-Appliqué aux `h1` et au wordmark via `.font-display`. Les labels de section
-(`h2`/`h3`) et les données denses restent en sans pour la lisibilité.
+**Corps & UI** : **Public Sans** (clarté institutionnelle), auto-hébergée via
+`next/font/google`, exposée par `var(--font-public-sans)` → `--font-sans`.
+**Titres** : **Libre Caslon Text** (voix éditoriale littéraire), `var(--font-serif)`,
+appliqué aux `h1` et au wordmark via `.font-display`. **Labels** : Public Sans en
+**majuscules** avec letter-spacing (indexation archivistique). Les labels de section
+et les données denses restent en sans pour la lisibilité.
 **Mono** : `ui-monospace, SFMono-Regular, Menlo, monospace`
 **Taille de base** : `15px`, `line-height: 1.6` (réduite à `14px` en densité compacte)
 
