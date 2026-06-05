@@ -235,6 +235,11 @@ class GarminSeedResponse(BaseModel):
 # Vue "Aujourd'hui" — séance opérationnelle du jour
 # ─────────────────────────────────────────────────────────────────────────────
 
+class LastPerfOut(BaseModel):
+    date: dt.date
+    resume: str  # ex. "8×60kg · 8×60kg · 7×62.5kg" (#109)
+
+
 class SlotToday(BaseModel):
     """Une ligne du programme du jour, enrichie pour l'UI."""
 
@@ -247,6 +252,7 @@ class SlotToday(BaseModel):
     exercice_id: Optional[int] = None       # None si label non mappable à un exo
     categorie: Optional[str] = None
     poids_suggere_kg: Optional[float] = None  # None si pas de PdC connu
+    derniere_fois: Optional[LastPerfOut] = None  # dernière séance pour cet exo (#109)
 
 
 class TodayResponse(BaseModel):

@@ -62,6 +62,7 @@ from app.services.entrainement.muscle_volume import (
 )
 from app.services.entrainement.progression import (
     current_1rm,
+    last_performance,
     progression_for_exercice,
 )
 from app.services.entrainement.sessions import (
@@ -111,6 +112,7 @@ __all__ = [
     "get_courses_for_date",
     "get_sessions_for_date",
     "kcal_for_date",
+    "last_performance",
     "list_courses",
     "list_exercices",
     "list_program_days",

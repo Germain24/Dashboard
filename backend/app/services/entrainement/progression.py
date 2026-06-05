@@ -98,6 +98,34 @@ def progression_for_exercice(
     )
 
 
+@dataclass
+class LastPerformance:
+    date: dt.date
+    resume: str  # ex. "8×60kg · 8×60kg · 7×62.5kg"
+
+
+def last_performance(
+    session: Session, exercice_id: int, *, before: Optional[dt.date] = None
+) -> Optional[LastPerformance]:
+    """Résumé de la dernière séance (strictement avant `before`) pour un exercice (#109)."""
+    before = before or dt.date.today()
+    cutoff = dt.datetime.combine(before, dt.time.min)
+    stmt = (
+        select(SetSerie, Seance)
+        .where(SetSerie.exercice_id == exercice_id)
+        .join(Seance, Seance.id == SetSerie.seance_id)
+        .where(Seance.date < cutoff)
+        .order_by(Seance.date.desc(), SetSerie.ordre.asc())
+    )
+    rows = session.exec(stmt).all()
+    if not rows:
+        return None
+    target = rows[0][1]  # séance la plus récente
+    sets = [s for s, seance in rows if seance.id == target.id]
+    resume = " · ".join(f"{s.reps}×{(s.poids_kg or 0):g}kg" for s in sets)
+    return LastPerformance(date=target.date.date(), resume=resume)
+
+
 def current_1rm(session: Session, exercice_id: int, *, days: int = 90) -> float:
     """1RM estimé courant : meilleure série Epley sur les `days` derniers jours."""
     since = dt.date.today() - dt.timedelta(days=days)

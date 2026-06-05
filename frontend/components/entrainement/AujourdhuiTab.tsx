@@ -192,6 +192,16 @@ function SlotCard({
         )}
       </div>
 
+      {slot.derniere_fois && (
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+          ↩︎ Dernière fois (
+          {new Date(slot.derniere_fois.date + "T12:00:00").toLocaleDateString("fr-CA", {
+            day: "numeric", month: "short",
+          })}
+          ) : <span className="text-[var(--foreground)]">{slot.derniere_fois.resume}</span>
+        </p>
+      )}
+
       {setsTarget && (
         <div className="mt-1 h-1 rounded-full bg-[var(--muted)] overflow-hidden">
           <div

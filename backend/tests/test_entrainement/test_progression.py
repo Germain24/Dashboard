@@ -15,6 +15,7 @@ from app.services.entrainement import (
     current_1rm,
     progression_for_exercice,
 )
+from app.services.entrainement.progression import last_performance
 
 
 @pytest.fixture
@@ -75,3 +76,17 @@ def test_progression_empty_when_no_data(session):
     assert summary.current_1rm_kg == 0.0
     assert summary.best_1rm_kg == 0.0
     assert summary.delta_4w_pct is None
+
+
+def test_last_performance_none_when_no_history(session):
+    sq = create_exercice(session, nom="Squat vide 3", categorie="legs", source="manual")
+    assert last_performance(session, sq.id) is None
+
+
+def test_last_performance_summarises_most_recent_session(session):
+    ex_id = _seed_progress(session)  # dernière séance = aujourd'hui (100×5)
+    # « avant aujourd'hui » → la séance d'il y a 14j (95×5)
+    lp = last_performance(session, ex_id, before=dt.date.today())
+    assert lp is not None
+    assert lp.date == dt.date.today() - dt.timedelta(days=14)
+    assert lp.resume == "5×95kg"

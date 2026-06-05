@@ -147,6 +147,7 @@ export type SlotToday = {
   exercice_id: number | null;
   categorie: string | null;
   poids_suggere_kg: number | null;
+  derniere_fois: { date: string; resume: string } | null;
 };
 
 export type TodayResponse = {

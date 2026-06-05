@@ -159,7 +159,7 @@ I. MODULE ENTRAÎNEMENT (103-112)
 106. [S](*) Minuteur de repos entre séries.   ← FINIS ✓ (composant RestTimer dans AujourdhuiTab : minuteur auto-démarré après chaque série loggée (presets 60/90/120/180s, barre de progression, mm:ss, bouton Passer/OK, message « repos terminé ») ; piloté depuis l'event handler d'ajout de série, sans appel d'état impur en rendu)
 107. [M](**) Volume hebdomadaire par groupe musculaire (détection sous/sur-entraînement).   ← FINIS ✓ (muscle_volume.py : agrégation des séries par muscle ciblé sur fenêtre glissante + classify_volume (repères MEV 10 / MRV 20 → sous/optimal/sur) ; GET /entrainement/volume/muscles?days ; panneau « Volume par groupe musculaire » (barres + badges statut) en tête de ProgressionTab ; tests TDD)
 108. [S](**) Calcul du tonnage total par séance.   ← FINIS ✓ (session_tonnage (somme reps×poids, pure) ; champ dérivé SeanceRead.tonnage_kg renvoyé par toutes les routes /sessions + /today ; affiché en colonne dans la liste CalendrierTab + dans le détail séance ; test API)
-109. [S](*) Historique « dernière fois » affiché pendant la séance en cours.
+109. [S](*) Historique « dernière fois » affiché pendant la séance en cours.   ← FINIS ✓ (progression.last_performance : résumé de la dernière séance (avant aujourd'hui) pour un exo (date + « 8×60kg · 7×62.5kg ») ; enrichit SlotToday.derniere_fois dans /entrainement/today ; affiché « ↩︎ Dernière fois (date) : … » sur chaque SlotCard de la séance en cours ; tests TDD)
 110. [M](**) Programme périodisé (cycles de prise de muscle) avec progression auto.
 111. [S](*) Notes de ressenti/fatigue (RPE) par séance.
 112. [M](**) Corrélation entraînement ↔ poids/macros (lien Santé).

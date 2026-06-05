@@ -16,6 +16,7 @@ from app.api.schemas_entrainement import (
     ExerciceRead,
     ExerciceUpdate,
     IntensityResponse,
+    LastPerfOut,
     MuscleVolumeOut,
     OneRMResponse,
     ProgrammeJourRead,
@@ -46,6 +47,7 @@ from app.services.entrainement import (
     delete_set,
     ensure_active_program,
     ensure_catalogue,
+    last_performance,
     list_courses,
     list_exercices,
     list_program_days,
@@ -383,12 +385,16 @@ def today_endpoint(session: Session = Depends(get_session)):
         slot_label = str(s.get("label") or "")
         exo = _resolve_slot_exercice(session, slot_label)
         sugg = None
+        last_perf = None
         if exo is not None:
             sugg = suggested_weight(
                 session, exo.id,
                 reps_target=_reps_target_to_int(s.get("reps_target")),
                 poids_corps_kg=pdc,
             )
+            lp = last_performance(session, exo.id, before=today)
+            if lp is not None:
+                last_perf = LastPerfOut(date=lp.date, resume=lp.resume)
         enriched_slots.append(SlotToday(
             label=slot_label,
             note=s.get("note"),
@@ -398,6 +404,7 @@ def today_endpoint(session: Session = Depends(get_session)):
             exercice_id=exo.id if exo else None,
             categorie=exo.categorie if exo else None,
             poids_suggere_kg=sugg,
+            derniere_fois=last_perf,
         ))
 
     # Séance du jour (la plus récente s'il y en a plusieurs)
