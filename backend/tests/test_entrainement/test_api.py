@@ -143,6 +143,8 @@ def test_session_create_with_sets(client):
     assert len(s["sets"]) == 2
     assert s["sets"][0]["ordre"] == 0
     assert s["sets"][1]["ordre"] == 1
+    # #108 : tonnage total = 5×60 + 5×65 = 625 kg
+    assert s["tonnage_kg"] == 625.0
 
 
 def test_progression_endpoint(client):

@@ -137,6 +137,7 @@ class SeanceRead(BaseModel):
     intensite: Optional[str]
     source: str
     sets: list[SetSerieRead] = Field(default_factory=list)
+    tonnage_kg: float = 0.0  # somme(reps × poids) sur toutes les séries (#108)
 
     model_config = {"from_attributes": True}
 

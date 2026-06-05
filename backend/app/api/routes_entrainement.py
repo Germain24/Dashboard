@@ -53,6 +53,7 @@ from app.services.entrainement import (
     list_sets_for_seance,
     pace_sec_per_km,
     progression_for_exercice,
+    session_tonnage,
     update_program_day,
     weekly_muscle_volume,
 )
@@ -147,6 +148,7 @@ def _seance_to_read(s, sets) -> SeanceRead:
         id=s.id, date=s.date, type=s.type, duree_min=s.duree_min, note=s.note,
         programme_jour_id=s.programme_jour_id, intensite=s.intensite, source=s.source,
         sets=[SetSerieRead.model_validate(st) for st in sets],
+        tonnage_kg=session_tonnage(sets),
     )
 
 

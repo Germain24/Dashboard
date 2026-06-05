@@ -16,6 +16,11 @@ from app.services.entrainement.constants import (
 from app.services.entrainement.one_rm import epley_1rm
 
 
+def session_tonnage(sets) -> float:
+    """Tonnage total d'une séance = somme(reps × poids) sur toutes les séries (#108)."""
+    return round(sum((s.reps or 0) * (s.poids_kg or 0.0) for s in sets), 1)
+
+
 def list_sessions(
     session: Session,
     *,

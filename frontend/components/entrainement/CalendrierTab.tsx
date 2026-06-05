@@ -74,6 +74,9 @@ export function CalendrierTab({ sessions, program }: Props) {
                     <td className="px-3 py-1.5">{s.type ?? "—"}</td>
                     <td className="px-3 py-1.5 text-right opacity-70">{s.duree_min ?? "—"} min</td>
                     <td className="px-3 py-1.5 text-right opacity-70">{s.sets.length} séries</td>
+                    <td className="px-3 py-1.5 text-right opacity-70 tabular-nums">
+                      {s.tonnage_kg > 0 ? `${s.tonnage_kg.toFixed(0)} kg` : "—"}
+                    </td>
                     <td className="px-3 py-1.5 text-right text-xs">
                       {s.intensite ? INTENSITY_LABELS[s.intensite] : "—"}
                     </td>
@@ -111,6 +114,7 @@ export function CalendrierTab({ sessions, program }: Props) {
                   </div>
                   <div className="font-medium">
                     {details.type ?? "—"} · {details.duree_min ?? "—"} min
+                    {details.tonnage_kg > 0 && <> · <span className="tabular-nums">{details.tonnage_kg.toFixed(0)} kg</span> de tonnage</>}
                   </div>
                 </div>
                 <div className="rounded border border-[var(--border)] overflow-hidden">

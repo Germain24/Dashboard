@@ -76,6 +76,7 @@ export type Seance = {
   intensite: string | null;
   source: string;
   sets: SetSerie[];
+  tonnage_kg: number;
 };
 
 export type SeanceCreate = {
