@@ -4,13 +4,16 @@ import {
   Calendar,
   ChefHat,
   Dumbbell,
+  Film,
   GraduationCap,
   HeartPulse,
   ListTodo,
+  Music,
   Settings,
   Shirt,
   Sparkles,
   TrendingUp,
+  Tv,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -27,6 +30,7 @@ import {
 
 export type ModuleGroup =
   | "Vie quotidienne"
+  | "Culture"
   | "Santé & Sport"
   | "Organisation"
   | "Finances"
@@ -35,6 +39,7 @@ export type ModuleGroup =
 /** Ordre d'affichage des groupes dans toutes les surfaces de navigation. */
 export const GROUP_ORDER: ModuleGroup[] = [
   "Vie quotidienne",
+  "Culture",
   "Santé & Sport",
   "Organisation",
   "Finances",
@@ -62,14 +67,6 @@ export const MODULES: Module[] = [
     ready: true,
   },
   {
-    slug: "livres",
-    label: "Livres",
-    description: "Lectures en cours, à lire, lus.",
-    icon: BookOpen,
-    group: "Vie quotidienne",
-    ready: true,
-  },
-  {
     slug: "garderobe",
     label: "Garde-robe",
     description: "Vêtements, tenues, score thermique.",
@@ -92,6 +89,40 @@ export const MODULES: Module[] = [
     icon: Sparkles,
     group: "Vie quotidienne",
     ready: true,
+  },
+
+  // ── Culture ───────────────────────────────────────────────────
+  {
+    slug: "livres",
+    label: "Livres",
+    description: "Lectures en cours, à lire, lus.",
+    icon: BookOpen,
+    group: "Culture",
+    ready: true,
+  },
+  {
+    slug: "film",
+    label: "Films",
+    description: "À voir, vus, notes.",
+    icon: Film,
+    group: "Culture",
+    ready: false,
+  },
+  {
+    slug: "musique",
+    label: "Musique",
+    description: "Albums, écoutes, découvertes.",
+    icon: Music,
+    group: "Culture",
+    ready: false,
+  },
+  {
+    slug: "series",
+    label: "Séries",
+    description: "En cours, à voir, vues.",
+    icon: Tv,
+    group: "Culture",
+    ready: false,
   },
 
   // ── Santé & Sport ─────────────────────────────────────────────
