@@ -19,6 +19,13 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
   const [today, setToday] = useState<TodayResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  // Minuteur de repos entre séries (#106)
+  const [restDuration, setRestDuration] = useState(90);
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  const startRest = useCallback((sec: number) => {
+    setRestDuration(sec);
+    setRestEndsAt(Date.now() + sec * 1000);
+  }, []);
 
   const reload = useCallback(async () => {
     setErr(null);
@@ -109,7 +116,13 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
       {!isRest && (
         <div className="space-y-2 stagger">
           {today.slots.map((slot, i) => (
-            <SlotCard key={i} slot={slot} seance={seance} onSetAdded={reload} />
+            <SlotCard
+              key={i}
+              slot={slot}
+              seance={seance}
+              onSetAdded={reload}
+              onRest={() => startRest(restDuration)}
+            />
           ))}
           {today.slots.length === 0 && (
             <EmptyState
@@ -121,6 +134,15 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
       )}
 
       {seance && (
+        <RestTimer
+          endsAt={restEndsAt}
+          duration={restDuration}
+          onPreset={startRest}
+          onSkip={() => setRestEndsAt(null)}
+        />
+      )}
+
+      {seance && (
         <FinishBar startedAt={dureeStarted!} onFinish={handleFinish} />
       )}
     </div>
@@ -129,11 +151,12 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
 
 /* ── Slot card ────────────────────────────────────────────── */
 function SlotCard({
-  slot, seance, onSetAdded,
+  slot, seance, onSetAdded, onRest,
 }: {
   slot: SlotToday;
   seance: Seance | null;
   onSetAdded: () => Promise<void>;
+  onRest: () => void;
 }) {
   const setsForSlot = seance?.sets.filter((s) => s.exercice_id === slot.exercice_id) ?? [];
   const setsDone = setsForSlot.length;
@@ -197,6 +220,7 @@ function SlotCard({
           suggested={slot.poids_suggere_kg ?? 0}
           repsHint={typeof slot.reps_target === "number" ? slot.reps_target : 8}
           onAdded={onSetAdded}
+          onRest={onRest}
         />
       )}
 
@@ -211,13 +235,14 @@ function SlotCard({
 
 /* ── Add set form ─────────────────────────────────────────── */
 function AddSetForm({
-  seanceId, exerciceId, suggested, repsHint, onAdded,
+  seanceId, exerciceId, suggested, repsHint, onAdded, onRest,
 }: {
   seanceId: number;
   exerciceId: number;
   suggested: number;
   repsHint: number;
   onAdded: () => Promise<void>;
+  onRest: () => void;
 }) {
   const [reps, setReps] = useState<string>(String(repsHint));
   const [poids, setPoids] = useState<string>(suggested > 0 ? String(suggested) : "");
@@ -235,6 +260,7 @@ function AddSetForm({
         rpe: rpe ? parseFloat(rpe) : null,
       });
       await onAdded();
+      onRest(); // démarre le minuteur de repos (#106)
     } finally {
       setBusy(false);
     }
@@ -259,6 +285,79 @@ function AddSetForm({
       <Button size="sm" onClick={submit} disabled={busy}>
         + Série
       </Button>
+    </div>
+  );
+}
+
+/* ── Rest timer (#106) ────────────────────────────────────── */
+const REST_PRESETS = [60, 90, 120, 180];
+
+function RestTimer({
+  endsAt, duration, onPreset, onSkip,
+}: {
+  endsAt: number | null;
+  duration: number;
+  onPreset: (sec: number) => void;
+  onSkip: () => void;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (endsAt === null) return;
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [endsAt]);
+
+  const remainingMs = endsAt !== null ? endsAt - now : 0;
+  const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+  const active = endsAt !== null && remainingMs > 0;
+  const done = endsAt !== null && remainingMs <= 0;
+  const pct = active ? Math.min(100, (remaining / duration) * 100) : done ? 100 : 0;
+  const mmss = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`;
+
+  return (
+    <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3 space-y-2">
+      <div className="flex items-center gap-3 text-sm">
+        <span className="font-medium">⏳ Repos</span>
+        {active && <span className="tabular-nums text-lg font-semibold">{mmss}</span>}
+        {done && <span className="text-[var(--success)] font-medium">Repos terminé — c'est reparti 💪</span>}
+        {endsAt === null && (
+          <span className="text-xs text-[var(--muted-foreground)]">
+            Démarre auto après chaque série (défaut {duration}s)
+          </span>
+        )}
+        {endsAt !== null && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="ml-auto rounded border border-[var(--border)] px-2 py-0.5 text-xs hover:bg-[var(--muted)]"
+          >
+            {active ? "Passer" : "OK"}
+          </button>
+        )}
+      </div>
+
+      {active && (
+        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
+          <div className="h-full bg-[var(--ring)] transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-1.5">
+        {REST_PRESETS.map((sec) => (
+          <button
+            key={sec}
+            type="button"
+            onClick={() => onPreset(sec)}
+            className={`rounded border px-2 py-0.5 text-xs transition-colors ${
+              duration === sec
+                ? "border-[var(--ring)] text-[var(--ring)]"
+                : "border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
+            }`}
+          >
+            {sec}s
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
