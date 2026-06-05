@@ -97,17 +97,18 @@ export function PomodoroTimer({ cours, onLogged }: { cours: Cours[]; onLogged: (
 
       <div className="flex gap-2">
         {!running ? (
-          <button onClick={() => { setStatus(null); setRunning(true); }}
+          <button onClick={() => { setStatus(null); setRunning(true); }} aria-label="Démarrer le minuteur"
             className="flex-1 px-3 py-1.5 bg-[var(--primary)] text-[var(--primary-foreground)] rounded text-sm hover:opacity-90">
             ▶ Démarrer
           </button>
         ) : (
-          <button onClick={() => setRunning(false)}
+          <button onClick={() => setRunning(false)} aria-label="Mettre en pause"
             className="flex-1 px-3 py-1.5 border border-[var(--border)] rounded text-sm">
             ⏸ Pause
           </button>
         )}
         <button onClick={() => { setRunning(false); setRemaining(workMin * 60); setStatus(null); }}
+          aria-label="Réinitialiser le minuteur"
           className="px-3 py-1.5 border border-[var(--border)] rounded text-sm">
           ↺
         </button>

@@ -56,14 +56,14 @@ export function CoursTab() {
           {[["Code", "code", "INF1000"], ["Nom", "nom", "Introduction à la programmation"],
             ["Semestre", "semestre", "A2026"], ["Professeur", "prof", ""], ["Local", "local", ""]].map(([label, key, ph]) => (
             <div key={key} className="flex gap-2 items-center">
-              <label className="w-24 shrink-0 text-[var(--muted-foreground)]">{label}</label>
-              <input className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder={ph}
+              <label htmlFor={`cours-${key}`} className="w-24 shrink-0 text-[var(--muted-foreground)]">{label}</label>
+              <input id={`cours-${key}`} className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder={ph}
                 value={(form as any)[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
             </div>
           ))}
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Crédits</label>
-            <input type="number" className="w-20 border rounded px-2 py-1 bg-transparent" value={form.credits}
+            <label htmlFor="cours-credits" className="w-24 shrink-0 text-[var(--muted-foreground)]">Crédits</label>
+            <input id="cours-credits" type="number" className="w-20 border rounded px-2 py-1 bg-transparent" value={form.credits}
               onChange={e => setForm(f => ({ ...f, credits: e.target.value }))} />
           </div>
           <button onClick={handleAdd} className="px-3 py-1 bg-[var(--primary)] text-[var(--primary-foreground)] rounded text-sm hover:opacity-90">Créer</button>
@@ -84,8 +84,8 @@ export function CoursTab() {
                 <div className="flex gap-1 items-center">
                   <input type="number" className="w-16 border rounded px-1 py-0.5 text-sm bg-transparent" placeholder="/100"
                     value={editNote} onChange={e => setEditNote(e.target.value)} />
-                  <button onClick={() => handleNoteFinale(c.id)} className="text-xs text-[var(--success)]">✓</button>
-                  <button onClick={() => setEditId(null)} className="text-xs text-[var(--muted-foreground)]">✕</button>
+                  <button onClick={() => handleNoteFinale(c.id)} aria-label="Valider la note" className="text-xs text-[var(--success)]">✓</button>
+                  <button onClick={() => setEditId(null)} aria-label="Annuler la saisie" className="text-xs text-[var(--muted-foreground)]">✕</button>
                 </div>
               ) : (
                 <button onClick={() => { setEditId(c.id); setEditNote(String(c.note_finale ?? "")); }}

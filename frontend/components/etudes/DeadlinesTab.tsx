@@ -52,28 +52,28 @@ export function DeadlinesTab() {
       {adding && (
         <div className="border rounded p-3 space-y-2 text-sm bg-[var(--card)]">
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Cours</label>
-            <select className="flex-1 border rounded px-2 py-1 bg-[var(--card)]"
+            <label htmlFor="dl-cours" className="w-24 shrink-0 text-[var(--muted-foreground)]">Cours</label>
+            <select id="dl-cours" className="flex-1 border rounded px-2 py-1 bg-[var(--card)]"
               value={form.cours_id} onChange={e => setForm(f => ({ ...f, cours_id: e.target.value }))}>
               <option value="">— choisir —</option>
               {cours.map(c => <option key={c.id} value={c.id}>{c.code} — {c.nom}</option>)}
             </select>
           </div>
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Titre</label>
-            <input className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ex: Examen final"
+            <label htmlFor="dl-titre" className="w-24 shrink-0 text-[var(--muted-foreground)]">Titre</label>
+            <input id="dl-titre" className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ex: Examen final"
               value={form.titre} onChange={e => setForm(f => ({ ...f, titre: e.target.value }))} />
           </div>
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Type</label>
-            <select className="flex-1 border rounded px-2 py-1 bg-[var(--card)]"
+            <label htmlFor="dl-type" className="w-24 shrink-0 text-[var(--muted-foreground)]">Type</label>
+            <select id="dl-type" className="flex-1 border rounded px-2 py-1 bg-[var(--card)]"
               value={form.type_eval} onChange={e => setForm(f => ({ ...f, type_eval: e.target.value }))}>
               {["exam","devoir","quiz","projet","autre"].map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Date limite</label>
-            <input type="date" className="border rounded px-2 py-1 bg-transparent"
+            <label htmlFor="dl-date" className="w-24 shrink-0 text-[var(--muted-foreground)]">Date limite</label>
+            <input id="dl-date" type="date" className="border rounded px-2 py-1 bg-transparent"
               value={form.date_limite} onChange={e => setForm(f => ({ ...f, date_limite: e.target.value }))} />
           </div>
           <button onClick={handleAdd} className="px-3 py-1 bg-[var(--primary)] text-[var(--primary-foreground)] rounded text-sm hover:opacity-90">Créer + tâche Agenda</button>

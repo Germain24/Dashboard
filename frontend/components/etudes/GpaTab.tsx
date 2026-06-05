@@ -33,8 +33,8 @@ export function GpaTab() {
   return (
     <div className="space-y-6">
       <div className="flex gap-2 items-center">
-        <label className="text-sm text-[var(--muted-foreground)]">Semestre</label>
-        <select className="border rounded px-2 py-1 text-sm bg-[var(--card)]"
+        <label htmlFor="gpa-semestre" className="text-sm text-[var(--muted-foreground)]">Semestre</label>
+        <select id="gpa-semestre" className="border rounded px-2 py-1 text-sm bg-[var(--card)]"
           value={semestre} onChange={e => setSemestre(e.target.value)}>
           <option value="">Cumulatif</option>
           {semestres.map(s => <option key={s} value={s}>{s}</option>)}

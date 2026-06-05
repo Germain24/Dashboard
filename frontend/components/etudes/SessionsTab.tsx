@@ -81,29 +81,29 @@ export function SessionsTab() {
       {adding && (
         <div className="border rounded p-3 space-y-2 text-sm bg-[var(--card)]">
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Cours</label>
-            <select className="flex-1 border rounded px-2 py-1 bg-[var(--card)]"
+            <label htmlFor="sess-cours" className="w-24 shrink-0 text-[var(--muted-foreground)]">Cours</label>
+            <select id="sess-cours" className="flex-1 border rounded px-2 py-1 bg-[var(--card)]"
               value={form.cours_id} onChange={e => setForm(f => ({ ...f, cours_id: e.target.value }))}>
               <option value="">— libre —</option>
               {cours.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
             </select>
           </div>
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Durée (min)</label>
-            <input type="number" className="w-20 border rounded px-2 py-1 bg-transparent"
+            <label htmlFor="sess-duree" className="w-24 shrink-0 text-[var(--muted-foreground)]">Durée (min)</label>
+            <input id="sess-duree" type="number" className="w-20 border rounded px-2 py-1 bg-transparent"
               value={form.duree_min} onChange={e => setForm(f => ({ ...f, duree_min: e.target.value }))} />
           </div>
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Sujet</label>
-            <input list="sujets-reutilisables" className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ex: Révision Ch.3"
+            <label htmlFor="sess-sujet" className="w-24 shrink-0 text-[var(--muted-foreground)]">Sujet</label>
+            <input id="sess-sujet" list="sujets-reutilisables" className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ex: Révision Ch.3"
               value={form.sujet} onChange={e => setForm(f => ({ ...f, sujet: e.target.value }))} />
             <datalist id="sujets-reutilisables">
               {sujetsReutilisables.map(s => <option key={s} value={s} />)}
             </datalist>
           </div>
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Note</label>
-            <input className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ressenti, bilan..."
+            <label htmlFor="sess-note" className="w-24 shrink-0 text-[var(--muted-foreground)]">Note</label>
+            <input id="sess-note" className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ressenti, bilan..."
               value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
           </div>
           <button onClick={handleAdd} className="px-3 py-1 bg-[var(--primary)] text-[var(--primary-foreground)] rounded text-sm hover:opacity-90">Enregistrer</button>
