@@ -29,6 +29,11 @@ build/
 .env.local
 .env.*.local
 !.env.example
+# Identifiants OAuth Google (fichier client_secret téléchargé depuis GCP) +
+# tout secret hors-env. Jamais sur GitHub.
+secrets/
+client_secret_*.json
+*.credentials.json
 
 # --- Données / DB ---
 data/*.db
@@ -38,6 +43,10 @@ data/*.db-wal
 # imports/ tracked via .gitkeep, contents ignored
 data/imports/*
 !data/imports/.gitkeep
+# Données financières téléchargées (xlsx par société) + sauvegardes + cache : générées, jamais versionnées.
+backend/data/financials_by_company/
+data/backups/
+backend/data/cache_status.json
 
 # --- OS ---
 .DS_Store
@@ -52,3 +61,7 @@ Thumbs.db
 
 # --- graphify build output ---
 graphify-out/
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
