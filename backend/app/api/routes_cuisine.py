@@ -15,6 +15,7 @@ class IngredientIn(BaseModel):
     nom_libre: str
     quantite: float = 0
     unite: str = ""
+    aliment_id: int | None = None  # lien catalogue Santé (macros) ; None = texte libre
 
 
 class RecipeCreate(BaseModel):

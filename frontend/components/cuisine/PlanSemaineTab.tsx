@@ -1,76 +1,153 @@
 'use client'
 
-const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
-const REPAS = ['Déjeuner', 'Dîner']
+/**
+ * Onglet Plan semaine — génération branchée sur l'optimiseur de nutrition.
+ *
+ * « Générer » récupère les cibles macros du jour (Santé /targets/today), les
+ * passe à la génération du plan (recettes scorées sur ces cibles), puis affiche
+ * le plan (7 jours × 3 repas). Convention semaine = date du lundi.
+ */
 
-const MOCK_PLAN: Record<string, Record<string, string>> = {
-  Lundi: { Déjeuner: 'Poulet rôti aux herbes', Dîner: 'Soupe miso' },
-  Mardi: { Déjeuner: 'Buddha bowl quinoa', Dîner: 'Pâtes carbonara' },
-  Mercredi: { Déjeuner: '', Dîner: 'Risotto aux champignons' },
-  Jeudi: { Déjeuner: 'Soupe miso', Dîner: '' },
-  Vendredi: { Déjeuner: 'Pâtes carbonara', Dîner: 'Poulet rôti aux herbes' },
-  Samedi: { Déjeuner: '', Dîner: '' },
-  Dimanche: { Déjeuner: 'Buddha bowl quinoa', Dîner: '' },
-}
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { Wand2 } from 'lucide-react'
+import {
+  fetchMealPlan,
+  generateMealPlan,
+  fetchDailyTargets,
+  fetchRecipes,
+} from '@/lib/cuisine'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
 
-// Obtient l'index du jour courant (0 = Lundi)
-function getTodayIndex(): number {
-  const dow = new Date().getDay()
-  return dow === 0 ? 6 : dow - 1
+type Entry = { id: number; semaine: string; jour: number; repas: string; recipe_id: number | null }
+
+const JOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+const REPAS: { key: string; label: string }[] = [
+  { key: 'petit_dejeuner', label: 'Petit-déj' },
+  { key: 'dejeuner', label: 'Déjeuner' },
+  { key: 'souper', label: 'Souper' },
+]
+
+function currentMonday(): string {
+  const d = new Date()
+  const day = d.getDay() // 0=dim … 6=sam
+  d.setDate(d.getDate() + ((day === 0 ? -6 : 1) - day))
+  return d.toISOString().slice(0, 10)
 }
 
 export default function PlanSemaineTab() {
-  const todayIdx = getTodayIndex()
+  const semaine = currentMonday()
+  const [plan, setPlan] = useState<Entry[] | null>(null)
+  const [recipes, setRecipes] = useState<Map<number, string>>(new Map())
+  const [generating, setGenerating] = useState(false)
+  const [cibles, setCibles] = useState<Record<string, number> | null>(null)
+
+  const loadPlan = useCallback(async () => {
+    try {
+      const [entries, recs] = await Promise.all([fetchMealPlan(semaine), fetchRecipes()])
+      setPlan(entries)
+      setRecipes(new Map(recs.map((r) => [r.id, r.titre])))
+    } catch {
+      setPlan([])
+    }
+  }, [semaine])
+
+  useEffect(() => {
+    void loadPlan()
+  }, [loadPlan])
+
+  async function generate() {
+    setGenerating(true)
+    try {
+      const t = await fetchDailyTargets()
+      const c = {
+        calories: t.Calories ?? 0,
+        proteines: t.Proteines ?? 0,
+        glucides: t.Glucides ?? 0,
+        lipides: t.Lipides ?? 0,
+      }
+      setCibles(c)
+      const entries = await generateMealPlan(semaine, c)
+      if (Array.isArray(entries) && entries.length === 0) {
+        toast.error('Aucune recette : ajoute des recettes avant de générer.')
+      } else {
+        toast.success('Plan généré depuis tes cibles nutrition.')
+      }
+      await loadPlan()
+    } catch {
+      toast.error('Génération impossible (cibles nutrition manquantes dans Santé ?).')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const cell = (jour: number, repas: string): string => {
+    const e = (plan ?? []).find((x) => x.jour === jour && x.repas === repas)
+    if (!e?.recipe_id) return '—'
+    return recipes.get(e.recipe_id) ?? `Recette #${e.recipe_id}`
+  }
 
   return (
-    <div className="space-y-4 animate-fade-in-up">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 stagger">
-        {JOURS.map((jour, idx) => {
-          const isToday = idx === todayIdx
-          return (
-            <div
-              key={jour}
-              className={`rounded-xl border p-3 animate-fade-in-up transition-all duration-200 ${
-                isToday
-                  ? 'border-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_6%,transparent)]'
-                  : 'border-[var(--border)] bg-[var(--card)] card-hover'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                  {jour}
-                </h3>
-                {isToday && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--ring)] text-white">
-                    Auj.
-                  </span>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                {REPAS.map(repas => {
-                  const recette = MOCK_PLAN[jour]?.[repas] ?? ''
-                  return (
-                    <div key={repas} className="text-xs">
-                      <span className="text-[var(--muted-foreground)]">{repas} : </span>
-                      {recette ? (
-                        <span className="font-medium">{recette}</span>
-                      ) : (
-                        <span className="text-[var(--muted-foreground)] italic">—</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })}
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm text-[var(--muted-foreground)]">Semaine du {semaine}</p>
+          {cibles && (
+            <p className="text-xs tabular-nums text-[var(--muted-foreground)]">
+              Cibles : {Math.round(cibles.calories)} kcal · {Math.round(cibles.proteines)}P ·{' '}
+              {Math.round(cibles.glucides)}G · {Math.round(cibles.lipides)}L
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => void generate()}
+          disabled={generating}
+          className="flex shrink-0 items-center gap-1.5 rounded-md bg-[var(--primary)] px-3 py-2 text-sm font-medium text-[var(--primary-foreground)] transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          <Wand2 className="h-4 w-4" aria-hidden="true" />
+          {generating ? 'Génération…' : 'Générer depuis mes cibles'}
+        </button>
       </div>
 
-      <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center animate-fade-in-up">
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Le plan de repas sera synchronisé avec le backend Cuisine.
-        </p>
-      </div>
+      {plan === null && <Skeleton className="h-64" />}
+
+      {plan !== null && plan.length === 0 && (
+        <EmptyState
+          title="Aucun plan cette semaine"
+          description="Génère un plan : tes recettes seront choisies pour coller à tes cibles nutrition du jour."
+        />
+      )}
+
+      {plan !== null && plan.length > 0 && (
+        <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+          <table className="w-full min-w-[34rem] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)] bg-[var(--muted)]">
+                <th className="px-3 py-2 text-left text-xs font-medium text-[var(--muted-foreground)]">Jour</th>
+                {REPAS.map((r) => (
+                  <th key={r.key} className="px-3 py-2 text-left text-xs font-medium text-[var(--muted-foreground)]">
+                    {r.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {JOURS.map((jourLabel, jour) => (
+                <tr key={jour} className="border-b border-[var(--border)] last:border-0">
+                  <td className="px-3 py-2 font-medium text-[var(--muted-foreground)]">{jourLabel}</td>
+                  {REPAS.map((r) => (
+                    <td key={r.key} className="px-3 py-2">
+                      {cell(jour, r.key)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

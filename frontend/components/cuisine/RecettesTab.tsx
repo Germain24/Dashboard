@@ -13,22 +13,25 @@ import { Clock, Users, Carrot, Plus, X, Trash2 } from 'lucide-react'
 import {
   fetchRecipes,
   createRecipe,
+  fetchAliments,
   type Recipe,
   type Ingredient,
+  type Aliment,
 } from '@/lib/cuisine'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const UNITES = ['g', 'kg', 'ml', 'cl', 'l', 'unité', 'c. à soupe', 'c. à café', 'pincée', 'gousse', 'tranche']
 
-type Row = { nom_libre: string; quantite: string; unite: string }
-const emptyRow = (): Row => ({ nom_libre: '', quantite: '', unite: 'g' })
+type Row = { nom_libre: string; quantite: string; unite: string; aliment_id: number | null }
+const emptyRow = (): Row => ({ nom_libre: '', quantite: '', unite: 'g', aliment_id: null })
 
 export default function RecettesTab() {
   const [recipes, setRecipes] = useState<Recipe[] | null>(null)
   const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
+  const [aliments, setAliments] = useState<Aliment[]>([])
 
   async function load() {
     setError(false)
@@ -42,6 +45,9 @@ export default function RecettesTab() {
 
   useEffect(() => {
     void load()
+    fetchAliments()
+      .then(setAliments)
+      .catch(() => setAliments([]))
   }, [])
 
   const filtered = (recipes ?? []).filter((r) =>
@@ -129,12 +135,26 @@ export default function RecettesTab() {
         </div>
       )}
 
-      {open && <RecipeForm onClose={() => setOpen(false)} onCreated={() => void load()} />}
+      {open && (
+        <RecipeForm
+          aliments={aliments}
+          onClose={() => setOpen(false)}
+          onCreated={() => void load()}
+        />
+      )}
     </div>
   )
 }
 
-function RecipeForm({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function RecipeForm({
+  aliments,
+  onClose,
+  onCreated,
+}: {
+  aliments: Aliment[]
+  onClose: () => void
+  onCreated: () => void
+}) {
   const [titre, setTitre] = useState('')
   const [portions, setPortions] = useState('4')
   const [prep, setPrep] = useState('')
@@ -167,6 +187,7 @@ function RecipeForm({ onClose, onCreated }: { onClose: () => void; onCreated: ()
         nom_libre: r.nom_libre.trim(),
         quantite: Number(r.quantite.replace(',', '.')) || 0,
         unite: r.unite.trim(),
+        aliment_id: r.aliment_id,
       }))
     setSaving(true)
     try {
@@ -238,10 +259,25 @@ function RecipeForm({ onClose, onCreated }: { onClose: () => void; onCreated: ()
             <div className="space-y-2">
               {rows.map((row, i) => (
                 <div key={i} className="flex items-center gap-2">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: row.aliment_id ? 'var(--success)' : 'var(--border)' }}
+                    title={row.aliment_id ? 'Lié au catalogue : macros prises en compte' : 'Texte libre : courses seulement (pas de macros)'}
+                    aria-hidden="true"
+                  />
                   <input
                     value={row.nom_libre}
-                    onChange={(e) => setRow(i, { nom_libre: e.target.value })}
-                    placeholder="Farine"
+                    list="aliments-catalog"
+                    onChange={(e) => {
+                      const v = e.target.value
+                      const match = aliments.find((a) => a.nom === v)
+                      setRow(i, {
+                        nom_libre: v,
+                        aliment_id: match ? match.id : null,
+                        ...(match ? { unite: 'g' } : {}),
+                      })
+                    }}
+                    placeholder="Choisir un aliment ou texte libre"
                     className={`${inputCls} flex-1`}
                   />
                   <input
@@ -273,6 +309,14 @@ function RecipeForm({ onClose, onCreated }: { onClose: () => void; onCreated: ()
                 <option key={u} value={u} />
               ))}
             </datalist>
+            <datalist id="aliments-catalog">
+              {aliments.map((a) => (
+                <option key={a.id} value={a.nom} />
+              ))}
+            </datalist>
+            <p className="mt-1.5 text-[11px] text-[var(--muted-foreground)]">
+              Pastille verte = aliment du catalogue (macros comptées pour le plan) ; grise = texte libre (courses seulement).
+            </p>
             <button
               type="button"
               onClick={() => setRows((prev) => [...prev, emptyRow()])}

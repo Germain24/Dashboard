@@ -19,6 +19,7 @@ def create_recipe(session: Session, titre: str, portions: int = 4, temps_prep: i
             continue
         session.add(RecipeIngredient(
             recipe_id=r.id,
+            aliment_id=ing.get("aliment_id"),  # lié au catalogue Santé → macros calculables
             nom_libre=nom,
             quantite=float(ing.get("quantite") or 0),
             unite=(ing.get("unite") or "").strip(),

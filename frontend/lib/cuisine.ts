@@ -2,7 +2,15 @@ const BASE = '/api/cuisine'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-export type Ingredient = { nom_libre: string; quantite: number; unite: string }
+export type Ingredient = {
+  nom_libre: string
+  quantite: number
+  unite: string
+  aliment_id?: number | null // lien catalogue Santé (macros) ; null = texte libre
+}
+
+/** Aliment du catalogue Santé (source des macros). */
+export type Aliment = { id: number; nom: string; proprietes: Record<string, number> }
 
 export type Recipe = {
   id: number
@@ -47,6 +55,22 @@ export async function importFromUrl(url: string): Promise<Recipe> {
   const r = await fetch(`${BASE}/recipes/from-url?url=${encodeURIComponent(url)}`, { method: 'POST' })
   if (!r.ok) throw new Error('Impossible de parser cette URL')
   return r.json()
+}
+
+// ── Catalogue Santé + cibles (pour lier les ingrédients et optimiser le plan) ──
+
+export async function fetchAliments(): Promise<Aliment[]> {
+  const r = await fetch('/api/sante/aliments')
+  if (!r.ok) throw new Error('Échec du chargement du catalogue d’aliments')
+  return r.json()
+}
+
+/** Cibles macros du jour calculées par l'optimiseur Santé (clés capitalisées). */
+export async function fetchDailyTargets(): Promise<Record<string, number>> {
+  const r = await fetch('/api/sante/targets/today')
+  if (!r.ok) throw new Error('Cibles nutrition indisponibles')
+  const d = await r.json()
+  return (d?.targets as Record<string, number>) ?? {}
 }
 
 // ── Plan repas + courses (branchés plus tard) ────────────────────────────────
