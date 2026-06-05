@@ -59,42 +59,42 @@ export function SessionsTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="text-sm text-[var(--muted)]">
-          Total : <span className="text-white font-semibold">{totalH}h{totalRem > 0 ? `${totalRem}min` : ""}</span>
+        <div className="text-sm text-[var(--muted-foreground)]">
+          Total : <span className="text-[var(--foreground)] font-semibold">{totalH}h{totalRem > 0 ? `${totalRem}min` : ""}</span>
         </div>
         <div className="flex gap-2">
           <button onClick={handlePlanFocus} disabled={planning}
             title="Planifie un bloc focus dans le prochain créneau libre de l'agenda"
-            className="px-3 py-1 border border-violet-600 text-violet-300 rounded text-sm hover:bg-violet-600/10 disabled:opacity-50">
+            className="px-3 py-1 border border-[var(--border)] text-[var(--foreground)] rounded text-sm hover:bg-[var(--accent)] disabled:opacity-50">
             {planning ? "…" : "📅 Planifier un focus"}
           </button>
           <button onClick={() => setAdding(a => !a)}
-            className="px-3 py-1 bg-violet-600 text-white rounded text-sm hover:bg-violet-700">
+            className="px-3 py-1 bg-[var(--primary)] text-[var(--primary-foreground)] rounded text-sm hover:opacity-90">
             {adding ? "Annuler" : "+ Session"}
           </button>
         </div>
       </div>
-      {focusMsg && <div className="text-xs text-[var(--muted)]">{focusMsg}</div>}
+      {focusMsg && <div className="text-xs text-[var(--muted-foreground)]">{focusMsg}</div>}
 
       <PomodoroTimer cours={cours} onLogged={load} />
 
       {adding && (
-        <div className="border rounded p-3 space-y-2 text-sm bg-[var(--card-bg)]">
+        <div className="border rounded p-3 space-y-2 text-sm bg-[var(--card)]">
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted)]">Cours</label>
-            <select className="flex-1 border rounded px-2 py-1 bg-[var(--card-bg)]"
+            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Cours</label>
+            <select className="flex-1 border rounded px-2 py-1 bg-[var(--card)]"
               value={form.cours_id} onChange={e => setForm(f => ({ ...f, cours_id: e.target.value }))}>
               <option value="">— libre —</option>
               {cours.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
             </select>
           </div>
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted)]">Durée (min)</label>
+            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Durée (min)</label>
             <input type="number" className="w-20 border rounded px-2 py-1 bg-transparent"
               value={form.duree_min} onChange={e => setForm(f => ({ ...f, duree_min: e.target.value }))} />
           </div>
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted)]">Sujet</label>
+            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Sujet</label>
             <input list="sujets-reutilisables" className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ex: Révision Ch.3"
               value={form.sujet} onChange={e => setForm(f => ({ ...f, sujet: e.target.value }))} />
             <datalist id="sujets-reutilisables">
@@ -102,19 +102,19 @@ export function SessionsTab() {
             </datalist>
           </div>
           <div className="flex gap-2 items-center">
-            <label className="w-24 shrink-0 text-[var(--muted)]">Note</label>
+            <label className="w-24 shrink-0 text-[var(--muted-foreground)]">Note</label>
             <input className="flex-1 border rounded px-2 py-1 bg-transparent" placeholder="ressenti, bilan..."
               value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
           </div>
-          <button onClick={handleAdd} className="px-3 py-1 bg-emerald-600 text-white rounded text-sm">Enregistrer</button>
+          <button onClick={handleAdd} className="px-3 py-1 bg-[var(--primary)] text-[var(--primary-foreground)] rounded text-sm hover:opacity-90">Enregistrer</button>
         </div>
       )}
 
       <div className="space-y-2">
-        {sessions.length === 0 && <p className="text-[var(--muted)] text-sm">Aucune session enregistrée.</p>}
+        {sessions.length === 0 && <p className="text-[var(--muted-foreground)] text-sm">Aucune session enregistrée.</p>}
         {sessions.map(se => (
-          <div key={se.id} className="border rounded p-3 flex items-start gap-3 bg-[var(--card-bg)]">
-            <div className="text-violet-400 font-mono text-sm shrink-0 pt-0.5">
+          <div key={se.id} className="border rounded p-3 flex items-start gap-3 bg-[var(--card)]">
+            <div className="text-[var(--ring)] font-mono text-sm shrink-0 pt-0.5">
               {se.duree_min >= 60
                 ? `${Math.floor(se.duree_min/60)}h${se.duree_min%60 > 0 ? (se.duree_min%60)+"'" : ""}`
                 : `${se.duree_min}'`}
@@ -122,13 +122,14 @@ export function SessionsTab() {
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">
                 {se.cours_id ? coursMap[se.cours_id] ?? `Cours #${se.cours_id}` : "Session libre"}
-                {se.sujet && <span className="text-[var(--muted)] font-normal"> — {se.sujet}</span>}
+                {se.sujet && <span className="text-[var(--muted-foreground)] font-normal"> — {se.sujet}</span>}
               </div>
-              <div className="text-xs text-[var(--muted)]">{se.date}</div>
-              {se.note && <div className="text-xs text-[var(--muted)] mt-0.5 italic">{se.note}</div>}
+              <div className="text-xs text-[var(--muted-foreground)]">{se.date}</div>
+              {se.note && <div className="text-xs text-[var(--muted-foreground)] mt-0.5 italic">{se.note}</div>}
             </div>
             <button onClick={async () => { await deleteSession(se.id); load(); }}
-              className="text-red-400 text-xs hover:text-red-300 shrink-0">✕</button>
+              aria-label="Supprimer la session"
+              className="shrink-0 text-xs text-[var(--muted-foreground)] hover:text-[var(--destructive)]">✕</button>
           </div>
         ))}
       </div>

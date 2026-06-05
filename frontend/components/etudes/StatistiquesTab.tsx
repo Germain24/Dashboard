@@ -27,7 +27,7 @@ export function StatistiquesTab() {
     finally { setSavingGoal(false); }
   };
 
-  if (!stats) return <p className="text-sm text-[var(--muted)]">Chargement des stats…</p>;
+  if (!stats) return <p className="text-sm text-[var(--muted-foreground)]">Chargement des stats…</p>;
 
   const maxCourse = Math.max(1, ...stats.by_course.map((c) => c.minutes));
 
@@ -35,17 +35,17 @@ export function StatistiquesTab() {
     <div className="space-y-6">
       {/* Objectif hebdo (#95) + streak (#101) */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-4">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Objectif de la semaine</span>
-            <span className="text-xs text-[var(--muted)] tabular-nums">
+            <span className="text-xs text-[var(--muted-foreground)] tabular-nums">
               {stats.goal.done_hours}h / {stats.goal.weekly_hours}h
             </span>
           </div>
           <div className="h-2 rounded-full bg-[var(--border)] overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
-              style={{ width: `${stats.goal.progress_pct}%`, backgroundColor: stats.goal.progress_pct >= 100 ? "#10b981" : "#8b5cf6" }}
+              style={{ width: `${stats.goal.progress_pct}%`, backgroundColor: stats.goal.progress_pct >= 100 ? "var(--success)" : "var(--ring)" }}
             />
           </div>
           <div className="mt-2 flex gap-2">
@@ -55,28 +55,28 @@ export function StatistiquesTab() {
               className="w-20 border rounded px-2 py-1 text-sm bg-transparent"
             />
             <button onClick={() => void saveGoal()} disabled={savingGoal || !goalInput}
-              className="px-2 py-1 text-xs border border-violet-600 text-violet-300 rounded hover:bg-violet-600/10 disabled:opacity-50">
+              className="px-2 py-1 text-xs border border-[var(--border)] text-[var(--foreground)] rounded hover:bg-[var(--accent)] disabled:opacity-50">
               Définir l&apos;objectif (h/sem)
             </button>
           </div>
         </div>
 
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-4 flex items-center gap-6">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 flex items-center gap-6">
           <div className="text-center">
             <div className="text-3xl font-bold text-[var(--tertiary)]">🔥 {stats.streak.current}</div>
             <div className="text-xs text-[var(--muted-foreground)]">jours d&apos;affilée</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold">{stats.streak.best}</div>
-            <div className="text-xs text-[var(--muted)]">meilleure série</div>
+            <div className="text-xs text-[var(--muted-foreground)]">meilleure série</div>
           </div>
         </div>
       </div>
 
       {/* Rapport hebdo (#102) */}
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-4">
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
         <h3 className="text-sm font-semibold mb-1">Cette semaine</h3>
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-sm text-[var(--muted-foreground)]">
           {fmtH(stats.weekly.total_minutes)} sur {stats.weekly.sessions} session{stats.weekly.sessions > 1 ? "s" : ""}
           {stats.weekly.by_course.length > 0 && (
             <> · {stats.weekly.by_course.slice(0, 3).map((c) => `${c.label} (${fmtH(c.minutes)})`).join(", ")}</>
@@ -88,16 +88,16 @@ export function StatistiquesTab() {
       <div>
         <h3 className="text-sm font-semibold mb-2">Temps par matière (120 j)</h3>
         {stats.by_course.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">Aucune session enregistrée.</p>
+          <p className="text-sm text-[var(--muted-foreground)]">Aucune session enregistrée.</p>
         ) : (
           <div className="space-y-1.5">
             {stats.by_course.map((c) => (
               <div key={String(c.cours_id)} className="flex items-center gap-2 text-sm">
                 <div className="w-24 truncate" title={c.label}>{c.label}</div>
                 <div className="flex-1 h-3 bg-[var(--border)] rounded overflow-hidden">
-                  <div className="h-full bg-violet-500" style={{ width: `${(c.minutes / maxCourse) * 100}%` }} />
+                  <div className="h-full bg-[var(--ring)]" style={{ width: `${(c.minutes / maxCourse) * 100}%` }} />
                 </div>
-                <div className="w-16 text-right text-xs text-[var(--muted)] tabular-nums">{fmtH(c.minutes)}</div>
+                <div className="w-16 text-right text-xs text-[var(--muted-foreground)] tabular-nums">{fmtH(c.minutes)}</div>
               </div>
             ))}
           </div>
@@ -137,10 +137,10 @@ function Heatmap({ daily }: { daily: Record<string, number> }) {
 
   const color = (min: number) => {
     if (min === 0) return "var(--border)";
-    if (min < 30) return "#4c1d95";
-    if (min < 60) return "#6d28d9";
-    if (min < 120) return "#8b5cf6";
-    return "#a78bfa";
+    if (min < 30) return "color-mix(in srgb, var(--ring) 22%, transparent)";
+    if (min < 60) return "color-mix(in srgb, var(--ring) 45%, transparent)";
+    if (min < 120) return "color-mix(in srgb, var(--ring) 70%, transparent)";
+    return "var(--ring)";
   };
 
   return (

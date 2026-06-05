@@ -61,7 +61,7 @@ export function PomodoroTimer({ cours, onLogged }: { cours: Cours[]; onLogged: (
   const pct = 100 - (remaining / (workMin * 60)) * 100;
 
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-4 space-y-3">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">🍅 Pomodoro</h3>
         <div className="flex gap-1">
@@ -70,7 +70,7 @@ export function PomodoroTimer({ cours, onLogged }: { cours: Cours[]; onLogged: (
               key={d}
               onClick={() => setWorkMin(d)}
               disabled={running}
-              className={`px-2 py-0.5 rounded text-xs ${workMin === d ? "bg-violet-600 text-white" : "border border-[var(--border)]"} disabled:opacity-50`}
+              className={`px-2 py-0.5 rounded text-xs ${workMin === d ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "border border-[var(--border)]"} disabled:opacity-50`}
             >
               {d}min
             </button>
@@ -81,13 +81,13 @@ export function PomodoroTimer({ cours, onLogged }: { cours: Cours[]; onLogged: (
       <div className="text-center">
         <div className="text-4xl font-bold tabular-nums">{mm}:{ss}</div>
         <div className="mt-2 h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
-          <div className="h-full bg-violet-500 transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-[var(--ring)] transition-all" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
       <div className="flex gap-2">
         <select value={coursId} onChange={(e) => setCoursId(e.target.value)} disabled={running}
-          className="flex-1 border rounded px-2 py-1 text-sm bg-[var(--card-bg)] disabled:opacity-50">
+          className="flex-1 border rounded px-2 py-1 text-sm bg-[var(--card)] disabled:opacity-50">
           <option value="">— cours libre —</option>
           {cours.map((c) => <option key={c.id} value={c.id}>{c.code}</option>)}
         </select>
@@ -98,7 +98,7 @@ export function PomodoroTimer({ cours, onLogged }: { cours: Cours[]; onLogged: (
       <div className="flex gap-2">
         {!running ? (
           <button onClick={() => { setStatus(null); setRunning(true); }}
-            className="flex-1 px-3 py-1.5 bg-violet-600 text-white rounded text-sm hover:bg-violet-700">
+            className="flex-1 px-3 py-1.5 bg-[var(--primary)] text-[var(--primary-foreground)] rounded text-sm hover:opacity-90">
             ▶ Démarrer
           </button>
         ) : (
@@ -113,7 +113,7 @@ export function PomodoroTimer({ cours, onLogged }: { cours: Cours[]; onLogged: (
         </button>
       </div>
 
-      {status && <div className="text-xs text-[var(--muted)]">{status}</div>}
+      {status && <div className="text-xs text-[var(--muted-foreground)]">{status}</div>}
     </div>
   );
 }
