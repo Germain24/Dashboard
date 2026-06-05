@@ -64,6 +64,18 @@ def from_url(url: str, session: Session = Depends(get_session)):
     return recipes_svc.create_recipe(session, **data)
 
 
+@router.get("/shopping-list/preview")
+def shopping_preview(
+    week: str,
+    jours: str | None = None,
+    session: Session = Depends(get_session),
+):
+    """Liste de courses calculée (non persistée), scopable sur un sous-ensemble
+    de jours (`jours=0,1,2,3`) pour coller au cycle de cuisine."""
+    jour_list = [int(x) for x in jours.split(",") if x != ""] if jours else None
+    return shop_svc.compute_shopping(session, week, jour_list)
+
+
 @router.get("/recipes/{id}/macros")
 def recipe_macros(id: int, portions: int = 1, session: Session = Depends(get_session)):
     return macros_svc.get_recipe_macros(session, id, portions)

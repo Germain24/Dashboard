@@ -85,8 +85,12 @@ export const generateMealPlan = (semaine: string, cibles: Record<string, number>
     body: JSON.stringify({ semaine, cibles }),
   }).then((r) => r.json())
 
-export const fetchShoppingList = (week: string) =>
-  fetch(`${BASE}/shopping-list?week=${week}`).then((r) => r.json())
+export type ShoppingItem = { ingredient: string; quantite: number; unite: string; rayon: string }
 
-export const toggleShoppingItem = (id: number, achete: boolean) =>
-  fetch(`${BASE}/shopping-list/${id}?achete=${achete}`, { method: 'PATCH' }).then((r) => r.json())
+/** Liste de courses calculée (non persistée), scopable sur des jours du plan. */
+export async function fetchShoppingPreview(week: string, jours?: number[]): Promise<ShoppingItem[]> {
+  const q = jours && jours.length ? `&jours=${jours.join(',')}` : ''
+  const r = await fetch(`${BASE}/shopping-list/preview?week=${week}${q}`)
+  if (!r.ok) throw new Error('Liste de courses indisponible')
+  return r.json()
+}
