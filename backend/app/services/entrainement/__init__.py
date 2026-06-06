@@ -72,6 +72,7 @@ from app.services.entrainement.sessions import (
     delete_session,
     get_sessions_for_date,
     list_sessions,
+    session_rpe,
     session_tonnage,
 )
 from app.services.entrainement.sets import (
@@ -125,6 +126,7 @@ __all__ = [
     "program_day_for_date",
     "progression_for_exercice",
     "resolve_poids_corps",
+    "session_rpe",
     "session_tonnage",
     "suggested_weight",
     "training_weight_correlation",

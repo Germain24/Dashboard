@@ -138,6 +138,7 @@ class SeanceRead(BaseModel):
     source: str
     sets: list[SetSerieRead] = Field(default_factory=list)
     tonnage_kg: float = 0.0  # somme(reps × poids) sur toutes les séries (#108)
+    rpe_moyen: Optional[float] = None  # RPE moyen des séries (#111)
 
     model_config = {"from_attributes": True}
 

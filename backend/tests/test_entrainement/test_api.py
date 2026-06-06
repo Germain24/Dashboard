@@ -133,8 +133,8 @@ def test_session_create_with_sets(client):
         "type": "push",
         "duree_min": 50,
         "sets": [
-            {"exercice_id": bench_id, "reps": 5, "poids_kg": 60.0},
-            {"exercice_id": bench_id, "reps": 5, "poids_kg": 65.0},
+            {"exercice_id": bench_id, "reps": 5, "poids_kg": 60.0, "rpe": 8.0},
+            {"exercice_id": bench_id, "reps": 5, "poids_kg": 65.0, "rpe": 9.0},
         ],
     }
     r = client.post("/entrainement/sessions", json=payload)
@@ -145,6 +145,8 @@ def test_session_create_with_sets(client):
     assert s["sets"][1]["ordre"] == 1
     # #108 : tonnage total = 5×60 + 5×65 = 625 kg
     assert s["tonnage_kg"] == 625.0
+    # #111 : RPE moyen de la séance = (8 + 9) / 2 = 8.5
+    assert s["rpe_moyen"] == 8.5
 
 
 def test_progression_endpoint(client):

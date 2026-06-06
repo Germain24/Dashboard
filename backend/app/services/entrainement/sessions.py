@@ -21,6 +21,12 @@ def session_tonnage(sets) -> float:
     return round(sum((s.reps or 0) * (s.poids_kg or 0.0) for s in sets), 1)
 
 
+def session_rpe(sets):
+    """RPE moyen de la séance = moyenne des RPE renseignés sur ses séries, ou None (#111)."""
+    vals = [s.rpe for s in sets if s.rpe is not None]
+    return round(sum(vals) / len(vals), 1) if vals else None
+
+
 def list_sessions(
     session: Session,
     *,

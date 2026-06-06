@@ -77,6 +77,7 @@ export type Seance = {
   source: string;
   sets: SetSerie[];
   tonnage_kg: number;
+  rpe_moyen: number | null;
 };
 
 export type SeanceCreate = {

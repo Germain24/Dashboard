@@ -57,6 +57,7 @@ from app.services.entrainement import (
     list_sets_for_seance,
     pace_sec_per_km,
     progression_for_exercice,
+    session_rpe,
     session_tonnage,
     training_weight_correlation,
     update_program_day,
@@ -154,6 +155,7 @@ def _seance_to_read(s, sets) -> SeanceRead:
         programme_jour_id=s.programme_jour_id, intensite=s.intensite, source=s.source,
         sets=[SetSerieRead.model_validate(st) for st in sets],
         tonnage_kg=session_tonnage(sets),
+        rpe_moyen=session_rpe(sets),
     )
 
 

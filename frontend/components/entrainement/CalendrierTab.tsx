@@ -115,6 +115,7 @@ export function CalendrierTab({ sessions, program }: Props) {
                   <div className="font-medium">
                     {details.type ?? "—"} · {details.duree_min ?? "—"} min
                     {details.tonnage_kg > 0 && <> · <span className="tabular-nums">{details.tonnage_kg.toFixed(0)} kg</span> de tonnage</>}
+                    {details.rpe_moyen != null && <> · RPE moy. <span className="tabular-nums">{details.rpe_moyen}</span></>}
                   </div>
                 </div>
                 <div className="rounded border border-[var(--border)] overflow-hidden">
