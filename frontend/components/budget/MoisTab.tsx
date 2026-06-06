@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import {
-  fetchSummary, fetchEnvelopes, fetchCategories, fetchByCategory, fetchTrend,
-  type CategorySpend, type MonthTrend,
+  fetchSummary, fetchEnvelopes, fetchCategories, fetchByCategory, fetchTrend, fetchRecurring,
+  type CategorySpend, type MonthTrend, type Recurring,
 } from '@/lib/budget'
 
 const formatCAD = (v: number) =>
@@ -19,6 +19,7 @@ export default function MoisTab() {
   const [categories, setCategories] = useState<any[]>([])
   const [byCat, setByCat] = useState<CategorySpend[]>([])
   const [trend, setTrend] = useState<MonthTrend[]>([])
+  const [recurring, setRecurring] = useState<Recurring[]>([])
   const [loading, setLoading] = useState(true)
   const month = new Date().toISOString().slice(0, 7)
 
@@ -29,12 +30,14 @@ export default function MoisTab() {
       fetchCategories().then(d => Array.isArray(d) ? d : []),
       fetchByCategory(month),
       fetchTrend(6),
-    ]).then(([s, e, c, bc, tr]) => {
+      fetchRecurring(),
+    ]).then(([s, e, c, bc, tr, rec]) => {
       setSummary(s)
       setEnvelopes(e)
       setCategories(c)
       setByCat(bc)
       setTrend(tr)
+      setRecurring(rec)
       setLoading(false)
     })
   }, [month])
@@ -118,6 +121,30 @@ export default function MoisTab() {
           <TrendChart data={trend} />
         </div>
       </div>
+
+      {/* Abonnements récurrents détectés (#116) */}
+      {recurring.length > 0 && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden animate-fade-in-up">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+            <div>
+              <h2 className="text-sm font-semibold">Abonnements détectés</h2>
+              <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Dépenses mensuelles récurrentes</p>
+            </div>
+            <span className="text-sm font-mono font-semibold">
+              {formatCAD(recurring.reduce((s, r) => s + r.montant_moyen, 0))}<span className="text-xs text-[var(--muted-foreground)]"> /mois</span>
+            </span>
+          </div>
+          <div className="divide-y divide-[var(--border)]">
+            {recurring.map((r) => (
+              <div key={r.marchand} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="flex-1 truncate text-sm font-medium">{r.marchand}</span>
+                <span className="text-xs text-[var(--muted-foreground)]">{r.occurrences}× · dès {r.derniere_date}</span>
+                <span className="w-24 text-right font-mono text-sm tabular-nums">{formatCAD(r.montant_moyen)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Enveloppes budgétaires */}
       {envelopes.length > 0 && (

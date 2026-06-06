@@ -163,3 +163,9 @@ def by_category(month: str, session: Session = Depends(get_session)):
 def trend(months: int = 6, session: Session = Depends(get_session)):
     """Tendance mensuelle revenus/dépenses sur les N derniers mois (#113)."""
     return analytics_svc.spending_trend(session, months)
+
+
+@router.get("/recurring")
+def recurring(session: Session = Depends(get_session)):
+    """Dépenses récurrentes (abonnements) détectées : même marchand, montant stable, cadence mensuelle (#116)."""
+    return analytics_svc.recurring_expenses(session)

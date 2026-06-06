@@ -44,6 +44,16 @@ export async function fetchTrend(months = 6): Promise<MonthTrend[]> {
   return Array.isArray(d) ? d : []
 }
 
+export type Recurring = {
+  marchand: string; montant_moyen: number; occurrences: number
+  periodicite: string; derniere_date: string; category_id: number | null
+}
+
+export async function fetchRecurring(): Promise<Recurring[]> {
+  const d = await (await fetch(`${BASE}/recurring`)).json()
+  return Array.isArray(d) ? d : []
+}
+
 export async function importCsv(file: File, compte = 'principal') {
   const fd = new FormData()
   fd.append('file', file)

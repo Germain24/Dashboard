@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import calendar
 import datetime as dt
+import statistics
 from typing import Any, Optional
 
 UNCATEGORISED_COLOR = "#9aa3b0"
@@ -47,6 +48,44 @@ def month_keys(today: dt.date, months: int) -> list[str]:
     return list(reversed(keys))
 
 
+def detect_recurring(
+    txs, *, min_occurrences: int = 3, amount_tolerance: float = 0.15
+) -> list[dict[str, Any]]:
+    """Détecte les dépenses récurrentes (abonnements) : même marchand, montant
+    stable (±`amount_tolerance`) et cadence ~mensuelle (#116). Pur."""
+    groups: dict[str, list] = {}
+    for t in txs:
+        if t.montant >= 0:
+            continue
+        key = (t.marchand or "").strip().lower()
+        if key:
+            groups.setdefault(key, []).append(t)
+
+    out: list[dict[str, Any]] = []
+    for items in groups.values():
+        if len(items) < min_occurrences:
+            continue
+        items.sort(key=lambda t: t.date)
+        amounts = [abs(t.montant) for t in items]
+        avg = sum(amounts) / len(amounts)
+        if avg <= 0 or any(abs(a - avg) / avg > amount_tolerance for a in amounts):
+            continue  # montant instable -> pas un abonnement
+        gaps = [(items[i + 1].date - items[i].date).days for i in range(len(items) - 1)]
+        med_gap = statistics.median(gaps)
+        if not (26 <= med_gap <= 35):
+            continue  # cadence non mensuelle
+        out.append({
+            "marchand": items[0].marchand,
+            "montant_moyen": round(avg, 2),
+            "occurrences": len(items),
+            "periodicite": "mensuel",
+            "derniere_date": items[-1].date.isoformat(),
+            "category_id": items[-1].category_id,
+        })
+    out.sort(key=lambda r: r["montant_moyen"], reverse=True)
+    return out
+
+
 # ── Wrappers DB ───────────────────────────────────────────────────────
 
 def spending_by_category(session, mois: str) -> list[dict[str, Any]]:
@@ -59,6 +98,11 @@ def spending_by_category(session, mois: str) -> list[dict[str, Any]]:
     txs = tx_svc.get_transactions(session, from_date=start, to_date=end)
     cats = {c.id: {"nom": c.nom, "couleur": c.couleur} for c in cat_svc.get_categories(session)}
     return aggregate_expenses_by_category(txs, cats)
+
+
+def recurring_expenses(session) -> list[dict[str, Any]]:
+    from app.services.budget import transactions as tx_svc
+    return detect_recurring(tx_svc.get_transactions(session))
 
 
 def spending_trend(session, months: int = 6, *, today: Optional[dt.date] = None) -> list[dict[str, Any]]:
