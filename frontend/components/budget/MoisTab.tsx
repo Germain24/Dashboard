@@ -57,8 +57,31 @@ export default function MoisTab() {
   const s = summary ?? { revenus: 0, depenses: 0, solde: 0 }
   const depensesPct = s.revenus > 0 ? Math.round((Math.abs(s.depenses) / s.revenus) * 100) : 0
 
+  const over = envelopes.filter((e: any) => e.status === 'over')
+  const warn = envelopes.filter((e: any) => e.status === 'warning')
+
   return (
     <div className="space-y-6">
+      {/* Alerte de dépassement (#114) */}
+      {(over.length > 0 || warn.length > 0) && (
+        <div
+          className="rounded-xl border p-3 text-sm animate-fade-in-up"
+          style={{
+            borderColor: over.length ? 'var(--destructive)' : 'var(--warning)',
+            background: `color-mix(in srgb, ${over.length ? 'var(--destructive)' : 'var(--warning)'} 10%, transparent)`,
+          }}
+        >
+          <p className="font-medium" style={{ color: over.length ? 'var(--destructive)' : 'var(--warning)' }}>
+            {over.length > 0
+              ? `⚠ ${over.length} catégorie${over.length > 1 ? 's' : ''} dépassée${over.length > 1 ? 's' : ''}`
+              : `${warn.length} catégorie${warn.length > 1 ? 's' : ''} proche${warn.length > 1 ? 's' : ''} de la limite`}
+          </p>
+          <p className="mt-0.5 text-[var(--muted-foreground)]">
+            {[...over, ...warn].map((e: any) => catName(e.category_id)).join(' · ')}
+          </p>
+        </div>
+      )}
+
       {/* Stats cards */}
       <div className="grid grid-cols-3 gap-4 stagger">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
@@ -107,7 +130,9 @@ export default function MoisTab() {
             {envelopes.map((env: any, i: number) => {
               const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length]
               const pct = Math.min(env.pct ?? 0, 100)
-              const over = (env.pct ?? 0) > 100
+              const status = env.status ?? ((env.pct ?? 0) > 100 ? 'over' : 'ok')
+              const over = status === 'over'
+              const barColor = over ? 'var(--destructive)' : status === 'warning' ? 'var(--warning)' : color
               return (
                 <div key={env.category_id} className="px-4 py-3 hover:bg-[var(--muted)] transition-colors duration-150">
                   <div className="flex items-center justify-between mb-1.5">
@@ -116,7 +141,10 @@ export default function MoisTab() {
                       <span className="text-sm font-medium">{catName(env.category_id)}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
-                      <span className={over ? 'text-[var(--destructive)] font-medium' : 'text-[var(--foreground)]'}>
+                      <span
+                        className={over || status === 'warning' ? 'font-medium' : 'text-[var(--foreground)]'}
+                        style={over ? { color: 'var(--destructive)' } : status === 'warning' ? { color: 'var(--warning)' } : undefined}
+                      >
                         {formatCAD(env.depense ?? 0)}
                       </span>
                       <span className="text-[var(--muted-foreground)] text-xs">/ {formatCAD(env.budget ?? 0)}</span>
@@ -125,7 +153,7 @@ export default function MoisTab() {
                   <div className="h-1.5 rounded-full bg-[var(--muted)] overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%`, background: over ? 'var(--destructive)' : color }}
+                      style={{ width: `${pct}%`, background: barColor }}
                     />
                   </div>
                 </div>

@@ -28,6 +28,19 @@ def upsert_envelope(session: Session, category_id: int, mois: str, montant: floa
         ).first()
 
 
+WARNING_PCT = 80.0  # proche de la limite
+OVER_PCT = 100.0    # dépassée
+
+
+def classify_envelope(pct: float) -> str:
+    """Statut d'une enveloppe selon le % consommé : ok / warning / over (#114)."""
+    if pct > OVER_PCT:
+        return "over"
+    if pct >= WARNING_PCT:
+        return "warning"
+    return "ok"
+
+
 def get_envelope_status(session: Session, mois: str) -> list[dict]:
     envelopes = session.exec(select(BudgetEnvelope).where(BudgetEnvelope.mois == mois)).all()
     year, month = int(mois[:4]), int(mois[5:])
@@ -44,11 +57,13 @@ def get_envelope_status(session: Session, mois: str) -> list[dict]:
             )
         ).all()
         depense = abs(sum(t.montant for t in txs))
+        pct = (depense / env.montant * 100) if env.montant > 0 else 0
         result.append({
             "category_id": env.category_id,
             "budget": env.montant,
             "depense": depense,
             "reste": env.montant - depense,
-            "pct": (depense / env.montant * 100) if env.montant > 0 else 0
+            "pct": pct,
+            "status": classify_envelope(pct),
         })
     return result
