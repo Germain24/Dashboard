@@ -178,6 +178,16 @@ class MuscleVolumeOut(BaseModel):
     status: str  # "sous" | "optimal" | "sur"
 
 
+class MesocycleResponse(BaseModel):
+    active: bool
+    start_date: Optional[str] = None
+    cycle_num: Optional[int] = None
+    semaine_cycle: Optional[int] = None
+    accumulation_weeks: Optional[int] = None
+    cycle_len: Optional[int] = None
+    phase: Optional[str] = None  # "accumulation" | "deload" (#110)
+
+
 class WeekPointOut(BaseModel):
     semaine: str
     tonnage_kg: float
@@ -267,6 +277,7 @@ class SlotToday(BaseModel):
     categorie: Optional[str] = None
     poids_suggere_kg: Optional[float] = None  # None si pas de PdC connu
     derniere_fois: Optional[LastPerfOut] = None  # dernière séance pour cet exo (#109)
+    sets_target_semaine: Optional[int] = None  # cible de séries ajustée par le mésocycle (#110)
 
 
 class TodayResponse(BaseModel):
@@ -278,6 +289,7 @@ class TodayResponse(BaseModel):
     seance_en_cours: Optional[SeanceRead] = None
     kcal_estimees: float = 0.0
     poids_corps_kg: float
+    mesocycle: Optional[MesocycleResponse] = None  # état du mésocycle si actif (#110)
 
 
 class CaloriesDayResponse(BaseModel):

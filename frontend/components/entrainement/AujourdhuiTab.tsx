@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   entrainementApi,
+  type Mesocycle,
   type Seance,
   type SlotToday,
   type TodayResponse,
@@ -68,6 +69,13 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
     }
   };
 
+  const startMeso = () => {
+    entrainementApi.startMesocycle(4).then(() => reload()).catch(() => setErr("Erreur mésocycle"));
+  };
+  const stopMeso = () => {
+    entrainementApi.stopMesocycle().then(() => reload()).catch(() => setErr("Erreur mésocycle"));
+  };
+
   if (loading) return <Spinner label="Chargement…" />;
   if (err) return <p className="text-sm text-[var(--destructive)]">⚠ {err}</p>;
   if (!today) return null;
@@ -96,6 +104,8 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
           </span>
         )}
       </div>
+
+      <MesocycleBanner meso={today.mesocycle} onStart={startMeso} onStop={stopMeso} />
 
       {isRest && (
         <EmptyState
@@ -149,6 +159,56 @@ export function AujourdhuiTab({ onSessionsChanged }: Props) {
   );
 }
 
+/* ── Mésocycle banner (#110) ──────────────────────────────── */
+function MesocycleBanner({ meso, onStart, onStop }: {
+  meso: Mesocycle | null;
+  onStart: () => void;
+  onStop: () => void;
+}) {
+  if (!meso || !meso.active) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-[var(--radius)] border border-dashed border-[var(--border)] p-2.5 text-xs">
+        <span className="text-[var(--muted-foreground)]">Pas de mésocycle actif — volume progressif puis deload.</span>
+        <button type="button" onClick={onStart}
+          className="rounded border border-[var(--border)] px-2 py-1 font-medium hover:bg-[var(--accent)]">
+          Démarrer un mésocycle
+        </button>
+      </div>
+    );
+  }
+  const isDeload = meso.phase === "deload";
+  const wk = meso.semaine_cycle ?? 1;
+  const len = meso.cycle_len ?? 5;
+  const acc = meso.accumulation_weeks ?? 4;
+  return (
+    <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--card)] p-3">
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span className="font-medium">
+          Mésocycle ·{" "}
+          {isDeload ? (
+            <span className="text-[var(--warning)]">Deload</span>
+          ) : (
+            <>Accumulation <span className="tabular-nums">S{wk}/{acc}</span></>
+          )}
+        </span>
+        <button type="button" onClick={onStop}
+          className="rounded border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--muted-foreground)] hover:bg-[var(--muted)]">
+          Arrêter
+        </button>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
+        <div className="h-full rounded-full transition-all"
+          style={{ width: `${(wk / len) * 100}%`, backgroundColor: isDeload ? "var(--warning)" : "var(--ring)" }} />
+      </div>
+      <p className="text-xs text-[var(--muted-foreground)]">
+        {isDeload
+          ? "Semaine de récupération : volume réduit, charge allégée."
+          : "Le volume (séries) monte cette semaine ; la charge suit le poids suggéré."}
+      </p>
+    </div>
+  );
+}
+
 /* ── Slot card ────────────────────────────────────────────── */
 function SlotCard({
   slot, seance, onSetAdded, onRest,
@@ -160,7 +220,9 @@ function SlotCard({
 }) {
   const setsForSlot = seance?.sets.filter((s) => s.exercice_id === slot.exercice_id) ?? [];
   const setsDone = setsForSlot.length;
-  const setsTarget = slot.sets_target ?? null;
+  // Cible de la semaine si un mésocycle tourne (#110), sinon la cible de base.
+  const setsTarget = slot.sets_target_semaine ?? slot.sets_target ?? null;
+  const periodised = slot.sets_target_semaine != null && slot.sets_target_semaine !== slot.sets_target;
   const progress = setsTarget && setsTarget > 0
     ? Math.min(100, Math.round((setsDone / setsTarget) * 100))
     : 0;
@@ -174,6 +236,7 @@ function SlotCard({
         {setsTarget && (
           <span className="text-xs text-[var(--muted-foreground)]">
             cible {setsTarget}×{slot.reps_target ?? "?"}
+            {periodised && <span className="text-[var(--ring)]"> · sem.</span>}
           </span>
         )}
         {slot.poids_suggere_kg !== null && slot.poids_suggere_kg > 0 && (

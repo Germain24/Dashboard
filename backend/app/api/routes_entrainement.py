@@ -18,6 +18,7 @@ from app.api.schemas_entrainement import (
     IntensityResponse,
     CorrelationResponse,
     LastPerfOut,
+    MesocycleResponse,
     MuscleVolumeOut,
     OneRMResponse,
     ProgrammeJourRead,
@@ -51,6 +52,7 @@ from app.services.entrainement import (
     ensure_catalogue,
     last_performance,
     list_courses,
+    mesocycle,
     list_exercices,
     list_program_days,
     list_sessions,
@@ -272,6 +274,29 @@ def get_correlation(weeks: int = Query(12, ge=4, le=52), session: Session = Depe
     )
 
 
+# ── Mésocycle périodisé (#110) ──
+
+@router.get("/mesocycle", response_model=MesocycleResponse)
+def get_mesocycle():
+    """État du mésocycle périodisé courant (ou inactif)."""
+    cur = mesocycle.current()
+    return MesocycleResponse(**cur) if cur else MesocycleResponse(active=False)
+
+
+@router.post("/mesocycle/start", response_model=MesocycleResponse)
+def start_mesocycle(accumulation_weeks: int = Query(4, ge=2, le=8)):
+    """Démarre un mésocycle aujourd'hui (ancré au lundi de la semaine)."""
+    mesocycle.start_cycle(accumulation_weeks)
+    cur = mesocycle.current()
+    return MesocycleResponse(**cur) if cur else MesocycleResponse(active=False)
+
+
+@router.post("/mesocycle/stop", response_model=MesocycleResponse)
+def stop_mesocycle():
+    mesocycle.stop_cycle()
+    return MesocycleResponse(active=False)
+
+
 # ── Cardio ──
 def _course_to_read(c) -> CourseCardioRead:
     return CourseCardioRead(
@@ -396,6 +421,8 @@ def today_endpoint(session: Session = Depends(get_session)):
     label = pj.label if pj else "Repos"
     raw_slots: list[dict] = list(pj.slots) if pj else []
 
+    meso = mesocycle.current(today=today)
+
     enriched_slots: list[SlotToday] = []
     for s in raw_slots:
         slot_label = str(s.get("label") or "")
@@ -411,16 +438,18 @@ def today_endpoint(session: Session = Depends(get_session)):
             lp = last_performance(session, exo.id, before=today)
             if lp is not None:
                 last_perf = LastPerfOut(date=lp.date, resume=lp.resume)
+        sets_target = s.get("sets_target")
         enriched_slots.append(SlotToday(
             label=slot_label,
             note=s.get("note"),
-            sets_target=s.get("sets_target"),
+            sets_target=sets_target,
             reps_target=s.get("reps_target"),
             charge_indicative_kg=s.get("charge_indicative_kg"),
             exercice_id=exo.id if exo else None,
             categorie=exo.categorie if exo else None,
             poids_suggere_kg=sugg,
             derniere_fois=last_perf,
+            sets_target_semaine=mesocycle.adjust_sets(sets_target, meso) if meso else None,
         ))
 
     # Séance du jour (la plus récente s'il y en a plusieurs)
@@ -444,6 +473,7 @@ def today_endpoint(session: Session = Depends(get_session)):
         seance_en_cours=seance_dto,
         kcal_estimees=kcal_live,
         poids_corps_kg=pdc,
+        mesocycle=MesocycleResponse(**meso) if meso else None,
     )
 
 

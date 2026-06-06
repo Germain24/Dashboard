@@ -162,6 +162,17 @@ export type SlotToday = {
   categorie: string | null;
   poids_suggere_kg: number | null;
   derniere_fois: { date: string; resume: string } | null;
+  sets_target_semaine: number | null;
+};
+
+export type Mesocycle = {
+  active: boolean;
+  start_date: string | null;
+  cycle_num: number | null;
+  semaine_cycle: number | null;
+  accumulation_weeks: number | null;
+  cycle_len: number | null;
+  phase: "accumulation" | "deload" | null;
 };
 
 export type TodayResponse = {
@@ -173,6 +184,7 @@ export type TodayResponse = {
   seance_en_cours: Seance | null;
   kcal_estimees: number;
   poids_corps_kg: number;
+  mesocycle: Mesocycle | null;
 };
 
 export type CaloriesDayResponse = {
@@ -302,6 +314,13 @@ export const entrainementApi = {
 
   // Vue "Aujourd'hui" — séance opérationnelle du jour
   getToday: () => api<TodayResponse>(`/entrainement/today`),
+
+  // Mésocycle périodisé (#110)
+  getMesocycle: () => api<Mesocycle>(`/entrainement/mesocycle`),
+  startMesocycle: (accumulation_weeks = 4) =>
+    api<Mesocycle>(`/entrainement/mesocycle/start?accumulation_weeks=${accumulation_weeks}`, { method: "POST" }),
+  stopMesocycle: () =>
+    api<Mesocycle>(`/entrainement/mesocycle/stop`, { method: "POST" }),
 
   // Calories par date (consommé par CONV nutrition future)
   getCaloriesForDate: (date: string) =>
