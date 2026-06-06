@@ -6,6 +6,7 @@ import {
   type Exercice,
   type MuscleVolume,
   type ProgressionResponse,
+  type TrainingCorrelation,
 } from "@/lib/entrainement";
 
 type Props = {
@@ -41,6 +42,7 @@ export function ProgressionTab({ exercices }: Props) {
   return (
     <div className="space-y-4">
       <MuscleVolumePanel />
+      <CorrelationPanel />
 
       <div className="flex flex-wrap items-end gap-2 text-xs">
         <label className="flex flex-col">
@@ -192,6 +194,103 @@ function MuscleVolumePanel() {
         </div>
       )}
     </div>
+  );
+}
+
+function CorrelationPanel() {
+  const [data, setData] = useState<TrainingCorrelation | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    entrainementApi
+      .getCorrelation(12)
+      .then((d) => { if (!cancelled) { setData(d); setErr(null); } })
+      .catch((e) => { if (!cancelled) setErr(e?.message ?? "Erreur"); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const corr = data?.correlation ?? null;
+  const interpretation =
+    corr === null ? null
+    : corr >= 0.5 ? "Le poids monte avec le volume — cohérent avec une prise de masse."
+    : corr <= -0.5 ? "Le poids baisse quand le volume monte — plutôt une sèche."
+    : "Lien faible entre volume et poids sur la période.";
+  const corrColor =
+    corr === null ? "var(--muted-foreground)"
+    : Math.abs(corr) >= 0.5 ? "var(--ring)"
+    : "var(--muted-foreground)";
+
+  return (
+    <div className="rounded border border-[var(--border)] p-3 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Entraînement ↔ poids (12 sem.)</h3>
+        {corr !== null && (
+          <span className="text-sm font-semibold tabular-nums" style={{ color: corrColor }}>
+            r = {corr.toFixed(2)}
+          </span>
+        )}
+      </div>
+
+      {err && <div className="text-sm text-[var(--destructive)]">⚠ {err}</div>}
+
+      {data && corr === null && (
+        <p className="text-sm text-[var(--muted-foreground)]">
+          Pas assez de données : il faut du poids saisi (Santé) et des séries loggées sur au moins 3 semaines.
+        </p>
+      )}
+
+      {data && corr !== null && (
+        <>
+          <CorrelationChart weeks={data.weeks} />
+          <p className="text-xs text-[var(--muted-foreground)]">
+            {interpretation} Corrélation de Pearson sur {data.n} semaines avec données.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function CorrelationChart({ weeks }: { weeks: TrainingCorrelation["weeks"] }) {
+  const W = 600, H = 130, PAD = 22;
+  const n = weeks.length;
+  const maxTon = Math.max(1, ...weeks.map((w) => w.tonnage_kg));
+  const wts = weeks.map((w) => w.poids_kg).filter((p): p is number => p !== null);
+  const wMin = wts.length ? Math.min(...wts) : 0;
+  const wMax = wts.length ? Math.max(...wts) : 1;
+  const colW = (W - 2 * PAD) / n;
+  const cx = (i: number) => PAD + (i + 0.5) * colW;
+  const tonY = (t: number) => H - PAD - (t / maxTon) * (H - 2 * PAD);
+  const wY = (w: number) => H - PAD - ((w - wMin) / Math.max(0.1, wMax - wMin)) * (H - 2 * PAD);
+
+  const linePts = weeks
+    .map((w, i) => (w.poids_kg !== null ? `${cx(i).toFixed(1)},${wY(w.poids_kg).toFixed(1)}` : null))
+    .filter((p): p is string => p !== null)
+    .join(" ");
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 130 }} role="img"
+      aria-label="Tonnage hebdomadaire (barres) et poids (ligne)">
+      {weeks.map((w, i) => (
+        <rect
+          key={w.semaine}
+          x={cx(i) - colW * 0.3}
+          y={tonY(w.tonnage_kg)}
+          width={colW * 0.6}
+          height={Math.max(0, H - PAD - tonY(w.tonnage_kg))}
+          rx={1}
+          fill="color-mix(in srgb, var(--ring) 35%, transparent)"
+        />
+      ))}
+      {linePts && (
+        <polyline points={linePts} fill="none" stroke="var(--tertiary)" strokeWidth={2}
+          strokeLinejoin="round" strokeLinecap="round" />
+      )}
+      {weeks.map((w, i) => (w.poids_kg !== null ? (
+        <circle key={`p-${w.semaine}`} cx={cx(i)} cy={wY(w.poids_kg)} r={2.5} fill="var(--tertiary)" />
+      ) : null))}
+    </svg>
   );
 }
 

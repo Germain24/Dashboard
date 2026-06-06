@@ -56,6 +56,7 @@ from app.services.entrainement.programs import (
     program_day_for_date,
     update_program_day,
 )
+from app.services.entrainement.correlation import training_weight_correlation
 from app.services.entrainement.muscle_volume import (
     classify_volume,
     weekly_muscle_volume,
@@ -126,6 +127,7 @@ __all__ = [
     "resolve_poids_corps",
     "session_tonnage",
     "suggested_weight",
+    "training_weight_correlation",
     "update_program_day",
     "weekly_muscle_volume",
 ]

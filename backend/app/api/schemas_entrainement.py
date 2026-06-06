@@ -177,6 +177,19 @@ class MuscleVolumeOut(BaseModel):
     status: str  # "sous" | "optimal" | "sur"
 
 
+class WeekPointOut(BaseModel):
+    semaine: str
+    tonnage_kg: float
+    seances: int
+    poids_kg: Optional[float] = None
+
+
+class CorrelationResponse(BaseModel):
+    weeks: list[WeekPointOut]
+    correlation: Optional[float] = None  # Pearson tonnage ↔ poids, ou None (#112)
+    n: int
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Cardio
 # ─────────────────────────────────────────────────────────────────────────────

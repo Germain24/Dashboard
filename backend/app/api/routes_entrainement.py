@@ -16,6 +16,7 @@ from app.api.schemas_entrainement import (
     ExerciceRead,
     ExerciceUpdate,
     IntensityResponse,
+    CorrelationResponse,
     LastPerfOut,
     MuscleVolumeOut,
     OneRMResponse,
@@ -32,6 +33,7 @@ from app.api.schemas_entrainement import (
     SetSerieRead,
     SetSerieUpdate,
     SlotToday,
+    WeekPointOut,
     TodayResponse,
 )
 from app.core.db import get_session
@@ -56,6 +58,7 @@ from app.services.entrainement import (
     pace_sec_per_km,
     progression_for_exercice,
     session_tonnage,
+    training_weight_correlation,
     update_program_day,
     weekly_muscle_volume,
 )
@@ -254,6 +257,17 @@ def get_one_rm(exercice_id: int, session: Session = Depends(get_session)):
 def get_muscle_volume(days: int = Query(7, ge=1, le=90), session: Session = Depends(get_session)):
     """Volume hebdo (séries) par groupe musculaire + statut sous/optimal/sur (#107)."""
     return [MuscleVolumeOut(**vars(mv)) for mv in weekly_muscle_volume(session, days=days)]
+
+
+@router.get("/correlation", response_model=CorrelationResponse)
+def get_correlation(weeks: int = Query(12, ge=4, le=52), session: Session = Depends(get_session)):
+    """Corrélation hebdo tonnage d'entraînement ↔ poids (lien Santé, #112)."""
+    res = training_weight_correlation(session, weeks=weeks)
+    return CorrelationResponse(
+        weeks=[WeekPointOut(**vars(w)) for w in res["weeks"]],
+        correlation=res["correlation"],
+        n=res["n"],
+    )
 
 
 # ── Cardio ──

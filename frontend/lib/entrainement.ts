@@ -114,6 +114,19 @@ export type MuscleVolume = {
   status: "sous" | "optimal" | "sur";
 };
 
+export type WeekPoint = {
+  semaine: string;
+  tonnage_kg: number;
+  seances: number;
+  poids_kg: number | null;
+};
+
+export type TrainingCorrelation = {
+  weeks: WeekPoint[];
+  correlation: number | null;
+  n: number;
+};
+
 export type CourseCardio = {
   id: number;
   date: string;
@@ -256,6 +269,8 @@ export const entrainementApi = {
     ),
   getMuscleVolume: (days = 7) =>
     api<MuscleVolume[]>(`/entrainement/volume/muscles?days=${days}`),
+  getCorrelation: (weeks = 12) =>
+    api<TrainingCorrelation>(`/entrainement/correlation?weeks=${weeks}`),
 
   // Cardio
   listCardio: (params?: { from?: string; to?: string }) => {
