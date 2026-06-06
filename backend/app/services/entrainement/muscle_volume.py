@@ -20,8 +20,10 @@ from sqlmodel import Session, select
 
 from app.models.entrainement import Exercice, Seance, SetSerie
 
-SETS_MEV = 10  # sous ce seuil : sous-entraînement
-SETS_MRV = 20  # au-dessus : sur-entraînement
+from app.core.config import settings as _settings
+
+SETS_MEV = _settings.entrainement_sets_mev  # sous ce seuil : sous-entraînement
+SETS_MRV = _settings.entrainement_sets_mrv  # au-dessus : sur-entraînement
 
 
 def classify_volume(sets: int) -> str:

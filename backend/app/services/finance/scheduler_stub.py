@@ -21,7 +21,9 @@ def is_analysis_running() -> bool:
 
 
 # Seuil (%) de baisse quotidienne déclenchant une notification.
-SNAPSHOT_DROP_ALERT_PCT = 5.0
+# Pilotable par .env (FINANCE_SNAPSHOT_DROP_ALERT_PCT).
+from app.core.config import settings as _settings
+SNAPSHOT_DROP_ALERT_PCT = _settings.finance_snapshot_drop_alert_pct
 
 
 def _notify(session, titre: str, message: str, level: str) -> None:

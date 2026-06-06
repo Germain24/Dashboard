@@ -16,7 +16,9 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-DEFAULT_ACCUMULATION_WEEKS = 4
+from app.core.config import settings as _settings
+
+DEFAULT_ACCUMULATION_WEEKS = _settings.entrainement_mesocycle_accumulation_weeks
 
 
 def _monday(d: dt.date) -> dt.date:

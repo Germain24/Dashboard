@@ -28,8 +28,10 @@ def upsert_envelope(session: Session, category_id: int, mois: str, montant: floa
         ).first()
 
 
-WARNING_PCT = 80.0  # proche de la limite
-OVER_PCT = 100.0    # dépassée
+from app.core.config import settings as _settings
+
+WARNING_PCT = _settings.budget_envelope_warning_pct  # proche de la limite
+OVER_PCT = _settings.budget_envelope_over_pct        # dépassée
 
 
 def classify_envelope(pct: float) -> str:

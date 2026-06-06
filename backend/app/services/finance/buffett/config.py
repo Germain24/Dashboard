@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 
+from app.core.config import settings
+
 
 class Config:
     # Chemins
@@ -22,14 +24,15 @@ class Config:
     # Limites analyse -- fenetre cible : MIN_AGE_YEARS <= age <= MAX_AGE_YEARS
     MIN_AGE_YEARS: int = 1   # < 1 an : pas de nouveau rapport annuel possible
     MAX_AGE_YEARS: int = 2   # > 2 ans : probablement deliste
-    SCORE_THRESHOLD: float = 80.0
+    # Réglages pilotables par .env (cf. app.core.config.Settings).
+    SCORE_THRESHOLD: float = settings.buffett_score_threshold
     MAX_REQUESTS_PER_HOUR: int = 2000
     REQUESTS_PER_TICKER: int = 4
 
     # Filtres valorisation
-    PER_MAX: float = 40.0
-    PEG_MAX: float = 1.0
-    TAUX_DEFAUT: float = 0.04
+    PER_MAX: float = settings.buffett_per_max
+    PEG_MAX: float = settings.buffett_peg_max
+    TAUX_DEFAUT: float = settings.buffett_taux_defaut
 
     TAUX_OBLIGATAIRES: dict = {
         "United States": 0.042, "France": 0.029, "Germany": 0.024,
@@ -44,9 +47,9 @@ class Config:
     }
 
     # Optimiseur
-    SHARPE_TARGET_PERCENT: float = 0.90
-    MIN_ALLOCATION_THRESHOLD: float = 0.01
-    N_MULTISTART: int = 5
+    SHARPE_TARGET_PERCENT: float = settings.buffett_sharpe_target_percent
+    MIN_ALLOCATION_THRESHOLD: float = settings.buffett_min_allocation_threshold
+    N_MULTISTART: int = settings.buffett_n_multistart
     USE_BROKER_CONSTRAINTS: bool = True
     BUDGET_BROKERS: dict = {
         "Trading212": 733.70,
@@ -59,7 +62,7 @@ class Config:
     VINE_FAMILY: str = "auto"
 
     # Deduplication
-    DEDUP_FUZZY_THRESHOLD: float = 0.80
+    DEDUP_FUZZY_THRESHOLD: float = settings.buffett_dedup_fuzzy_threshold
 
     # Tickers forces (ex: ETF)
     FORCED_BUY_TICKERS: list = []

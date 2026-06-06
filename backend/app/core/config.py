@@ -68,6 +68,35 @@ class Settings(BaseSettings):
     garderobe_hour_end: int = 23
     garderobe_weather_cache_ttl: int = 1800
 
+    # ── Réglages métier ajustables (override .env) ──────────────────────
+    # Finance — score Buffett & valorisation
+    buffett_score_threshold: float = 80.0       # score d'achat minimal
+    buffett_per_max: float = 40.0               # PER maximal toléré
+    buffett_peg_max: float = 1.0                # PEG maximal toléré
+    buffett_taux_defaut: float = 0.04           # taux obligataire par défaut
+    # Finance — optimiseur d'allocation
+    buffett_sharpe_target_percent: float = 0.90
+    buffett_min_allocation_threshold: float = 0.01
+    buffett_n_multistart: int = 5
+    buffett_dedup_fuzzy_threshold: float = 0.80
+    # Finance — alertes
+    finance_rebalance_alert_pct: float = 5.0    # écart de poids déclenchant l'alerte
+    finance_snapshot_drop_alert_pct: float = 5.0  # chute quotidienne alertée
+
+    # Santé — optimisation nutritionnelle
+    sante_maintenance_kcal_per_kg: float = 32.0  # maintenance = poids × ce facteur
+    sante_surplus_kcal_sport: float = 500.0      # surplus calorique un jour de sport
+    sante_rest_factor: float = 1.1               # facteur jours de repos
+
+    # Entraînement — repères de volume (séries/sem par muscle) + mésocycle
+    entrainement_sets_mev: int = 10              # Minimum Effective Volume
+    entrainement_sets_mrv: int = 20              # Maximum Recoverable Volume
+    entrainement_mesocycle_accumulation_weeks: int = 4
+
+    # Budget — seuils d'alerte d'enveloppe (% du budget consommé)
+    budget_envelope_warning_pct: float = 80.0
+    budget_envelope_over_pct: float = 100.0
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

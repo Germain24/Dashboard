@@ -61,8 +61,10 @@ class RebalancingDiff:
     n_alertes: int = 0
 
 
-# Seuil (en points de %) au-delà duquel un écart poids actuel/cible déclenche une alerte.
-REBALANCE_ALERT_THRESHOLD_PCT = 5.0
+# Seuil (en points de %) au-delà duquel un écart poids actuel/cible déclenche une
+# alerte. Pilotable par .env (FINANCE_REBALANCE_ALERT_PCT).
+from app.core.config import settings as _settings
+REBALANCE_ALERT_THRESHOLD_PCT = _settings.finance_rebalance_alert_pct
 
 
 def _ecart_alerte(actuel_pct: float, cible_pct: float, seuil: float) -> tuple[float, bool]:

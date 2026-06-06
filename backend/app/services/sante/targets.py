@@ -20,6 +20,7 @@ from app.services.sante.constants import (
     DAILY_BASE_TARGETS_NUTRIENTS,
     DEFAULT_PRIX_MAX_DAILY,
 )
+from app.core.config import settings
 from app.services.sante.intensity import default_intensity_for_date, intensity_modifiers
 
 
@@ -28,8 +29,8 @@ def calculate_daily_targets(
     date: dt.date,
     history: list[dict[str, Any]] | None = None,
     intensity: Optional[str] = None,
-    surplus_kcal_sport: float = 500.0,
-    rest_factor: float = 1.1,
+    surplus_kcal_sport: float = settings.sante_surplus_kcal_sport,
+    rest_factor: float = settings.sante_rest_factor,
     sport_days: Optional[list[int]] = None,
     prix_max_daily: float = DEFAULT_PRIX_MAX_DAILY,
 ) -> tuple[dict[str, float], dict[str, float]]:
@@ -56,7 +57,7 @@ def calculate_daily_targets(
     mods = intensity_modifiers(intensity, surplus_kcal_sport, rest_factor)
 
     p = weight
-    maintenance = p * 32.0
+    maintenance = p * settings.sante_maintenance_kcal_per_kg
 
     # Calories : (maintenance + surplus) × activity_factor pour rester
     # comparable au legacy ((maintenance + 500) × 1.2 en sport day)
