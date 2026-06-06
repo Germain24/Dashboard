@@ -31,6 +31,19 @@ export async function fetchCashflow(from: string, to: string) {
   return (await fetch(`${BASE}/cashflow?from_date=${from}&to_date=${to}`)).json()
 }
 
+export type CategorySpend = { category_id: number | null; nom: string; couleur: string; montant: number; pct: number }
+export type MonthTrend = { mois: string; revenus: number; depenses: number }
+
+export async function fetchByCategory(month: string): Promise<CategorySpend[]> {
+  const d = await (await fetch(`${BASE}/by-category?month=${month}`)).json()
+  return Array.isArray(d) ? d : []
+}
+
+export async function fetchTrend(months = 6): Promise<MonthTrend[]> {
+  const d = await (await fetch(`${BASE}/trend?months=${months}`)).json()
+  return Array.isArray(d) ? d : []
+}
+
 export async function fetchRules() {
   return (await fetch(`${BASE}/rules`)).json()
 }

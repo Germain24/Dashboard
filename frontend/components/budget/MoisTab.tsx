@@ -1,6 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { fetchSummary, fetchEnvelopes, fetchCategories } from '@/lib/budget'
+import {
+  fetchSummary, fetchEnvelopes, fetchCategories, fetchByCategory, fetchTrend,
+  type CategorySpend, type MonthTrend,
+} from '@/lib/budget'
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
@@ -14,18 +17,24 @@ export default function MoisTab() {
   const [summary, setSummary] = useState<any>(null)
   const [envelopes, setEnvelopes] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
+  const [byCat, setByCat] = useState<CategorySpend[]>([])
+  const [trend, setTrend] = useState<MonthTrend[]>([])
   const [loading, setLoading] = useState(true)
   const month = new Date().toISOString().slice(0, 7)
 
   useEffect(() => {
-    Promise.all([
+    void Promise.all([
       fetchSummary(month).then(d => d && !d.detail ? d : null),
       fetchEnvelopes(month).then(d => Array.isArray(d) ? d : []),
       fetchCategories().then(d => Array.isArray(d) ? d : []),
-    ]).then(([s, e, c]) => {
+      fetchByCategory(month),
+      fetchTrend(6),
+    ]).then(([s, e, c, bc, tr]) => {
       setSummary(s)
       setEnvelopes(e)
       setCategories(c)
+      setByCat(bc)
+      setTrend(tr)
       setLoading(false)
     })
   }, [month])
@@ -66,6 +75,24 @@ export default function MoisTab() {
           <p className={`text-2xl font-bold font-mono ${s.solde >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>
             {formatCAD(s.solde)}
           </p>
+        </div>
+      </div>
+
+      {/* Dépenses par catégorie (camembert) + tendance mensuelle (#113) */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
+          <h2 className="text-sm font-semibold mb-3">Dépenses par catégorie</h2>
+          <Donut data={byCat} />
+        </div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">Tendance (6 mois)</h2>
+            <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[var(--success)]" />Revenus</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[var(--destructive)]" />Dépenses</span>
+            </div>
+          </div>
+          <TrendChart data={trend} />
         </div>
       </div>
 
@@ -115,6 +142,71 @@ export default function MoisTab() {
           </p>
         </div>
       )}
+    </div>
+  )
+}
+
+function Donut({ data }: { data: CategorySpend[] }) {
+  const total = data.reduce((s, d) => s + d.montant, 0)
+  if (total <= 0) {
+    return <p className="text-sm text-[var(--muted-foreground)]">Aucune dépense ce mois-ci.</p>
+  }
+  const r = 52
+  const C = 2 * Math.PI * r
+  const segs = data.map((d, i) => ({
+    couleur: d.couleur,
+    dash: (d.montant / total) * C,
+    offset: data.slice(0, i).reduce((s, p) => s + (p.montant / total) * C, 0),
+  }))
+  const centre = new Intl.NumberFormat('fr-CA', {
+    style: 'currency', currency: 'CAD', maximumFractionDigits: 0,
+  }).format(total)
+
+  return (
+    <div className="flex flex-wrap items-center gap-5">
+      <svg width="140" height="140" viewBox="0 0 140 140" className="shrink-0"
+        role="img" aria-label="Répartition des dépenses par catégorie">
+        <g transform="rotate(-90 70 70)">
+          {segs.map((s, i) => (
+            <circle key={i} cx="70" cy="70" r={r} fill="none" stroke={s.couleur} strokeWidth="16"
+              strokeDasharray={`${s.dash} ${C - s.dash}`} strokeDashoffset={-s.offset} />
+          ))}
+        </g>
+        <text x="70" y="67" textAnchor="middle" fontSize="14" fontWeight="600" fill="var(--foreground)">{centre}</text>
+        <text x="70" y="83" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">dépensé</text>
+      </svg>
+      <ul className="min-w-[160px] flex-1 space-y-1 text-sm">
+        {data.map((d) => (
+          <li key={String(d.category_id)} className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: d.couleur }} />
+            <span className="flex-1 truncate">{d.nom}</span>
+            <span className="tabular-nums text-[var(--muted-foreground)]">{d.pct}%</span>
+            <span className="w-20 text-right tabular-nums">{formatCAD(d.montant)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function TrendChart({ data }: { data: MonthTrend[] }) {
+  if (data.length === 0) {
+    return <p className="text-sm text-[var(--muted-foreground)]">Pas de données.</p>
+  }
+  const max = Math.max(1, ...data.flatMap((d) => [d.depenses, d.revenus]))
+  return (
+    <div className="flex h-40 items-end gap-3">
+      {data.map((d) => (
+        <div key={d.mois} className="flex flex-1 flex-col items-center gap-1">
+          <div className="flex h-32 w-full items-end justify-center gap-0.5">
+            <div className="w-3 rounded-t bg-[var(--success)]" style={{ height: `${(d.revenus / max) * 100}%` }}
+              title={`Revenus ${formatCAD(d.revenus)}`} />
+            <div className="w-3 rounded-t bg-[var(--destructive)]" style={{ height: `${(d.depenses / max) * 100}%` }}
+              title={`Dépenses ${formatCAD(d.depenses)}`} />
+          </div>
+          <span className="text-[10px] tabular-nums text-[var(--muted-foreground)]">{d.mois.slice(5)}</span>
+        </div>
+      ))}
     </div>
   )
 }

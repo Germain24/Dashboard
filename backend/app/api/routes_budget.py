@@ -8,6 +8,7 @@ from app.services.budget import rules as rules_svc
 from app.services.budget import transactions as tx_svc
 from app.services.budget import envelopes as env_svc
 from app.services.budget import imports as import_svc
+from app.services.budget import analytics as analytics_svc
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -150,3 +151,15 @@ def cashflow(from_date: dt.date, to_date: dt.date, session: Session = Depends(ge
         else:
             by_month[key]["depenses"] += t.montant
     return [{"mois": k, **v} for k, v in sorted(by_month.items())]
+
+
+@router.get("/by-category")
+def by_category(month: str, session: Session = Depends(get_session)):
+    """Dépenses du mois par catégorie (nom + couleur + montant + %), pour le camembert (#113)."""
+    return analytics_svc.spending_by_category(session, month)
+
+
+@router.get("/trend")
+def trend(months: int = 6, session: Session = Depends(get_session)):
+    """Tendance mensuelle revenus/dépenses sur les N derniers mois (#113)."""
+    return analytics_svc.spending_trend(session, months)

@@ -169,7 +169,7 @@ I. MODULE ENTRAÎNEMENT (103-112)
 --------------------------------------------------------------------------------
 J. MODULE BUDGET (113-122)
 --------------------------------------------------------------------------------
-113. [M](**) Graphiques dépenses par catégorie (camembert + tendance mensuelle).
+113. [M](**) Graphiques dépenses par catégorie (camembert + tendance mensuelle).   ← FINIS ✓ (analytics.py : aggregate_expenses_by_category (pur : dépenses montant<0 en valeur absolue par catégorie + nom/couleur + %, trié desc, fallback « Sans catégorie ») + month_keys (pur) + spending_by_category / spending_trend (wrappers DB) ; GET /budget/by-category?month & /budget/trend?months ; MoisTab : camembert SVG (donut + légende %) « Dépenses par catégorie » + graphe à barres groupées revenus/dépenses « Tendance (6 mois) » ; tests TDD purs.)
 114. [S](**) Budgets mensuels par catégorie avec alerte de dépassement.
 115. [M](**) Import relevés bancaires CSV avec catégorisation auto (règles).
 116. [S](**) Dépenses récurrentes (abonnements) détectées et listées.
