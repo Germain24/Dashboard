@@ -44,6 +44,13 @@ export async function fetchTrend(months = 6): Promise<MonthTrend[]> {
   return Array.isArray(d) ? d : []
 }
 
+export async function importCsv(file: File, compte = 'principal') {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch(`${BASE}/import?compte=${encodeURIComponent(compte)}`, { method: 'POST', body: fd })
+  return res.json()
+}
+
 export async function fetchRules() {
   return (await fetch(`${BASE}/rules`)).json()
 }

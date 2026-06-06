@@ -39,15 +39,18 @@ def import_csv(session: Session, content: str, compte: str = "principal") -> dic
     if not rows:
         return {"imported": 0, "errors": 0}
     fmt = _detect_format(rows[0])
-    imported, errors = 0, 0
+    imported, errors, categorised = 0, 0, 0
     for row in rows[1:]:
         if not any(cell.strip() for cell in row):
             continue
         parsed = _parse_desjardins(row) if fmt == "desjardins" else _parse_generic(row)
         if parsed:
             date, montant, marchand = parsed
-            create_transaction(session, date=date, montant=montant, marchand=marchand, compte=compte)
+            # create_transaction applique déjà les règles de catégorisation (#115).
+            t = create_transaction(session, date=date, montant=montant, marchand=marchand, compte=compte)
             imported += 1
+            if t.category_id is not None:
+                categorised += 1
         else:
             errors += 1
-    return {"imported": imported, "errors": errors, "format": fmt}
+    return {"imported": imported, "errors": errors, "categorised": categorised, "format": fmt}
