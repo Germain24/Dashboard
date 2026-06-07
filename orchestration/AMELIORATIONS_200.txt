@@ -187,7 +187,7 @@ K. MODULE CUISINE (123-132)
 --------------------------------------------------------------------------------
 123. [M](**) Meal planner hebdomadaire avec génération de liste de courses.   ← FINIS ✓ (meal_plan.generate_meal_plan + POST /cuisine/meal-plan/generate ; PlanSemaineTab ; liste de courses dérivée du plan (shopping_list).)
 124. [M](**) Calcul nutritionnel des recettes (lien macros Santé).   ← FINIS ✓ (macros.get_recipe_macros (somme des ingrédients × proprietes, mise à l'échelle des portions) + GET /cuisine/recipes/{id}/macros.)
-125. [S](**) Recherche/filtre recettes par ingrédient disponible.
+125. [S](**) Recherche/filtre recettes par ingrédient disponible.   ← FINIS ✓ (get_recipes filtre aussi par ingrédient (RecipeIngredient.nom_libre ilike) ; param ?ingredient sur GET /cuisine/recipes ; champ « Filtrer par ingrédient » dans RecettesTab (fetch serveur). Refacto load au passage : 0 erreur lint.)
 126. [S](*) Échelle de portions (recalcul des quantités).   ← FINIS ✓ (modal détail recette dans RecettesTab : sélecteur de portions (− / +) qui recalcule les quantités d'ingrédients (facteur portions/base) ; GET /cuisine/recipes/{id} expose la recette + ses ingrédients.)
 127. [M](**) Gestion du garde-manger (stock d'ingrédients, péremption).
 128. [S](*) Favoris et notes personnelles par recette.

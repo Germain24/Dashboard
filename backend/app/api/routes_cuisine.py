@@ -38,8 +38,9 @@ class GeneratePlanRequest(BaseModel):
 
 
 @router.get("/recipes")
-def list_recipes(search: str | None = None, session: Session = Depends(get_session)):
-    recs = recipes_svc.get_recipes(session, search)
+def list_recipes(search: str | None = None, ingredient: str | None = None,
+                 session: Session = Depends(get_session)):
+    recs = recipes_svc.get_recipes(session, search, ingredient)
     out = []
     for r in recs:
         n = len(

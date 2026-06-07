@@ -38,10 +38,20 @@ def get_recipe_ingredients(session: Session, recipe_id: int) -> list[RecipeIngre
     )
 
 
-def get_recipes(session: Session, search: str | None = None) -> list[Recipe]:
+def get_recipes(
+    session: Session, search: str | None = None, ingredient: str | None = None
+) -> list[Recipe]:
+    """Recettes filtrées par titre (`search`) et/ou par ingrédient (#125)."""
     q = select(Recipe)
     if search:
         q = q.where(Recipe.titre.contains(search))
+    if ingredient and ingredient.strip():
+        ids = session.exec(
+            select(RecipeIngredient.recipe_id).where(
+                RecipeIngredient.nom_libre.ilike(f"%{ingredient.strip()}%")
+            )
+        ).all()
+        q = q.where(Recipe.id.in_(set(ids))) if ids else q.where(Recipe.id == -1)
     return session.exec(q).all()
 
 

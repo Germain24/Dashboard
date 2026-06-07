@@ -35,8 +35,12 @@ export type RecipeInput = {
 
 // ── Recettes ─────────────────────────────────────────────────────────────────
 
-export async function fetchRecipes(search?: string): Promise<Recipe[]> {
-  const r = await fetch(`${BASE}/recipes${search ? '?search=' + encodeURIComponent(search) : ''}`)
+export async function fetchRecipes(search?: string, ingredient?: string): Promise<Recipe[]> {
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  if (ingredient) params.set('ingredient', ingredient)
+  const q = params.toString()
+  const r = await fetch(`${BASE}/recipes${q ? '?' + q : ''}`)
   if (!r.ok) throw new Error('Échec du chargement des recettes')
   return r.json()
 }

@@ -7,7 +7,7 @@
  * structurés (nom / quantité / unité), base de la future liste de courses.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Clock, Users, Carrot, Plus, X, Trash2 } from 'lucide-react'
 import {
@@ -32,25 +32,22 @@ export default function RecettesTab() {
   const [recipes, setRecipes] = useState<Recipe[] | null>(null)
   const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
+  const [ingredient, setIngredient] = useState('')
   const [open, setOpen] = useState(false)
   const [detailId, setDetailId] = useState<number | null>(null)
   const [aliments, setAliments] = useState<Aliment[]>([])
 
-  async function load() {
-    setError(false)
-    try {
-      setRecipes(await fetchRecipes())
-    } catch {
-      setError(true)
-      setRecipes([])
-    }
-  }
+  const load = useCallback(() => {
+    let cancelled = false
+    fetchRecipes(undefined, ingredient.trim() || undefined)
+      .then((rs) => { if (!cancelled) { setRecipes(rs); setError(false) } })
+      .catch(() => { if (!cancelled) { setError(true); setRecipes([]) } })
+    return () => { cancelled = true }
+  }, [ingredient])
+  useEffect(() => load(), [load])
 
   useEffect(() => {
-    void load()
-    fetchAliments()
-      .then(setAliments)
-      .catch(() => setAliments([]))
+    fetchAliments().then(setAliments).catch(() => setAliments([]))
   }, [])
 
   const filtered = (recipes ?? []).filter((r) =>
@@ -60,13 +57,23 @@ export default function RecettesTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <input
-          type="text"
-          placeholder="Rechercher une recette…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-sm rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-        />
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <input
+            type="text"
+            placeholder="Rechercher une recette…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="min-w-[12rem] flex-1 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+          />
+          <input
+            type="text"
+            placeholder="Filtrer par ingrédient…"
+            value={ingredient}
+            onChange={(e) => setIngredient(e.target.value)}
+            list="aliments-catalog"
+            className="min-w-[12rem] flex-1 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+          />
+        </div>
         <button
           type="button"
           onClick={() => setOpen(true)}
