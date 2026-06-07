@@ -2,6 +2,18 @@ const BASE = '/api/cuisine'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+export type PantryItem = {
+  id: number
+  ingredient: string
+  quantite: number
+  unite: string
+  date_peremption: string | null
+  rayon: string
+  statut: 'ok' | 'warning' | 'expired' | 'no_date'
+}
+
+export type PantryItemInput = Omit<PantryItem, 'id' | 'statut'>
+
 export type Ingredient = {
   nom_libre: string
   quantite: number
@@ -105,4 +117,66 @@ export async function fetchShoppingPreview(week: string, jours?: number[]): Prom
   const r = await fetch(`${BASE}/shopping-list/preview?week=${week}${q}`)
   if (!r.ok) throw new Error('Liste de courses indisponible')
   return r.json()
+}
+
+// ── Garde-manger (#127) ──────────────────────────────────────────────────────
+
+export async function fetchPantry(): Promise<PantryItem[]> {
+  const r = await fetch(`${BASE}/pantry`)
+  if (!r.ok) throw new Error('Garde-manger indisponible')
+  return r.json()
+}
+
+export async function addPantryItem(data: PantryItemInput): Promise<PantryItem> {
+  const r = await fetch(`${BASE}/pantry`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!r.ok) throw new Error("Echec de l'ajout")
+  return r.json()
+}
+
+export async function updatePantryItem(id: number, patch: Partial<PantryItemInput>): Promise<PantryItem> {
+  const r = await fetch(`${BASE}/pantry/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!r.ok) throw new Error('Échec de la mise à jour')
+  return r.json()
+}
+
+export async function deletePantryItem(id: number): Promise<void> {
+  const r = await fetch(`${BASE}/pantry/${id}`, { method: 'DELETE' })
+  if (!r.ok) throw new Error('Échec de la suppression')
+}
+
+// ── Favoris & notes (#128) ───────────────────────────────────────────────────
+
+export async function fetchFavorites(): Promise<{ favorites: number[] }> {
+  const r = await fetch(`${BASE}/favorites`)
+  if (!r.ok) throw new Error('Favoris indisponibles')
+  return r.json()
+}
+
+export async function toggleFavorite(recipeId: number): Promise<{ is_favorite: boolean; favorites: number[] }> {
+  const r = await fetch(`${BASE}/recipes/${recipeId}/favorite`, { method: 'POST' })
+  if (!r.ok) throw new Error('Échec du toggle favori')
+  return r.json()
+}
+
+export async function fetchRecipeNote(recipeId: number): Promise<string> {
+  const r = await fetch(`${BASE}/recipes/${recipeId}/note`)
+  if (!r.ok) return ''
+  const d = await r.json()
+  return d.note ?? ''
+}
+
+export async function setRecipeNote(recipeId: number, note: string): Promise<void> {
+  await fetch(`${BASE}/recipes/${recipeId}/note`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note }),
+  })
 }
