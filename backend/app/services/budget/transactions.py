@@ -7,11 +7,13 @@ from app.services.budget.rules import apply_rules_to_transaction
 
 def create_transaction(session: Session, date: dt.date, montant: float, marchand: str,
                        description: str = "", compte: str = "principal",
-                       devise: str = "CAD", auto: bool = False) -> BudgetTransaction:
+                       devise: str = "CAD", auto: bool = False,
+                       tags: list | None = None) -> BudgetTransaction:
     cat_id = apply_rules_to_transaction(session, f"{marchand} {description}")
     t = BudgetTransaction(date=date, montant=montant, marchand=marchand,
                           description=description, category_id=cat_id,
-                          compte=compte, devise=devise, auto=auto)
+                          compte=compte, devise=devise, auto=auto,
+                          tags=tags or [])
     session.add(t)
     session.commit()
     session.refresh(t)

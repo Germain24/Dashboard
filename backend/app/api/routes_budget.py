@@ -21,6 +21,11 @@ class TransactionCreate(BaseModel):
     description: str = ""
     compte: str = "principal"
     devise: str = "CAD"
+    tags: list[str] = []
+
+
+class TagsUpdate(BaseModel):
+    tags: list[str] = []
 
 
 class CategoryCreate(BaseModel):
@@ -58,6 +63,19 @@ def update_transaction(id: int, category_id: int, session: Session = Depends(get
     if not t:
         raise HTTPException(404)
     t.category_id = category_id
+    session.add(t)
+    session.commit()
+    session.refresh(t)
+    return t
+
+
+@router.patch("/transactions/{id}/tags")
+def update_transaction_tags(id: int, body: TagsUpdate, session: Session = Depends(get_session)):
+    """Définit les tags d'une transaction (#119)."""
+    t = session.get(BudgetTransaction, id)
+    if not t:
+        raise HTTPException(404)
+    t.tags = [s.strip() for s in body.tags if s.strip()]
     session.add(t)
     session.commit()
     session.refresh(t)

@@ -65,6 +65,12 @@ export async function setSavingsGoal(montant: number) {
   return (await fetch(`${BASE}/savings-goal?montant=${montant}`, { method: 'POST' })).json()
 }
 
+export async function setTransactionTags(id: number, tags: string[]) {
+  return (await fetch(`${BASE}/transactions/${id}/tags`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags }),
+  })).json()
+}
+
 export async function importCsv(file: File, compte = 'principal') {
   const fd = new FormData()
   fd.append('file', file)

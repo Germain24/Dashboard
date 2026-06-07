@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowDownLeft, ArrowUpRight, Upload, Download } from 'lucide-react'
-import { fetchTransactions, fetchCategories, importCsv } from '@/lib/budget'
+import { fetchTransactions, fetchCategories, importCsv, setTransactionTags } from '@/lib/budget'
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
@@ -25,6 +25,16 @@ export default function TransactionsTab() {
 
   const catName = (id: number | null) =>
     id == null ? 'Sans catégorie' : (categories.find((c: any) => c.id === id)?.nom ?? `#${id}`)
+
+  // Tags multiples (#119)
+  const addTag = (tx: any) => {
+    const tag = window.prompt('Nouveau tag :')?.trim()
+    if (!tag) return
+    void setTransactionTags(tx.id, [...(tx.tags ?? []), tag]).then(load)
+  }
+  const removeTag = (tx: any, tag: string) => {
+    void setTransactionTags(tx.id, (tx.tags ?? []).filter((t: string) => t !== tag)).then(load)
+  }
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -110,6 +120,19 @@ export default function TransactionsTab() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{tx.marchand || tx.description || '—'}</p>
                     <p className="text-xs text-[var(--muted-foreground)]">{catName(tx.category_id)} · {tx.date}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      {(tx.tags ?? []).map((tag: string) => (
+                        <span key={tag} className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--muted)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">
+                          {tag}
+                          <button type="button" onClick={() => removeTag(tx, tag)} aria-label={`Retirer le tag ${tag}`}
+                            className="hover:text-[var(--destructive)]">×</button>
+                        </span>
+                      ))}
+                      <button type="button" onClick={() => addTag(tx)}
+                        className="rounded-[var(--radius-sm)] border border-dashed border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)] hover:bg-[var(--muted)]">
+                        + tag
+                      </button>
+                    </div>
                   </div>
                   <span className={`font-mono text-sm font-semibold ${revenu ? 'text-[var(--success)]' : 'text-[var(--foreground)]'}`}>
                     {revenu ? '+' : ''}{formatCAD(tx.montant)}

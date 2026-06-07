@@ -1,6 +1,6 @@
 import datetime as dt
 from sqlmodel import SQLModel, Field
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint, Column, JSON
 
 
 class BudgetCategory(SQLModel, table=True):
@@ -31,6 +31,7 @@ class BudgetTransaction(SQLModel, table=True):
     compte: str = "principal"
     devise: str = "CAD"
     auto: bool = False
+    tags: list = Field(default_factory=list, sa_column=Column(JSON))
     created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
 
 
