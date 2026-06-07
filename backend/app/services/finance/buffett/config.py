@@ -26,8 +26,8 @@ class Config:
     MAX_AGE_YEARS: int = 2   # > 2 ans : probablement deliste
     # Réglages pilotables par .env (cf. app.core.config.Settings).
     SCORE_THRESHOLD: float = settings.buffett_score_threshold
-    MAX_REQUESTS_PER_HOUR: int = 2000
-    REQUESTS_PER_TICKER: int = 4
+    MAX_REQUESTS_PER_HOUR: int = settings.buffett_max_requests_per_hour
+    REQUESTS_PER_TICKER: int = settings.buffett_requests_per_ticker
 
     # Filtres valorisation
     PER_MAX: float = settings.buffett_per_max

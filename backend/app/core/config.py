@@ -79,9 +79,12 @@ class Settings(BaseSettings):
     buffett_min_allocation_threshold: float = 0.01
     buffett_n_multistart: int = 5
     buffett_dedup_fuzzy_threshold: float = 0.80
-    # Restreindre l'analyse aux titres achetables chez les courtiers (ToutBroker.xlsx).
-    # Évite d'analyser ~96 % de titres non-investissables → analyse ~38× plus rapide.
-    buffett_limit_to_broker_universe: bool = True
+    # Exclure de l'analyse les titres présents dans ToutBroker.xlsx dont TOUS les
+    # brokers sont explicitement Faux (cellule vide ≠ Faux). Tout le reste est analysé.
+    buffett_exclude_unavailable: bool = True
+    # Plafond de requêtes yfinance par heure (anti-ban) + requêtes par ticker.
+    buffett_max_requests_per_hour: int = 2000
+    buffett_requests_per_ticker: int = 4
     # Finance — alertes
     finance_rebalance_alert_pct: float = 5.0    # écart de poids déclenchant l'alerte
     finance_snapshot_drop_alert_pct: float = 5.0  # chute quotidienne alertée

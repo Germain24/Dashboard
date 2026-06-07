@@ -60,23 +60,62 @@ def load_broker_table():
         return None
 
 
-def broker_available_tickers(ticker_col: str = "Ticker Yahoo Finance") -> set[str]:
-    """Ensemble des tickers (MAJ) présents dans ToutBroker.xlsx = univers achetable.
+def _cell_state(v) -> bool | None:
+    """Interprète une cellule de disponibilité broker : True / False / None (vide).
 
-    Vide si le fichier est introuvable ou sans colonne ticker (l'appelant ne filtre
-    alors pas — comportement legacy : analyser tout).
+    None = cellule vide / valeur inattendue → « inconnu » (ne compte pas comme Faux).
+    """
+    try:
+        import pandas as pd
+        if v is None or pd.isna(v):
+            return None
+    except (TypeError, ValueError):
+        if v is None:
+            return None
+    s = str(v).strip().lower()
+    if s == "" or s == "nan":
+        return None
+    if s in ("1", "1.0", "true", "vrai", "oui", "yes", "x", "v"):
+        return True
+    if s in ("0", "0.0", "false", "faux", "non", "no"):
+        return False
+    return None  # valeur non reconnue → prudence : analyser
+
+
+def broker_excluded_tickers(ticker_col: str = "Ticker Yahoo Finance") -> set[str]:
+    """Tickers (MAJ) à IGNORER : présents dans ToutBroker.xlsx ET dont TOUTES les
+    colonnes broker sont explicitement Faux. Une cellule vide ne compte pas comme
+    Faux (la ligne reste analysée). Tout le reste (absent du fichier, au moins un
+    broker Vrai, ou au moins une cellule vide) est analysé.
+
+    Vide si le fichier est introuvable / sans colonne ticker / sans colonne broker
+    reconnue → l'appelant n'exclut alors rien (analyse tout, garde-fou).
     """
     df = load_broker_table()
     if df is None:
         return set()
-    col = _find_ticker_col(df.columns, ticker_col)
-    if col is None:
+    tcol = _find_ticker_col(df.columns, ticker_col)
+    if tcol is None:
         return set()
-    return {
-        str(t).strip().upper()
-        for t in df[col].dropna()
-        if str(t).strip()
-    }
+    broker_cols: list = []
+    for broker in Config.BUDGET_BROKERS:
+        c = _match_broker_column(broker, df.columns)
+        if c is not None and c not in broker_cols:
+            broker_cols.append(c)
+    if not broker_cols:
+        return set()
+
+    excluded: set[str] = set()
+    for _, row in df.iterrows():
+        ticker = str(row[tcol]).strip()
+        if not ticker or ticker.lower() == "nan":
+            continue
+        states = [_cell_state(row[c]) for c in broker_cols]
+        # Exclure uniquement si TOUTES les colonnes broker sont explicitement Faux
+        # (aucune Vrai, aucune vide).
+        if states and all(s is False for s in states):
+            excluded.add(ticker.upper())
+    return excluded
 
 
 def _find_ticker_col(columns, ticker_col: str) -> str | None:
