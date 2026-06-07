@@ -78,6 +78,12 @@ export default function MoisTab() {
   const reste = s.solde
   const perDay = reste > 0 ? reste / daysLeft : 0
 
+  // Lien Cuisine (#120) : dépenses « courses » du mois (catégories alimentaires).
+  const GROCERY = ['épicerie', 'epicerie', 'courses', 'alimentation', 'cuisine', 'supermarch', 'grocery']
+  const groceryCost = byCat
+    .filter((c) => GROCERY.some((g) => c.nom.toLowerCase().includes(g)))
+    .reduce((sum, c) => sum + c.montant, 0)
+
   // Comparaison mois sur mois des dépenses (#118)
   const lastTwo = trend.slice(-2)
   const momPct = lastTwo.length === 2 && lastTwo[0].depenses > 0
@@ -212,6 +218,22 @@ export default function MoisTab() {
           </div>
           <TrendChart data={trend} />
         </div>
+      </div>
+
+      {/* Liens inter-modules (#120) : Cuisine (coût des courses) + Finance (épargne) */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <a href="/cuisine"
+          className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:bg-[var(--muted)] animate-fade-in-up">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Courses ce mois</p>
+          <p className="font-mono text-xl font-bold">{formatCAD(groceryCost)}</p>
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">Planifier dans Cuisine →</p>
+        </a>
+        <a href="/finance"
+          className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:bg-[var(--muted)] animate-fade-in-up">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Épargne du mois (à investir)</p>
+          <p className={`font-mono text-xl font-bold ${reste >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>{formatCAD(reste)}</p>
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">Investir dans Finance →</p>
+        </a>
       </div>
 
       {/* Abonnements récurrents détectés (#116) */}
