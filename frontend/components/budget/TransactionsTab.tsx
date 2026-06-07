@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowDownLeft, ArrowUpRight, Upload } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Upload, Download } from 'lucide-react'
 import { fetchTransactions, fetchCategories, importCsv } from '@/lib/budget'
 
 const formatCAD = (v: number) =>
@@ -59,13 +59,24 @@ export default function TransactionsTab() {
           {msg && <p className="mt-1 text-xs text-[var(--success)]">{msg}</p>}
         </div>
         <input ref={fileRef} id="csv-import" type="file" accept=".csv,text/csv" onChange={onFile} className="hidden" />
-        <label
-          htmlFor="csv-import"
-          className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-[var(--primary-foreground)] hover:opacity-90"
-        >
-          <Upload size={14} aria-hidden="true" />
-          {importing ? 'Import…' : 'Importer CSV'}
-        </label>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/api/budget/export/annual?year=${new Date().getFullYear()}`}
+            download
+            className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--accent)]"
+            title="Exporter les transactions de l'année en CSV (déclaration / bilan)"
+          >
+            <Download size={14} aria-hidden="true" />
+            Export {new Date().getFullYear()}
+          </a>
+          <label
+            htmlFor="csv-import"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-[var(--primary-foreground)] hover:opacity-90"
+          >
+            <Upload size={14} aria-hidden="true" />
+            {importing ? 'Import…' : 'Importer CSV'}
+          </label>
+        </div>
       </div>
 
       {/* Liste des transactions */}

@@ -185,3 +185,15 @@ def set_savings_goal(montant: float, session: Session = Depends(get_session)):
     """Définit l'objectif d'épargne mensuel (#121)."""
     from app.services.budget import savings as savings_svc
     return {"montant": savings_svc.set_savings_goal(montant)}
+
+
+@router.get("/export/annual")
+def export_annual(year: int, session: Session = Depends(get_session)):
+    """Export CSV des transactions de l'année pour déclaration/bilan (#122)."""
+    from fastapi import Response
+    csv_str = analytics_svc.annual_export(session, year)
+    return Response(
+        content=csv_str,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="budget-{year}.csv"'},
+    )

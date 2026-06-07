@@ -8,7 +8,9 @@ négatifs ; on les renvoie en valeur absolue.
 from __future__ import annotations
 
 import calendar
+import csv
 import datetime as dt
+import io
 import statistics
 from typing import Any, Optional
 
@@ -98,6 +100,31 @@ def spending_by_category(session, mois: str) -> list[dict[str, Any]]:
     txs = tx_svc.get_transactions(session, from_date=start, to_date=end)
     cats = {c.id: {"nom": c.nom, "couleur": c.couleur} for c in cat_svc.get_categories(session)}
     return aggregate_expenses_by_category(txs, cats)
+
+
+def build_annual_csv(txs, cat_names: dict[Optional[int], str]) -> str:
+    """CSV des transactions (triées par date) pour déclaration/bilan annuel (#122). Pur."""
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Date", "Marchand", "Description", "Montant", "Categorie", "Compte"])
+    for t in sorted(txs, key=lambda x: x.date):
+        w.writerow([
+            t.date.isoformat(),
+            getattr(t, "marchand", "") or "",
+            getattr(t, "description", "") or "",
+            f"{t.montant:.2f}",
+            cat_names.get(t.category_id, ""),
+            getattr(t, "compte", "") or "",
+        ])
+    return buf.getvalue()
+
+
+def annual_export(session, year: int) -> str:
+    from app.services.budget import categories as cat_svc
+    from app.services.budget import transactions as tx_svc
+    txs = tx_svc.get_transactions(session, from_date=dt.date(year, 1, 1), to_date=dt.date(year, 12, 31))
+    cats = {c.id: c.nom for c in cat_svc.get_categories(session)}
+    return build_annual_csv(txs, cats)
 
 
 def recurring_expenses(session) -> list[dict[str, Any]]:

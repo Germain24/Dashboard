@@ -178,7 +178,7 @@ J. MODULE BUDGET (113-122)
 119. [S](*) Tags multiples sur une dépense.
 120. [M](**) Lien Budget ↔ Cuisine (coût des courses) et Finance (épargne).
 121. [S](**) Objectif d'épargne mensuel avec progression.   ← FINIS ✓ (savings.py : store JSON local (get/set objectif) + savings_progress pur (épargne = solde positif vs objectif, %) ; GET/POST /budget/savings-goal ; carte « Objectif d'épargne mensuel » dans MoisTab (saisie + barre de progression, vert à 100%) ; tests TDD.)
-122. [S](*) Export annuel pour déclaration / bilan.
+122. [S](*) Export annuel pour déclaration / bilan.   ← FINIS ✓ (build_annual_csv pur (transactions triées par date : Date/Marchand/Description/Montant/Categorie/Compte) + annual_export (wrapper DB) ; GET /budget/export/annual?year -> CSV téléchargeable (Content-Disposition) ; bouton « Export {année} » dans TransactionsTab ; test TDD.)
 
 --------------------------------------------------------------------------------
 K. MODULE CUISINE (123-132)

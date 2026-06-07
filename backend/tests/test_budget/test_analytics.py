@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 from app.services.budget.analytics import (
     aggregate_expenses_by_category,
+    build_annual_csv,
     detect_recurring,
     month_keys,
 )
@@ -46,6 +47,19 @@ def test_month_keys_walks_back_across_year_boundary():
     keys = month_keys(dt.date(2026, 2, 15), 4)
     assert keys == ["2025-11", "2025-12", "2026-01", "2026-02"]
     assert keys[-1] == "2026-02"  # le mois courant en dernier
+
+
+def test_build_annual_csv():
+    txs = [
+        _txd(-45.32, "METRO", dt.date(2026, 3, 2), category_id=1),
+        _txd(2000.0, "Salaire", dt.date(2026, 1, 1), category_id=None),
+    ]
+    csv = build_annual_csv(txs, {1: "Épicerie"})
+    lines = csv.strip().splitlines()
+    assert lines[0] == "Date,Marchand,Description,Montant,Categorie,Compte"
+    # trié par date : Salaire (jan) avant METRO (mars)
+    assert lines[1].startswith("2026-01-01,Salaire,")
+    assert "2026-03-02,METRO,,-45.32,Épicerie" in lines[2]
 
 
 def test_detect_recurring_monthly_subscription():
