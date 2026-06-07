@@ -176,11 +176,13 @@ J. MODULE BUDGET (113-122)
 117. [S](*) Vue « reste à vivre » du mois en cours.   ← FINIS ✓ (carte « Reste à vivre » dans MoisTab : solde du mois + budget par jour sur les jours restants (calcul date côté client), état « budget dépassé » si négatif.)
 118. [M](**) Comparaison mois sur mois et moyenne mobile.   ← FINIS ✓ (MoisTab : badge « ±X% vs mois dernier » (dépenses, rouge=hausse/vert=baisse) sur la carte Tendance + ligne de moyenne mobile 3 mois des dépenses en overlay SVG sur le graphe à barres ; calcul depuis /budget/trend.)
 119. [S](**) Tags multiples sur une dépense.   ← FINIS ✓ (colonne tags JSON sur BudgetTransaction + migration b7tags119 ; create_transaction accepte tags ; PATCH /budget/transactions/{id}/tags ; TransactionsTab : chips de tags (× pour retirer) + bouton « + tag » par transaction ; tests migration/budget verts.)
-120. [M](**) Lien Budget ↔ Cuisine (coût des courses) et Finance (épargne).
+120. [M](**) Lien Budget ↔ Cuisine (coût des courses) et Finance (épargne).   ← FINIS ✓ (carte « Liens » dans MoisTab : coût des courses du mois → deep-link Cuisine ; épargne du mois (solde) → deep-link Finance.)
 121. [S](**) Objectif d'épargne mensuel avec progression.   ← FINIS ✓ (savings.py : store JSON local (get/set objectif) + savings_progress pur (épargne = solde positif vs objectif, %) ; GET/POST /budget/savings-goal ; carte « Objectif d'épargne mensuel » dans MoisTab (saisie + barre de progression, vert à 100%) ; tests TDD.)
 122. [S](*) Export annuel pour déclaration / bilan.   ← FINIS ✓ (build_annual_csv pur (transactions triées par date : Date/Marchand/Description/Montant/Categorie/Compte) + annual_export (wrapper DB) ; GET /budget/export/annual?year -> CSV téléchargeable (Content-Disposition) ; bouton « Export {année} » dans TransactionsTab ; test TDD.)
 
 --------------------------------------------------------------------------------
+>>> SECTION J (Budget, 113-122) TERMINÉE <<<
+
 K. MODULE CUISINE (123-132)
 --------------------------------------------------------------------------------
 123. [M](**) Meal planner hebdomadaire avec génération de liste de courses.
