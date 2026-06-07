@@ -285,6 +285,18 @@ def run_buffett_analysis(
     if not tickers:
         return {"error": "Aucun ticker dans tickers.csv"}
 
+    # Restreindre l'univers aux titres achetables chez les courtiers (ToutBroker.xlsx)
+    # — évite d'analyser ~96 % de titres non-investissables, ~38× plus rapide.
+    # Désactivable via BUFFETT_LIMIT_TO_BROKER_UNIVERSE=false.
+    from app.core.config import settings
+    if settings.buffett_limit_to_broker_universe:
+        from .broker_availability import broker_available_tickers
+        universe = broker_available_tickers()
+        if universe:
+            before = len(tickers)
+            tickers = [t for t in tickers if t.strip().upper() in universe]
+            print(f"[runner] Univers restreint aux titres broker : {len(tickers)}/{before}")
+
     total = len(tickers)
 
     # Reprise : ignorer les tickers deja persistes pour ce run (programme ferme/rouvert)

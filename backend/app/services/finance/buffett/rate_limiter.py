@@ -1,4 +1,4 @@
-"""Rate limiter pour les requêtes yfinance — lissage + protection burst."""
+"""Rate limiter pour les requêtes yfinance — plafond horaire glissant, concurrent."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ from .config import Config
 
 
 class RateLimiter:
-    """Limite les requêtes à MAX_REQUESTS_PER_HOUR en lissant le débit.
+    """Limite les requêtes à MAX_REQUESTS_PER_HOUR via une fenêtre glissante d'1 h.
 
-    Deux niveaux de protection :
-    1. Steady pace : délai minimum entre deux tickers.
-    2. Burst protection : fenêtre glissante d'1 heure.
+    Conçu pour un pool de workers : la réservation des jetons est protégée par un
+    verrou, mais aucun `sleep` n'est tenu sous ce verrou — les threads avancent en
+    parallèle jusqu'au plafond horaire, puis attendent l'expiration des jetons.
     """
 
     def __init__(
@@ -30,14 +30,14 @@ class RateLimiter:
         self.last_ticker_time: float = 0.0
 
     def wait_for_slot(self) -> None:
-        """Bloque jusqu'à ce qu'un slot soit disponible."""
-        with self.lock:
-            now = time.time()
-            elapsed = now - self.last_ticker_time
-            if elapsed < self.min_interval:
-                time.sleep(self.min_interval - elapsed)
+        """Bloque jusqu'à ce qu'un créneau soit libre sous le plafond horaire.
 
-            while True:
+        La comptabilité (purge + réservation des jetons) se fait SOUS le verrou,
+        mais le `sleep` éventuel a lieu HORS du verrou : les workers progressent
+        réellement en parallèle jusqu'au plafond, au lieu d'être sérialisés.
+        """
+        while True:
+            with self.lock:
                 now = time.time()
                 cutoff = now - 3600.0
                 self.request_timestamps = [
@@ -45,11 +45,9 @@ class RateLimiter:
                 ]
                 capacity = self.max_requests_per_hour - len(self.request_timestamps)
                 if capacity >= self.requests_per_ticker:
-                    for _ in range(self.requests_per_ticker):
-                        self.request_timestamps.append(now)
+                    self.request_timestamps.extend([now] * self.requests_per_ticker)
                     self.last_ticker_time = now
                     return
-
-                # Attendre que le plus vieux jeton expire
-                sleep_time = (self.request_timestamps[0] + 3600.0) - now + 0.1
-                time.sleep(max(sleep_time, 1.0))
+                # Plafond atteint : calculer l'attente puis dormir hors du verrou.
+                sleep_time = max((self.request_timestamps[0] + 3600.0) - now + 0.1, 0.5)
+            time.sleep(sleep_time)

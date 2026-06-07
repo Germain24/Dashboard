@@ -60,6 +60,25 @@ def load_broker_table():
         return None
 
 
+def broker_available_tickers(ticker_col: str = "Ticker Yahoo Finance") -> set[str]:
+    """Ensemble des tickers (MAJ) présents dans ToutBroker.xlsx = univers achetable.
+
+    Vide si le fichier est introuvable ou sans colonne ticker (l'appelant ne filtre
+    alors pas — comportement legacy : analyser tout).
+    """
+    df = load_broker_table()
+    if df is None:
+        return set()
+    col = _find_ticker_col(df.columns, ticker_col)
+    if col is None:
+        return set()
+    return {
+        str(t).strip().upper()
+        for t in df[col].dropna()
+        if str(t).strip()
+    }
+
+
 def _find_ticker_col(columns, ticker_col: str) -> str | None:
     if ticker_col in columns:
         return ticker_col
