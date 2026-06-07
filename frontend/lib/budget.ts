@@ -54,6 +54,17 @@ export async function fetchRecurring(): Promise<Recurring[]> {
   return Array.isArray(d) ? d : []
 }
 
+export type SavingsGoal = { objectif: number; epargne: number; progress_pct: number }
+
+export async function fetchSavingsGoal(): Promise<SavingsGoal> {
+  const d = await (await fetch(`${BASE}/savings-goal`)).json()
+  return d && typeof d.objectif === 'number' ? d : { objectif: 0, epargne: 0, progress_pct: 0 }
+}
+
+export async function setSavingsGoal(montant: number) {
+  return (await fetch(`${BASE}/savings-goal?montant=${montant}`, { method: 'POST' })).json()
+}
+
 export async function importCsv(file: File, compte = 'principal') {
   const fd = new FormData()
   fd.append('file', file)

@@ -169,3 +169,19 @@ def trend(months: int = 6, session: Session = Depends(get_session)):
 def recurring(session: Session = Depends(get_session)):
     """Dépenses récurrentes (abonnements) détectées : même marchand, montant stable, cadence mensuelle (#116)."""
     return analytics_svc.recurring_expenses(session)
+
+
+@router.get("/savings-goal")
+def get_savings_goal(session: Session = Depends(get_session)):
+    """Objectif d'épargne mensuel + progression contre le solde du mois courant (#121)."""
+    from app.services.budget import savings as savings_svc
+    mois = dt.date.today().strftime("%Y-%m")
+    solde = tx_svc.get_monthly_summary(session, mois)["solde"]
+    return savings_svc.savings_progress(savings_svc.get_savings_goal(), solde)
+
+
+@router.post("/savings-goal")
+def set_savings_goal(montant: float, session: Session = Depends(get_session)):
+    """Définit l'objectif d'épargne mensuel (#121)."""
+    from app.services.budget import savings as savings_svc
+    return {"montant": savings_svc.set_savings_goal(montant)}

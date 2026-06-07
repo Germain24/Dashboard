@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react'
 import {
   fetchSummary, fetchEnvelopes, fetchCategories, fetchByCategory, fetchTrend, fetchRecurring,
-  type CategorySpend, type MonthTrend, type Recurring,
+  fetchSavingsGoal, setSavingsGoal,
+  type CategorySpend, type MonthTrend, type Recurring, type SavingsGoal,
 } from '@/lib/budget'
 
 const formatCAD = (v: number) =>
@@ -20,6 +21,8 @@ export default function MoisTab() {
   const [byCat, setByCat] = useState<CategorySpend[]>([])
   const [trend, setTrend] = useState<MonthTrend[]>([])
   const [recurring, setRecurring] = useState<Recurring[]>([])
+  const [savings, setSavings] = useState<SavingsGoal | null>(null)
+  const [goalInput, setGoalInput] = useState('')
   const [loading, setLoading] = useState(true)
   const month = new Date().toISOString().slice(0, 7)
 
@@ -31,16 +34,24 @@ export default function MoisTab() {
       fetchByCategory(month),
       fetchTrend(6),
       fetchRecurring(),
-    ]).then(([s, e, c, bc, tr, rec]) => {
+      fetchSavingsGoal(),
+    ]).then(([s, e, c, bc, tr, rec, sav]) => {
       setSummary(s)
       setEnvelopes(e)
       setCategories(c)
       setByCat(bc)
       setTrend(tr)
       setRecurring(rec)
+      setSavings(sav)
       setLoading(false)
     })
   }, [month])
+
+  const saveGoal = () => {
+    const m = parseFloat(goalInput)
+    if (!Number.isFinite(m) || m < 0) return
+    void setSavingsGoal(m).then(() => fetchSavingsGoal()).then((sav) => { setSavings(sav); setGoalInput('') })
+  }
 
   const catName = (id: number) => categories.find((c: any) => c.id === id)?.nom ?? `#${id}`
 
@@ -117,6 +128,42 @@ export default function MoisTab() {
           )}
         </div>
       </div>
+
+      {/* Objectif d'épargne mensuel (#121) */}
+      {savings && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Objectif d'épargne mensuel</h2>
+            <div className="flex items-center gap-1">
+              <input
+                type="number" step="50" min="0"
+                placeholder={savings.objectif > 0 ? String(savings.objectif) : 'montant'}
+                value={goalInput} onChange={(e) => setGoalInput(e.target.value)}
+                aria-label="Objectif d'épargne (CAD)"
+                className="w-24 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm"
+              />
+              <button onClick={saveGoal}
+                className="rounded bg-[var(--primary)] px-2 py-1 text-xs font-medium text-[var(--primary-foreground)] hover:opacity-90">
+                Définir
+              </button>
+            </div>
+          </div>
+          {savings.objectif > 0 ? (
+            <>
+              <div className="mb-1.5 flex items-center justify-between text-sm">
+                <span className="font-mono">{formatCAD(savings.epargne)}</span>
+                <span className="text-xs text-[var(--muted-foreground)]">/ {formatCAD(savings.objectif)} · {savings.progress_pct}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, savings.progress_pct)}%`, background: savings.progress_pct >= 100 ? 'var(--success)' : 'var(--ring)' }} />
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-[var(--muted-foreground)]">Aucun objectif défini. Saisis un montant à épargner ce mois.</p>
+          )}
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-3 gap-4 stagger">
