@@ -67,6 +67,12 @@ export default function MoisTab() {
   const reste = s.solde
   const perDay = reste > 0 ? reste / daysLeft : 0
 
+  // Comparaison mois sur mois des dépenses (#118)
+  const lastTwo = trend.slice(-2)
+  const momPct = lastTwo.length === 2 && lastTwo[0].depenses > 0
+    ? Math.round(((lastTwo[1].depenses - lastTwo[0].depenses) / lastTwo[0].depenses) * 100)
+    : null
+
   const over = envelopes.filter((e: any) => e.status === 'over')
   const warn = envelopes.filter((e: any) => e.status === 'warning')
 
@@ -138,11 +144,23 @@ export default function MoisTab() {
           <Donut data={byCat} />
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold">Tendance (6 mois)</h2>
+          <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-sm font-semibold">Tendance (6 mois)</h2>
+              {momPct !== null && (
+                <span
+                  className="text-xs font-medium"
+                  style={{ color: momPct > 0 ? 'var(--destructive)' : momPct < 0 ? 'var(--success)' : 'var(--muted-foreground)' }}
+                  title="Dépenses vs mois précédent"
+                >
+                  {momPct > 0 ? '+' : ''}{momPct}% vs mois dernier
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[var(--success)]" />Revenus</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[var(--destructive)]" />Dépenses</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[var(--ring)]" />Moy. 3 mois</span>
             </div>
           </div>
           <TrendChart data={trend} />
@@ -276,19 +294,40 @@ function TrendChart({ data }: { data: MonthTrend[] }) {
     return <p className="text-sm text-[var(--muted-foreground)]">Pas de données.</p>
   }
   const max = Math.max(1, ...data.flatMap((d) => [d.depenses, d.revenus]))
+  const n = data.length
+  // Moyenne mobile 3 mois des dépenses (#118)
+  const ma = data.map((_, i) => {
+    const w = data.slice(Math.max(0, i - 2), i + 1)
+    return w.reduce((sum, x) => sum + x.depenses, 0) / w.length
+  })
+  const maPts = ma.map((v, i) => `${((i + 0.5) / n) * 100},${100 - (v / max) * 100}`).join(' ')
+
   return (
-    <div className="flex h-40 items-end gap-3">
-      {data.map((d) => (
-        <div key={d.mois} className="flex flex-1 flex-col items-center gap-1">
-          <div className="flex h-32 w-full items-end justify-center gap-0.5">
-            <div className="w-3 rounded-t bg-[var(--success)]" style={{ height: `${(d.revenus / max) * 100}%` }}
-              title={`Revenus ${formatCAD(d.revenus)}`} />
-            <div className="w-3 rounded-t bg-[var(--destructive)]" style={{ height: `${(d.depenses / max) * 100}%` }}
-              title={`Dépenses ${formatCAD(d.depenses)}`} />
-          </div>
-          <span className="text-[10px] tabular-nums text-[var(--muted-foreground)]">{d.mois.slice(5)}</span>
+    <div>
+      <div className="relative h-32">
+        <div className="flex h-full items-end gap-3">
+          {data.map((d) => (
+            <div key={d.mois} className="flex flex-1 items-end justify-center gap-0.5">
+              <div className="w-3 rounded-t bg-[var(--success)]" style={{ height: `${(d.revenus / max) * 100}%` }}
+                title={`Revenus ${formatCAD(d.revenus)}`} />
+              <div className="w-3 rounded-t bg-[var(--destructive)]" style={{ height: `${(d.depenses / max) * 100}%` }}
+                title={`Dépenses ${formatCAD(d.depenses)}`} />
+            </div>
+          ))}
         </div>
-      ))}
+        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none"
+          role="img" aria-label="Moyenne mobile 3 mois des dépenses">
+          <polyline points={maPts} fill="none" stroke="var(--ring)" strokeWidth={1} vectorEffect="non-scaling-stroke"
+            strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+      </div>
+      <div className="mt-1 flex gap-3">
+        {data.map((d) => (
+          <span key={d.mois} className="flex-1 text-center text-[10px] tabular-nums text-[var(--muted-foreground)]">
+            {d.mois.slice(5)}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
