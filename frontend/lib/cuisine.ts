@@ -41,6 +41,14 @@ export async function fetchRecipes(search?: string): Promise<Recipe[]> {
   return r.json()
 }
 
+export type RecipeDetail = Recipe & { ingredients: Ingredient[] }
+
+export async function fetchRecipe(id: number): Promise<RecipeDetail> {
+  const r = await fetch(`${BASE}/recipes/${id}`)
+  if (!r.ok) throw new Error('Recette introuvable')
+  return r.json()
+}
+
 export async function createRecipe(data: RecipeInput): Promise<Recipe> {
   const r = await fetch(`${BASE}/recipes`, {
     method: 'POST',

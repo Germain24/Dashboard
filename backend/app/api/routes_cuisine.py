@@ -51,6 +51,16 @@ def list_recipes(search: str | None = None, session: Session = Depends(get_sessi
     return out
 
 
+@router.get("/recipes/{id}")
+def get_recipe(id: int, session: Session = Depends(get_session)):
+    """Une recette + ses ingrédients (détail, pour l'échelle de portions #126)."""
+    r = session.get(Recipe, id)
+    if not r:
+        raise HTTPException(404, "Recette introuvable")
+    ings = recipes_svc.get_recipe_ingredients(session, id)
+    return {**r.model_dump(), "ingredients": [i.model_dump() for i in ings]}
+
+
 @router.post("/recipes", status_code=201)
 def create_recipe(body: RecipeCreate, session: Session = Depends(get_session)):
     return recipes_svc.create_recipe(session, **body.model_dump())
