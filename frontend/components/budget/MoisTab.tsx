@@ -60,6 +60,13 @@ export default function MoisTab() {
   const s = summary ?? { revenus: 0, depenses: 0, solde: 0 }
   const depensesPct = s.revenus > 0 ? Math.round((Math.abs(s.depenses) / s.revenus) * 100) : 0
 
+  // Reste à vivre (#117) : ce qu'il reste après dépenses, et le budget/jour restant.
+  const now = new Date()
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const daysLeft = Math.max(1, daysInMonth - now.getDate() + 1)
+  const reste = s.solde
+  const perDay = reste > 0 ? reste / daysLeft : 0
+
   const over = envelopes.filter((e: any) => e.status === 'over')
   const warn = envelopes.filter((e: any) => e.status === 'warning')
 
@@ -84,6 +91,26 @@ export default function MoisTab() {
           </p>
         </div>
       )}
+
+      {/* Reste à vivre (#117) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
+        <div>
+          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Reste à vivre</p>
+          <p className={`font-mono text-3xl font-bold ${reste >= 0 ? 'text-[var(--foreground)]' : 'text-[var(--destructive)]'}`}>
+            {formatCAD(reste)}
+          </p>
+        </div>
+        <div className="text-right text-sm text-[var(--muted-foreground)]">
+          {reste > 0 ? (
+            <>
+              <p className="font-mono text-[var(--foreground)]">{formatCAD(perDay)}<span className="text-xs"> / jour</span></p>
+              <p className="text-xs">sur {daysLeft} jour{daysLeft > 1 ? 's' : ''} restant{daysLeft > 1 ? 's' : ''}</p>
+            </>
+          ) : (
+            <p className="text-xs">Budget du mois dépassé</p>
+          )}
+        </div>
+      </div>
 
       {/* Stats cards */}
       <div className="grid grid-cols-3 gap-4 stagger">
