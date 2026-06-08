@@ -35,12 +35,15 @@ type Loaded = Omit<Signal, "slug" | "label">;
 const LOADERS: { slug: string; label: string; load: () => Promise<Loaded | null> }[] = [
   {
     slug: "habitudes",
-    label: "Habitudes",
+    label: "Habitudes (semaine)",
     load: async () => {
-      const rows = await getJson<Array<{ entry: unknown }>>("/api/habitudes/today");
-      if (!rows) return null;
-      const done = rows.filter((r) => r.entry).length;
-      return { value: `${done}/${rows.length}` };
+      const w = await getJson<{ taux: number; done: number; total: number }>("/api/habitudes/weekly-completion");
+      if (!w) return null;
+      return {
+        value: `${w.taux}%`,
+        delta: `${w.done}/${w.total}`,
+        deltaTone: w.taux >= 80 ? "success" : w.taux < 40 ? "destructive" : undefined,
+      };
     },
   },
   {

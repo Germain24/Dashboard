@@ -1,12 +1,16 @@
 'use client'
 import { useState } from 'react'
-import { CheckSquare, Grid3X3 } from 'lucide-react'
+import { CheckSquare, Grid3X3, CalendarDays, Settings2 } from 'lucide-react'
 import AujourdhuiTab from '@/components/habitudes/AujourdhuiTab'
 import HeatmapTab from '@/components/habitudes/HeatmapTab'
+import MoisTab from '@/components/habitudes/MoisTab'
+import GestionTab from '@/components/habitudes/GestionTab'
 
 const TABS = [
   { id: 'aujourd-hui', label: "Aujourd'hui", icon: CheckSquare },
+  { id: 'mois', label: 'Mois', icon: CalendarDays },
   { id: 'heatmap', label: 'Heatmap', icon: Grid3X3 },
+  { id: 'gestion', label: 'Gérer', icon: Settings2 },
 ]
 
 export default function HabitudesPage() {
@@ -36,7 +40,9 @@ export default function HabitudesPage() {
       </div>
       <div key={active} className="p-6 animate-fade-in-up">
         {active === 'aujourd-hui' && <AujourdhuiTab />}
+        {active === 'mois' && <MoisTab />}
         {active === 'heatmap' && <HeatmapTab />}
+        {active === 'gestion' && <GestionTab />}
       </div>
     </div>
   )
