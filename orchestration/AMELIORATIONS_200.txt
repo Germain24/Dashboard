@@ -196,19 +196,23 @@ K. MODULE CUISINE (123-132)
 131. [S](*) Temps de préparation/cuisson + minuteur intégré.   ← FINIS ✓ (temps prép/cuisson déjà sur le modèle et affichés ; ajout du composant CookTimer dans le modal détail : compte à rebours mm:ss Démarrer/Arrêter/Relancer pour prép et cuisson.)
 132. [M](**) Import de recettes depuis une URL (parsing).   ← FINIS ✓ (recipes.import_from_url + POST /cuisine/recipes/from-url.)
 
+>>> SECTION K (Cuisine, 123-132) TERMINÉE <<<
+
 --------------------------------------------------------------------------------
 L. MODULE HABITUDES (133-142)
 --------------------------------------------------------------------------------
-133. [M](**) Heatmap annuelle (style GitHub) de complétion des habitudes.
-134. [S](**) Calcul de streak (série en cours + meilleure série) par habitude.
-135. [S](*) Habitudes hebdomadaires vs quotidiennes (fréquence cible).
-136. [M](**) Rappels programmés (scheduler) si habitude non cochée.
-137. [S](*) Réorganisation par glisser-déposer + archivage.
-138. [S](**) Taux de complétion global de la semaine sur la page d'accueil.
-139. [M](**) Habitudes liées (ex. « sport » coche aussi l'entraînement).
-140. [S](*) Couleurs/icônes par habitude.
-141. [S](**) Vue calendrier mensuelle d'une habitude précise.
-142. [M](**) Système de récompense/niveau (gamification légère).
+133. [M](**) Heatmap annuelle (style GitHub) de complétion des habitudes.   ← FINIS ✓ (HeatmapTab : grille année par habitude, intensité par valeur, labels mois/jours.)
+134. [S](**) Calcul de streak (série en cours + meilleure série) par habitude.   ← FINIS ✓ (compute_best_streak_pure + best_streak dans /streaks ; badges « X🔥 / Y max » dans l'onglet Gérer ; tests TDD.)
+135. [S](*) Habitudes hebdomadaires vs quotidiennes (fréquence cible).   ← FINIS ✓ (frequence weekly gérée dans get_today_checklist + weekly-completion ; sélecteur fréquence dans le form ; tests TDD.)
+136. [M](**) Rappels programmés (scheduler) si habitude non cochée.   ← FINIS ✓ (reminders.py (store anti-doublon) + job habit_reminders 20h crée une Notification consolidée des habitudes manquantes ; tests TDD.)
+137. [S](*) Réorganisation par glisser-déposer + archivage.   ← FINIS ✓ (onglet « Gérer » GestionTab : drag-drop dnd-kit (ordre persisté via PATCH) + archivage (DELETE = actif=False).)
+138. [S](**) Taux de complétion global de la semaine sur la page d'accueil.   ← FINIS ✓ (GET /weekly-completion (lundi→aujourd'hui, hebdo vs quotidien) + signal « Habitudes (semaine) » dans DaySignals.)
+139. [M](**) Habitudes liées (ex. « sport » coche aussi l'entraînement).   ← FINIS ✓ (champ linked_ids (migration) + _propagate_linked auto-coche les liées sans boucle ; UI sélecteur de liaisons par habitude dans GestionTab ; tests TDD.)
+140. [S](*) Couleurs/icônes par habitude.   ← FINIS ✓ (champs couleur/icone (migration) + HabitCreate ; form de création (color picker + choix emoji) + pastille/emoji dans les lignes et le calendrier.)
+141. [S](**) Vue calendrier mensuelle d'une habitude précise.   ← FINIS ✓ (onglet « Mois » MoisTab : grille mensuelle lundi→dimanche, navigation mois, jours complétés colorés (couleur de l'habitude), compteur du mois.)
+142. [M](**) Système de récompense/niveau (gamification légère).   ← FINIS ✓ (gamification.py purs (XP = complétions + bonus semaine, niveau = sqrt) + get_gamification + GET /gamification ; badges « Nv N » dans GestionTab ; tests TDD.)
+
+>>> SECTION L (Habitudes, 133-142) TERMINÉE <<<
 
 --------------------------------------------------------------------------------
 M. MODULE LIVRES (143-152)
