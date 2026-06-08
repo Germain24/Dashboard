@@ -16,7 +16,7 @@ depends_on = None
 
 def upgrade() -> None:
     with op.batch_alter_table("habit") as batch_op:
-        batch_op.add_column(sa.Column("linked_ids", sa.String(), nullable=True, server_default="[]"))
+        batch_op.add_column(sa.Column("linked_ids", sa.String(), nullable=False, server_default="[]"))
 
 
 def downgrade() -> None:
