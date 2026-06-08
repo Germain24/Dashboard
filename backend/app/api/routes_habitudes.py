@@ -6,6 +6,7 @@ from app.models.habitudes import Habit, HabitEntry
 from app.services.habitudes import entries as entries_svc
 from app.services.habitudes import streaks as streaks_svc
 from app.services.habitudes import heatmap as heatmap_svc
+from app.services.habitudes import gamification as gamification_svc
 from pydantic import BaseModel
 
 router = APIRouter(prefix="", tags=["habitudes"])
@@ -16,6 +17,8 @@ class HabitCreate(BaseModel):
     unite: str | None = None
     cible: float = 1.0
     frequence: str = "daily"
+    couleur: str | None = None
+    icone: str | None = None
 
 class EntryCreate(BaseModel):
     habit_id: int
@@ -94,3 +97,44 @@ def stats(session: Session = Depends(get_session)):
                        "completions_30j": len(entries),
                        "taux_30j": round(len(entries) / 30 * 100, 1)})
     return result
+
+
+@router.get("/weekly-completion")
+def weekly_completion(session: Session = Depends(get_session)):
+    """Taux de complétion de la semaine en cours (lundi–aujourd'hui) pour la home (#138)."""
+    today = dt.date.today()
+    week_start = today - dt.timedelta(days=today.weekday())
+    habits = session.exec(select(Habit).where(Habit.actif == True)).all()
+    if not habits:
+        return {"total": 0, "done": 0, "taux": 0}
+    days_elapsed = (today - week_start).days + 1
+    expected = sum(
+        1 if h.frequence == "weekly" else days_elapsed
+        for h in habits
+    )
+    done = 0
+    for h in habits:
+        if h.frequence == "weekly":
+            done += 1 if session.exec(
+                select(HabitEntry).where(
+                    HabitEntry.habit_id == h.id,
+                    HabitEntry.date >= week_start,
+                    HabitEntry.date <= today,
+                )
+            ).first() else 0
+        else:
+            done += session.exec(
+                select(HabitEntry).where(
+                    HabitEntry.habit_id == h.id,
+                    HabitEntry.date >= week_start,
+                    HabitEntry.date <= today,
+                )
+            ).all().__len__()
+    taux = round(done / expected * 100, 1) if expected else 0
+    return {"total": expected, "done": done, "taux": min(taux, 100)}
+
+
+@router.get("/gamification")
+def gamification(session: Session = Depends(get_session)):
+    """XP / niveau par habitude (#142)."""
+    return gamification_svc.get_gamification(session)

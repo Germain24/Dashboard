@@ -15,7 +15,7 @@ def get_scheduler(db_url: str | None = None) -> AsyncIOScheduler:
 
 def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     from app.services.scheduler.runner import run_job
-    from app.services.scheduler.jobs import portfolio_snapshot, nutrition_plan, backup_db, weather_refresh, agenda_reminders
+    from app.services.scheduler.jobs import portfolio_snapshot, nutrition_plan, backup_db, weather_refresh, agenda_reminders, habit_reminders
     scheduler.add_job(run_job, "cron", hour=22, minute=0,
                       args=["portfolio_snapshot", portfolio_snapshot.run],
                       id="portfolio_snapshot", replace_existing=True, misfire_grace_time=3600)
@@ -31,3 +31,6 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(run_job, "cron", minute="*/15",
                       args=["agenda_reminders", agenda_reminders.run],
                       id="agenda_reminders", replace_existing=True, misfire_grace_time=600)
+    scheduler.add_job(run_job, "cron", hour=20, minute=0,
+                      args=["habit_reminders", habit_reminders.run],
+                      id="habit_reminders", replace_existing=True, misfire_grace_time=3600)

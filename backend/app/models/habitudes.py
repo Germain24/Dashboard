@@ -13,6 +13,9 @@ class Habit(SQLModel, table=True):
     source_auto: str | None = None
     actif: bool = True
     ordre: int = 0
+    couleur: str | None = None  # #RRGGBB ou nom CSS
+    icone: str | None = None    # emoji ou identifiant Lucide
+    linked_ids: str = "[]"      # JSON list[int] — IDs des habitudes auto-cochées
 
 class HabitEntry(SQLModel, table=True):
     __tablename__ = "habit_entry"
