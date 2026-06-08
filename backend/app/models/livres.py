@@ -12,6 +12,7 @@ class Book(SQLModel, table=True):
     genre: str = ""
     format: str = "papier"
     note: float | None = None
+    page_courante: int | None = None
     date_debut: dt.date | None = None
     date_fin: dt.date | None = None
     couverture_url: str | None = None

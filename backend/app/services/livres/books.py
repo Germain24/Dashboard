@@ -15,11 +15,16 @@ def create_book_from_isbn(session: Session, isbn: str) -> Book | None:
         return None
     return create_book(session, isbn=isbn, **meta)
 
-def get_books(session: Session, statut: str | None = None) -> list[Book]:
+def get_books(session: Session, statut: str | None = None, sort: str | None = None) -> list[Book]:
     q = select(Book)
     if statut:
         q = q.where(Book.statut == statut)
-    return session.exec(q.order_by(Book.created_at.desc())).all()
+    if sort == "note":
+        # note décroissante, NULL en dernier
+        q = q.order_by(Book.note.is_(None), Book.note.desc())
+    else:
+        q = q.order_by(Book.created_at.desc())
+    return session.exec(q).all()
 
 def get_stats(session: Session) -> dict:
     books = session.exec(select(Book)).all()
