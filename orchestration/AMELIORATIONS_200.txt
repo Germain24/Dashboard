@@ -217,16 +217,18 @@ L. MODULE HABITUDES (133-142)
 --------------------------------------------------------------------------------
 M. MODULE LIVRES (143-152)
 --------------------------------------------------------------------------------
-143. [M](**) Recherche et import via API (Google Books / Open Library) : couverture, auteur, pages.
-144. [S](**) Suivi de progression de lecture (% / page courante).
-145. [S](*) Étagères : en cours / à lire / lus / abandonnés.
-146. [M](**) Statistiques annuelles (livres lus, pages, genres) — « challenge lecture ».
-147. [S](*) Notes et citations par livre.
-148. [S](**) Note/évaluation + tri par note.
-149. [M](**) Recommandations basées sur les genres lus.
-150. [S](*) Temps de lecture estimé restant selon rythme.
-151. [S](**) Objectif annuel de lecture avec progression.
-152. [M](**) Lien Livres ↔ Études (livres techniques = sessions).
+143. [M](**) Recherche et import via API (Google Books / Open Library) : couverture, auteur, pages.   ← FINIS ✓ (import par ISBN existant + recherche par titre/auteur via Open Library search (search_books + GET /search) ; AddBookDialog : recherche, vignettes de couverture, ajout en 1 clic (+ ajout manuel si 0 résultat) ; tests parse TDD.)
+144. [S](**) Suivi de progression de lecture (% / page courante).   ← FINIS ✓ (champ page_courante (migration) + reading_progress pur ; maj auto via les sessions de lecture ; barre de progression dans la carte (en cours) et le modal détail ; tests TDD.)
+145. [S](*) Étagères : en cours / à lire / lus / abandonnés.   ← FINIS ✓ (statut « abandonne » ajouté ; 4 étagères cliquables (compteurs + filtre) dans BibliothequeTab + sélecteur de statut dans le modal.)
+146. [M](**) Statistiques annuelles (livres lus, pages, genres) — « challenge lecture ».   ← FINIS ✓ (annual_stats_pure (lus de l'année, pages, par genre) + GET /stats/annual ; onglet « Stats & défi » StatsTab (cartes + barres par genre) ; tests TDD.)
+147. [S](*) Notes et citations par livre.   ← FINIS ✓ (BookNote/BookQuote + endpoints existants ; UI dans BookDetailModal (ajout/suppression de notes et citations, page courante pré-remplie).)
+148. [S](**) Note/évaluation + tri par note.   ← FINIS ✓ (note /5 éditable par étoiles sur chaque carte ; tri « Note ★ » (?sort=note, NULL en dernier) ; tests TDD côté tri implicite.)
+149. [M](**) Recommandations basées sur les genres lus.   ← FINIS ✓ (recommend_pure : classe les « à lire » par genres les plus lus + raison ; GET /recommendations ; section Recommandations dans StatsTab ; tests TDD.)
+150. [S](*) Temps de lecture estimé restant selon rythme.   ← FINIS ✓ (reading_pace + estimate_remaining_minutes purs (rythme pages/min depuis les sessions) ; GET /books/{id}/estimate ; affiché « Reste ~X » dans le modal ; tests TDD.)
+151. [S](**) Objectif annuel de lecture avec progression.   ← FINIS ✓ (goals.py store JSON + goal_progress pur ; GET/POST /reading-goal ; challenge dans /stats/annual ; barre + saisie d'objectif dans StatsTab ; tests TDD.)
+152. [M](**) Lien Livres ↔ Études (livres techniques = sessions).   ← FINIS ✓ (is_technical (genre) ; une session de lecture sur un livre technique crée automatiquement une SessionEtude (sujet « Lecture : … ») en plus de l'habitude lecture ; tests DB TDD.)
+
+>>> SECTION M (Livres, 143-152) TERMINÉE <<<
 
 --------------------------------------------------------------------------------
 N. MODULE ROBOT / IA (153-165)
