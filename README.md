@@ -39,6 +39,19 @@ make dev
 - Backend FastAPI sur http://127.0.0.1:8000 (Swagger UI sur `/docs`)
 - Frontend Next.js sur http://localhost:3000
 
+## Lancer avec Docker
+
+```bash
+make up      # backend :8000 + frontend :3000 (docker compose up --build)
+make prod    # + reverse proxy Caddy → point d'entrée unique http://localhost
+make down    # arrêt
+```
+
+La base SQLite est persistée dans `./data`. En production (`make prod`), Caddy
+route `/api/*` vers le backend et le reste vers le front. Le backend tourne avec
+**1 worker** (caches et rate limit in-memory par process — voir
+`docker-compose.prod.yml`).
+
 ## Modules livrés
 
 | Module        | Aperçu |

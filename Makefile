@@ -3,7 +3,7 @@
 
 .PHONY: help install install-backend install-frontend dev dev-backend dev-frontend \
         migrate migrate-new import seed test test-backend test-frontend gen-types \
-        clean fmt lint hooks wait-health
+        clean fmt lint hooks wait-health up down prod
 
 help:
 	@echo "Cibles disponibles :"
@@ -91,6 +91,18 @@ hooks:
 # Attend que le backend réponde sur /health (#198) — utile avant d'ouvrir le front.
 wait-health:
 	cd backend && uv run python scripts/wait_for_health.py
+
+# ---------- DOCKER ----------
+# up   : backend (:8000) + frontend (:3000) conteneurisés (#195).
+# prod : + reverse proxy Caddy, point d'entrée unique http://localhost (#200).
+up:
+	docker compose up --build
+
+down:
+	docker compose down
+
+prod:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
 
 # ---------- CLEAN ----------
 clean:

@@ -1,0 +1,16 @@
+# Contexte de build = racine du repo (cf. docker-compose.yml).
+.git
+**/node_modules
+**/.next
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.turbo
+# Base SQLite + imports locaux (montés en volume, pas dans l'image).
+data
+*.db
+*.db-wal
+*.db-shm
+# Artefacts dev divers.
+**/.DS_Store
+orchestration/graphify/cache

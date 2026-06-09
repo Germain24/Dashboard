@@ -1,31 +1,36 @@
-# Optionnel — isolation des deux services en dev.
-# La voie principale reste `make dev` directement sur l'hôte.
-# Activé dans une CONV ultérieure si besoin (typiquement CONV 14).
-
+# Mission Control — lancement complet en une commande (#195).
+#   docker compose up --build
+# Backend sur :8000, frontend sur :3000. La base SQLite est persistée dans ./data.
+# Pour le mode production avec reverse proxy : voir docker-compose.prod.yml (#200).
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: sqlite:////data/mission-control.db
+      WEB_CONCURRENCY: "1"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/data
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app
-      - ./data:/data
-    environment:
-      - APP_HOST=0.0.0.0
-      - DATABASE_URL=sqlite:////data/mission-control.db
-    command: uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    restart: unless-stopped
 
   frontend:
-    image: node:20-alpine
-    working_dir: /app
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        # Inliné au build : appels client direct vers le backend publié.
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
     environment:
-      - NEXT_PUBLIC_API_BASE_URL=http://backend:8000
-    command: sh -c "npm install && npm run dev"
+      # Proxy /api/* côté serveur Next vers le service backend.
+      BACKEND_URL: http://backend:8000
     depends_on:
       - backend
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
