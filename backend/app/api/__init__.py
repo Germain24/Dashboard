@@ -11,6 +11,7 @@ from app.api import (
     routes_agenda,
     routes_budget,
     routes_cuisine,
+    routes_data,
     routes_entrainement,
     routes_etudes,
     routes_garderobe,
@@ -41,3 +42,4 @@ api_router.include_router(routes_robot.router, prefix="/robot", tags=["robot"])
 api_router.include_router(routes_scheduler.router, prefix="/jobs", tags=["jobs"])
 api_router.include_router(routes_notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(routes_skincare.router, prefix="/skincare", tags=["skincare"])
+api_router.include_router(routes_data.router, prefix="/data", tags=["data"])

@@ -115,6 +115,7 @@ class Settings(BaseSettings):
     # Scheduler — rétention pour la purge (#172)
     jobrun_retention_days: int = 30        # JobRun plus vieux supprimés
     notification_retention_days: int = 30  # notifications LUES plus vieilles supprimées
+    backup_retention_count: int = 14       # nombre de backups DB conservés (#176)
 
     @property
     def cors_origins_list(self) -> list[str]:
