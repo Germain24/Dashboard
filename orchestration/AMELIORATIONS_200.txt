@@ -306,7 +306,7 @@ S. DEVOPS / DÉPLOIEMENT (195-200)
 195. [M](**) Dockerfile backend + frontend + docker-compose pour lancer tout en une commande.
 196. [M](**) CI GitHub Actions : lint + tests back/front + build sur chaque push.   ← FINIS ✓ (ci.yml étendu : déclenché sur chaque push + PR ; backend ruff (advisory) + tests offline (health/cors/rate_limit/budget/habitudes/livres/cuisine/scheduler) ; frontend eslint (advisory) + tsc + vitest + next build (NEXT_PUBLIC_API_BASE_URL fourni). Lint advisory car dette pré-existante ; build débloqué via eslint.ignoreDuringBuilds, tsc reste bloquant. Vérifié : subset 138 ok, vitest 14 ok, build 23 pages ok)
 197. [S](*) Hook pre-commit (ruff/black + eslint) + `graphify update` automatique.   ← FINIS ✓ (.pre-commit-config.yaml : ruff-format (backend) + prettier (frontend), formatage-only non bloquant car dette lint pré-existante (lint complet en CI advisory #196) ; graphify-update en stage `manual` uniquement (l'utilisateur pilote la synchro). `make hooks` installe. Complète le PARTIEL #30.)
-198. [S](**) Script de healthcheck post-démarrage (attend /health avant d'ouvrir le front).
+198. [S](**) Script de healthcheck post-démarrage (attend /health avant d'ouvrir le front).   ← FINIS ✓ (backend/scripts/wait_for_health.py : sonde /health jusqu'à 2xx ou timeout, exit 0/1 ; cœur wait_for_health injectable (ready/sleep/now) testé tests/test_wait_for_health.py ; cible `make wait-health`)
 199. [S](*) Documentation : compléter README (modules livrés) + ajouter ARCHITECTURE.md.
 200. [M](**) Mode « production » : build Next statique + uvicorn workers + reverse proxy local.
 

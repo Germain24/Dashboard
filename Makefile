@@ -3,7 +3,7 @@
 
 .PHONY: help install install-backend install-frontend dev dev-backend dev-frontend \
         migrate migrate-new import seed test test-backend test-frontend gen-types \
-        clean fmt lint hooks
+        clean fmt lint hooks wait-health
 
 help:
 	@echo "Cibles disponibles :"
@@ -86,6 +86,11 @@ lint:
 # Installe les hooks pre-commit (#197). Nécessite pre-commit (pipx install pre-commit).
 hooks:
 	pre-commit install
+
+# ---------- HEALTHCHECK ----------
+# Attend que le backend réponde sur /health (#198) — utile avant d'ouvrir le front.
+wait-health:
+	cd backend && uv run python scripts/wait_for_health.py
 
 # ---------- CLEAN ----------
 clean:
