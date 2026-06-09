@@ -65,5 +65,14 @@ def risk(session: Session = Depends(get_session)):
 @router.get("/treemap", response_model=list[TreemapNodeOut])
 def treemap(group_by: str = "secteur", session: Session = Depends(get_session)):
     positions = get_positions(session)
-    nodes = get_treemap_data(positions)
+    label_by_ticker: dict[str, str] = {}
+    if group_by in ("secteur", "pays"):
+        from sqlmodel import select
+        from app.models.finance import BuffettRunResult
+        label_by_ticker = {
+            r.ticker: getattr(r, group_by)
+            for r in session.exec(select(BuffettRunResult)).all()
+            if getattr(r, group_by)
+        }
+    nodes = get_treemap_data(positions, group_by, label_by_ticker)
     return [TreemapNodeOut(**n) for n in nodes]

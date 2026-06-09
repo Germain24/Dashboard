@@ -147,18 +147,43 @@ def get_sector_diversification(session, seuil_pct: float = 30.0) -> dict:
     return compute_sector_diversification(items, seuil_pct)
 
 
-def get_treemap_data(positions: list[dict]) -> list[dict]:
-    """Données pour treemap secteurs/pays/devises."""
-    total = sum(p.get("valeur_actuelle", 0) for p in positions)
-    if total == 0:
+def get_treemap_data(
+    positions: list[dict],
+    group_by: str = "secteur",
+    label_by_ticker: Optional[dict[str, str]] = None,
+) -> list[dict]:
+    """Treemap hiérarchique groupé par secteur / pays / devise.
+
+    Renvoie des nodes plats ``{id, parent, label, valeur}`` (contrat
+    ``TreemapNodeOut`` / ``FlatTreemap``) : une racine par groupe (``parent=""``)
+    et un enfant par position rattaché à sa racine. ``group_by="devise"`` lit la
+    devise sur la position ; secteur/pays passent par ``label_by_ticker`` (résolu
+    en amont depuis les résultats Buffett).
+    """
+    label_by_ticker = label_by_ticker or {}
+    held = [p for p in positions if p.get("valeur_actuelle", 0) > 0]
+    if not held:
         return []
-    return [
-        {
-            "ticker": p["ticker"],
-            "broker": p.get("broker", ""),
-            "valeur": round(p.get("valeur_actuelle", 0), 2),
-            "pct": round(p.get("valeur_actuelle", 0) / total * 100, 2),
-        }
-        for p in sorted(positions, key=lambda x: x.get("valeur_actuelle", 0), reverse=True)
-        if p.get("valeur_actuelle", 0) > 0
-    ]
+
+    groups: dict[str, list[dict]] = {}
+    for p in held:
+        if group_by == "devise":
+            label = p.get("devise") or "Inconnu"
+        else:
+            label = label_by_ticker.get(p["ticker"]) or "Inconnu"
+        groups.setdefault(label, []).append(p)
+
+    def _val(items: list[dict]) -> float:
+        return sum(i.get("valeur_actuelle", 0) for i in items)
+
+    nodes: list[dict] = []
+    for label, items in sorted(groups.items(), key=lambda kv: _val(kv[1]), reverse=True):
+        nodes.append({"id": label, "parent": "", "label": label, "valeur": round(_val(items), 2)})
+        for p in sorted(items, key=lambda x: x.get("valeur_actuelle", 0), reverse=True):
+            nodes.append({
+                "id": f"{label}/{p['ticker']}",
+                "parent": label,
+                "label": p["ticker"],
+                "valeur": round(p.get("valeur_actuelle", 0), 2),
+            })
+    return nodes
