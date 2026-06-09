@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import threading
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 
 # ticker -> (date du cours, prix)
 _cache: dict[str, tuple[dt.date, float]] = {}
@@ -23,7 +23,9 @@ def _default_fetch(tickers: list[str]) -> dict[str, float]:
         return out
     try:
         import yfinance as yf
-        data = yf.Tickers(" ".join(tickers))
+
+        from app.services.finance.yf_session import yf_session
+        data = yf.Tickers(" ".join(tickers), session=yf_session())
         for t in tickers:
             try:
                 out[t] = float(data.tickers[t].fast_info.get("last_price", 0) or 0)

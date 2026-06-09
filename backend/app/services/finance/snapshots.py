@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Optional
 
 from sqlmodel import Session, select
 
 from app.models.finance import SnapshotPortefeuille
 
 
-def get_latest_snapshot(session: Session) -> Optional[SnapshotPortefeuille]:
+def get_latest_snapshot(session: Session) -> SnapshotPortefeuille | None:
     return session.exec(
         select(SnapshotPortefeuille).order_by(SnapshotPortefeuille.date.desc()).limit(1)
     ).first()
@@ -18,8 +17,8 @@ def get_latest_snapshot(session: Session) -> Optional[SnapshotPortefeuille]:
 
 def get_history(
     session: Session,
-    date_from: Optional[dt.date] = None,
-    date_to: Optional[dt.date] = None,
+    date_from: dt.date | None = None,
+    date_to: dt.date | None = None,
     limit: int = 365,
 ) -> list[SnapshotPortefeuille]:
     """Retourne les `limit` snapshots les plus RECENTS, en ordre chronologique.
@@ -66,7 +65,7 @@ def upsert_snapshot(
         return existing
 
 
-def drop_alert_pct(prev_valeur: float, new_valeur: float, seuil_pct: float = 5.0) -> Optional[float]:
+def drop_alert_pct(prev_valeur: float, new_valeur: float, seuil_pct: float = 5.0) -> float | None:
     """Retourne le % de baisse si la chute dépasse ``seuil_pct``, sinon None.
 
     Ex. prev=100, new=92, seuil=5 -> 8.0 (alerte). prev=100, new=97 -> None.
@@ -77,13 +76,14 @@ def drop_alert_pct(prev_valeur: float, new_valeur: float, seuil_pct: float = 5.0
     return round(drop, 2) if drop > seuil_pct else None
 
 
-def take_snapshot_now(session: Session) -> Optional[SnapshotPortefeuille]:
+def take_snapshot_now(session: Session) -> SnapshotPortefeuille | None:
     """Prend un snapshot live depuis yfinance (positions DB + prix courants).
 
     Requiert des positions dans la table `position`. Si vide, retourne None.
     """
     try:
         import yfinance as yf
+
         from app.models.finance import Position
         positions = list(session.exec(select(Position)).all())
         if not positions:
@@ -93,7 +93,8 @@ def take_snapshot_now(session: Session) -> Optional[SnapshotPortefeuille]:
         total_investit = 0.0
         for pos in positions:
             try:
-                info = yf.Ticker(pos.ticker).fast_info
+                from app.services.finance.yf_session import yf_session
+                info = yf.Ticker(pos.ticker, session=yf_session()).fast_info
                 prix = float(info.get("last_price", 0) or 0)
             except Exception:
                 prix = 0.0

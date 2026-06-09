@@ -7,7 +7,6 @@ import os
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from .config import Config
 
@@ -31,6 +30,34 @@ def infer_country(symbol: str) -> str:
     return "United States" if "." not in symbol else "Inconnu"
 
 
+def json_default(o):
+    """Encodeur JSON tolérant aux types non natifs (numpy, pandas, datetime).
+
+    Pandas/NumPy produisent des scalaires (`numpy.int32`, `numpy.float64`,
+    `numpy.bool_`) que `json.dump` ne sait pas sérialiser. On les convertit en
+    types Python natifs avant l'écriture du cache.
+    """
+    # Scalaires/arrays NumPy (np.generic expose .item(), np.ndarray .tolist()).
+    item = getattr(o, "item", None)
+    if callable(item):
+        try:
+            return o.item()
+        except Exception:
+            pass
+    tolist = getattr(o, "tolist", None)
+    if callable(tolist):
+        try:
+            return o.tolist()
+        except Exception:
+            pass
+    if isinstance(o, (set, frozenset)):
+        return list(o)
+    iso = getattr(o, "isoformat", None)
+    if callable(iso):
+        return o.isoformat()
+    raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
+
+
 class CacheManager:
     """Gere le fichier cache_status.json (thread-safe)."""
 
@@ -42,7 +69,7 @@ class CacheManager:
     def _load(self) -> dict:
         if os.path.exists(self.cache_file):
             try:
-                with open(self.cache_file, "r") as f:
+                with open(self.cache_file) as f:
                     return json.load(f)
             except Exception:
                 pass
@@ -51,7 +78,7 @@ class CacheManager:
     def save(self) -> None:
         with self.lock:
             with open(self.cache_file, "w") as f:
-                json.dump(self.cache, f, indent=2)
+                json.dump(self.cache, f, indent=2, default=json_default)
 
     def update(
         self, ticker: str, latest_year: int, score: float, metrics: dict
@@ -65,7 +92,7 @@ class CacheManager:
                 "status": "success",
             }
 
-    def get_cached_result(self, ticker: str) -> Optional[tuple[float, dict]]:
+    def get_cached_result(self, ticker: str) -> tuple[float, dict] | None:
         """Retourne (score, metrics) si le cache est valide, sinon None.
 
         Regles :

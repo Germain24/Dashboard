@@ -15,12 +15,11 @@ Révision CONV 4 :
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 import yfinance as yf
 from sqlmodel import Session, select
 
-from app.models.finance import Position, BuffettRun, BuffettRunResult
+from app.models.finance import BuffettRun, BuffettRunResult, Position
 from app.services.finance.buffett.config import Config
 
 
@@ -35,13 +34,13 @@ class RebalancingLine:
     allocation_actuelle_pct: float      # % de la valeur actuelle du portefeuille
     # Cible (budget à déployer)
     cible_type: str                     # "pie" | "shares"
-    cible_shares: Optional[int]         # actions entières (None si pie)
+    cible_shares: int | None         # actions entières (None si pie)
     prix_unitaire: float
     valeur_cible_eur: float
     allocation_cible_pct: float         # % du capital total (budgets brokers)
     # Diff
     delta_eur: float                    # >0 acheter, <0 vendre
-    delta_shares: Optional[int]         # actions à acheter(+)/vendre(-) si broker entier
+    delta_shares: int | None         # actions à acheter(+)/vendre(-) si broker entier
     action: str                         # "ACHETER" | "VENDRE" | "CONSERVER"
     ecart_pct: float = 0.0              # poids actuel - poids cible (points de %)
     alerte: bool = False                # |ecart| > seuil de rééquilibrage
@@ -64,6 +63,7 @@ class RebalancingDiff:
 # Seuil (en points de %) au-delà duquel un écart poids actuel/cible déclenche une
 # alerte. Pilotable par .env (FINANCE_REBALANCE_ALERT_PCT).
 from app.core.config import settings as _settings
+
 REBALANCE_ALERT_THRESHOLD_PCT = _settings.finance_rebalance_alert_pct
 
 
@@ -72,7 +72,7 @@ def _ecart_alerte(actuel_pct: float, cible_pct: float, seuil: float) -> tuple[fl
     return ecart, abs(ecart) > seuil
 
 
-def _get_last_run(session: Session) -> Optional[BuffettRun]:
+def _get_last_run(session: Session) -> BuffettRun | None:
     stmt = (
         select(BuffettRun)
         .where(BuffettRun.statut == "termine")
@@ -102,7 +102,8 @@ def _fetch_prices(tickers: list[str]) -> dict[str, float]:
     if not tickers:
         return prices
     try:
-        data = yf.download(tickers, period="5d", auto_adjust=True, progress=False)
+        from app.services.finance.yf_session import yf_session
+        data = yf.download(tickers, period="5d", auto_adjust=True, progress=False, session=yf_session())
         close = data["Close"] if "Close" in getattr(data, "columns", []) else data
         for t in tickers:
             try:
@@ -148,7 +149,7 @@ def _action(delta_eur: float) -> str:
     return "ACHETER" if delta_eur > 0 else "VENDRE"
 
 
-def compute_rebalancing_diff(session: Session) -> Optional[RebalancingDiff]:
+def compute_rebalancing_diff(session: Session) -> RebalancingDiff | None:
     run = _get_last_run(session)
     if run is None:
         return None

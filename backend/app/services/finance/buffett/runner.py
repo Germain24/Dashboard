@@ -73,12 +73,24 @@ def remove_stale_tickers(csv_path: str, to_remove: set) -> None:
 
 
 def _check_is_etf(ticker: str, data: dict) -> bool:
-    """Detecte si le ticker est un ETF depuis les donnees yfinance."""
-    info = data.get("info", {})
-    qt = info.get("quoteType", "").upper()
-    ln = info.get("longName", "")
-    sn = info.get("shortName", "")
-    return qt == "ETF" or "ETF" in ln.upper() or "ETF" in sn.upper()
+    """Detecte si le ticker est un ETF/fonds depuis les donnees yfinance.
+
+    Garde-fou anti-faux-positif : un titre qui publie des etats financiers
+    (compte de resultat / bilan) n'est JAMAIS un ETF. Cela corrige les REIT,
+    holdings et cross-listings (ex. Gaming and Leisure Properties, VICI, Global
+    Net Lease...) qui etaient pris pour des ETF a cause d'un quoteType peu fiable
+    ou du mot "ETF"/"fund" dans le nom, et se voyaient attribuer Score=200.
+    """
+    if not _is_empty_financials(data):
+        return False
+    info = data.get("info", {}) or {}
+    qt = (info.get("quoteType") or "").upper()
+    ln = (info.get("longName") or "").upper()
+    sn = (info.get("shortName") or "").upper()
+    if qt in ("ETF", "MUTUALFUND"):
+        return True
+    # Mot entier "ETF" dans le nom (evite de matcher au milieu d'un autre mot).
+    return any(" ETF" in n or n.endswith(" ETF") or n.startswith("ETF ") for n in (ln, sn))
 
 
 def _is_forced(ticker: str) -> bool:
@@ -419,7 +431,8 @@ def run_buffett_analysis(
         t_list = list(eligible.keys())
 
         if t_list:
-            raw = yf.download(t_list, period="5y", interval="1d", progress=False, group_by="ticker")
+            from app.services.finance.yf_session import yf_session
+            raw = yf.download(t_list, period="5y", interval="1d", progress=False, group_by="ticker", session=yf_session())
             if not raw.empty:
                 if len(t_list) == 1:
                     cd = raw["Close"].to_frame(); cd.columns = t_list
@@ -455,6 +468,13 @@ def run_buffett_analysis(
                         print(f"[runner] Allocations persistees ({len(alloc)} lignes)")
                     except Exception as e:
                         print(f"[runner] Erreur persistance allocations: {e}")
+                # Écrire le poids (%) de chaque action dans ToutBroker.xlsx (#1)
+                try:
+                    from .broker_availability import update_broker_file_weights
+                    n_w = update_broker_file_weights(alloc)
+                    print(f"[runner] {n_w} poids ecrits dans ToutBroker.xlsx")
+                except Exception as e:
+                    print(f"[runner] Ecriture Poids ToutBroker: {e}")
 
                 return {
                     "n_analyzed": len(results), "n_eligible": len(eligible),

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Optional
 
 BENCHMARKS = {
     "CW8": "CW8.PA",          # Amundi MSCI World
@@ -16,11 +15,13 @@ CACHE_TTL_H = 4  # heures
 _cache: dict[str, tuple[float, list]] = {}  # ticker → (timestamp, data)
 
 
-def _fetch_perf(ticker: str, period: str = "1y") -> Optional[dict]:
+def _fetch_perf(ticker: str, period: str = "1y") -> dict | None:
     """Télécharge la performance d'un indice via yfinance."""
     try:
         import yfinance as yf
-        h = yf.Ticker(ticker).history(period=period)
+
+        from app.services.finance.yf_session import yf_session
+        h = yf.Ticker(ticker, session=yf_session()).history(period=period)
         if h.empty:
             return None
         closes = h["Close"].dropna()
@@ -96,9 +97,11 @@ def simulate_benchmark_dca(portfolio_snapshots: list, ticker: str = "CW8.PA") ->
         import pandas as pd
         import yfinance as yf
 
+        from app.services.finance.yf_session import yf_session
+
         start = snaps[0]["date"]
         end_plus = (pd.to_datetime(snaps[-1]["date"]) + pd.Timedelta(days=3)).strftime("%Y-%m-%d")
-        hist = yf.Ticker(ticker).history(start=start, end=end_plus)
+        hist = yf.Ticker(ticker, session=yf_session()).history(start=start, end=end_plus)
         closes = hist["Close"].dropna()
         if closes.empty:
             return []

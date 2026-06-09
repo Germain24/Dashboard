@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional
-
 from .config import Config
 
 
-def fetch_data(symbol: str, rate_limiter=None) -> Optional[dict]:
+def fetch_data(symbol: str, rate_limiter=None) -> dict | None:
     """Télécharge income / balance / cashflow / info depuis yfinance."""
     try:
         import yfinance as yf
+
+        from app.services.finance.yf_session import yf_session
         if rate_limiter:
             rate_limiter.wait_for_slot()
-        t = yf.Ticker(symbol)
+        t = yf.Ticker(symbol, session=yf_session())
         return {
             "income": t.financials.transpose(),
             "balance": t.balance_sheet.transpose(),
@@ -26,7 +25,7 @@ def fetch_data(symbol: str, rate_limiter=None) -> Optional[dict]:
         return None
 
 
-def load_local_data(ticker: str) -> Optional[dict]:
+def load_local_data(ticker: str) -> dict | None:
     """Charge les données financières depuis le cache local (Excel par ticker)."""
     file_path = Config.output_dir() / f"{ticker.replace(':', '_')}.xlsx"
     if not file_path.exists():
@@ -74,7 +73,7 @@ def save_local_data(ticker: str, data: dict) -> bool:
         return False
 
 
-def merge_data(old_data: Optional[dict], new_data: Optional[dict]) -> Optional[dict]:
+def merge_data(old_data: dict | None, new_data: dict | None) -> dict | None:
     """Fusionne ancien cache local + nouvelles données yfinance."""
     if not old_data:
         return new_data

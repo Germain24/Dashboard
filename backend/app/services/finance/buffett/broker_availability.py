@@ -233,6 +233,62 @@ def update_broker_file_scores(rows, path: str | None = None,
         return 0
 
 
+def aggregate_weights(alloc: list[dict]) -> dict[str, float]:
+    """Pur : somme du « Poids total (%) » par ticker depuis une allocation.
+
+    ``alloc`` est la sortie de ``discretize_allocation`` (une ligne par couple
+    ticker/broker). Le poids d'une action = somme de ses lignes.
+    """
+    out: dict[str, float] = {}
+    for row in alloc or []:
+        tk = str(row.get("Ticker", "") or "").strip()
+        if not tk:
+            continue
+        out[tk] = out.get(tk, 0.0) + float(row.get("Poids total (%)", 0) or 0)
+    return {t: round(p, 4) for t, p in out.items()}
+
+
+def update_broker_file_weights(alloc: list[dict], path: str | None = None,
+                               ticker_col: str = "Ticker Yahoo Finance",
+                               weight_col: str = "Poids") -> int:
+    """Écrit le pourcentage d'investissement par action dans la colonne ``Poids``.
+
+    Agrège l'allocation par ticker (somme des poids par broker), remet toute la
+    colonne ``Poids`` à 0, puis inscrit le poids de chaque action allouée.
+    Crée la colonne si elle n'existe pas. Retourne le nombre de tickers écrits.
+    """
+    weights = aggregate_weights(alloc)
+    path = path or find_broker_file()
+    if not path:
+        return 0
+    try:
+        import pandas as pd
+
+        df = pd.read_excel(path)
+        tcol = _find_ticker_col(df.columns, ticker_col) or ticker_col
+        if tcol not in df.columns:
+            return 0
+
+        if weight_col not in df.columns:
+            df[weight_col] = 0.0
+        df[weight_col] = 0.0  # reset (les non-alloués passent à 0, pas de valeur obsolète)
+
+        index: dict[str, int] = {}
+        for i, k in df[tcol].astype(str).str.strip().items():
+            index.setdefault(k, i)
+
+        n = 0
+        for tk, pct in weights.items():
+            if tk in index:
+                df.at[index[tk], weight_col] = pct
+                n += 1
+        df.to_excel(path, index=False)
+        return n
+    except Exception as e:
+        print(f"[broker_availability] Écriture Poids ToutBroker: {e}")
+        return 0
+
+
 def merge_broker_columns(df_m, ticker_col: str = "Ticker Yahoo Finance"):
     """Ajoute à ``df_m`` une colonne de disponibilité par broker de Config.BUDGET_BROKERS,
     renommée exactement comme la clé Config pour que l'optimiseur la retrouve.
@@ -243,7 +299,6 @@ def merge_broker_columns(df_m, ticker_col: str = "Ticker Yahoo Finance"):
     if tbl is None or getattr(tbl, "empty", True):
         return df_m
     try:
-        import pandas as pd
         tcol = _find_ticker_col(tbl.columns, ticker_col)
         if tcol is None:
             return df_m

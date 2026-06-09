@@ -9,18 +9,20 @@ from __future__ import annotations
 
 import datetime as dt
 import threading
-from typing import Callable, Optional
+from collections.abc import Callable
 
 # (base, quote) -> (date, taux)  où 1 base = taux quote
 _cache: dict[tuple[str, str], tuple[dt.date, float]] = {}
 _lock = threading.Lock()
 
 
-def _default_fetch(base: str, quote: str) -> Optional[float]:
+def _default_fetch(base: str, quote: str) -> float | None:
     """Taux base->quote via yfinance (paire ``BASEQUOTE=X``)."""
     try:
         import yfinance as yf
-        info = yf.Ticker(f"{base}{quote}=X").fast_info
+
+        from app.services.finance.yf_session import yf_session
+        info = yf.Ticker(f"{base}{quote}=X", session=yf_session()).fast_info
         rate = float(info.get("last_price", 0) or 0)
         return rate if rate > 0 else None
     except Exception:
@@ -31,7 +33,7 @@ def get_rate(
     base: str,
     quote: str,
     *,
-    fetcher: Callable[[str, str], Optional[float]] | None = None,
+    fetcher: Callable[[str, str], float | None] | None = None,
     today: dt.date | None = None,
 ) -> float:
     """Taux du jour pour 1 ``base`` en ``quote`` (cache quotidien). 1.0 si base==quote."""
