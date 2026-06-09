@@ -1,0 +1,28 @@
+# Hooks pre-commit (#197). Installer une fois :  pre-commit install  (ou `make hooks`).
+# Tourne sur les fichiers indexés. Volontairement formatage-only (non bloquant) :
+# le lint complet (ruff/eslint) tourne en CI en mode advisory, le code ayant une
+# dette de lint pré-existante qu'on ne veut pas imposer à chaque commit.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.13
+    hooks:
+      # Formatage Python (sans bloquer sur les règles de lint).
+      - id: ruff-format
+        files: ^backend/.*\.py$
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: ^frontend/.*\.(ts|tsx|js|jsx|json|css|md)$
+
+  - repo: local
+    hooks:
+      # graphify : la synchro reste pilotée par l'utilisateur — ce hook ne tourne
+      # PAS automatiquement. Lancer au besoin :  pre-commit run --hook-stage manual graphify-update
+      - id: graphify-update
+        name: graphify update (manuel)
+        entry: graphify update .
+        language: system
+        pass_filenames: false
+        stages: [manual]

@@ -3,7 +3,7 @@
 
 .PHONY: help install install-backend install-frontend dev dev-backend dev-frontend \
         migrate migrate-new import seed test test-backend test-frontend gen-types \
-        clean fmt lint
+        clean fmt lint hooks
 
 help:
 	@echo "Cibles disponibles :"
@@ -81,6 +81,11 @@ fmt:
 lint:
 	cd backend && uv run ruff check . || true
 	cd frontend && npm run lint --if-present || true
+
+# ---------- HOOKS ----------
+# Installe les hooks pre-commit (#197). Nécessite pre-commit (pipx install pre-commit).
+hooks:
+	pre-commit install
 
 # ---------- CLEAN ----------
 clean:

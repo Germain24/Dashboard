@@ -42,7 +42,7 @@ B. ARCHITECTURE & INFRA FRONTEND (16-30)
 27. [M](**) Internationalisation légère (fr-CA aujourd'hui) via dictionnaire, éviter les chaînes en dur.   ← FINIS ✓ (lib/i18n.ts : dictionnaire fr-CA + t() avec interpolation)
 28. [S](*) Favicon + manifest PWA + icônes pour installer le dashboard en app locale.   ← FINIS ✓ (app/manifest.ts + metadata manifest/appleWebApp/themeColor)
 29. [M](**) Activer le App Router streaming + Suspense sur les pages lourdes.   ← FINIS ✓ (Suspense par segment via loading.tsx #22 ; pages = Server Components streamant le shell + ErrorBoundary)
-30. [S](*) Lint strict (eslint-plugin-jsx-a11y, no-floating-promises) + prettier en pre-commit.   ← PARTIEL (eslint.config.mjs flat + jsx-a11y + no-floating-promises + prettier configurés ; scripts lint/format câblés. RESTE : hook pre-commit — voir #197)
+30. [S](*) Lint strict (eslint-plugin-jsx-a11y, no-floating-promises) + prettier en pre-commit.   ← PARTIEL (eslint.config.mjs flat + jsx-a11y + no-floating-promises + prettier configurés ; scripts lint/format câblés. Hook pre-commit livré en #197 -> désormais FINIS ✓)
 
 --------------------------------------------------------------------------------
 C. UI / UX & DESIGN SYSTEM (31-45)
@@ -305,7 +305,7 @@ S. DEVOPS / DÉPLOIEMENT (195-200)
 --------------------------------------------------------------------------------
 195. [M](**) Dockerfile backend + frontend + docker-compose pour lancer tout en une commande.
 196. [M](**) CI GitHub Actions : lint + tests back/front + build sur chaque push.   ← FINIS ✓ (ci.yml étendu : déclenché sur chaque push + PR ; backend ruff (advisory) + tests offline (health/cors/rate_limit/budget/habitudes/livres/cuisine/scheduler) ; frontend eslint (advisory) + tsc + vitest + next build (NEXT_PUBLIC_API_BASE_URL fourni). Lint advisory car dette pré-existante ; build débloqué via eslint.ignoreDuringBuilds, tsc reste bloquant. Vérifié : subset 138 ok, vitest 14 ok, build 23 pages ok)
-197. [S](*) Hook pre-commit (ruff/black + eslint) + `graphify update` automatique.
+197. [S](*) Hook pre-commit (ruff/black + eslint) + `graphify update` automatique.   ← FINIS ✓ (.pre-commit-config.yaml : ruff-format (backend) + prettier (frontend), formatage-only non bloquant car dette lint pré-existante (lint complet en CI advisory #196) ; graphify-update en stage `manual` uniquement (l'utilisateur pilote la synchro). `make hooks` installe. Complète le PARTIEL #30.)
 198. [S](**) Script de healthcheck post-démarrage (attend /health avant d'ouvrir le front).
 199. [S](*) Documentation : compléter README (modules livrés) + ajouter ARCHITECTURE.md.
 200. [M](**) Mode « production » : build Next statique + uvicorn workers + reverse proxy local.
