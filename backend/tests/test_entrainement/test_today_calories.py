@@ -69,7 +69,7 @@ def test_today_seance_en_cours_after_start(client):
     client.post(
         "/entrainement/sessions",
         json={
-            "date": dt.datetime.utcnow().isoformat(),
+            "date": dt.datetime.now().isoformat(),
             "type": "push",
             "programme_jour_id": r0["programme_jour_id"],
         },
@@ -87,7 +87,7 @@ def test_today_kcal_live_after_adding_set(client):
         return  # seed bizarre, on skip
     s = client.post(
         "/entrainement/sessions",
-        json={"date": dt.datetime.utcnow().isoformat(), "type": "legs"},
+        json={"date": dt.datetime.now().isoformat(), "type": "legs"},
     ).json()
     r_before = client.get("/entrainement/today").json()
     kcal_before = r_before["kcal_estimees"]
