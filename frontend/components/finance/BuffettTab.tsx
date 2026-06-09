@@ -210,8 +210,19 @@ export function BuffettTab() {
         {selected.run.resume && (
           <p className="text-sm text-[var(--muted-foreground)]">{selected.run.resume}</p>
         )}
+        {(() => {
+          // S'il existe des allocations : on affiche le portefeuille cible trié
+          // par poids décroissant, sans les lignes à 0. Sinon : top scores MOAT.
+          const allocated = selected.top_results
+            .filter(r => (r.allocation_pct ?? 0) > 0)
+            .sort((a, b) => (b.allocation_pct ?? 0) - (a.allocation_pct ?? 0));
+          const hasAlloc = allocated.length > 0;
+          const displayRows = hasAlloc ? allocated : selected.top_results;
+          return (
         <div>
-          <h3 className="text-sm font-semibold mb-2">Top 50 scores MOAT</h3>
+          <h3 className="text-sm font-semibold mb-2">
+            {hasAlloc ? "Allocation cible (par poids décroissant)" : "Top 50 scores MOAT"}
+          </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -224,7 +235,7 @@ export function BuffettTab() {
                 </tr>
               </thead>
               <tbody>
-                {selected.top_results.map(r => (
+                {displayRows.map(r => (
                   <tr key={r.id} className="border-b border-[var(--border)]">
                     <td className="py-1 pr-3 font-mono text-xs">{r.ticker}</td>
                     <td className="py-1 pr-3 text-xs">{r.nom ?? "—"}</td>
@@ -239,6 +250,8 @@ export function BuffettTab() {
             </table>
           </div>
         </div>
+          );
+        })()}
       </div>
     );
   }
