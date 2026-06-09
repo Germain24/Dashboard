@@ -112,6 +112,10 @@ class Settings(BaseSettings):
     budget_envelope_warning_pct: float = 80.0
     budget_envelope_over_pct: float = 100.0
 
+    # Scheduler — rétention pour la purge (#172)
+    jobrun_retention_days: int = 30        # JobRun plus vieux supprimés
+    notification_retention_days: int = 30  # notifications LUES plus vieilles supprimées
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

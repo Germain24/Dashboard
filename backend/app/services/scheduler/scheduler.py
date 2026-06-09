@@ -1,5 +1,5 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 _scheduler: AsyncIOScheduler | None = None
 
@@ -14,8 +14,15 @@ def get_scheduler(db_url: str | None = None) -> AsyncIOScheduler:
     return _scheduler
 
 def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
+    from app.services.scheduler.jobs import (
+        agenda_reminders,
+        backup_db,
+        habit_reminders,
+        nutrition_plan,
+        portfolio_snapshot,
+        weather_refresh,
+    )
     from app.services.scheduler.runner import run_job
-    from app.services.scheduler.jobs import portfolio_snapshot, nutrition_plan, backup_db, weather_refresh, agenda_reminders, habit_reminders
     scheduler.add_job(run_job, "cron", hour=22, minute=0,
                       args=["portfolio_snapshot", portfolio_snapshot.run],
                       id="portfolio_snapshot", replace_existing=True, misfire_grace_time=3600)
@@ -34,3 +41,7 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(run_job, "cron", hour=20, minute=0,
                       args=["habit_reminders", habit_reminders.run],
                       id="habit_reminders", replace_existing=True, misfire_grace_time=3600)
+    from app.services.scheduler import purge
+    scheduler.add_job(run_job, "cron", hour=4, minute=0,
+                      args=["purge_old", purge.run],
+                      id="purge_old", replace_existing=True, misfire_grace_time=3600)

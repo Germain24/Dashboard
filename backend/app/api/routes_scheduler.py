@@ -1,29 +1,33 @@
 import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
+
 from app.core.db import get_session
 from app.models.scheduler import JobRun
 from app.services.scheduler.scheduler import get_scheduler
 
 router = APIRouter(prefix="", tags=["jobs"])
 
-JOB_IDS = ["portfolio_snapshot", "nutrition_plan", "backup_db", "weather_refresh"]
-
 @router.get("/list")
 def list_jobs(session: Session = Depends(get_session)):
+    """Liste TOUS les jobs enregistrés dans le scheduler (#166), avec prochaine
+    exécution, état (pause), dernier run et indicateur d'échec (#173)."""
     scheduler = get_scheduler()
+    jobs = scheduler.get_jobs()
     result = []
-    for job_id in JOB_IDS:
-        job = scheduler.get_job(job_id)
+    for job in jobs:
         last_run = session.exec(
-            select(JobRun).where(JobRun.job_id == job_id).order_by(JobRun.started_at.desc())
+            select(JobRun).where(JobRun.job_id == job.id).order_by(JobRun.started_at.desc())
         ).first()
         result.append({
-            "job_id": job_id,
-            "next_run": job.next_run_time.isoformat() if job and job.next_run_time else None,
-            "paused": job is None or job.next_run_time is None,
+            "job_id": job.id,
+            "next_run": job.next_run_time.isoformat() if job.next_run_time else None,
+            "paused": job.next_run_time is None,
             "last_run": last_run,
+            "last_failed": bool(last_run and last_run.status not in ("success", "running")),
         })
+    result.sort(key=lambda r: r["job_id"])
     return result
 
 @router.get("/runs")
