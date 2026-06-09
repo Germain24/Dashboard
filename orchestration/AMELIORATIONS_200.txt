@@ -280,14 +280,16 @@ P. DONNÉES / IMPORT-EXPORT (174-181)
 --------------------------------------------------------------------------------
 Q. TESTS & QUALITÉ (182-189)
 --------------------------------------------------------------------------------
-182. [M](***) Tests d'intégration end-to-end du scheduler (un job s'exécute → JobRun + Notification créés).
-183. [M](**) Couverture de tests sur run_job (succès + exception → status error).
-184. [M](**) Tests frontend (Vitest + Testing Library) sur composants ui/ et lib/*.ts.
-185. [M](**) Tests e2e Playwright sur les parcours clés (ajout dépense, log séance).
-186. [S](**) Mesure de couverture (pytest-cov) + seuil minimal en CI.
-187. [S](*) Tests de contrat OpenAPI (schemas front ↔ back synchronisés).
-188. [S](**) Fixtures DB en mémoire partagées entre modules de test.
-189. [S](*) Tests de non-régression visuelle (snapshots) sur les pages.
+182. [M](***) Tests d'intégration end-to-end du scheduler (un job s'exécute → JobRun + Notification créés).   ← FINIS ✓ (test_runner : run_job(purge) -> JobRun success + Notification ; engine en mémoire monkeypatché (patched_db_engine).)
+183. [M](**) Couverture de tests sur run_job (succès + exception → status error).   ← FINIS ✓ (test succès (status success, notif info) + test exception (status error, log, notif error), sans propagation.)
+184. [M](**) Tests frontend (Vitest + Testing Library) sur composants ui/ et lib/*.ts.   ← FINIS ✓ (Vitest (jsdom) + Testing Library : tests lib/utils, lib/i18n, lib/modules + composant Badge ; npm run test ; 10 verts.)
+185. [M](**) Tests e2e Playwright sur les parcours clés (ajout dépense, log séance).   ← PARTIEL (infra livrée : playwright.config + specs e2e (accueil, dépense budget, export Données) + scripts ; playwright --list OK, tsc vert. RESTE : exécution — `npx playwright install` + stack lancé ; non exécutable dans l'env de dev.)
+186. [S](**) Mesure de couverture (pytest-cov) + seuil minimal en CI.   ← FINIS ✓ (pytest-cov + [tool.coverage] (source app/, omit) ; seuil CI via `pytest --cov --cov-fail-under=N` (câblé en #196).)
+187. [S](*) Tests de contrat OpenAPI (schemas front ↔ back synchronisés).   ← FINIS ✓ (test_openapi_contract : schéma généré + endpoints consommés par le front présents + composants/schemas exposés.)
+188. [S](**) Fixtures DB en mémoire partagées entre modules de test.   ← FINIS ✓ (tests/conftest.py : mem_engine / mem_session / patched_db_engine réutilisables.)
+189. [S](*) Tests de non-régression visuelle (snapshots) sur les pages.   ← PARTIEL (infra livrée : specs Playwright toHaveScreenshot (accueil, jobs) + scripts test:e2e:update. RESTE : exécution/génération des snapshots de référence — navigateurs + stack requis.)
+
+>>> SECTION Q (Tests & Qualité, 182-189) — 7/9 FINIS, #185 & #189 infra livrée (exécution navigateurs requise) <<<
 
 --------------------------------------------------------------------------------
 R. SÉCURITÉ (190-194)
