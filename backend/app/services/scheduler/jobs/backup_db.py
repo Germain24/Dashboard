@@ -35,6 +35,10 @@ def prune_backups(backup_dir: Path, keep: int) -> int:
 def run(session):
     from app.core.config import settings
     db_url = settings.database_url
+    if not db_url.startswith("sqlite"):
+        # Backup fichier spécifique à SQLite. Sur Postgres (#180), utiliser
+        # l'export JSON (/data/export) ou pg_dump côté serveur.
+        return "Backup ignoré : base non-SQLite (utiliser /data/export ou pg_dump)."
     db_path_str = db_url.replace("sqlite:///", "").replace("sqlite://", "")
     db_path = Path(db_path_str)
     backup_dir = db_path.parent / "backups"
