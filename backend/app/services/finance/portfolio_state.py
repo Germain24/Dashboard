@@ -26,8 +26,9 @@ def invalidate_state() -> None:
 def get_tax_params(session) -> dict:
     """Paramètres de taxe courants (FinanceSettings si présent, sinon défauts)."""
     try:
-        from app.models.finance import FinanceSettings  # type: ignore
         from sqlmodel import select
+
+        from app.models.finance import FinanceSettings  # type: ignore
         s = session.exec(select(FinanceSettings)).first()
         if s:
             return {
@@ -41,8 +42,9 @@ def get_tax_params(session) -> dict:
 
 def get_or_create_settings(session):
     """Retourne la ligne FinanceSettings (créée avec les défauts si absente)."""
-    from app.models.finance import FinanceSettings
     from sqlmodel import select
+
+    from app.models.finance import FinanceSettings
     s = session.exec(select(FinanceSettings)).first()
     if not s:
         s = FinanceSettings()
@@ -59,10 +61,19 @@ def get_portfolio_state(session) -> dict:
         return cached
 
     from sqlmodel import select
+
     from app.models.finance import Transaction
     from app.services.finance.prices import get_prices
 
     txs = list(session.exec(select(Transaction)).all())
+    if not txs:
+        # Pas de ledger : l'utilisateur saisit des positions manuelles. On dérive
+        # l'état (investi, P&L latent, valeur) de la table Position. Cash et P&L
+        # réalisé restent 0 (non calculables sans historique de mouvements).
+        state = _state_from_positions(session, get_tax_params(session))
+        _state_cache.set("state", state)
+        return state
+
     tickers = {
         (t.ticker or "").upper()
         for t in txs
@@ -72,6 +83,62 @@ def get_portfolio_state(session) -> dict:
     state = compute_portfolio_state(txs, prix, get_tax_params(session))
     _state_cache.set("state", state)
     return state
+
+
+def _state_from_positions(session, taxe: dict) -> dict:
+    """État dérivé de la table Position (mode saisie manuelle, sans ledger)."""
+    from sqlmodel import select
+
+    from app.models.finance import Position
+    from app.services.finance.prices import get_prices
+
+    rows = list(session.exec(select(Position)).all())
+    prix = get_prices([p.ticker for p in rows]) if rows else {}
+
+    positions = []
+    pl_latent_total = 0.0
+    investi = 0.0
+    for pos in rows:
+        q = float(pos.quantite or 0)
+        acb = float(pos.pmu or 0.0)
+        p = float(prix.get(pos.ticker, 0) or 0)
+        valeur = p * q
+        pl = (p - acb) * q if acb else 0.0
+        pl_latent_total += pl
+        investi += acb * q
+        positions.append({
+            "ticker": pos.ticker, "broker": pos.broker, "quantite": round(q, 6),
+            "acb": round(acb, 2), "prix": round(p, 2), "valeur": round(valeur, 2),
+            "pl_latent": round(pl, 2),
+            "pl_pct": round((p / acb - 1) * 100, 2) if acb > 0 else 0.0,
+        })
+
+    valeur_totale = round(sum(pos["valeur"] for pos in positions), 2)
+    denom = valeur_totale if valeur_totale != 0 else 1.0
+    for pos in positions:
+        pos["poids_pct"] = round(pos["valeur"] / denom * 100, 2)
+    allocation = [
+        {"label": pos["ticker"], "valeur": pos["valeur"], "poids_pct": pos["poids_pct"]}
+        for pos in sorted(positions, key=lambda x: x["valeur"], reverse=True)
+    ]
+
+    taux_pv = float(taxe.get("taux_plus_value_pct", 0) or 0)
+    taux_div = float(taxe.get("taux_dividende_pct", 0) or 0)
+    return {
+        "positions": positions,
+        "cash_par_broker": {},
+        "cash_total": 0.0,
+        "investi_net": round(investi, 2),
+        "valeur_totale": valeur_totale,
+        "pl_realise": 0.0,
+        "pl_latent_total": round(pl_latent_total, 2),
+        "dividendes_total": 0.0,
+        "allocation": allocation,
+        "taxes": {
+            "base_pv": 0.0, "impot_pv": 0.0, "base_div": 0.0, "impot_div": 0.0,
+            "total": 0.0, "taux_plus_value_pct": taux_pv, "taux_dividende_pct": taux_div,
+        },
+    }
 
 
 def _montant(t) -> float:

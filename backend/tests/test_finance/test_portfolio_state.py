@@ -83,3 +83,27 @@ def test_empty():
     assert st["cash_total"] == 0.0
     assert st["valeur_totale"] == 0.0
     assert st["taxes"]["total"] == 0.0
+
+
+def test_state_from_positions_fallback(monkeypatch):
+    """Sans transactions, l'état Suivi est dérivé de la table Position."""
+    from sqlmodel import Session, SQLModel, create_engine
+
+    import app.services.finance.prices as prices_mod
+    from app.models.finance import Position
+    from app.services.finance.portfolio_state import _state_from_positions
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(engine)
+    s = Session(engine)
+    s.add(Position(ticker="CW8.PA", broker="Bourse Direct", quantite=40, pmu=375.0, devise="EUR"))
+    s.commit()
+    monkeypatch.setattr(prices_mod, "get_prices", lambda tickers, **k: {"CW8.PA": 668.40})
+
+    st = _state_from_positions(s, TAXE)
+    assert st["investi_net"] == 15000.0          # 375 * 40
+    assert st["valeur_totale"] == 26736.0        # 668.40 * 40
+    assert st["pl_latent_total"] == 11736.0      # (668.40 - 375) * 40
+    assert st["cash_total"] == 0.0               # inconnu sans ledger
+    assert st["pl_realise"] == 0.0
+    assert st["positions"][0]["ticker"] == "CW8.PA"
