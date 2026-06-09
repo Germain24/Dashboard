@@ -63,7 +63,11 @@ export async function api<T = unknown>(path: string, init?: ApiInit): Promise<T>
     const suffix = detail ? ` — ${detail}` : "";
     throw new Error(`API ${path} ${res.status} ${res.statusText}${suffix}`);
   }
-  return res.json() as Promise<T>;
+  // Tolère les réponses sans corps (204 No Content, DELETE renvoyant vide) :
+  // res.json() lèverait « Unexpected end of JSON input » sur un body vide.
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export type HealthResponse = {
