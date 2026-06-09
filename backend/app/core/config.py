@@ -60,6 +60,15 @@ class Settings(BaseSettings):
     google_refresh_token: str = ""
     google_calendar_id: str = "primary"
 
+    # --- Robot / IA (CONV N) ---
+    # Clé API Claude. Vide = module robot en lecture seule (chat désactivé,
+    # dégradation propre). Voir https://console.anthropic.com.
+    anthropic_api_key: str = ""
+    robot_model: str = "claude-opus-4-8"        # modèle Claude par défaut (#161)
+    robot_effort: str = "medium"                 # low | medium | high | max (#161)
+    robot_max_tokens: int = 4096                  # plafond de tokens par réponse
+    robot_system_prompt: str = ""                 # override optionnel du prompt système
+
     # --- Garde-robe (CONV 2) ---
     openweather_api_key: str = ""
     garderobe_lat: float = 45.5017
