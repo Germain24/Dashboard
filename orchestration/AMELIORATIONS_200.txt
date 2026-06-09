@@ -287,7 +287,7 @@ Q. TESTS & QUALITÉ (182-189)
 186. [S](**) Mesure de couverture (pytest-cov) + seuil minimal en CI.   ← FINIS ✓ (pytest-cov + [tool.coverage] (source app/, omit) ; seuil CI via `pytest --cov --cov-fail-under=N` (câblé en #196).)
 187. [S](*) Tests de contrat OpenAPI (schemas front ↔ back synchronisés).   ← FINIS ✓ (test_openapi_contract : schéma généré + endpoints consommés par le front présents + composants/schemas exposés.)
 188. [S](**) Fixtures DB en mémoire partagées entre modules de test.   ← FINIS ✓ (tests/conftest.py : mem_engine / mem_session / patched_db_engine réutilisables.)
-189. [S](*) Tests de non-régression visuelle (snapshots) sur les pages.   ← PARTIEL (infra livrée : specs Playwright toHaveScreenshot (accueil, jobs) + scripts test:e2e:update. RESTE : exécution/génération des snapshots de référence — navigateurs + stack requis.)
+189. [S](*) Tests de non-régression visuelle (snapshots) sur les pages.   ← ABANDONNÉ ✗ (infra Playwright livrée mais exécution/génération des snapshots retirée par choix utilisateur — même blocage que #185 (navigateurs + stack).)
 
 >>> SECTION Q (Tests & Qualité, 182-189) — 7/9 FINIS, #185 & #189 infra livrée (exécution navigateurs requise) <<<
 
