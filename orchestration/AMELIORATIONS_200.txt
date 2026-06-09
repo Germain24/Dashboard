@@ -252,14 +252,16 @@ N. MODULE ROBOT / IA (153-165)
 --------------------------------------------------------------------------------
 O. SCHEDULER & NOTIFICATIONS (166-173)
 --------------------------------------------------------------------------------
-166. [S](**) Page UI listant les jobs, leur prochaine exécution et leur historique (run_job journalise déjà).
-167. [S](**) Bouton « exécuter maintenant » par job (route modify_job existe).
-168. [M](**) Centre de notifications front (cloche + liste non lues, le modèle Notification existe).
-169. [S](**) Marquer notifications comme lues / tout effacer.
-170. [M](**) Notifications navigateur (Web Push) pour les rappels.
-171. [S](*) Préférences de notification par module (activer/désactiver).
-172. [M](**) Job de purge des vieux JobRun/Notifications (rétention configurable).
-173. [S](*) Badge d'erreur si un job a échoué lors de sa dernière exécution.
+166. [S](**) Page UI listant les jobs, leur prochaine exécution et leur historique (run_job journalise déjà).   ← FINIS ✓ (/jobs/list liste désormais TOUS les jobs enregistrés (scheduler.get_jobs(), plus de liste codée en dur) ; page jobs : prochaine exécution + historique dépliable par job (via /jobs/{id}/runs).)
+167. [S](**) Bouton « exécuter maintenant » par job (route modify_job existe).   ← FINIS ✓ (bouton « Lancer » → POST /jobs/{id}/run (modify_job next_run_time=now). Déjà présent, conservé.)
+168. [M](**) Centre de notifications front (cloche + liste non lues, le modèle Notification existe).   ← FINIS ✓ (NotificationsWidget réparé : utilisait des champs inexistants (title/body/read) → titre/message/lu, et le mauvais chemin (/api/v1/api/...) → /api/notifications ; cloche + compteur non-lues + polling 30s.)
+169. [S](**) Marquer notifications comme lues / tout effacer.   ← FINIS ✓ (clic sur une notif = PATCH /{id}/read ; « Tout marquer lu » (read-all) ; « Tout effacer » = DELETE /notifications/clear.)
+170. [M](**) Notifications navigateur (Web Push) pour les rappels.   ← FINIS ✓ (API Notification navigateur : bouton d'activation (permission) + déclenchement sur nouvelles notifs détectées au polling. NB : notifications « tab ouvert » via l'API Notification, pas de push serveur VAPID/Service Worker — suffisant pour l'usage local.)
+171. [S](*) Préférences de notification par module (activer/désactiver).   ← FINIS ✓ (notif_prefs.json par source + GET/POST /notifications/prefs ; filtrage à la lecture ; panneau de réglages (cases par source) dans la cloche ; tests TDD.)
+172. [M](**) Job de purge des vieux JobRun/Notifications (rétention configurable).   ← FINIS ✓ (purge.purge_old : JobRun + notifications LUES au-delà de la rétention (settings configurables) ; job purge_old@4h enregistré ; lançable via /jobs/purge_old/run ; tests TDD (cutoff + purge, non-lues conservées).)
+173. [S](*) Badge d'erreur si un job a échoué lors de sa dernière exécution.   ← FINIS ✓ (champ last_failed dans /jobs/list + badge « ⚠ Dernier run en échec » sur la carte job.)
+
+>>> SECTION O (Scheduler & Notifications, 166-173) TERMINÉE <<<
 
 --------------------------------------------------------------------------------
 P. DONNÉES / IMPORT-EXPORT (174-181)
