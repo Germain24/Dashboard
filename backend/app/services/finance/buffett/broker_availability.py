@@ -32,14 +32,11 @@ def _trailing_num(v: str) -> str:
 
 def find_broker_file() -> str | None:
     """Cherche ToutBroker.xlsx dans plusieurs emplacements plausibles."""
-    here = os.path.dirname(__file__)
+    rel = os.path.join("data", "imports", "Finances", "tableur", "ToutBroker.xlsx")
     candidates = [
-        Config.BROKER_FILE,
-        os.path.join("data", "imports", "ToutBroker.xlsx"),
-        os.path.join("..", "data", "imports", "ToutBroker.xlsx"),
-        # remonte depuis .../backend/app/services/finance/buffett/ vers la racine repo
-        os.path.normpath(os.path.join(here, "..", "..", "..", "..", "..", "data", "imports", "ToutBroker.xlsx")),
-        os.path.normpath(os.path.join(here, "..", "..", "..", "..", "data", "imports", "ToutBroker.xlsx")),
+        Config.BROKER_FILE,                 # data/imports/Finances/tableur/ToutBroker.xlsx (absolu)
+        rel,
+        os.path.join("..", rel),
     ]
     for c in candidates:
         if c and os.path.exists(c):

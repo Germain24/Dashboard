@@ -10,16 +10,20 @@ from app.core.config import settings
 
 
 class Config:
-    # Chemins
-    DATA_DIR: str = "data"
-    FOLDER_PATH: str = os.path.join("data", "financials_by_company")
-    TICKERS_CSV: str = "tickers.csv"
-    CACHE_FILE: str = os.path.join("data", "cache_status.json")
-    PARAMS_FILE: str = "params.json"
-    # Fichier de disponibilite par broker + scores (colonnes Tradding 212,
-    # Bourse Direct, Bourse Direct 2, IBKR... + Chance MOAT). Plusieurs
-    # emplacements sont testes au chargement (cf. broker_availability.find_broker_file).
-    BROKER_FILE: str = os.path.join("data", "imports", "ToutBroker.xlsx")
+    # Chemins. Les fichiers FOURNIS par l'utilisateur sont rangés sous
+    # data/imports/<Catégorie>/<Type>/ (cf. #6). Les fichiers de cache/runtime
+    # restent sous data/ (non fournis par l'utilisateur).
+    _IMPORTS_FIN = settings.imports_dir / "Finances"
+    DATA_DIR: str = str(settings.data_dir)
+    FOLDER_PATH: str = os.path.join("data", "financials_by_company")  # cache runtime
+    CACHE_FILE: str = os.path.join("data", "cache_status.json")        # cache runtime
+    # Fichiers d'entrée (Finances) — rangés data/imports/Finances/<type>/
+    TICKERS_CSV: str = str(_IMPORTS_FIN / "variables" / "tickers.csv")
+    PARAMS_FILE: str = str(_IMPORTS_FIN / "variables" / "params.json")
+    # Disponibilite par broker + scores + Poids (colonnes Tradding 212, Bourse
+    # Direct, Bourse Direct 2, IBKR... + Chance MOAT). find_broker_file teste
+    # plusieurs emplacements au chargement.
+    BROKER_FILE: str = str(_IMPORTS_FIN / "tableur" / "ToutBroker.xlsx")
 
     # Limites analyse -- fenetre cible : MIN_AGE_YEARS <= age <= MAX_AGE_YEARS
     MIN_AGE_YEARS: int = 1   # < 1 an : pas de nouveau rapport annuel possible

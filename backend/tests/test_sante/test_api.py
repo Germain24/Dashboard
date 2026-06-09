@@ -28,7 +28,8 @@ _MINI_FOODS = {
 
 def _write_test_csv(tmp_path):
     """Génère un aliments.csv minimal au format legacy (1 ligne = 1 propriété)."""
-    imports = tmp_path / "imports"
+    # Rangé sous imports/Sante/tableur/ (cf. #6 réorganisation data/imports).
+    imports = tmp_path / "imports" / "Sante" / "tableur"
     imports.mkdir(parents=True, exist_ok=True)
     csv_path = imports / "aliments.csv"
     aliments = list(_MINI_FOODS.keys())

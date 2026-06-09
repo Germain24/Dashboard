@@ -21,12 +21,14 @@ from sqlmodel import Session, select
 
 from app.models.finance import SnapshotPortefeuille
 
-_HERE = os.path.dirname(__file__)
+from app.core.config import settings as _settings
+
+# Rangé sous data/imports/Finances/tableur/ (cf. #6).
+_REL = os.path.join("data", "imports", "Finances", "tableur", "Historique_portefeuille.xlsx")
 _CANDIDATES = [
-    # depuis backend/app/services/finance/ -> racine repo / data/imports
-    os.path.normpath(os.path.join(_HERE, "..", "..", "..", "..", "data", "imports", "Historique_portefeuille.xlsx")),
-    os.path.join("data", "imports", "Historique_portefeuille.xlsx"),
-    os.path.join("..", "data", "imports", "Historique_portefeuille.xlsx"),
+    str(_settings.imports_dir / "Finances" / "tableur" / "Historique_portefeuille.xlsx"),
+    _REL,
+    os.path.join("..", _REL),
 ]
 
 

@@ -38,7 +38,8 @@ def _resolve_csv_path(csv_path: Optional[Path] = None) -> Path:
     """Retourne le chemin du CSV à utiliser (override paramètre > settings)."""
     if csv_path is not None:
         return Path(csv_path)
-    return settings.imports_dir / "aliments.csv"
+    # Rangé sous data/imports/Sante/tableur/ (cf. #6).
+    return settings.imports_dir / "Sante" / "tableur" / "aliments.csv"
 
 
 def _to_float(s: str) -> float:
