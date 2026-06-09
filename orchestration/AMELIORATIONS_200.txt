@@ -295,7 +295,7 @@ Q. TESTS & QUALITÉ (182-189)
 R. SÉCURITÉ (190-194)
 --------------------------------------------------------------------------------
 190. [M](**) Authentification locale simple (mot de passe/PIN) si exposé hors localhost.
-191. [S](**) Restreindre CORS aux origines réelles (actuellement allow_methods/headers="*").
+191. [S](**) Restreindre CORS aux origines réelles (actuellement allow_methods/headers="*").   ← FINIS ✓ (méthodes/headers explicites configurables cors_methods/cors_headers, fin du wildcard "*" ; expose_headers X-Total-Count/Content-Range pour la pagination #8 ; tests test_cors.py)
 192. [S](**) Secrets via .env validés, jamais commités ; clé API Claude chiffrée au repos.
 193. [S](*) Rate limiting sur les routes coûteuses (analyses finance, robot).
 194. [S](*) En-têtes de sécurité (CSP, X-Frame-Options) sur le front Next.

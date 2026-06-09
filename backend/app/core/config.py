@@ -49,7 +49,10 @@ class Settings(BaseSettings):
     locale: str = "fr-CA"
 
     # --- CORS ---
+    # Origines, méthodes et en-têtes explicites (pas de wildcard "*") — #191.
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_methods: str = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    cors_headers: str = "Content-Type,Authorization,X-Requested-With"
 
     # --- Google Calendar (Agenda #83, OAuth) ---
     # Identifiants OAuth « installed app ». Obtenus via la console Google Cloud,
@@ -129,6 +132,14 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def cors_methods_list(self) -> list[str]:
+        return [m.strip() for m in self.cors_methods.split(",") if m.strip()]
+
+    @property
+    def cors_headers_list(self) -> list[str]:
+        return [h.strip() for h in self.cors_headers.split(",") if h.strip()]
 
     @property
     def repo_root(self) -> Path:

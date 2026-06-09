@@ -86,8 +86,9 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=settings.cors_methods_list,
+        allow_headers=settings.cors_headers_list,
+        expose_headers=["X-Total-Count", "Content-Range"],
     )
     # Routes principales versionnées sous /api/v1 (documentées dans l'OpenAPI).
     app.include_router(api_router, prefix=settings.api_v1_prefix)
