@@ -266,14 +266,16 @@ O. SCHEDULER & NOTIFICATIONS (166-173)
 --------------------------------------------------------------------------------
 P. DONNÉES / IMPORT-EXPORT (174-181)
 --------------------------------------------------------------------------------
-174. [M](**) Export complet (backup JSON) de toutes les données depuis l'UI.
-175. [M](**) Import/restauration depuis un backup JSON.
-176. [S](**) Job de backup quotidien déjà présent : rotation + rétention (garder N derniers).
-177. [S](*) Vérification d'intégrité du backup (PRAGMA integrity_check).
-178. [M](**) Seeds de démo réalistes pour tester l'UI sans données perso.
-179. [S](*) Validation Pydantic stricte des imports legacy (rapport d'erreurs).
-180. [M](**) Migration des données vers Postgres optionnelle (si multi-appareils plus tard).
-181. [S](*) Export par module (CSV) depuis chaque vue.
+174. [M](**) Export complet (backup JSON) de toutes les données depuis l'UI.   ← FINIS ✓ (data_io.export_all : découverte dynamique de toutes les tables (registre SQLAlchemy) ; GET /data/export téléchargeable ; page Données → « Exporter le backup ».)
+175. [M](**) Import/restauration depuis un backup JSON.   ← FINIS ✓ (import_all mode replace/merge ; POST /data/import ; page Données → upload + Remplacer/Fusionner + rapport ; tests roundtrip.)
+176. [S](**) Job de backup quotidien déjà présent : rotation + rétention (garder N derniers).   ← FINIS ✓ (prune_backups garde backup_retention_count=14 derniers ; test TDD.)
+177. [S](*) Vérification d'intégrité du backup (PRAGMA integrity_check).   ← FINIS ✓ (integrity_ok après chaque backup ; backup corrompu supprimé + job en échec ; tests OK/KO.)
+178. [M](**) Seeds de démo réalistes pour tester l'UI sans données perso.   ← FINIS ✓ (demo.seed_demo : budget/habitudes/livres/agenda cohérents ; POST /data/seed-demo (?force) + bouton page Données ; test TDD.)
+179. [S](*) Validation Pydantic stricte des imports legacy (rapport d'erreurs).   ← FINIS ✓ (import via model_validate (valide ET coerce les dates ISO) ; erreurs collectées par table/ligne et renvoyées dans le rapport, sans crash ; test « lignes invalides ».)
+180. [M](**) Migration des données vers Postgres optionnelle (si multi-appareils plus tard).   ← FINIS ✓ (app pilotée par DATABASE_URL, specificités SQLite conditionnées (db.py, backup_db) ; chemin de migration des données via export/import JSON ; guide backend/docs/POSTGRES.md.)
+181. [S](*) Export par module (CSV) depuis chaque vue.   ← FINIS ✓ (export_table_csv + GET /data/export/{table}.csv + GET /data/tables ; sélecteur de table → CSV dans la page Données ; test TDD. (CSV budget/finance/buffett existants conservés.))
+
+>>> SECTION P (Données / Import-Export, 174-181) TERMINÉE <<<
 
 --------------------------------------------------------------------------------
 Q. TESTS & QUALITÉ (182-189)
