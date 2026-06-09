@@ -85,6 +85,22 @@ export default function SemaineTab() {
     }
   }
 
+  async function handleIcalSync() {
+    // Import d'un calendrier externe via URL .ics (ex. Agendrix). L'URL est
+    // mémorisée localement pour permettre une re-synchro en un clic.
+    const saved = typeof window !== "undefined" ? window.localStorage.getItem("ical_sync_url") ?? "" : "";
+    const url = window.prompt("URL iCal (.ics) à importer — ex. Agendrix :", saved);
+    if (!url) return;
+    try {
+      window.localStorage.setItem("ical_sync_url", url);
+      const r = await syncIcalUrl(url);
+      window.alert(`iCal : ${r.created_events} ajouté(s), ${r.skipped_duplicates} déjà présent(s).`);
+      setWeekStart((d) => new Date(d));
+    } catch {
+      window.alert("Import iCal impossible (URL invalide ou injoignable).");
+    }
+  }
+
   const catOf = (ev: Evenement) => ev.categorie || "autre";
   const presentCats = useMemo(
     () => Array.from(new Set(events.map(catOf))).sort(),
@@ -148,6 +164,14 @@ export default function SemaineTab() {
           title={gcalReady ? "Synchroniser depuis Google Calendar (OAuth)" : "Importer un calendrier Google via son URL .ics secrète"}
         >
           ⇄ Google{gcalReady ? " ✓" : ""}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => void handleIcalSync()}
+          title="Importer / re-synchroniser un calendrier externe via son URL .ics (ex. Agendrix)"
+        >
+          ⇄ iCal
         </Button>
       </div>
 
