@@ -1,6 +1,7 @@
 ================================================================================
-MISSION CONTROL — 200 AMÉLIORATIONS & AJOUTS POSSIBLES
-Généré le 2026-06-01 · ancré sur l'état réel du code (graphe graphify à jour)
+MISSION CONTROL — 500 AMÉLIORATIONS & AJOUTS POSSIBLES
+Généré le 2026-06-01 (1-200) · étendu le 2026-06-09 (201-500, deuxième vague)
+Ancré sur l'état réel du code (graphe graphify à jour)
 ================================================================================
 
 Légende d'effort : [S] petit  [M] moyen  [L] gros
@@ -320,3 +321,390 @@ PRIORITÉS SUGGÉRÉES (quick wins à fort impact)
 - #166/168 UI scheduler + centre de notifications (le backend est déjà là)
 - #153 implémenter le module Robot (seul module encore en stub)
 ================================================================================
+
+
+================================================================================
+DEUXIÈME VAGUE — 300 AMÉLIORATIONS SUPPLÉMENTAIRES (201-500)
+Ajouté le 2026-06-09 · ambition : automatisations de vie, IA proactive, nouveaux
+modules & pages, intégrations, complétude maximale. Même légende d'effort/impact.
+================================================================================
+
+--------------------------------------------------------------------------------
+T. AUTOMATISATIONS DE VIE & ROUTINES (201-220)
+--------------------------------------------------------------------------------
+201. [M](***) Moteur de routines déclaratif : décrire une routine (déclencheur → conditions → actions) en UI/YAML et l'exécuter via le scheduler.
+202. [M](***) Bus d'événements interne : réagir à un événement métier (nouvelle transaction, poids saisi, séance loggée) et pas seulement au cron.
+203. [M](**) Routine matinale auto : briefing du jour (météo, agenda, tâches, macro cible, tenue suggérée) poussé en notification à heure fixe.
+204. [M](**) Routine du soir : récap journée (dépenses, calories, habitudes, demain) + préparation du lendemain.
+205. [L](***) Constructeur d'automatisations no-code visuel (« if this then that ») entre modules.
+206. [M](**) Modèles de routines prêts à l'emploi (semaine type, jour sport, jour off) activables en un clic.
+207. [S](**) Mode « vacances/absence » qui suspend les rappels non essentiels et adapte les routines.
+208. [M](**) Courses auto : quand un ingrédient récurrent passe sous un seuil, l'ajouter à la liste.
+209. [M](**) Réapprovisionnement auto des consommables (skincare, compléments) basé sur la cadence de consommation.
+210. [M](**) Remplissage auto de la semaine depuis les objectifs (sport, études, repas) en respectant les contraintes d'agenda.
+211. [M](**) Rééquilibrage budgétaire auto en fin de mois (report d'enveloppes, ajustement des cibles).
+212. [M](***) « Journal de vie » auto-généré : snapshot quotidien unifié multi-modules, consultable jour par jour.
+213. [M](**) Détection d'anomalies de routine (sommeil/poids/dépenses qui dévient) avec alerte proactive.
+214. [S](**) Rappels contextuels (heure + lieu si dispo) plutôt que purement horaires.
+215. [M](**) Chaînage d'actions cross-module (« recettes ») avec confirmation unique.
+216. [M](**) File d'automatisations avec historique, ré-exécution et rollback.
+217. [S](*) Kill switch global des automatisations + journal d'audit des déclenchements.
+218. [M](**) Suggestions d'automatisation apprises de tes habitudes (« tu fais X tous les lundis, automatiser ? »).
+219. [M](**) Webhooks entrants/sortants pour déclencher/notifier des automatisations depuis l'extérieur.
+220. [M](**) Planificateur « deep work » : réserve auto des blocs de concentration selon la charge agenda/études.
+
+--------------------------------------------------------------------------------
+U. INTELLIGENCE TRANSVERSALE & CORRÉLATIONS (221-235)
+--------------------------------------------------------------------------------
+221. [L](***) Moteur de corrélations cross-modules (sommeil↔poids↔énergie↔productivité↔dépenses) avec visualisations.
+222. [M](***) Score de bien-être global quotidien agrégeant santé, finance, habitudes, agenda.
+223. [M](**) Insights hebdomadaires auto-générés (tendances, réussites, points de vigilance).
+224. [M](**) Détection de causalités probables (nuits courtes → grignotage → dépassement calorique).
+225. [M](**) Tableau de bord « Vue 360 » : synthèse de toute ta vie sur un écran.
+226. [M](**) Objectifs de vie inter-modules (ex. perdre 5 kg + économiser 2000€ en 3 mois) avec suivi unifié.
+227. [M](**) Recommandations personnalisées priorisées par impact estimé.
+228. [M](**) Prédiction de tendances (poids, épargne, dépenses) par régression/séries temporelles.
+229. [S](**) Comparaison période sur période (cette semaine vs précédente) partout.
+230. [M](**) « Time machine » : rejouer l'état de ta vie à une date passée (snapshots navigables).
+231. [M](**) Détection de surcharge (agenda + études + sport trop denses) avec suggestion d'allègement.
+232. [M](**) Budget d'énergie personnelle : modéliser ta capacité du jour et caler les tâches dessus.
+233. [M](**) Heatmap annuelle multi-métriques (style contributions) par domaine de vie.
+234. [M](**) Rapports mensuels PDF « bilan de vie » automatiques et archivés.
+235. [M](**) Alertes de seuils configurables sur n'importe quelle métrique de n'importe quel module.
+
+--------------------------------------------------------------------------------
+V. ASSISTANT IA PROACTIF & AGENTS (236-255)
+--------------------------------------------------------------------------------
+236. [L](***) Agent IA proactif quotidien qui propose des actions concrètes (pas seulement répond).
+237. [L](***) Mémoire long terme de l'assistant (préférences, faits, historique) persistée et requêtable (RAG local).
+238. [M](***) Agent multi-étapes avec plan + confirmation (approfondir l'existant #156).
+239. [M](**) Sous-agents spécialisés (finance, santé, agenda) orchestrés par un agent chef.
+240. [M](**) Chat vocal mains libres avec l'assistant (STT + TTS).
+241. [M](**) Briefing audio quotidien généré (podcast personnel de ta journée).
+242. [M](**) Assistant qui rédige tes messages/mails à partir d'un contexte (brouillons).
+243. [M](**) Q&A en langage naturel sur tes propres données (« combien dépensé en resto en mai ? »).
+244. [M](**) Coaching IA contextuel par module (nutrition, finance, études) au ton personnalisable.
+245. [M](**) Détection d'intention : une phrase libre route vers la bonne action/module.
+246. [M](**) Résumé automatique des notes/articles/livres sauvegardés.
+247. [M](**) Génération de plans (repas, entraînement, révisions) ajustés en langage naturel.
+248. [M](**) Agent « négociateur de calendrier » qui replanifie en cas de conflit.
+249. [M](**) Garde-fous & confirmations renforcés pour les actions sensibles de l'agent.
+250. [M](**) Historique conversationnel multi-sessions avec recherche sémantique.
+251. [M](**) Sélecteur de modèle/raisonnement par tâche (rapide vs profond) avec coût estimé.
+252. [M](**) Mode « explique-moi » : l'IA justifie chaque reco avec les données source.
+253. [M](**) Agent de veille : surveille sujets/prix/news et te notifie.
+254. [M](**) Personnalisation few-shot sur ton style à partir de tes données.
+255. [M](**) Feedback qualité des réponses IA (pouce haut/bas) qui améliore les prompts.
+
+--------------------------------------------------------------------------------
+W. FINANCES PERSONNELLES AVANCÉES (256-270)
+--------------------------------------------------------------------------------
+256. [L](***) Agrégation bancaire (open banking / import OFX/CSV multi-comptes) avec catégorisation auto.
+257. [M](***) Vue patrimoine net consolidée (comptes, placements, immobilier, dettes) dans le temps.
+258. [M](**) Catégorisation automatique des transactions par ML + règles apprenables.
+259. [M](**) Prévision de trésorerie (cash-flow) sur 1-12 mois avec scénarios.
+260. [M](**) Détection d'abonnements récurrents et alertes hausses/doublons.
+261. [M](**) Suivi et optimisation fiscale (PEA, CTO, plus-values, impôts estimés).
+262. [M](**) Simulateur de prêts/crédits (mensualités, coût total, remboursement anticipé).
+263. [M](**) Objectifs d'épargne par enveloppe avec virements programmés simulés.
+264. [M](**) Comparateur de scénarios d'investissement (DCA vs lump sum, allocations).
+265. [M](**) Alertes de marché personnalisées (seuils de prix, dividendes, résultats).
+266. [M](**) Dépenses récurrentes vs ponctuelles avec projection annuelle.
+267. [M](**) Multi-devises consolidées avec historique de change (étendre #55).
+268. [M](**) Rapport d'indépendance financière (FIRE) : taux d'épargne, années restantes.
+269. [M](**) Suivi immobilier (valeur, loyers, charges, rendement).
+270. [M](**) Coffre-fort de documents financiers (relevés, contrats) chiffré et indexé.
+
+--------------------------------------------------------------------------------
+X. SANTÉ & BIEN-ÊTRE APPROFONDIS (271-288)
+--------------------------------------------------------------------------------
+271. [L](***) Intégration wearables (Apple Health / Google Fit / Garmin) : pas, FC, sommeil, VO2.
+272. [M](***) Suivi fréquence cardiaque et VFC (HRV) avec tendance de récupération.
+273. [M](**) Score de récupération quotidien (sommeil + VFC + charge) pilotant l'intensité conseillée.
+274. [M](**) Suivi du cycle / chronotype et adaptation des recommandations.
+275. [M](**) Journal de symptômes & corrélation avec alimentation/sommeil/stress.
+276. [M](**) Suivi compléments/médicaments avec rappels et interactions.
+277. [M](**) Hydratation intelligente (cible adaptée à météo + activité, étendre #66).
+278. [M](**) Suivi du stress / humeur (journal + tendances + déclencheurs).
+279. [M](**) Méditation / respiration guidée avec suivi de pratique.
+280. [M](**) Bibliothèque d'exercices avec démonstrations et progressions.
+281. [M](**) Périodisation d'entraînement (mésocycles, deload) automatique.
+282. [M](**) Estimation 1RM et suivi des records personnels (PR) par exercice.
+283. [M](**) Scanner code-barres alimentaire (Open Food Facts) pour saisie rapide.
+284. [M](**) Analyse micro-nutriments (vitamines, minéraux) au-delà des macros.
+285. [M](**) Suivi composition corporelle (masse grasse/maigre) via impédancemètre.
+286. [M](**) Rappels santé préventive (bilans, vaccins, dentiste) avec calendrier.
+287. [M](**) Score de qualité du sommeil détaillé (cycles, latence, régularité).
+288. [M](**) Coach posture / pauses écran pendant les sessions de travail.
+
+--------------------------------------------------------------------------------
+Y. PRODUCTIVITÉ, OBJECTIFS & VIE PRO (289-305)
+--------------------------------------------------------------------------------
+289. [M](***) Module Objectifs/OKR : objectifs trimestriels, résultats clés mesurables, suivi.
+290. [M](**) Gestion de projets personnels (tâches, jalons, dépendances, Kanban).
+291. [M](**) Inbox de capture rapide universelle (note, tâche, idée) type GTD.
+292. [M](**) Time tracking par activité avec rapports (où passe ton temps).
+293. [M](**) Pomodoro intégré avec stats de focus.
+294. [M](**) Suivi de carrière (CV, compétences, réalisations, entretiens).
+295. [M](**) Préparation d'entretiens / négociation salariale assistée par IA.
+296. [M](**) CRM personnel léger (contacts pro & réseau).
+297. [M](**) Suivi des candidatures / opportunités (pipeline).
+298. [M](**) Notes type Zettelkasten avec liens bidirectionnels.
+299. [M](**) Veille pro (RSS/newsletters) triée et résumée par IA.
+300. [M](**) Journal de décisions (decision log) avec revue a posteriori.
+301. [M](**) Suivi temps d'écran / distractions et objectifs de déconnexion.
+302. [M](**) Planificateur de « thèmes de journée » (lundi admin, mardi création...).
+303. [M](**) Coffre de mots de passe / accès local chiffré.
+304. [M](**) Suivi des formations/certifications avec échéances.
+305. [M](**) Tableau « deep life » : alignement temps réel entre valeurs et emploi du temps.
+
+--------------------------------------------------------------------------------
+Z. MAISON CONNECTÉE & DOMOTIQUE (306-320)
+--------------------------------------------------------------------------------
+306. [L](**) Intégration Home Assistant / MQTT (piloter et lire les capteurs maison).
+307. [M](**) Tableau de bord domotique (lumières, température, énergie).
+308. [M](**) Suivi conso énergétique (élec, eau, gaz) avec coûts et alertes.
+309. [M](**) Routines maison (réveil, départ, coucher) synchronisées avec l'agenda.
+310. [M](**) Températures/humidité par pièce et confort thermique.
+311. [M](**) Entretien maison (filtres, révisions, jardinage) avec rappels.
+312. [M](**) Inventaire du domicile (objets, garanties, manuels) pour l'assurance.
+313. [M](**) Maintenance véhicule (révisions, pneus, assurance, contrôle technique).
+314. [M](**) Conso carburant / recharge VE et coûts.
+315. [M](**) Gestion des plantes (arrosage, lumière) avec rappels.
+316. [M](**) Suivi des animaux (alimentation, véto, vaccins).
+317. [M](**) Sécurité maison (caméras/capteurs) — état et alertes.
+318. [M](**) Calendrier de collecte déchets/recyclage local.
+319. [M](**) Optimisation énergétique (heures creuses, pilotage des charges).
+320. [M](**) Météo intérieure vs extérieure et conseils d'aération.
+
+--------------------------------------------------------------------------------
+AA. VOYAGES & MOBILITÉ (321-333)
+--------------------------------------------------------------------------------
+321. [L](**) Module Voyages : itinéraires, réservations, budget par voyage.
+322. [M](**) Checklist de bagages intelligente selon destination/météo/durée.
+323. [M](**) Suivi des vols (statut, retards) et rappels d'enregistrement.
+324. [M](**) Carnet de voyage (photos, lieux, notes) géolocalisé.
+325. [M](**) Convertisseur de devises hors-ligne avec taux du jour.
+326. [M](**) Suggestions d'activités/restaurants par destination (IA + API).
+327. [M](**) Budget voyage avec dépenses en temps réel et multi-devises.
+328. [M](**) Documents de voyage (passeport, visas, assurances) avec expirations.
+329. [M](**) Suivi des points de fidélité (miles, hôtels).
+330. [M](**) Planificateur de trajets quotidiens (transports, vélo, temps).
+331. [M](**) Empreinte carbone des déplacements et compensation.
+332. [M](**) Phrases utiles / traduction hors-ligne par pays.
+333. [M](**) Bucket list de lieux à visiter avec carte.
+
+--------------------------------------------------------------------------------
+AB. RELATIONS, SOCIAL & ÉVÉNEMENTS (334-345)
+--------------------------------------------------------------------------------
+334. [M](**) Carnet relationnel : anniversaires, dates clés, rappels de prise de nouvelles.
+335. [M](**) Suivi des cadeaux (idées, offerts, budget) par personne.
+336. [M](**) Planification d'événements (invités, budget, tâches, RSVP).
+337. [M](**) Historique des interactions (qui, quand, quoi) — CRM de vie.
+338. [M](**) Rappels d'entretien des relations (ne pas perdre le contact).
+339. [M](**) Partage sélectif de modules avec des proches (lecture seule).
+340. [M](**) Listes partagées (courses, ménage) multi-utilisateurs.
+341. [M](**) Suggestions de sorties selon agenda libre + météo + budget.
+342. [M](**) Journal de gratitude / moments marquants.
+343. [M](**) Suivi des prêts/emprunts entre amis (objets, argent).
+344. [M](**) Calendrier familial partagé synchronisé.
+345. [M](**) Recherche de créneau commun à plusieurs.
+
+--------------------------------------------------------------------------------
+AC. APPRENTISSAGE & DÉVELOPPEMENT PERSONNEL (346-358)
+--------------------------------------------------------------------------------
+346. [M](**) Révision espacée (SRS / flashcards type Anki) intégrée.
+347. [M](**) Suivi de cours en ligne (MOOCs) avec progression et échéances.
+348. [M](**) Base de connaissances personnelle (notes + recherche sémantique).
+349. [M](**) Apprentissage de langues (vocabulaire, pratique, niveau).
+350. [M](**) Objectifs de lecture annuels + recommandations (étendre Livres).
+351. [M](**) Fiches de lecture générées par IA depuis tes surlignages.
+352. [M](**) Suivi de compétences (skill tree) avec niveaux et preuves.
+353. [M](**) Curation de contenus (à lire/voir plus tard) priorisée.
+354. [M](**) Quiz auto-générés depuis tes notes pour t'auto-évaluer.
+355. [M](**) Journal d'apprentissage quotidien (« qu'ai-je appris aujourd'hui ? »).
+356. [M](**) Suivi de pratique délibérée (instrument, code, sport) avec stats.
+357. [M](**) Progression d'un projet d'apprentissage long terme.
+358. [M](**) Intégration podcasts/vidéos avec notes horodatées.
+
+--------------------------------------------------------------------------------
+AD. DOCUMENTS, ADMINISTRATIF & VIE PRATIQUE (359-372)
+--------------------------------------------------------------------------------
+359. [L](**) Gestionnaire de documents (OCR, tags, recherche plein-texte) chiffré.
+360. [M](**) Échéances administratives (papiers, renouvellements) avec rappels.
+361. [M](**) Coffre-fort numérique (identités, contrats, garanties).
+362. [M](**) Suivi des abonnements/contrats (échéances, résiliations, coûts).
+363. [M](**) Garanties produits avec preuves d'achat.
+364. [M](**) Numérisation et classement automatique des reçus.
+365. [M](**) Suivi des remboursements (santé, assurances) en attente.
+366. [M](**) Templates de courriers administratifs générés par IA.
+367. [M](**) Rappels impôts / déclarations avec checklist.
+368. [M](**) Annuaire personnel (médecins, artisans, services) avec notes.
+369. [M](**) Suivi des contrats d'assurance (couvertures, sinistres).
+370. [M](**) Gestion des accès partagés du foyer (Wi-Fi, comptes).
+371. [M](**) Export/archivage légal de documents avec horodatage.
+372. [M](**) Suivi des démarches en cours (workflow administratif).
+
+--------------------------------------------------------------------------------
+AE. DONNÉES, ANALYTICS & TABLEAUX DE BORD (373-385)
+--------------------------------------------------------------------------------
+373. [L](***) Constructeur de tableaux de bord personnalisables (widgets, drag-drop, par utilisateur).
+374. [M](**) Explorateur de données ad hoc (requêtes visuelles sur tous les modules).
+375. [M](**) Graphiques avancés (corrélation, distribution, cohortes).
+376. [M](**) Export universel (CSV/JSON/Parquet) de n'importe quelle vue.
+377. [M](**) Rapports planifiés envoyés par mail/notification.
+378. [M](**) Annotations sur les graphiques (marquer un événement de vie).
+379. [M](**) Comparateur de métriques arbitraires (overlay multi-séries).
+380. [M](**) Data warehouse local (DuckDB) pour analyses lourdes hors SQLite.
+381. [M](**) KPI personnels configurables avec objectifs et alertes.
+382. [M](**) Vue « année en revue » automatique (wrapped) multi-domaines.
+383. [M](**) Détection statistique d'anomalies sur les séries temporelles.
+384. [M](**) Tendances saisonnières et désaisonnalisation.
+385. [M](**) Sauvegarde/restauration des configurations de tableaux de bord.
+
+--------------------------------------------------------------------------------
+AF. INTÉGRATIONS EXTERNES & API (386-400)
+--------------------------------------------------------------------------------
+386. [M](**) Intégration Notion / Obsidian (sync notes bidirectionnelle).
+387. [M](**) Intégration Todoist / Things (sync tâches).
+388. [M](**) Intégration Spotify (écoutes, humeur musicale, stats).
+389. [M](**) Intégration Strava (activités sportives détaillées).
+390. [M](**) Intégration YouTube/Pocket (file de visionnage/lecture).
+391. [M](**) Intégration mail (IMAP) : extraction reçus, confirmations, échéances.
+392. [M](**) Agrégation bancaire (Bridge/Plaid/Powens).
+393. [M](**) Calendriers tiers (Outlook, iCloud) au-delà de Google.
+394. [M](**) Météo enrichie (qualité air, pollen, UV).
+395. [M](**) API publique documentée pour étendre soi-même.
+396. [M](**) Bridge Zapier/Make/IFTTT pour connecter 1000+ services.
+397. [M](**) Import depuis apps existantes (MyFitnessPal, YNAB, etc.).
+398. [M](**) Marketplace de plugins/extensions communautaires.
+399. [M](**) SDK/système de plugins pour ajouter des modules tiers.
+400. [M](**) Webhooks génériques entrants/sortants par module.
+
+--------------------------------------------------------------------------------
+AG. MOBILE, PWA, OFFLINE & MULTI-APPAREIL (401-412)
+--------------------------------------------------------------------------------
+401. [L](***) App mobile native (ou PWA avancée) avec parité fonctionnelle.
+402. [M](**) Mode hors-ligne complet avec sync différée et résolution de conflits.
+403. [M](**) Notifications push mobiles (web push + natif).
+404. [M](**) Widgets d'écran d'accueil (stats clés) mobile.
+405. [M](**) Saisie rapide mobile (partage, raccourcis Siri/Shortcuts).
+406. [M](**) Synchronisation multi-appareils chiffrée de bout en bout.
+407. [M](**) Mode tablette optimisé (layouts adaptatifs avancés).
+408. [M](**) Complications Apple Watch / Wear OS (stats au poignet).
+409. [M](**) Capture photo rapide (reçus, repas, vêtements) mobile.
+410. [M](**) Géolocalisation pour rappels et journal de lieux.
+411. [M](**) Biométrie (Face/Touch ID) pour déverrouiller l'app.
+412. [M](**) Partage natif (share sheet) vers les modules.
+
+--------------------------------------------------------------------------------
+AH. VOIX, MULTIMODAL & ACCESSIBILITÉ (413-423)
+--------------------------------------------------------------------------------
+413. [M](***) Commandes vocales (STT) pour saisir et naviguer.
+414. [M](**) Synthèse vocale (TTS) des briefings et résumés.
+415. [M](**) Assistant vocal mains libres (« Hey Mission Control... »).
+416. [M](**) Dictée pour notes/journal avec ponctuation auto.
+417. [M](**) Reconnaissance d'images (repas → calories, vêtement → catégorie).
+418. [M](**) Mode accessibilité renforcé (lecteur d'écran, contrastes, tailles).
+419. [M](**) Navigation 100% clavier auditée et raccourcis avancés (étendre #38).
+420. [M](**) Sous-titres/transcriptions pour contenus audio/vidéo.
+421. [M](**) Thèmes daltoniens et réglages de mouvement réduit.
+422. [M](**) Saisie gestuelle / raccourcis personnalisables.
+423. [M](**) Interface multilingue complète (i18n, étendre #27).
+
+--------------------------------------------------------------------------------
+AI. SÉCURITÉ, VIE PRIVÉE & SOUVERAINETÉ DES DONNÉES (424-435)
+--------------------------------------------------------------------------------
+424. [M](***) Chiffrement au repos des données sensibles (SQLCipher / par champ).
+425. [M](**) Authentification locale optionnelle (PIN/biométrie) si activée.
+426. [M](**) Journal d'audit des accès et modifications sensibles.
+427. [M](**) Sauvegardes chiffrées automatiques (local + cloud au choix).
+428. [M](**) Export/suppression complète des données (portabilité, RGPD perso).
+429. [M](**) Anonymisation pour partage/démo (données factices).
+430. [M](**) Permissions fines par module/donnée.
+431. [M](**) Coffre de secrets séparé pour clés API et tokens.
+432. [M](**) Alertes de connexion / détection d'accès anormal.
+433. [M](**) Mode « données locales uniquement » (zéro appel externe) vérifiable.
+434. [M](**) Rotation et expiration des tokens d'intégration.
+435. [M](**) Vérification automatique d'intégrité des sauvegardes (restore test).
+
+--------------------------------------------------------------------------------
+AJ. IA/ML LOCALE & MODÈLES PRÉDICTIFS (436-450)
+--------------------------------------------------------------------------------
+436. [L](***) LLM local optionnel (Ollama/llama.cpp) pour un usage 100% privé.
+437. [M](**) Embeddings locaux + base vectorielle (recherche sémantique sur tes données).
+438. [M](**) Prédiction poids/composition selon apports/activité.
+439. [M](**) Prévision de dépenses par catégorie (séries temporelles).
+440. [M](**) Recommandation de repas par apprentissage de tes préférences.
+441. [M](**) Classification automatique (transactions, notes, photos).
+442. [M](**) Détection d'anomalies ML (santé, finance) non supervisée.
+443. [M](**) Optimisation d'emploi du temps par contraintes (solveur).
+444. [M](**) Scoring de priorité des tâches appris de ton comportement.
+445. [M](**) Prédiction d'adhérence aux habitudes et nudges adaptatifs.
+446. [M](**) Résumé local de documents longs (extractif/abstractif).
+447. [M](**) Pipeline d'entraînement reproductible (MLOps léger).
+448. [M](**) Explicabilité des prédictions (importance des variables).
+449. [M](**) A/B des recommandations et mesure d'impact.
+450. [M](**) Déduplication intelligente (entités/doublons).
+
+--------------------------------------------------------------------------------
+AK. GAMIFICATION & MOTIVATION (451-460)
+--------------------------------------------------------------------------------
+451. [M](**) Badges/achievements multi-modules.
+452. [M](**) Streaks unifiés (séries) avec protections et récupération.
+453. [M](**) Niveaux/XP de vie par domaine avec progression.
+454. [M](**) Défis personnels (challenges) avec échéances et récompenses.
+455. [M](**) Tableau de motivation (citations, progrès, « pourquoi »).
+456. [M](**) Comparaison avec soi-même (records, jalons) plutôt qu'avec autrui.
+457. [M](**) Récompenses auto-débloquées à l'atteinte d'objectifs.
+458. [M](**) Visualisation « arbre de vie » qui grandit avec tes accomplissements.
+459. [M](**) Rappels motivationnels contextuels (non spammeurs).
+460. [M](**) Rituels de revue hebdo/mensuelle gamifiés.
+
+--------------------------------------------------------------------------------
+AL. DÉVELOPPEMENT, QUALITÉ & PLATEFORME (461-475)
+--------------------------------------------------------------------------------
+461. [M](**) Couverture de tests cible (back/front) mesurée et suivie en CI.
+462. [M](**) Tests de charge/performance des endpoints lourds.
+463. [M](**) Monitoring applicatif local (métriques, traces, OpenTelemetry).
+464. [M](**) Feature flags pour activer/désactiver des modules à chaud.
+465. [M](**) Migration optionnelle SQLite → Postgres pour scaler.
+466. [M](**) Internationalisation backend des messages d'erreur.
+467. [M](**) Aide contextuelle intégrée + documentation utilisateur.
+468. [M](**) Onboarding guidé première utilisation (tour interactif).
+469. [M](**) Thèmes/skins personnalisables au-delà clair/sombre.
+470. [M](**) Mode démo avec données générées réalistes.
+471. [M](**) Versioning et changelog visibles dans l'app.
+472. [M](**) Télémétrie locale opt-in pour améliorer l'UX (privée).
+473. [M](**) Tests de contrat API back/front automatiques (étendre l'existant).
+474. [M](**) Accessibilité auditée (axe-core) en CI.
+475. [M](**) Budget de performance front (Lighthouse) en CI.
+
+--------------------------------------------------------------------------------
+AM. NOUVEAUX MODULES DE VIE (476-500)
+--------------------------------------------------------------------------------
+476. [L](***) Module « Journaling » avec prompts IA et analyse d'humeur.
+477. [L](**) Module « Nutrition avancée » (batch cooking, gestion des restes).
+478. [L](**) Module « Jardin/Potager » (semis, arrosage, récoltes, calendrier).
+479. [L](**) Module « Collections » (vins, jeux, livres, vinyles) avec valeur.
+480. [L](**) Module « DIY/Bricolage » (plans, matériaux, budget, étapes).
+481. [L](**) Module « Bénévolat/Engagement » (heures, causes, impact).
+482. [L](**) Module « Investissement alternatif » (crypto, P2P, crowdfunding).
+483. [L](**) Module « Carrière & Compétences » (parcours, mentors, objectifs).
+484. [L](**) Module « Créativité » (idées, écriture, musique, art).
+485. [L](**) Module « Mindfulness » (pratiques, intentions, gratitude).
+486. [L](**) Module « Famille/Enfants » (suivi, école, activités, santé).
+487. [L](**) Module « Réceptions » (menus invités, allergies, organisation).
+488. [L](**) Module « Style/Mode » avancé (lookbook, capsule wardrobe, tendances).
+489. [L](**) Module « Beauté/Soins » élargi (cheveux, ongles) au-delà skincare.
+490. [L](**) Module « Sport collectif/Clubs » (matchs, équipes, stats).
+491. [L](**) Module « Finances du foyer » (multi-personnes, partage des charges).
+492. [L](**) Module « Patrimoine numérique » (comptes, abonnements, legs numérique).
+493. [L](**) Module « Santé mentale » (exercices CBT, suivi d'humeur, thérapie).
+494. [L](**) Module « Productivité créative » (deep work, flow, sprints).
+495. [L](**) Module « Écologie/Empreinte » (carbone, consommation, gestes).
+496. [L](**) Module « Mobilité douce » (vélo, marche, défis, trajets).
+497. [L](**) Module « Événements de vie » (déménagement, mariage, naissance) avec checklists.
+498. [L](**) Module « Long terme/Retraite » (projection, FIRE, planification).
+499. [L](**) Module « Communauté » (groupes, entraide, partage de modules).
+500. [L](***) « Mission Control OS » : marketplace de modules + thèmes + automatisations, extensible par la communauté.
