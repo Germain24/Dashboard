@@ -233,19 +233,21 @@ M. MODULE LIVRES (143-152)
 --------------------------------------------------------------------------------
 N. MODULE ROBOT / IA (153-165)
 --------------------------------------------------------------------------------
-153. [L](***) Implémenter réellement le module (aujourd'hui stub /ping) : chat avec l'API Claude (claude-opus-4-8).
-154. [M](***) Tool use : donner à l'agent accès en lecture aux modules (finance, santé…) via outils internes.
-155. [M](**) Prompt caching sur le contexte système pour réduire coût/latence (skill claude-api).
-156. [M](***) Mutations contrôlées : l'agent peut créer une dépense, loguer une séance, sur confirmation.
-157. [S](**) Streaming des réponses (SSE) côté frontend.
-158. [S](**) Historique de conversations persistant (table dédiée).
-159. [M](**) Récapitulatif quotidien généré par l'agent (« voici ta journée »).
-160. [M](**) Insights proactifs : l'agent repère une tendance (dépenses ↑, sommeil ↓) et alerte.
-161. [S](*) Réglage du modèle/température dans les paramètres.
-162. [M](**) RAG sur les notes/livres/sessions pour répondre avec contexte personnel.
-163. [S](**) Garde-fous : confirmation avant toute action destructive, journal des actions de l'agent.
-164. [M](**) Commandes en langage naturel (« ajoute 40$ d'épicerie hier »).
-165. [S](*) Coût d'usage API affiché (tokens, $) par conversation.
+153. [L](***) Implémenter réellement le module (aujourd'hui stub /ping) : chat avec l'API Claude (claude-opus-4-8).   ← FINIS ✓ (SDK anthropic, agent.stream_chat : thinking adaptive, boucle tool use, POST /robot/chat en SSE ; dégradation propre sans clé API. Front RobotChat (bulles + streaming).)
+154. [M](***) Tool use : donner à l'agent accès en lecture aux modules (finance, santé…) via outils internes.   ← FINIS ✓ (robot/tools.py : get_budget_month, get_finance_portfolio, get_habitudes_today, get_agenda_today, get_livres_stats — exécutés auto ; tests TDD.)
+155. [M](**) Prompt caching sur le contexte système pour réduire coût/latence (skill claude-api).   ← FINIS ✓ (system envoyé en bloc unique avec cache_control ephemeral.)
+156. [M](***) Mutations contrôlées : l'agent peut créer une dépense, loguer une séance, sur confirmation.   ← FINIS ✓ (add_budget_transaction = outil de mutation ; l'agent ne l'exécute pas, crée une RobotAction « pending » + event SSE pending_action ; POST /actions/{id}/confirm|deny ; UI de confirmation.)
+157. [S](**) Streaming des réponses (SSE) côté frontend.   ← FINIS ✓ (StreamingResponse text/event-stream + lecteur SSE lib/robot.streamChat.)
+158. [S](**) Historique de conversations persistant (table dédiée).   ← FINIS ✓ (RobotConversation/RobotMessage + migration n153 ; CRUD /robot/conversations ; sidebar.)
+159. [M](**) Récapitulatif quotidien généré par l'agent (« voici ta journée »).   ← FINIS ✓ (recap.daily_recap déterministe via les outils + GET /robot/recap.)
+160. [M](**) Insights proactifs : l'agent repère une tendance (dépenses ↑, sommeil ↓) et alerte.   ← FINIS ✓ (insights.build_insights (règles pures : habitudes basses, dépenses>revenus, tâches urgentes) + GET /robot/insights + affichage ; tests TDD.)
+161. [S](*) Réglage du modèle/température dans les paramètres.   ← FINIS ✓ (préférences modèle/effort/max_tokens (robot_prefs.json) + GET/POST /robot/settings + panneau réglages. NB : la température est retirée sur Opus 4.8 → on règle l'« effort ».)
+162. [M](**) RAG sur les notes/livres/sessions pour répondre avec contexte personnel.   ← FINIS ✓ (outil search_notes : recherche dans notes & citations de livres + sessions d'étude.)
+163. [S](**) Garde-fous : confirmation avant toute action destructive, journal des actions de l'agent.   ← FINIS ✓ (guardrails.requires_confirmation ; toute action journalisée dans RobotAction (statut auto/pending/executed/denied) ; tests TDD.)
+164. [M](**) Commandes en langage naturel (« ajoute 40$ d'épicerie hier »).   ← FINIS ✓ (l'agent mappe la phrase sur add_budget_transaction (montant/marchand/date) → confirmation → création ; tests TDD de l'outil.)
+165. [S](*) Coût d'usage API affiché (tokens, $) par conversation.   ← FINIS ✓ (pricing.compute_cost (tarifs par modèle, cache 0.1x/1.25x) + cumul tokens/coût sur RobotConversation + event SSE done + affichage header ; tests TDD.)
+
+>>> SECTION N (Robot/IA, 153-165) TERMINÉE <<<
 
 --------------------------------------------------------------------------------
 O. SCHEDULER & NOTIFICATIONS (166-173)
