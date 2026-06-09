@@ -2,7 +2,7 @@
 
 Dashboard personnel local : finance long terme (Buffett), santé/nutrition,
 garde-robe, agenda, études, entraînement, budget, cuisine, habitudes, livres,
-skincare et un assistant IA (robot). Pensé pour tourner en local sur une machine.
+et skincare. Pensé pour tourner en local sur une machine, sans dépendance à une IA externe.
 
 ## Stack
 
@@ -67,7 +67,6 @@ route `/api/*` vers le backend et le reste vers le front. Le backend tourne avec
 | **Habitudes** | Suivi, rappels, complétion hebdo |
 | **Livres**    | Bibliothèque, statut de lecture |
 | **Skincare**  | Routine du jour |
-| **Robot**     | Assistant IA (chat Claude, outils, recaps, insights) |
 
 ## Configuration (`.env`)
 
@@ -77,14 +76,13 @@ Tout est optionnel — les modules dégradent proprement si non configurés. Voi
 - `GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN` — Google Calendar (OAuth ; le refresh
   token s'obtient via `backend/scripts/google_oauth_setup.py`).
 - `ICAL_SYNC_URLS` — calendriers iCal externes re-synchronisés toutes les 6h (ex. Agendrix).
-- `ANTHROPIC_API_KEY` — active le chat du module Robot.
 - `CORS_ORIGINS/METHODS/HEADERS` — origines/méthodes/en-têtes autorisés (pas de wildcard).
 
 ## Sécurité (local)
 
 - CORS restreint (origines/méthodes/en-têtes explicites).
 - En-têtes de sécurité front (CSP `frame-ancestors 'none'`, X-Frame-Options, nosniff…).
-- Rate limiting sur les routes coûteuses (analyses finance, chat robot) → 429.
+- Rate limiting sur les routes coûteuses (analyses finance) → 429.
 
 ## Commandes utiles
 

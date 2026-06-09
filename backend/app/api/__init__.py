@@ -19,7 +19,6 @@ from app.api import (
     routes_health,
     routes_livres,
     routes_notifications,
-    routes_robot,
     routes_sante,
     routes_scheduler,
     routes_skincare,
@@ -38,7 +37,6 @@ api_router.include_router(routes_budget.router, prefix="/budget", tags=["budget"
 api_router.include_router(routes_cuisine.router, prefix="/cuisine", tags=["cuisine"])
 api_router.include_router(routes_habitudes.router, prefix="/habitudes", tags=["habitudes"])
 api_router.include_router(routes_livres.router, prefix="/livres", tags=["livres"])
-api_router.include_router(routes_robot.router, prefix="/robot", tags=["robot"])
 api_router.include_router(routes_scheduler.router, prefix="/jobs", tags=["jobs"])
 api_router.include_router(routes_notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(routes_skincare.router, prefix="/skincare", tags=["skincare"])

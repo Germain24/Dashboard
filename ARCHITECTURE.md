@@ -51,8 +51,7 @@ Montés deux fois : sous `/api/v1` (documenté, versionné) et à la racine
 (`api/finance/{portfolio,risk,transactions,buffett,rebalancing}.py`) ; les autres
 modules sont des `routes_<module>.py`.
 
-Les routes coûteuses portent une dépendance `rate_limit(...)` (analyses Buffett,
-chat robot).
+Les routes coûteuses portent une dépendance `rate_limit(...)` (analyses Buffett).
 
 ### `services/` — métier
 
@@ -111,6 +110,7 @@ e2e/            Playwright (parcours clés, snapshots visuels)
 
 - **Tests d'abord** (TDD) pour le métier ; logique pure isolée et injectable.
 - Les intégrations externes dégradent proprement quand non configurées
-  (Google Calendar, clé Anthropic, cours indisponibles → repli).
+  (Google Calendar, cours indisponibles → repli). Pas d'IA : le dashboard ne
+  dépend d'aucune API de modèle de langage.
 - Messages d'erreur et libellés en français (fr-CA).
 - CI : lint advisory (dette suivie séparément), tests + build bloquants.

@@ -33,7 +33,6 @@ def test_ping_modules() -> None:
         "agenda",
         "etudes",
         "entrainement",
-        "robot",
     ]
     for m in modules:
         r = client.get(f"/{m}/ping")

@@ -27,7 +27,6 @@ def test_integration_status_presence_only():
     s = SimpleNamespace(
         google_client_id="x", google_client_secret="y", google_refresh_token="z",
         ical_sync_url_list=["https://a.ics"],
-        anthropic_api_key="",
     )
     st = integration_status(s)
-    assert st == {"google_calendar": True, "ical_sync": True, "anthropic": False}
+    assert st == {"google_calendar": True, "ical_sync": True}

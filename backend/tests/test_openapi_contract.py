@@ -19,8 +19,6 @@ EXPECTED = [
     "/jobs/list",
     "/notifications",
     "/notifications/prefs",
-    "/robot/chat",
-    "/robot/conversations",
     "/data/export",
     "/data/import",
 ]

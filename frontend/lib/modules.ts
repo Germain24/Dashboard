@@ -1,6 +1,5 @@
 import {
   BookOpen,
-  Bot,
   Calendar,
   ChefHat,
   Database,
@@ -181,14 +180,6 @@ export const MODULES: Module[] = [
   },
 
   // ── Outils ────────────────────────────────────────────────────
-  {
-    slug: "robot",
-    label: "Robot",
-    description: "Chat avec l'agent IA.",
-    icon: Bot,
-    group: "Outils",
-    ready: true,
-  },
   {
     slug: "jobs",
     label: "Jobs",

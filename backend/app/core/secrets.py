@@ -32,5 +32,4 @@ def integration_status(settings) -> dict[str, bool]:
             and settings.google_refresh_token
         ),
         "ical_sync": bool(settings.ical_sync_url_list),
-        "anthropic": bool(getattr(settings, "anthropic_api_key", "")),
     }
