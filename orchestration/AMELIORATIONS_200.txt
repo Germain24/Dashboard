@@ -684,7 +684,7 @@ AL. DÉVELOPPEMENT, QUALITÉ & PLATEFORME (461-475)
 --------------------------------------------------------------------------------
 AM. NOUVEAUX MODULES DE VIE (476-500)
 --------------------------------------------------------------------------------
-476. [L](***) Module « Journaling » : prompts statiques (banque de questions) + saisie d'humeur manuelle + tendances déterministes (sans IA).
+476. [L](***) Module « Journaling » : prompts statiques (banque de questions) + saisie d'humeur manuelle + tendances déterministes (sans IA).   ← FINIS ✓ (2026-06-09) module Journal/Humeur : MoodEntry (1/jour) + tendances (moyennes/MA7/distribution/tags) + corrélations Pearson humeur/énergie vs sommeil/sport/poids/dépenses ; page /journal (QuickEntry, TrendsTab, CorrelationsPanel) ; sans IA. Tests TDD.
 477. [L](**) Module « Nutrition avancée » (batch cooking, gestion des restes).
 478. [L](**) Module « Jardin/Potager » (semis, arrosage, récoltes, calendrier).
 479. [L](**) Module « Collections » (vins, jeux, livres, vinyles) avec valeur.
