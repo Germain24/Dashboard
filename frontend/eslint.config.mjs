@@ -7,7 +7,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
-  { ignores: [".next/**", "node_modules/**", "lib/types.ts", "openapi.json"] },
+  { ignores: [".next/**", "node_modules/**", "lib/types.ts", "openapi.json", "vitest.config.mts", "vitest.setup.ts"] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
