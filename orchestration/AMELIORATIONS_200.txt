@@ -6,6 +6,7 @@ Ancré sur l'état réel du code (graphe graphify à jour)
 
 Légende d'effort : [S] petit  [M] moyen  [L] gros
 Légende d'impact : (*) confort  (**) valeur réelle  (***) structurant
+Suivi : chaque item terminé est daté — `← FINIS ✓ (AAAA-MM-JJ) <note>`.
 
 --------------------------------------------------------------------------------
 A. ARCHITECTURE & INFRA BACKEND (1-15)
@@ -232,7 +233,7 @@ M. MODULE LIVRES (143-152)
 >>> SECTION M (Livres, 143-152) TERMINÉE <<<
 
 --------------------------------------------------------------------------------
-N. MODULE ROBOT / IA (153-165)
+N. MODULE ROBOT / IA (153-165)   >>> MODULE SUPPRIMÉ (2026-06-09) : pas d'IA dans le dashboard — code retiré (back + front + sidebar). <<<
 --------------------------------------------------------------------------------
 153. [L](***) Implémenter réellement le module (aujourd'hui stub /ping) : chat avec l'API Claude (claude-opus-4-8).   ← FINIS ✓ (SDK anthropic, agent.stream_chat : thinking adaptive, boucle tool use, POST /robot/chat en SSE ; dégradation propre sans clé API. Front RobotChat (bulles + streaming).)
 154. [M](***) Tool use : donner à l'agent accès en lecture aux modules (finance, santé…) via outils internes.   ← FINIS ✓ (robot/tools.py : get_budget_month, get_finance_portfolio, get_habitudes_today, get_agenda_today, get_livres_stats — exécutés auto ; tests TDD.)
@@ -248,7 +249,7 @@ N. MODULE ROBOT / IA (153-165)
 164. [M](**) Commandes en langage naturel (« ajoute 40$ d'épicerie hier »).   ← FINIS ✓ (l'agent mappe la phrase sur add_budget_transaction (montant/marchand/date) → confirmation → création ; tests TDD de l'outil.)
 165. [S](*) Coût d'usage API affiché (tokens, $) par conversation.   ← FINIS ✓ (pricing.compute_cost (tarifs par modèle, cache 0.1x/1.25x) + cumul tokens/coût sur RobotConversation + event SSE done + affichage header ; tests TDD.)
 
->>> SECTION N (Robot/IA, 153-165) TERMINÉE <<<
+>>> SECTION N (Robot/IA, 153-165) — MODULE SUPPRIMÉ (2026-06-09), pas d'IA dans le dashboard <<<
 
 --------------------------------------------------------------------------------
 O. SCHEDULER & NOTIFICATIONS (166-173)
@@ -373,7 +374,7 @@ U. INTELLIGENCE TRANSVERSALE & CORRÉLATIONS (221-235)
 235. [M](**) Alertes de seuils configurables sur n'importe quelle métrique de n'importe quel module.
 
 --------------------------------------------------------------------------------
-V. ASSISTANT IA PROACTIF & AGENTS (236-255)
+V. ASSISTANT IA PROACTIF & AGENTS (236-255)   >>> SECTION ABANDONNÉE ✗ (2026-06-09) : pas d'IA conversationnelle/agents dans le dashboard (l'utilisateur utilise Gemini/ChatGPT à part). Items 236-255 non retenus. <<<
 --------------------------------------------------------------------------------
 236. [L](***) Agent IA proactif quotidien qui propose des actions concrètes (pas seulement répond).
 237. [L](***) Mémoire long terme de l'assistant (préférences, faits, historique) persistée et requêtable (RAG local).
@@ -518,10 +519,10 @@ AC. APPRENTISSAGE & DÉVELOPPEMENT PERSONNEL (346-358)
 348. [M](**) Base de connaissances personnelle (notes + recherche sémantique).
 349. [M](**) Apprentissage de langues (vocabulaire, pratique, niveau).
 350. [M](**) Objectifs de lecture annuels + recommandations (étendre Livres).
-351. [M](**) Fiches de lecture générées par IA depuis tes surlignages.
+351. [M](**) Fiches de lecture depuis tes surlignages (saisie + organisation, sans IA).
 352. [M](**) Suivi de compétences (skill tree) avec niveaux et preuves.
 353. [M](**) Curation de contenus (à lire/voir plus tard) priorisée.
-354. [M](**) Quiz auto-générés depuis tes notes pour t'auto-évaluer.
+354. [M](**) Quiz/flashcards créés depuis tes notes pour t'auto-évaluer (sans IA).
 355. [M](**) Journal d'apprentissage quotidien (« qu'ai-je appris aujourd'hui ? »).
 356. [M](**) Suivi de pratique délibérée (instrument, code, sport) avec stats.
 357. [M](**) Progression d'un projet d'apprentissage long terme.
@@ -537,7 +538,7 @@ AD. DOCUMENTS, ADMINISTRATIF & VIE PRATIQUE (359-372)
 363. [M](**) Garanties produits avec preuves d'achat.
 364. [M](**) Numérisation et classement automatique des reçus.
 365. [M](**) Suivi des remboursements (santé, assurances) en attente.
-366. [M](**) Templates de courriers administratifs générés par IA.
+366. [M](**) Modèles de courriers administratifs (templates à remplir, sans IA).
 367. [M](**) Rappels impôts / déclarations avec checklist.
 368. [M](**) Annuaire personnel (médecins, artisans, services) avec notes.
 369. [M](**) Suivi des contrats d'assurance (couvertures, sinistres).
@@ -600,15 +601,15 @@ AG. MOBILE, PWA, OFFLINE & MULTI-APPAREIL (401-412)
 --------------------------------------------------------------------------------
 AH. VOIX, MULTIMODAL & ACCESSIBILITÉ (413-423)
 --------------------------------------------------------------------------------
-413. [M](***) Commandes vocales (STT) pour saisir et naviguer.
-414. [M](**) Synthèse vocale (TTS) des briefings et résumés.
-415. [M](**) Assistant vocal mains libres (« Hey Mission Control... »).
-416. [M](**) Dictée pour notes/journal avec ponctuation auto.
-417. [M](**) Reconnaissance d'images (repas → calories, vêtement → catégorie).
-418. [M](**) Mode accessibilité renforcé (lecteur d'écran, contrastes, tailles).
+413. [M](***) Commandes vocales (STT) pour saisir et naviguer.   ← ABANDONNÉ ✗ (2026-06-09) pas de gestion vocale.
+414. [M](**) Synthèse vocale (TTS) des briefings et résumés.   ← ABANDONNÉ ✗ (2026-06-09) pas de gestion vocale.
+415. [M](**) Assistant vocal mains libres (« Hey Mission Control... »).   ← ABANDONNÉ ✗ (2026-06-09) pas de vocal + IA.
+416. [M](**) Dictée pour notes/journal avec ponctuation auto.   ← ABANDONNÉ ✗ (2026-06-09) pas de gestion vocale.
+417. [M](**) Reconnaissance d'images (repas → calories, vêtement → catégorie).   ← ABANDONNÉ ✗ (2026-06-09) vision IA, hors périmètre.
+418. [M](**) Mode accessibilité renforcé (lecteur d'écran, contrastes, tailles).   ← ABANDONNÉ ✗ (2026-06-09) pas d'aides handicap (mono-utilisateur) ; ergonomie traitée ailleurs.
 419. [M](**) Navigation 100% clavier auditée et raccourcis avancés (étendre #38).
-420. [M](**) Sous-titres/transcriptions pour contenus audio/vidéo.
-421. [M](**) Thèmes daltoniens et réglages de mouvement réduit.
+420. [M](**) Sous-titres/transcriptions pour contenus audio/vidéo.   ← ABANDONNÉ ✗ (2026-06-09) aide handicap, hors périmètre.
+421. [M](**) Thèmes daltoniens et réglages de mouvement réduit.   ← ABANDONNÉ ✗ (2026-06-09) aide handicap ; « mouvement réduit » déjà géré par prefers-reduced-motion.
 422. [M](**) Saisie gestuelle / raccourcis personnalisables.
 423. [M](**) Interface multilingue complète (i18n, étendre #27).
 
@@ -631,7 +632,7 @@ AI. SÉCURITÉ, VIE PRIVÉE & SOUVERAINETÉ DES DONNÉES (424-435)
 --------------------------------------------------------------------------------
 AJ. IA/ML LOCALE & MODÈLES PRÉDICTIFS (436-450)
 --------------------------------------------------------------------------------
-436. [L](***) LLM local optionnel (Ollama/llama.cpp) pour un usage 100% privé.
+436. [L](***) LLM local optionnel (Ollama/llama.cpp) pour un usage 100% privé.   ← ABANDONNÉ ✗ (2026-06-09) pas d'IA générative/chat dans le dashboard.
 437. [M](**) Embeddings locaux + base vectorielle (recherche sémantique sur tes données).
 438. [M](**) Prédiction poids/composition selon apports/activité.
 439. [M](**) Prévision de dépenses par catégorie (séries temporelles).
@@ -641,7 +642,7 @@ AJ. IA/ML LOCALE & MODÈLES PRÉDICTIFS (436-450)
 443. [M](**) Optimisation d'emploi du temps par contraintes (solveur).
 444. [M](**) Scoring de priorité des tâches appris de ton comportement.
 445. [M](**) Prédiction d'adhérence aux habitudes et nudges adaptatifs.
-446. [M](**) Résumé local de documents longs (extractif/abstractif).
+446. [M](**) Résumé local de documents longs (extractif/abstractif).   ← ABANDONNÉ ✗ (2026-06-09) génération de texte par IA, hors périmètre.
 447. [M](**) Pipeline d'entraînement reproductible (MLOps léger).
 448. [M](**) Explicabilité des prédictions (importance des variables).
 449. [M](**) A/B des recommandations et mesure d'impact.
@@ -683,7 +684,7 @@ AL. DÉVELOPPEMENT, QUALITÉ & PLATEFORME (461-475)
 --------------------------------------------------------------------------------
 AM. NOUVEAUX MODULES DE VIE (476-500)
 --------------------------------------------------------------------------------
-476. [L](***) Module « Journaling » avec prompts IA et analyse d'humeur.
+476. [L](***) Module « Journaling » : prompts statiques (banque de questions) + saisie d'humeur manuelle + tendances déterministes (sans IA).
 477. [L](**) Module « Nutrition avancée » (batch cooking, gestion des restes).
 478. [L](**) Module « Jardin/Potager » (semis, arrosage, récoltes, calendrier).
 479. [L](**) Module « Collections » (vins, jeux, livres, vinyles) avec valeur.
