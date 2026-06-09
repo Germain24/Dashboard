@@ -18,6 +18,7 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
         agenda_reminders,
         backup_db,
         habit_reminders,
+        ical_sync,
         nutrition_plan,
         portfolio_snapshot,
         weather_refresh,
@@ -41,6 +42,9 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(run_job, "cron", hour=20, minute=0,
                       args=["habit_reminders", habit_reminders.run],
                       id="habit_reminders", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(run_job, "cron", hour="*/6", minute=10,
+                      args=["ical_sync", ical_sync.run],
+                      id="ical_sync", replace_existing=True, misfire_grace_time=3600)
     from app.services.scheduler import purge
     scheduler.add_job(run_job, "cron", hour=4, minute=0,
                       args=["purge_old", purge.run],

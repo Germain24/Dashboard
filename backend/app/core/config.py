@@ -60,6 +60,15 @@ class Settings(BaseSettings):
     google_refresh_token: str = ""
     google_calendar_id: str = "primary"
 
+    # --- Calendriers iCal externes (Agenda) ---
+    # URLs .ics à re-synchroniser automatiquement (ex. Agendrix). Plusieurs URLs
+    # séparées par des virgules. Vide = synchro auto désactivée.
+    ical_sync_urls: str = ""
+
+    @property
+    def ical_sync_url_list(self) -> list[str]:
+        return [u.strip() for u in self.ical_sync_urls.split(",") if u.strip()]
+
     # --- Robot / IA (CONV N) ---
     # Clé API Claude. Vide = module robot en lecture seule (chat désactivé,
     # dégradation propre). Voir https://console.anthropic.com.

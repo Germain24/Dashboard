@@ -56,3 +56,22 @@ def import_ics_bytes(session: Session, content: bytes) -> dict[str, int]:
         "skipped_duplicates": skipped,
         "created_rules": created_rules,
     }
+
+
+def import_ics_from_url(session: Session, url: str, *, timeout: float = 15.0) -> dict[str, int]:
+    """Récupère un .ics distant (ex. Agendrix) et l'importe (dédup par UID).
+
+    Mutualisé entre la route `/agenda/sync-ical-url` et le job de synchro
+    automatique. Lève ``ValueError`` si l'URL n'est pas http(s) et
+    ``RuntimeError`` si la récupération échoue.
+    """
+    import httpx
+
+    if not url.lower().startswith(("http://", "https://")):
+        raise ValueError("URL invalide (http/https attendu).")
+    try:
+        resp = httpx.get(url, timeout=timeout, follow_redirects=True)
+        resp.raise_for_status()
+    except Exception as e:  # noqa: BLE001
+        raise RuntimeError(f"Récupération du calendrier impossible : {e}") from e
+    return import_ics_bytes(session, resp.content)

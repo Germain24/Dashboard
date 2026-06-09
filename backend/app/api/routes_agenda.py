@@ -580,15 +580,12 @@ def sync_ical_url(session: SessionDep, url: str = Query(..., description="URL .i
     voie sans OAuth : coller l'« adresse secrète au format iCal » de Google
     Calendar. L'export #91 couvre le sens inverse (app → Google via import .ics).
     """
-    import httpx
-    from app.services.agenda.ical_import import import_ics_bytes
+    from app.services.agenda.ical_import import import_ics_from_url
 
-    if not url.lower().startswith(("http://", "https://")):
-        raise HTTPException(400, "URL invalide (http/https attendu).")
     try:
-        resp = httpx.get(url, timeout=15.0, follow_redirects=True)
-        resp.raise_for_status()
-    except Exception as e:  # noqa: BLE001
-        raise HTTPException(502, f"Récupération du calendrier impossible : {e}")
-    counts = import_ics_bytes(session, resp.content)
+        counts = import_ics_from_url(session, url)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
     return ImportIcalResponse(**counts)
