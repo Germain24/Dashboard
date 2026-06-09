@@ -97,7 +97,17 @@ e2e/            Playwright (parcours clés, snapshots visuels)
 - `tests/test_migrations.py` vérifie que `upgrade head` == modèles (autogenerate vide).
 - Import des données legacy via `scripts/import_legacy.py`.
 
-## 5. Conventions
+## 5. Déploiement
+
+- **Dev** : `make dev` (hôte) — backend `--reload` + `next dev`.
+- **Conteneurs** : `make up` (`docker-compose.yml`) — image backend (uv) + image
+  frontend (build Next standalone), SQLite persistée via volume `./data`.
+- **Production** : `make prod` (overlay `docker-compose.prod.yml`) — reverse proxy
+  Caddy en façade (`Caddyfile`), point d'entrée unique `http://localhost`, services
+  non publiés directement. Backend mono-worker (`WEB_CONCURRENCY=1`) car l'état
+  (caches, rate limit) est in-memory par process ; scaler imposerait Redis/Postgres.
+
+## 6. Conventions
 
 - **Tests d'abord** (TDD) pour le métier ; logique pure isolée et injectable.
 - Les intégrations externes dégradent proprement quand non configurées
