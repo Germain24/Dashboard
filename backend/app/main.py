@@ -23,6 +23,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from app.core.db import engine
     from sqlmodel import Session
 
+    # État des intégrations (présence des secrets, jamais leur valeur — #192).
+    from app.core.secrets import integration_status
+    log.info("Intégrations configurées: %s", integration_status(settings))
+
     with Session(engine) as session:
         # Sync historique Excel Finance
         try:
