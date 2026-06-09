@@ -302,12 +302,12 @@ export function SuiviTab() {
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
           <span className="text-[var(--muted-foreground)]">Rendement annualisé (TWR)</span>
           <span className={`font-mono font-semibold ${perf.twr_annualise_pct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}>
-            {perf.twr_annualise_pct >= 0 ? "+" : ""}{formatPct(perf.twr_annualise_pct)}
+            {formatPct(perf.twr_annualise_pct)}
           </span>
           {cw8?.perf_1a_pct != null && (
             <span className="text-[var(--muted-foreground)]">
               vs <strong className="text-[var(--foreground)]">CW8</strong> (1 an){" "}
-              <span className="font-mono">{cw8.perf_1a_pct >= 0 ? "+" : ""}{formatPct(cw8.perf_1a_pct)}</span>
+              <span className="font-mono">{formatPct(cw8.perf_1a_pct)}</span>
             </span>
           )}
           <span className="text-xs text-[var(--muted-foreground)]">· hors effet des apports</span>
