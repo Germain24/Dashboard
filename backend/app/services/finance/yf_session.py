@@ -41,3 +41,33 @@ def yf_session():
             _session = None
         _init_done = True
     return _session
+
+
+def fast_last_price(ticker_obj) -> float:
+    """Dernier cours d'un yf.Ticker, robuste.
+
+    ⚠️ Dans yfinance 1.x, `FastInfo.get("last_price")` est cassé : il renvoie
+    toujours le défaut (None). On accède donc par CLÉ (`fast_info["last_price"]`)
+    puis on retombe sur le dernier close de l'historique si besoin (certains
+    titres n'ont pas de last_price intraday). Renvoie 0.0 en dernier recours.
+    """
+    # 1) fast_info par clé (PAS .get — bug yfinance)
+    try:
+        fi = ticker_obj.fast_info
+        try:
+            v = fi["last_price"]
+        except Exception:
+            v = getattr(fi, "last_price", None)
+        if v:
+            return float(v)
+    except Exception:
+        pass
+    # 2) repli : dernier close de l'historique récent
+    try:
+        hist = ticker_obj.history(period="5d")
+        closes = hist["Close"].dropna()
+        if len(closes):
+            return float(closes.iloc[-1])
+    except Exception:
+        pass
+    return 0.0

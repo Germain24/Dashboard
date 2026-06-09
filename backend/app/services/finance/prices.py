@@ -24,11 +24,11 @@ def _default_fetch(tickers: list[str]) -> dict[str, float]:
     try:
         import yfinance as yf
 
-        from app.services.finance.yf_session import yf_session
+        from app.services.finance.yf_session import fast_last_price, yf_session
         data = yf.Tickers(" ".join(tickers), session=yf_session())
         for t in tickers:
             try:
-                out[t] = float(data.tickers[t].fast_info.get("last_price", 0) or 0)
+                out[t] = fast_last_price(data.tickers[t])
             except Exception:
                 out[t] = 0.0
     except Exception:

@@ -21,9 +21,8 @@ def _default_fetch(base: str, quote: str) -> float | None:
     try:
         import yfinance as yf
 
-        from app.services.finance.yf_session import yf_session
-        info = yf.Ticker(f"{base}{quote}=X", session=yf_session()).fast_info
-        rate = float(info.get("last_price", 0) or 0)
+        from app.services.finance.yf_session import fast_last_price, yf_session
+        rate = fast_last_price(yf.Ticker(f"{base}{quote}=X", session=yf_session()))
         return rate if rate > 0 else None
     except Exception:
         return None

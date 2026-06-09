@@ -93,9 +93,8 @@ def take_snapshot_now(session: Session) -> SnapshotPortefeuille | None:
         total_investit = 0.0
         for pos in positions:
             try:
-                from app.services.finance.yf_session import yf_session
-                info = yf.Ticker(pos.ticker, session=yf_session()).fast_info
-                prix = float(info.get("last_price", 0) or 0)
+                from app.services.finance.yf_session import fast_last_price, yf_session
+                prix = fast_last_price(yf.Ticker(pos.ticker, session=yf_session()))
             except Exception:
                 prix = 0.0
             total_valeur += prix * pos.quantite
