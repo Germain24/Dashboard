@@ -34,12 +34,15 @@ Suit le pattern module : `models/musique.py` → `services/musique/` →
 - `musique_ollama_host: str = "http://localhost:11434"` (env `MUSIQUE_OLLAMA_HOST`).
 - `musique_ollama_model: str = "qwen2.5-coder:1.5b"` (env `MUSIQUE_OLLAMA_MODEL` ;
   un modèle généraliste comme `qwen2.5:3b` classe mieux — `ollama pull` au besoin).
-- `AMBIANCES = ["café", "loft", "coworking", "étude", "repos", "énergie", "soirée"]`
-  (constante module, ajustable).
+- `AMBIANCES_AUTO = ["café", "loft", "coworking", "étude", "repos", "énergie", "soirée"]`
+  — ambiances classées par Ollama.
+- `AMBIANCES_MANUEL = ["love"]` — playlists remplies **à la main** (coups de cœur ;
+  Ollama ne les classe pas). `AMBIANCES = AMBIANCES_AUTO + AMBIANCES_MANUEL`.
+- Un morceau peut appartenir à **plusieurs** ambiances (relation plusieurs-à-plusieurs).
 
 ### Modèle de données
 
-Table `music_track` (`models/musique.py`) :
+Table `music_track` (`models/musique.py`) — métadonnées du morceau :
 
 | champ | type | note |
 |---|---|---|
@@ -51,13 +54,20 @@ Table `music_track` (`models/musique.py`) :
 | genre | str | tag (peut être vide) |
 | duree_sec | int \| None | tag |
 | cover | str \| None | chemin relatif de la pochette (`…/Folder.jpg`) |
-| ambiance | str \| None | une valeur de `AMBIANCES`, ou None si non classé |
-| ambiance_source | str | `auto` (Ollama) ou `manuel` |
-| inclus | bool | True = présent dans la playlist de son ambiance |
+| classified | bool | True une fois passé par Ollama (évite de re-classer) |
 | created_at | datetime | |
 
-Pas de table Album séparée (v1) : la pochette/album sont portés par le morceau.
-Migration Alembic dédiée.
+Table `track_ambiance` (`models/musique.py`) — **appartenance** plusieurs-à-plusieurs :
+
+| champ | type | note |
+|---|---|---|
+| id | int | PK |
+| track_id | int | FK `music_track.id`, index |
+| ambiance | str | une valeur de `AMBIANCES` |
+| source | str | `auto` (Ollama) ou `manuel` |
+
+Unicité `(track_id, ambiance)`. La présence d'une ligne = le morceau est dans cette
+playlist. Pas de table Album séparée (v1). Migration Alembic dédiée.
 
 ### Services (`services/musique/`)
 
@@ -75,19 +85,25 @@ Migration Alembic dédiée.
   `"{host}/api/generate"` (`stream=false`), renvoie le texte. `_post` injectable.
 
 `classify.py` :
-- `build_prompt(track) -> str` : prompt **contraint** listant les ambiances
-  autorisées, demandant **un seul mot**.
-- `parse_ambiance(raw, ambiances) -> str | None` : **pur** — normalise la réponse
-  et la mappe à une ambiance valide, sinon None (robuste à un petit modèle).
+- `build_prompt(track) -> str` : prompt **contraint** listant les
+  `AMBIANCES_AUTO`, demandant **une ou plusieurs** ambiances (séparées par des
+  virgules), ou `aucune`.
+- `parse_ambiances(raw, ambiances) -> list[str]` : **pur** — normalise la réponse
+  et garde les ambiances **valides** (0..N) ; ignore le reste (robuste à un petit modèle).
 - `classify_untagged(session, *, generate=ollama_client.generate) -> dict` : job
-  autonome qui classe les morceaux `ambiance is None` ; met à jour
-  `ambiance`/`ambiance_source="auto"`. Expose une progression (n_done/n_total)
-  via un état mémoire (comme l'analyse Buffett), pas de chat.
+  autonome qui traite les morceaux `classified == False` ; crée une ligne
+  `track_ambiance` (`source="auto"`) par ambiance retournée, puis marque
+  `classified=True`. Expose une progression (n_done/n_total) via un état mémoire
+  (comme l'analyse Buffett), pas de chat. Ne touche pas aux `AMBIANCES_MANUEL`.
 
 `playlists.py` :
-- `playlist_tracks(session, ambiance) -> list` : morceaux `ambiance==X & inclus`.
-- `reco_bibliotheque(session, ambiance) -> list` : `ambiance==X & not inclus`
-  (**pur** sur des dicts en test).
+- `playlist_tracks(session, ambiance) -> list` : morceaux ayant une ligne
+  `track_ambiance` pour cette ambiance.
+- `set_membership(session, track_id, ambiance, present, source="manuel")` :
+  ajoute/retire l'appartenance (idempotent ; valide `ambiance ∈ AMBIANCES`).
+- `reco_bibliotheque(tracks_in, tracks_out) -> list` : **pur** — parmi les morceaux
+  **hors** de l'ambiance, ceux qui partagent un **artiste ou un genre** avec les
+  morceaux déjà dans l'ambiance, triés par nombre de recoupements décroissant.
 - `to_m3u(tracks, *, relatif=True) -> str` : **pur** — `#EXTM3U` + `#EXTINF` +
   **chemins relatifs** (compatibles Poweramp après transfert sur téléphone).
 
@@ -102,10 +118,11 @@ Migration Alembic dédiée.
 - `POST /musique/scan` → relance le scan (compteurs).
 - `POST /musique/classify` → lance le job de classement (background) ; `GET
   /musique/classify/progress` → progression.
-- `GET /musique/tracks?ambiance=&q=` → liste (avec `cover` pour la vignette).
-- `PATCH /musique/tracks/{id}` → override `ambiance` (`ambiance_source="manuel"`)
-  et/ou `inclus`.
-- `GET /musique/ambiances` → liste des ambiances + compteurs.
+- `GET /musique/tracks?ambiance=&q=` → liste (chaque morceau porte `cover` + sa
+  liste d'`ambiances`).
+- `PUT /musique/tracks/{id}/ambiances/{ambiance}` → ajoute l'appartenance (manuel) ;
+  `DELETE` → la retire. Sert aussi pour la playlist « love » et la reco (1 clic).
+- `GET /musique/ambiances` → liste des ambiances (auto + manuel) + compteurs.
 - `GET /musique/playlists/{ambiance}` → morceaux inclus.
 - `GET /musique/playlists/{ambiance}/reco` → reco bibliothèque.
 - `GET /musique/playlists/{ambiance}/discovery` → suggestions Ollama (à acquérir).
@@ -130,7 +147,8 @@ Migration Alembic dédiée.
 ## Flux de données
 
 Scan : `POST /scan` → `scan_library` (mutagen + Folder.jpg) → `music_track`.
-Classement : `POST /classify` → job Ollama par morceau non classé → `ambiance`.
+Classement : `POST /classify` → job Ollama par morceau `classified=False` → 0..N
+lignes `track_ambiance` (source auto).
 Écoute : page lit `/media/music/<path>` (HTML5) ; Export `.m3u` (chemins relatifs).
 Reco : bibliothèque (déterministe) + découverte (Ollama, artistes/genres).
 
@@ -150,17 +168,20 @@ Reco : bibliothèque (déterministe) + découverte (Ollama, artistes/genres).
 
 Purs / sans réseau :
 - `find_cover` / `relative_to_root` sur une arbo temporaire (fichiers vides).
-- `parse_ambiance` (réponses propres, bruitées, invalides → None).
+- `parse_ambiances` (réponse mono/multi/bruitée/`aucune` → liste filtrée 0..N).
 - `to_m3u` (format `#EXTINF`, chemins relatifs).
-- `reco_bibliotheque` (filtre ambiance & inclus) sur des données injectées.
+- `reco_bibliotheque` (recoupement artiste/genre, tri par recoupements) sur données injectées.
 - `parse_suggestions` (découverte).
-- `classify_untagged` avec `generate` **injecté** (faux Ollama) → met à jour les ambiances.
-- Route smoke : `POST /scan` sur un `music_dir` temporaire ; `export.m3u` renvoie du texte M3U.
+- `classify_untagged` avec `generate` **injecté** (faux Ollama renvoyant 2 ambiances)
+  → crée 2 lignes `track_ambiance` et marque `classified=True`.
+- `set_membership` : ajout/retrait idempotent ; rejet d'une ambiance inconnue.
+- Route smoke : `POST /scan` sur un `music_dir` temporaire ; `PUT`/`DELETE`
+  d'appartenance ; `export.m3u` renvoie du texte M3U.
 
 `mutagen` ajouté aux dépendances backend.
 
 ## Hors périmètre (YAGNI)
 
-Édition de tags des fichiers, multi-ambiances par morceau, table Album dédiée,
-synchro automatique vers le téléphone, services externes payants. Découverte
-limitée à des suggestions d'artistes/genres (pas d'achat/streaming intégré).
+Édition de tags des fichiers, table Album dédiée, synchro automatique vers le
+téléphone, services externes payants. Découverte limitée à des suggestions
+d'artistes/genres (pas d'achat/streaming intégré).
