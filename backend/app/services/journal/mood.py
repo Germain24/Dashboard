@@ -50,3 +50,47 @@ def delete_entry(session: Session, date: dt.date) -> bool:
     session.delete(entry)
     session.commit()
     return True
+
+
+def _moving_average(values: list[float], window: int = 7) -> list[float]:
+    out: list[float] = []
+    for i in range(len(values)):
+        chunk = values[max(0, i - window + 1): i + 1]
+        out.append(round(sum(chunk) / len(chunk), 2))
+    return out
+
+
+def mood_trends(entries: list[dict]) -> dict:
+    """Agrégations déterministes : moyennes, moyenne mobile 7j, distribution, tags."""
+    rows = sorted(entries, key=lambda e: e["date"])
+    n = len(rows)
+    if n == 0:
+        return {"n": 0, "moyenne_humeur": 0.0, "moyenne_energie": 0.0,
+                "humeur_ma7": [], "energie_ma7": [],
+                "distribution_humeur": {str(i): 0 for i in range(1, 6)}, "tags_freq": []}
+
+    humeurs = [float(r["humeur"]) for r in rows]
+    energies = [float(r["energie"]) for r in rows]
+    dates = [str(r["date"]) for r in rows]
+    ma_h = _moving_average(humeurs)
+    ma_e = _moving_average(energies)
+
+    distribution = {str(i): 0 for i in range(1, 6)}
+    for h in humeurs:
+        distribution[str(int(h))] += 1
+
+    counts: dict[str, int] = {}
+    for r in rows:
+        for tag in r.get("tags", []):
+            counts[tag] = counts.get(tag, 0) + 1
+    tags_freq = [{"tag": k, "count": v} for k, v in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))]
+
+    return {
+        "n": n,
+        "moyenne_humeur": round(sum(humeurs) / n, 2),
+        "moyenne_energie": round(sum(energies) / n, 2),
+        "humeur_ma7": [{"date": d, "value": v} for d, v in zip(dates, ma_h)],
+        "energie_ma7": [{"date": d, "value": v} for d, v in zip(dates, ma_e)],
+        "distribution_humeur": distribution,
+        "tags_freq": tags_freq,
+    }

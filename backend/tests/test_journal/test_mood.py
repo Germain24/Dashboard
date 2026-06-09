@@ -28,3 +28,23 @@ def test_upsert_creates_then_updates_same_day(session):
 def test_upsert_rejects_out_of_range(session):
     with pytest.raises(ValueError):
         svc.upsert_entry(session, dt.date(2026, 6, 1), humeur=6, energie=3, tags=[], note="")
+
+
+from app.services.journal.mood import mood_trends
+
+
+def test_mood_trends_aggregates():
+    entries = [
+        {"date": "2026-06-01", "humeur": 2, "energie": 3, "tags": ["calme"]},
+        {"date": "2026-06-02", "humeur": 4, "energie": 5, "tags": ["calme", "motivé"]},
+    ]
+    t = mood_trends(entries)
+    assert t["n"] == 2
+    assert t["moyenne_humeur"] == 3.0
+    assert t["distribution_humeur"]["2"] == 1 and t["distribution_humeur"]["4"] == 1
+    assert t["tags_freq"][0] == {"tag": "calme", "count": 2}
+
+
+def test_mood_trends_empty():
+    t = mood_trends([])
+    assert t["n"] == 0 and t["tags_freq"] == []
