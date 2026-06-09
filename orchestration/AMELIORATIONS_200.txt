@@ -297,7 +297,7 @@ R. SÉCURITÉ (190-194)
 190. [M](**) Authentification locale simple (mot de passe/PIN) si exposé hors localhost.
 191. [S](**) Restreindre CORS aux origines réelles (actuellement allow_methods/headers="*").   ← FINIS ✓ (méthodes/headers explicites configurables cors_methods/cors_headers, fin du wildcard "*" ; expose_headers X-Total-Count/Content-Range pour la pagination #8 ; tests test_cors.py)
 192. [S](**) Secrets via .env validés, jamais commités ; clé API Claude chiffrée au repos.
-193. [S](*) Rate limiting sur les routes coûteuses (analyses finance, robot).
+193. [S](*) Rate limiting sur les routes coûteuses (analyses finance, robot).   ← FINIS ✓ (app/core/rate_limit.py : SlidingWindowLimiter + dépendance rate_limit() -> 429 + Retry-After, par IP, in-memory ; câblé sur /finance/buffett/run, analyze-ticker, portfolio/create (5/min) et /robot/chat (20/min) ; tests test_rate_limit.py)
 194. [S](*) En-têtes de sécurité (CSP, X-Frame-Options) sur le front Next.   ← FINIS ✓ (lib/securityHeaders.ts appliqué via next.config headers() : CSP frame-ancestors 'none', X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy, Permissions-Policy ; CSP compatible Next/HMR ; test vitest + vérifié live (en-têtes servis, page 200))
 
 --------------------------------------------------------------------------------

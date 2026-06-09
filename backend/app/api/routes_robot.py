@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from sqlmodel import Session
 
 from app.core.db import get_session
+from app.core.rate_limit import rate_limit
 from app.services.robot import agent as agent_svc
 from app.services.robot import conversations as conv_svc
 from app.services.robot import insights as insights_svc
@@ -26,6 +27,9 @@ from app.services.robot import recap as recap_svc
 from app.services.robot.tools import tool_definitions
 
 router = APIRouter()
+
+# Rate limit du chat IA (coût LLM, #193) : 20 messages/min/IP.
+_chat_rl = rate_limit(max_calls=20, window_s=60, name="robot_chat")
 
 
 @router.get("/ping")
@@ -108,7 +112,7 @@ class ChatRequest(BaseModel):
     message: str
 
 
-@router.post("/chat")
+@router.post("/chat", dependencies=[Depends(_chat_rl)])
 def chat(body: ChatRequest, session: Session = Depends(get_session)):
     conv = conv_svc.get_conversation(session, body.conversation_id)
     if not conv:

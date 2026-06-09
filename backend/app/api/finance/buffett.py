@@ -15,8 +15,13 @@ from app.api.schemas_finance import (
 )
 from app.models.finance import BuffettRun, BuffettRunResult
 
+from app.core.rate_limit import rate_limit
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Rate limit partagé des analyses Buffett coûteuses (#193) : 5 lancements/min/IP.
+_analysis_rl = rate_limit(max_calls=5, window_s=60, name="finance_analysis")
 
 
 @router.get("/buffett/runs", response_model=list[BuffettRunOut])
@@ -299,7 +304,7 @@ def backtest_allocation(periode: str = "2y", session: Session = Depends(get_sess
 
 # --- Bouton 1 : Analyser tous les tickers ---
 
-@router.post("/buffett/run", status_code=202)
+@router.post("/buffett/run", status_code=202, dependencies=[Depends(_analysis_rl)])
 def buffett_run_start(
     background_tasks: BackgroundTasks,
     csv_path: Optional[str] = None,
@@ -320,7 +325,7 @@ def buffett_run_start(
 
 # --- Bouton 2 : Analyser un ticker precis ---
 
-@router.post("/buffett/analyze-ticker", status_code=200)
+@router.post("/buffett/analyze-ticker", status_code=200, dependencies=[Depends(_analysis_rl)])
 async def buffett_analyze_ticker(ticker: str):
     """Analyse un seul ticker et retourne score + metrics immediatement."""
     from app.services.finance.buffett.runner import analyze_single_ticker
@@ -336,7 +341,7 @@ async def buffett_analyze_ticker(ticker: str):
 
 # --- Bouton 3 : Creer le portefeuille optimal (Differential Evolution) ---
 
-@router.post("/portfolio/create", status_code=202)
+@router.post("/portfolio/create", status_code=202, dependencies=[Depends(_analysis_rl)])
 def portfolio_create(
     background_tasks: BackgroundTasks,
     min_score: float = 80.0,
