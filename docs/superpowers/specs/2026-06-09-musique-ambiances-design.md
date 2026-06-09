@@ -34,10 +34,16 @@ Suit le pattern module : `models/musique.py` → `services/musique/` →
 - `musique_ollama_host: str = "http://localhost:11434"` (env `MUSIQUE_OLLAMA_HOST`).
 - `musique_ollama_model: str = "qwen2.5-coder:1.5b"` (env `MUSIQUE_OLLAMA_MODEL` ;
   un modèle généraliste comme `qwen2.5:3b` classe mieux — `ollama pull` au besoin).
-- `AMBIANCES_AUTO = ["café", "loft", "coworking", "étude", "repos", "énergie", "soirée"]`
-  — ambiances classées par Ollama.
-- `AMBIANCES_MANUEL = ["love"]` — playlists remplies **à la main** (coups de cœur ;
-  Ollama ne les classe pas). `AMBIANCES = AMBIANCES_AUTO + AMBIANCES_MANUEL`.
+- `AMBIANCES` (toutes classées par Ollama), chacune avec une **courte définition**
+  injectée dans le prompt pour guider le petit modèle :
+  - `café` — léger, acoustique, agréable en fond.
+  - `loft` — chill/électro posé, ambiance appartement.
+  - `coworking` — rythmé mais non distrayant, pour travailler.
+  - `étude` — calme, instrumental, concentration.
+  - `repos` — très calme, détente, sieste.
+  - `énergie` — entraînant, motivant, tempo élevé.
+  - `soirée` — festif, dansant.
+  - `love` — chansons d'amour, romantiques (type date).
 - Un morceau peut appartenir à **plusieurs** ambiances (relation plusieurs-à-plusieurs).
 
 ### Modèle de données
@@ -85,16 +91,17 @@ playlist. Pas de table Album séparée (v1). Migration Alembic dédiée.
   `"{host}/api/generate"` (`stream=false`), renvoie le texte. `_post` injectable.
 
 `classify.py` :
-- `build_prompt(track) -> str` : prompt **contraint** listant les
-  `AMBIANCES_AUTO`, demandant **une ou plusieurs** ambiances (séparées par des
-  virgules), ou `aucune`.
+- `build_prompt(track) -> str` : prompt **contraint** listant les `AMBIANCES` avec
+  leur définition courte, demandant **une ou plusieurs** ambiances (séparées par
+  des virgules) ou `aucune`.
 - `parse_ambiances(raw, ambiances) -> list[str]` : **pur** — normalise la réponse
   et garde les ambiances **valides** (0..N) ; ignore le reste (robuste à un petit modèle).
 - `classify_untagged(session, *, generate=ollama_client.generate) -> dict` : job
   autonome qui traite les morceaux `classified == False` ; crée une ligne
   `track_ambiance` (`source="auto"`) par ambiance retournée, puis marque
   `classified=True`. Expose une progression (n_done/n_total) via un état mémoire
-  (comme l'analyse Buffett), pas de chat. Ne touche pas aux `AMBIANCES_MANUEL`.
+  (comme l'analyse Buffett), pas de chat. L'utilisateur peut ensuite corriger
+  manuellement (ajout/retrait d'appartenance, `source="manuel"`).
 
 `playlists.py` :
 - `playlist_tracks(session, ambiance) -> list` : morceaux ayant une ligne
@@ -121,8 +128,8 @@ playlist. Pas de table Album séparée (v1). Migration Alembic dédiée.
 - `GET /musique/tracks?ambiance=&q=` → liste (chaque morceau porte `cover` + sa
   liste d'`ambiances`).
 - `PUT /musique/tracks/{id}/ambiances/{ambiance}` → ajoute l'appartenance (manuel) ;
-  `DELETE` → la retire. Sert aussi pour la playlist « love » et la reco (1 clic).
-- `GET /musique/ambiances` → liste des ambiances (auto + manuel) + compteurs.
+  `DELETE` → la retire. Sert à corriger le classement et à inclure une reco (1 clic).
+- `GET /musique/ambiances` → liste des ambiances + compteurs.
 - `GET /musique/playlists/{ambiance}` → morceaux inclus.
 - `GET /musique/playlists/{ambiance}/reco` → reco bibliothèque.
 - `GET /musique/playlists/{ambiance}/discovery` → suggestions Ollama (à acquérir).
