@@ -153,6 +153,7 @@ export interface BuffettProgress {
   run_id?: number; statut: string; progress_pct: number;
   n_done?: number; n_total?: number;
   active: boolean;   // true = une analyse tourne reellement (sinon en_cours = interrompu)
+  paused_until?: number | null;  // epoch (s) de reprise estimee si en pause (plafond API)
 }
 
 export interface RebalancingLine {

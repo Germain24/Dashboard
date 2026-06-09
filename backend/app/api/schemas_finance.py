@@ -194,6 +194,9 @@ class BuffettProgressOut(BaseModel):
     n_done: Optional[int] = None
     n_total: Optional[int] = None
     active: bool = False  # True = une analyse tourne reellement dans ce process
+    # Epoch (s) de reprise estimee si l'analyse est en pause (plafond API Yahoo
+    # atteint) ; None sinon. Permet d'afficher "en pause, reprise ~HH:MM" (#193).
+    paused_until: Optional[float] = None
 
 
 # ---------------------------------------------------------------------------

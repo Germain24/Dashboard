@@ -104,6 +104,13 @@ export function BuffettTab() {
   const interrupted = progress?.statut === "interrompu"
     || (progress?.statut === "en_cours" && progress?.active === false);
 
+  // En pause : plafond de l'API Yahoo atteint, l'analyse reprend automatiquement
+  // (la barre n'est pas figée — #193). On affiche l'heure de reprise estimée.
+  const paused = !!progress?.paused_until && progress.paused_until * 1000 > Date.now();
+  const resumeAt = paused
+    ? new Date(progress!.paused_until! * 1000).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" })
+    : null;
+
   // Bouton 1 — Analyser (ou reprendre) tous les tickers
   const startRun = async () => {
     const msg = interrupted
@@ -266,14 +273,24 @@ export function BuffettTab() {
           interrupted ? "border-[var(--warning-muted)] bg-[var(--warning-muted)]" : "border-[var(--border)]"}`}>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">
-              {interrupted ? "⏸ Analyse interrompue" : "Analyse en cours..."}
+              {interrupted
+                ? "⏸ Analyse interrompue"
+                : paused
+                  ? "⏳ En pause (limite API atteinte)"
+                  : "Analyse en cours..."}
             </span>
-            <Badge variant={interrupted ? "warning" : "info"}>{fmt(progress?.progress_pct)}%</Badge>
+            <Badge variant={interrupted || paused ? "warning" : "info"}>{fmt(progress?.progress_pct)}%</Badge>
           </div>
           <ProgressBar pct={progress?.progress_pct ?? 0} />
           {progress?.n_done != null && progress?.n_total != null && (
             <p className="text-xs text-[var(--muted-foreground)]">
               {progress.n_done} / {progress.n_total} tickers analysés
+            </p>
+          )}
+          {paused && (
+            <p className="text-xs text-[var(--warning-foreground)]">
+              Limite de l'API Yahoo atteinte — l'analyse reprend automatiquement
+              {resumeAt ? ` vers ${resumeAt}` : " sous peu"}. Aucune action requise.
             </p>
           )}
           {interrupted && (

@@ -361,10 +361,15 @@ def run_buffett_analysis(
                     pass
         return ok
 
-    with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        futures = {ex.submit(task, t): t for t in todo}
-        for _ in as_completed(futures):
-            pass
+    from .rate_limiter import set_active_limiter
+    set_active_limiter(rate_limiter)
+    try:
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            futures = {ex.submit(task, t): t for t in todo}
+            for _ in as_completed(futures):
+                pass
+    finally:
+        set_active_limiter(None)
 
     cache.save()
 

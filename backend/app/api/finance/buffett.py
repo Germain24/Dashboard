@@ -65,10 +65,12 @@ def buffett_progress(session: Session = Depends(get_session)):
         .order_by(BuffettRun.created_at.desc())
     ).first()
     if run:
+        from app.services.finance.buffett.rate_limiter import active_paused_until
         return BuffettProgressOut(
             run_id=run.id, statut=run.statut, active=active,
             progress_pct=run.progress_pct or 0.0,
             n_done=run.n_tickers_analyzed, n_total=run.n_tickers_total,
+            paused_until=active_paused_until() if active else None,
         )
     return BuffettProgressOut(run_id=None, statut="idle", active=False, progress_pct=0.0)
 
