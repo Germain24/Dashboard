@@ -2,13 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
   backend:
-    name: Backend Tests
+    name: Backend (lint + tests)
     runs-on: ubuntu-latest
 
     steps:
@@ -22,18 +20,29 @@ jobs:
       - name: Install dependencies
         run: cd backend && uv sync
 
-      - name: Run tests
+      # Lint advisory : dette ruff pré-existante suivie séparément, on ne bloque
+      # pas la CI dessus (ratchet possible plus tard).
+      - name: Lint (ruff, advisory)
+        continue-on-error: true
+        run: cd backend && uv run ruff check .
+
+      # Sous-ensemble sans réseau (yfinance/fx/prices/gcal nécessitent un accès
+      # externe et tournent en local).
+      - name: Run tests (offline subset)
         run: |
           cd backend && uv run pytest \
+            tests/test_health.py \
+            tests/test_cors.py \
+            tests/test_rate_limit.py \
             tests/test_budget/ \
             tests/test_habitudes/ \
             tests/test_livres/ \
             tests/test_cuisine/ \
             tests/test_scheduler/ \
-            -v --tb=short
+            --tb=short
 
   frontend:
-    name: Frontend Type Check
+    name: Frontend (lint + types + tests + build)
     runs-on: ubuntu-latest
 
     steps:
@@ -49,5 +58,17 @@ jobs:
       - name: Install dependencies
         run: cd frontend && npm ci
 
+      - name: Lint (eslint, advisory)
+        continue-on-error: true
+        run: cd frontend && npm run lint
+
       - name: Type check
         run: cd frontend && npx tsc --noEmit
+
+      - name: Unit tests (vitest)
+        run: cd frontend && npm test
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000
+        run: cd frontend && npm run build

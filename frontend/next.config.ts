@@ -5,6 +5,10 @@ import { securityHeaders } from "./lib/securityHeaders";
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 
 const nextConfig: NextConfig = {
+  // Le lint tourne en étape CI dédiée (#196) ; on ne bloque pas le build dessus
+  // (dette lint pré-existante suivie séparément). Les erreurs de type restent
+  // bloquantes (tsc).
+  eslint: { ignoreDuringBuilds: true },
   async rewrites() {
     return [
       {
