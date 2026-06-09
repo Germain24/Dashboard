@@ -294,7 +294,7 @@ Q. TESTS & QUALITÉ (182-189)
 --------------------------------------------------------------------------------
 R. SÉCURITÉ (190-194)
 --------------------------------------------------------------------------------
-190. [M](**) Authentification locale simple (mot de passe/PIN) si exposé hors localhost.
+190. [M](**) Authentification locale simple (mot de passe/PIN) si exposé hors localhost.   ← ABANDONNÉ ✗ (choix utilisateur : usage strictement local, pas d'exposition hors localhost → aucune authentification souhaitée. Item retiré.)
 191. [S](**) Restreindre CORS aux origines réelles (actuellement allow_methods/headers="*").   ← FINIS ✓ (méthodes/headers explicites configurables cors_methods/cors_headers, fin du wildcard "*" ; expose_headers X-Total-Count/Content-Range pour la pagination #8 ; tests test_cors.py)
 192. [S](**) Secrets via .env validés, jamais commités ; clé API Claude chiffrée au repos.   ← FINIS ✓ (.env gitignoré + validés par Settings ; app/core/secrets.py : mask_secret + integration_status (présence sans valeur) loggé au démarrage -> aucun secret en clair ; tests test_secrets.py. Chiffrement au repos volontairement écarté (mono-utilisateur local : la clé de déchiffrement vivrait à côté du secret, gain nul) — rationale documentée.)
 193. [S](*) Rate limiting sur les routes coûteuses (analyses finance, robot).   ← FINIS ✓ (app/core/rate_limit.py : SlidingWindowLimiter + dépendance rate_limit() -> 429 + Retry-After, par IP, in-memory ; câblé sur /finance/buffett/run, analyze-ticker, portfolio/create (5/min) et /robot/chat (20/min) ; tests test_rate_limit.py)
