@@ -115,6 +115,7 @@ class Settings(BaseSettings):
     music_dir: str = "C:/Users/germa/Music"
     musique_ollama_host: str = "http://localhost:11434"
     musique_ollama_model: str = "qwen2.5-coder:1.5b"
+    musique_ollama_autostart: bool = True  # démarrer `ollama serve` au boot si absent
 
     # Budget — seuils d'alerte d'enveloppe (% du budget consommé)
     budget_envelope_warning_pct: float = 80.0

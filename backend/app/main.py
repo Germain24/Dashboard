@@ -53,6 +53,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         except Exception as exc:
             log.warning("Seed skincare: %s", exc)
 
+    # Démarrer Ollama si besoin (module Musique) — en arrière-plan, ne bloque pas le boot.
+    if settings.musique_ollama_autostart:
+        import threading
+
+        def _start_ollama() -> None:
+            try:
+                from app.services.musique.ollama_client import ensure_running
+                ok = ensure_running()
+                log.info("Ollama: %s", "prêt" if ok else "non démarré (classement musique indispo)")
+            except Exception as exc:  # pragma: no cover — défensif
+                log.warning("Ollama autostart: %s", exc)
+
+        threading.Thread(target=_start_ollama, daemon=True).start()
+
     # Démarrer APScheduler
     try:
         from app.services.scheduler.scheduler import get_scheduler, register_all_jobs
