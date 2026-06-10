@@ -723,7 +723,7 @@ V. HARMONISATION BACKEND (501-517) — design 2026-06-10
 508. [S](**) api/cuisine/ idem.   ← FINIS ✓ (2026-06-10 — 3 sous-routeurs : recipes, planning, pantry)
 509. [S](**) api/journal/ idem.   ← FINIS ✓ (2026-06-10)
 510. [S](**) api/livres/ idem.   ← FINIS ✓ (2026-06-10 — 3 sous-routeurs : books, annotations, insights ; repositories câblés)
-511. [S](**) api/musique/ idem.
+511. [S](**) api/musique/ idem.   ← FINIS ✓ (2026-06-10 — 2 sous-routeurs : bibliotheque, playlists)
 512. [S](**) api/skincare/ idem.
 513. [S](**) api/data/ idem.
 514. [S](*) api/scheduler/ idem.

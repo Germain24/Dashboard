@@ -10,7 +10,6 @@ from fastapi import APIRouter
 from app.api import (
     routes_data,
     routes_health,
-    routes_musique,
     routes_notifications,
     routes_scheduler,
     routes_skincare,
@@ -25,6 +24,7 @@ from app.api.garderobe import router as garderobe_router
 from app.api.habitudes import router as habitudes_router
 from app.api.journal import router as journal_router
 from app.api.livres import router as livres_router
+from app.api.musique import router as musique_router
 from app.api.sante import router as sante_router
 
 api_router = APIRouter()
@@ -40,7 +40,7 @@ api_router.include_router(cuisine_router, prefix="/cuisine")
 api_router.include_router(habitudes_router, prefix="/habitudes")
 api_router.include_router(journal_router, prefix="/journal")
 api_router.include_router(livres_router, prefix="/livres")
-api_router.include_router(routes_musique.router, prefix="/musique", tags=["musique"])
+api_router.include_router(musique_router, prefix="/musique")
 api_router.include_router(routes_scheduler.router, prefix="/jobs", tags=["jobs"])
 api_router.include_router(routes_notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(routes_skincare.router, prefix="/skincare", tags=["skincare"])
