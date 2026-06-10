@@ -1,6 +1,7 @@
 import datetime as dt
 import calendar
 from sqlmodel import Session, select
+from app.core.events import Events, bus
 from app.models.budget import BudgetTransaction
 from app.services.budget.rules import apply_rules_to_transaction
 
@@ -17,6 +18,16 @@ def create_transaction(session: Session, date: dt.date, montant: float, marchand
     session.add(t)
     session.commit()
     session.refresh(t)
+    # Point d'émission de référence du bus d'événements (#202) : les
+    # automatisations (routines, briefings, anomalies) peuvent s'y abonner.
+    bus.emit(
+        Events.BUDGET_TRANSACTION_CREATED,
+        id=t.id,
+        montant=t.montant,
+        marchand=t.marchand,
+        category_id=t.category_id,
+        date=t.date.isoformat(),
+    )
     return t
 
 
