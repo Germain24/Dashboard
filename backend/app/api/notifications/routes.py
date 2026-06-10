@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from app.api.notifications.schemas import PrefUpdate
 from app.core.db import get_session
 from app.models.scheduler import Notification
 from app.services.scheduler import notif_prefs
@@ -50,11 +50,6 @@ def clear_all(session: Session = Depends(get_session)):
 
 
 # ── Préférences par source (#171) ────────────────────────────────────────────
-
-class PrefUpdate(BaseModel):
-    source: str
-    enabled: bool
-
 
 @router.get("/prefs")
 def get_prefs(session: Session = Depends(get_session)):
