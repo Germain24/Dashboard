@@ -1,7 +1,7 @@
-import { ModulePlaceholder } from "@/components/ModulePlaceholder";
-import { moduleForSlug } from "@/lib/modules";
+import Musique from "@/components/musique/Musique";
+
+export const metadata = { title: "Musique — Mission Control" };
 
 export default function MusiquePage() {
-  const m = moduleForSlug("musique");
-  return m ? <ModulePlaceholder module={m} /> : null;
+  return <Musique />;
 }
