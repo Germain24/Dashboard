@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { CalendarDays, List, PieChart } from 'lucide-react'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import MoisTab from '@/components/budget/MoisTab'
 import TransactionsTab from '@/components/budget/TransactionsTab'
 import EnveloppesTab from '@/components/budget/EnveloppesTab'
@@ -37,9 +38,11 @@ export default function BudgetPage() {
         </div>
       </div>
       <div key={active} className="p-6 animate-fade-in-up">
-        {active === 'mois' && <MoisTab />}
-        {active === 'transactions' && <TransactionsTab />}
-        {active === 'enveloppes' && <EnveloppesTab />}
+        <ErrorBoundary label="Budget">
+          {active === 'mois' && <MoisTab />}
+          {active === 'transactions' && <TransactionsTab />}
+          {active === 'enveloppes' && <EnveloppesTab />}
+        </ErrorBoundary>
       </div>
     </div>
   )

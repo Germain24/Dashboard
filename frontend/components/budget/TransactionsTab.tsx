@@ -1,27 +1,26 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ArrowDownLeft, ArrowUpRight, Upload, Download } from 'lucide-react'
-import { fetchTransactions, fetchCategories, importCsv, setTransactionTags } from '@/lib/budget'
+import {
+  useBudgetCategories, useBudgetTransactions, useImportCsv, useSetTransactionTags,
+} from '@/lib/queries/budget'
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
 
 export default function TransactionsTab() {
-  const [txs, setTxs] = useState<any[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const load = useCallback(() => {
-    void Promise.all([
-      fetchTransactions().then((d) => (Array.isArray(d) ? d : [])),
-      fetchCategories().then((d) => (Array.isArray(d) ? d : [])),
-    ]).then(([t, c]) => { setTxs(t); setCategories(c); setLoading(false) })
-  }, [])
-  useEffect(() => load(), [load])
+  const txsQ = useBudgetTransactions()
+  const categoriesQ = useBudgetCategories()
+  const txs: any[] = Array.isArray(txsQ.data) ? txsQ.data : []
+  const categories: any[] = Array.isArray(categoriesQ.data) ? categoriesQ.data : []
+  const loading = txsQ.isLoading || categoriesQ.isLoading
+  const tagsMutation = useSetTransactionTags()
+  const importMutation = useImportCsv()
+  const importing = importMutation.isPending
 
   const catName = (id: number | null) =>
     id == null ? 'Sans catégorie' : (categories.find((c: any) => c.id === id)?.nom ?? `#${id}`)
@@ -30,31 +29,29 @@ export default function TransactionsTab() {
   const addTag = (tx: any) => {
     const tag = window.prompt('Nouveau tag :')?.trim()
     if (!tag) return
-    void setTransactionTags(tx.id, [...(tx.tags ?? []), tag]).then(load)
+    tagsMutation.mutate({ id: tx.id, tags: [...(tx.tags ?? []), tag] })
   }
   const removeTag = (tx: any, tag: string) => {
-    void setTransactionTags(tx.id, (tx.tags ?? []).filter((t: string) => t !== tag)).then(load)
+    tagsMutation.mutate({ id: tx.id, tags: (tx.tags ?? []).filter((t: string) => t !== tag) })
   }
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setImporting(true)
     setMsg(null)
-    importCsv(file)
-      .then((r) => {
+    importMutation.mutate({ file }, {
+      onSuccess: (r) => {
         setMsg(
           r?.imported != null
             ? `${r.imported} importée(s), ${r.categorised ?? 0} auto-catégorisée(s)${r.errors ? `, ${r.errors} erreur(s)` : ''}.`
             : 'Import échoué.',
         )
-        load()
-      })
-      .catch(() => setMsg('Import échoué.'))
-      .finally(() => {
-        setImporting(false)
+      },
+      onError: () => setMsg('Import échoué.'),
+      onSettled: () => {
         if (fileRef.current) fileRef.current.value = ''
-      })
+      },
+    })
   }
 
   return (

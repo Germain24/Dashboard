@@ -1,10 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
-  fetchSummary, fetchEnvelopes, fetchCategories, fetchByCategory, fetchTrend, fetchRecurring,
-  fetchSavingsGoal, setSavingsGoal,
-  type CategorySpend, type MonthTrend, type Recurring, type SavingsGoal,
-} from '@/lib/budget'
+  useBudgetCategories, useBudgetSummary, useByCategory, useEnvelopes,
+  useRecurring, useSavingsGoal, useSetSavingsGoal, useTrend,
+} from '@/lib/queries/budget'
+import { Donut, TrendChart } from './charts'
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
@@ -15,42 +15,33 @@ const CATEGORY_COLORS = [
 ]
 
 export default function MoisTab() {
-  const [summary, setSummary] = useState<any>(null)
-  const [envelopes, setEnvelopes] = useState<any[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [byCat, setByCat] = useState<CategorySpend[]>([])
-  const [trend, setTrend] = useState<MonthTrend[]>([])
-  const [recurring, setRecurring] = useState<Recurring[]>([])
-  const [savings, setSavings] = useState<SavingsGoal | null>(null)
   const [goalInput, setGoalInput] = useState('')
-  const [loading, setLoading] = useState(true)
   const month = new Date().toISOString().slice(0, 7)
 
-  useEffect(() => {
-    void Promise.all([
-      fetchSummary(month).then(d => d && !d.detail ? d : null),
-      fetchEnvelopes(month).then(d => Array.isArray(d) ? d : []),
-      fetchCategories().then(d => Array.isArray(d) ? d : []),
-      fetchByCategory(month),
-      fetchTrend(6),
-      fetchRecurring(),
-      fetchSavingsGoal(),
-    ]).then(([s, e, c, bc, tr, rec, sav]) => {
-      setSummary(s)
-      setEnvelopes(e)
-      setCategories(c)
-      setByCat(bc)
-      setTrend(tr)
-      setRecurring(rec)
-      setSavings(sav)
-      setLoading(false)
-    })
-  }, [month])
+  const summaryQ = useBudgetSummary(month)
+  const envelopesQ = useEnvelopes(month)
+  const categoriesQ = useBudgetCategories()
+  const byCatQ = useByCategory(month)
+  const trendQ = useTrend(6)
+  const recurringQ = useRecurring()
+  const savingsQ = useSavingsGoal()
+  const setGoalMutation = useSetSavingsGoal()
+
+  const summary = summaryQ.data && !summaryQ.data.detail ? summaryQ.data : null
+  const envelopes: any[] = Array.isArray(envelopesQ.data) ? envelopesQ.data : []
+  const categories: any[] = Array.isArray(categoriesQ.data) ? categoriesQ.data : []
+  const byCat = byCatQ.data ?? []
+  const trend = trendQ.data ?? []
+  const recurring = recurringQ.data ?? []
+  const savings = savingsQ.data ?? null
+  const loading =
+    summaryQ.isLoading || envelopesQ.isLoading || categoriesQ.isLoading ||
+    byCatQ.isLoading || trendQ.isLoading || recurringQ.isLoading || savingsQ.isLoading
 
   const saveGoal = () => {
     const m = parseFloat(goalInput)
     if (!Number.isFinite(m) || m < 0) return
-    void setSavingsGoal(m).then(() => fetchSavingsGoal()).then((sav) => { setSavings(sav); setGoalInput('') })
+    setGoalMutation.mutate(m, { onSuccess: () => setGoalInput('') })
   }
 
   const catName = (id: number) => categories.find((c: any) => c.id === id)?.nom ?? `#${id}`
@@ -311,92 +302,6 @@ export default function MoisTab() {
           </p>
         </div>
       )}
-    </div>
-  )
-}
-
-function Donut({ data }: { data: CategorySpend[] }) {
-  const total = data.reduce((s, d) => s + d.montant, 0)
-  if (total <= 0) {
-    return <p className="text-sm text-[var(--muted-foreground)]">Aucune dépense ce mois-ci.</p>
-  }
-  const r = 52
-  const C = 2 * Math.PI * r
-  const segs = data.map((d, i) => ({
-    couleur: d.couleur,
-    dash: (d.montant / total) * C,
-    offset: data.slice(0, i).reduce((s, p) => s + (p.montant / total) * C, 0),
-  }))
-  const centre = new Intl.NumberFormat('fr-CA', {
-    style: 'currency', currency: 'CAD', maximumFractionDigits: 0,
-  }).format(total)
-
-  return (
-    <div className="flex flex-wrap items-center gap-5">
-      <svg width="140" height="140" viewBox="0 0 140 140" className="shrink-0"
-        role="img" aria-label="Répartition des dépenses par catégorie">
-        <g transform="rotate(-90 70 70)">
-          {segs.map((s, i) => (
-            <circle key={i} cx="70" cy="70" r={r} fill="none" stroke={s.couleur} strokeWidth="16"
-              strokeDasharray={`${s.dash} ${C - s.dash}`} strokeDashoffset={-s.offset} />
-          ))}
-        </g>
-        <text x="70" y="67" textAnchor="middle" fontSize="14" fontWeight="600" fill="var(--foreground)">{centre}</text>
-        <text x="70" y="83" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">dépensé</text>
-      </svg>
-      <ul className="min-w-[160px] flex-1 space-y-1 text-sm">
-        {data.map((d) => (
-          <li key={String(d.category_id)} className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: d.couleur }} />
-            <span className="flex-1 truncate">{d.nom}</span>
-            <span className="tabular-nums text-[var(--muted-foreground)]">{d.pct}%</span>
-            <span className="w-20 text-right tabular-nums">{formatCAD(d.montant)}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-function TrendChart({ data }: { data: MonthTrend[] }) {
-  if (data.length === 0) {
-    return <p className="text-sm text-[var(--muted-foreground)]">Pas de données.</p>
-  }
-  const max = Math.max(1, ...data.flatMap((d) => [d.depenses, d.revenus]))
-  const n = data.length
-  // Moyenne mobile 3 mois des dépenses (#118)
-  const ma = data.map((_, i) => {
-    const w = data.slice(Math.max(0, i - 2), i + 1)
-    return w.reduce((sum, x) => sum + x.depenses, 0) / w.length
-  })
-  const maPts = ma.map((v, i) => `${((i + 0.5) / n) * 100},${100 - (v / max) * 100}`).join(' ')
-
-  return (
-    <div>
-      <div className="relative h-32">
-        <div className="flex h-full items-end gap-3">
-          {data.map((d) => (
-            <div key={d.mois} className="flex flex-1 items-end justify-center gap-0.5">
-              <div className="w-3 rounded-t bg-[var(--success)]" style={{ height: `${(d.revenus / max) * 100}%` }}
-                title={`Revenus ${formatCAD(d.revenus)}`} />
-              <div className="w-3 rounded-t bg-[var(--destructive)]" style={{ height: `${(d.depenses / max) * 100}%` }}
-                title={`Dépenses ${formatCAD(d.depenses)}`} />
-            </div>
-          ))}
-        </div>
-        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none"
-          role="img" aria-label="Moyenne mobile 3 mois des dépenses">
-          <polyline points={maPts} fill="none" stroke="var(--ring)" strokeWidth={1} vectorEffect="non-scaling-stroke"
-            strokeLinejoin="round" strokeLinecap="round" />
-        </svg>
-      </div>
-      <div className="mt-1 flex gap-3">
-        {data.map((d) => (
-          <span key={d.mois} className="flex-1 text-center text-[10px] tabular-nums text-[var(--muted-foreground)]">
-            {d.mois.slice(5)}
-          </span>
-        ))}
-      </div>
     </div>
   )
 }
