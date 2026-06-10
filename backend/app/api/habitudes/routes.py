@@ -1,62 +1,50 @@
 import datetime as dt
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlmodel import Session, select
 from app.core.db import get_session
+from app.core.pagination import Pagination, paginate
+from app.core.query_params import Sorting, apply_sort
 from app.models.habitudes import Habit, HabitEntry
+from app.repositories.habitudes import HabitRepository, HabitEntryRepository
+from app.api.habitudes.schemas import HabitCreate, EntryCreate
 from app.services.habitudes import entries as entries_svc
 from app.services.habitudes import streaks as streaks_svc
 from app.services.habitudes import heatmap as heatmap_svc
 from app.services.habitudes import gamification as gamification_svc
-from pydantic import BaseModel
 
 router = APIRouter(prefix="", tags=["habitudes"])
 
-class HabitCreate(BaseModel):
-    nom: str
-    type: str = "binaire"
-    unite: str | None = None
-    cible: float = 1.0
-    frequence: str = "daily"
-    couleur: str | None = None
-    icone: str | None = None
-
-class EntryCreate(BaseModel):
-    habit_id: int
-    date: dt.date
-    valeur: float = 1.0
-
 @router.get("/habits")
-def list_habits(session: Session = Depends(get_session)):
-    return session.exec(select(Habit).where(Habit.actif == True).order_by(Habit.ordre)).all()
+def list_habits(response: Response,
+                page: Pagination = Depends(),
+                sorting: Sorting = Depends(),
+                session: Session = Depends(get_session)):
+    stmt = select(Habit).where(Habit.actif == True)
+    if sorting.sort:
+        stmt = apply_sort(stmt, Habit, sorting, allowed={"nom", "ordre", "frequence"})
+    else:
+        stmt = stmt.order_by(Habit.ordre)
+    return paginate(session, stmt, response, page)
 
 @router.post("/habits", status_code=201)
 def create_habit(body: HabitCreate, session: Session = Depends(get_session)):
-    h = Habit(**body.model_dump())
-    session.add(h)
-    session.commit()
-    session.refresh(h)
-    return h
+    return HabitRepository(session).create(body.model_dump())
 
 @router.patch("/habits/{id}")
 def update_habit(id: int, body: dict, session: Session = Depends(get_session)):
-    h = session.get(Habit, id)
+    repo = HabitRepository(session)
+    h = repo.get(id)
     if not h:
         raise HTTPException(404)
-    for k, v in body.items():
-        setattr(h, k, v)
-    session.add(h)
-    session.commit()
-    session.refresh(h)
-    return h
+    return repo.update(h, body)
 
 @router.delete("/habits/{id}", status_code=204)
 def delete_habit(id: int, session: Session = Depends(get_session)):
-    h = session.get(Habit, id)
+    repo = HabitRepository(session)
+    h = repo.get(id)
     if not h:
         raise HTTPException(404)
-    h.actif = False
-    session.add(h)
-    session.commit()
+    repo.update(h, {"actif": False})  # soft-delete
 
 @router.get("/today")
 def today_checklist(session: Session = Depends(get_session)):
@@ -68,11 +56,8 @@ def create_entry(body: EntryCreate, session: Session = Depends(get_session)):
 
 @router.delete("/entries/{id}", status_code=204)
 def delete_entry(id: int, session: Session = Depends(get_session)):
-    e = session.get(HabitEntry, id)
-    if not e:
+    if not HabitEntryRepository(session).delete_by_id(id):
         raise HTTPException(404)
-    session.delete(e)
-    session.commit()
 
 @router.get("/streaks")
 def streaks(session: Session = Depends(get_session)):

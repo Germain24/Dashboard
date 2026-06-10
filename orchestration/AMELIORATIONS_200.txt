@@ -713,7 +713,7 @@ AM. NOUVEAUX MODULES DE VIE (476-500)
 --------------------------------------------------------------------------------
 V. HARMONISATION BACKEND (501-517) — design 2026-06-10
 --------------------------------------------------------------------------------
-501. [S](**) api/habitudes/ en package (routes+schemas) + repository câblé + pagination listes.
+501. [S](**) api/habitudes/ en package (routes+schemas) + repository câblé + pagination listes.   ← FINIS ✓ (2026-06-10)
 502. [S](**) api/agenda/ idem (découper routes_agenda.py 487 lignes en sous-routeurs).
 503. [S](**) api/garderobe/ idem (463 lignes, découper).
 504. [S](**) api/sante/ idem (411 lignes, découper).
