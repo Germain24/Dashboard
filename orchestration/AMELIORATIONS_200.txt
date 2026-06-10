@@ -721,7 +721,7 @@ V. HARMONISATION BACKEND (501-517) — design 2026-06-10
 506. [S](**) api/etudes/ idem.   ← FINIS ✓ (2026-06-10 — 4 sous-routeurs : cours, evaluations, sessions, revision)
 507. [S](**) api/budget/ idem.   ← FINIS ✓ (2026-06-10 — 3 sous-routeurs : transactions, categories, analytics ; repositories câblés)
 508. [S](**) api/cuisine/ idem.   ← FINIS ✓ (2026-06-10 — 3 sous-routeurs : recipes, planning, pantry)
-509. [S](**) api/journal/ idem.
+509. [S](**) api/journal/ idem.   ← FINIS ✓ (2026-06-10)
 510. [S](**) api/livres/ idem.
 511. [S](**) api/musique/ idem.
 512. [S](**) api/skincare/ idem.

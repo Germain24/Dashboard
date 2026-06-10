@@ -4,21 +4,14 @@ from __future__ import annotations
 import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlmodel import Session
 
+from app.api.journal.schemas import MoodEntryIn
 from app.core.db import get_session
 from app.services.journal import mood as mood_svc
 from app.services.journal.correlations import compute_correlations
 
 router = APIRouter()
-
-
-class MoodEntryIn(BaseModel):
-    humeur: int
-    energie: int
-    tags: list[str] = []
-    note: str = ""
 
 
 def _serialize(e) -> dict:
