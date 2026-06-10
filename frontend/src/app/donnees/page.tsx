@@ -3,57 +3,70 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Download, Upload, Database, FileSpreadsheet, AlertTriangle } from 'lucide-react'
-import {
-  fetchTables, downloadExport, downloadTableCsv, importBackup, seedDemo,
-  type ImportReport,
-} from '@/lib/data'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { downloadExport, downloadTableCsv, type ImportReport } from '@/lib/data'
+import { useImportBackup, useSeedDemo, useTables } from '@/lib/queries/donnees'
 
 export default function DonneesPage() {
-  const [tables, setTables] = useState<string[]>([])
   const [table, setTable] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [report, setReport] = useState<ImportReport | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const tablesQ = useTables()
+  const tables: string[] = tablesQ.isError ? [] : tablesQ.data ?? []
+  const importMutation = useImportBackup()
+  const seedMutation = useSeedDemo()
+  const busy = exporting || importMutation.isPending || seedMutation.isPending
+
   useEffect(() => {
-    fetchTables().then((t) => { setTables(t); if (t[0]) setTable(t[0]) }).catch(() => setTables([]))
-  }, [])
+    if (!table && tables[0]) setTable(tables[0])
+  }, [tables, table])
 
   const onExport = async () => {
-    setBusy(true)
+    setExporting(true)
     try { await downloadExport(); toast.success('Backup exporté.') }
     catch { toast.error('Export impossible.') }
-    finally { setBusy(false) }
+    finally { setExporting(false) }
   }
 
   const onImportFile = async (file: File, mode: 'replace' | 'merge') => {
-    setBusy(true); setReport(null)
+    setReport(null)
+    let data: unknown
     try {
-      const data = JSON.parse(await file.text())
-      const rep = await importBackup(data, mode)
-      setReport(rep)
-      toast.success(`Import terminé : ${rep.total_inserted} enregistrements.`)
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Import impossible.')
-    } finally {
-      setBusy(false)
-      if (fileRef.current) fileRef.current.value = ''
+      data = JSON.parse(await file.text())
+    } catch {
+      toast.error('Fichier JSON invalide.')
+      return
     }
+    importMutation.mutate({ data, mode }, {
+      onSuccess: (rep) => {
+        setReport(rep)
+        toast.success(`Import terminé : ${rep.total_inserted} enregistrements.`)
+      },
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'Import impossible.'),
+      onSettled: () => {
+        if (fileRef.current) fileRef.current.value = ''
+      },
+    })
   }
 
-  const onSeed = async () => {
-    setBusy(true)
-    try {
-      const r = await seedDemo(false)
-      toast.success(`Démo ajoutée : ${Object.values(r.seeded as Record<string, number>).reduce((a, b) => a + b, 0)} enregistrements.`)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Erreur'
-      if (msg.includes('existent') || msg.includes('409')) {
-        if (confirm('Des données existent déjà. Ajouter quand même les données de démo ?')) {
-          try { await seedDemo(true); toast.success('Démo ajoutée.') } catch { toast.error('Échec.') }
-        }
-      } else { toast.error(msg) }
-    } finally { setBusy(false) }
+  const onSeed = () => {
+    seedMutation.mutate(false, {
+      onSuccess: (r) =>
+        toast.success(`Démo ajoutée : ${Object.values(r.seeded as Record<string, number>).reduce((a, b) => a + b, 0)} enregistrements.`),
+      onError: (e) => {
+        const msg = e instanceof Error ? e.message : 'Erreur'
+        if (msg.includes('existent') || msg.includes('409')) {
+          if (confirm('Des données existent déjà. Ajouter quand même les données de démo ?')) {
+            seedMutation.mutate(true, {
+              onSuccess: () => toast.success('Démo ajoutée.'),
+              onError: () => toast.error('Échec.'),
+            })
+          }
+        } else { toast.error(msg) }
+      },
+    })
   }
 
   const errorCount = report
@@ -67,6 +80,7 @@ export default function DonneesPage() {
         <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Export, import, backup & données de démo</p>
       </div>
 
+      <ErrorBoundary label="Données">
       <div className="max-w-2xl space-y-4 p-6">
         {/* Export complet */}
         <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
@@ -142,6 +156,7 @@ export default function DonneesPage() {
           </button>
         </section>
       </div>
+      </ErrorBoundary>
     </div>
   )
 }

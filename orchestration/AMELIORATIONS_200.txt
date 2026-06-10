@@ -737,7 +737,7 @@ W. GÉNÉRALISATION FRONTEND + TESTS (518-533) — design 2026-06-10
 518. [M](**) lib/queries/agenda.ts (TanStack) + error boundary + tests vitest.   ← FINIS ✓ (2026-06-10 — 5 composants migrés, sync gcal/ical en mutations)
 519. [M](**) lib/queries/budget.ts idem + découpe MoisTab.tsx (377 l.).   ← FINIS ✓ (2026-06-10 — Donut/TrendChart extraits dans charts.tsx, MoisTab 285 l.)
 520. [M](**) lib/queries/cuisine.ts idem + découpe RecettesTab.tsx (558 l.).   ← FINIS ✓ (2026-06-10 — RecipeForm + RecipeDetailModal extraits, hôte 173 l. ; 4 tabs migrés)
-521. [M](**) lib/queries/donnees.ts idem.
+521. [M](**) lib/queries/donnees.ts idem.   ← FINIS ✓ (2026-06-10 — downloads restés directs : pas de cache)
 522. [M](**) lib/queries/entrainement.ts idem + découpe AujourdhuiTab.tsx (421 l.).
 523. [M](**) lib/queries/etudes.ts idem.
 524. [M](**) lib/queries/garderobe.ts idem.
