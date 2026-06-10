@@ -1,16 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Package, Plus, Trash2, X, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  fetchPantry,
-  addPantryItem,
-  deletePantryItem,
-  type PantryItem,
-} from '@/lib/cuisine'
+import type { PantryItem } from '@/lib/cuisine'
+import { useAddPantryItem, useDeletePantryItem, usePantry } from '@/lib/queries/cuisine'
 
 const RAYONS = [
   'Fruits & légumes', 'Produits laitiers', 'Viandes & poissons', 'Épicerie sèche',
@@ -25,28 +21,18 @@ const STATUT_CONFIG = {
 }
 
 export default function GardeMangerTab() {
-  const [items, setItems] = useState<PantryItem[] | null>(null)
-  const [error, setError] = useState(false)
   const [open, setOpen] = useState(false)
 
-  const load = useCallback(() => {
-    let cancelled = false
-    fetchPantry()
-      .then((d) => { if (!cancelled) { setItems(d); setError(false) } })
-      .catch(() => { if (!cancelled) { setError(true); setItems([]) } })
-    return () => { cancelled = true }
-  }, [])
+  const pantryQ = usePantry()
+  const items: PantryItem[] | null = pantryQ.isError ? [] : pantryQ.data ?? null
+  const error = pantryQ.isError
+  const deleteMutation = useDeletePantryItem()
 
-  useEffect(() => load(), [load])
-
-  const handleDelete = async (id: number) => {
-    try {
-      await deletePantryItem(id)
-      setItems((prev) => prev?.filter((i) => i.id !== id) ?? [])
-      toast.success('Article retiré.')
-    } catch {
-      toast.error('Impossible de retirer cet article.')
-    }
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id, {
+      onSuccess: () => toast.success('Article retiré.'),
+      onError: () => toast.error('Impossible de retirer cet article.'),
+    })
   }
 
   const expired = (items ?? []).filter((i) => i.statut === 'expired')
@@ -154,7 +140,7 @@ export default function GardeMangerTab() {
       {open && (
         <AddPantryItemModal
           onClose={() => setOpen(false)}
-          onAdded={() => { void load(); setOpen(false) }}
+          onAdded={() => setOpen(false)}
         />
       )}
     </div>
@@ -167,7 +153,8 @@ function AddPantryItemModal({ onClose, onAdded }: { onClose: () => void; onAdded
   const [unite, setUnite] = useState('g')
   const [dateExp, setDateExp] = useState('')
   const [rayon, setRayon] = useState('Autre')
-  const [saving, setSaving] = useState(false)
+  const addMutation = useAddPantryItem()
+  const saving = addMutation.isPending
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -175,24 +162,24 @@ function AddPantryItemModal({ onClose, onAdded }: { onClose: () => void; onAdded
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const submit = async () => {
+  const submit = () => {
     if (!ingredient.trim()) { toast.error("Nom d'ingredient requis."); return }
-    setSaving(true)
-    try {
-      await addPantryItem({
+    addMutation.mutate(
+      {
         ingredient: ingredient.trim(),
         quantite: Number(quantite.replace(',', '.')) || 1,
         unite: unite.trim(),
         date_peremption: dateExp || null,
         rayon,
-      })
-      toast.success(`${ingredient} ajouté au garde-manger.`)
-      onAdded()
-    } catch {
-      toast.error("Échec de l'ajout.")
-    } finally {
-      setSaving(false)
-    }
+      },
+      {
+        onSuccess: () => {
+          toast.success(`${ingredient} ajouté au garde-manger.`)
+          onAdded()
+        },
+        onError: () => toast.error("Échec de l'ajout."),
+      },
+    )
   }
 
   const inputCls = 'w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]'

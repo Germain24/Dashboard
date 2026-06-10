@@ -8,15 +8,11 @@
  * le plan (7 jours × 3 repas). Convention semaine = date du lundi.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Wand2 } from 'lucide-react'
-import {
-  fetchMealPlan,
-  generateMealPlan,
-  fetchDailyTargets,
-  fetchRecipes,
-} from '@/lib/cuisine'
+import { fetchDailyTargets } from '@/lib/cuisine'
+import { useGenerateMealPlan, useMealPlan, useRecipes } from '@/lib/queries/cuisine'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -38,24 +34,17 @@ function currentMonday(): string {
 
 export default function PlanSemaineTab() {
   const semaine = currentMonday()
-  const [plan, setPlan] = useState<Entry[] | null>(null)
-  const [recipes, setRecipes] = useState<Map<number, string>>(new Map())
   const [generating, setGenerating] = useState(false)
   const [cibles, setCibles] = useState<Record<string, number> | null>(null)
 
-  const loadPlan = useCallback(async () => {
-    try {
-      const [entries, recs] = await Promise.all([fetchMealPlan(semaine), fetchRecipes()])
-      setPlan(entries)
-      setRecipes(new Map(recs.map((r) => [r.id, r.titre])))
-    } catch {
-      setPlan([])
-    }
-  }, [semaine])
-
-  useEffect(() => {
-    void loadPlan()
-  }, [loadPlan])
+  const planQ = useMealPlan(semaine)
+  const plan: Entry[] | null = planQ.isError ? [] : planQ.data ?? null
+  const recipesQ = useRecipes()
+  const recipes = useMemo(
+    () => new Map((recipesQ.data ?? []).map((r) => [r.id, r.titre])),
+    [recipesQ.data],
+  )
+  const generateMutation = useGenerateMealPlan()
 
   async function generate() {
     setGenerating(true)
@@ -68,13 +57,12 @@ export default function PlanSemaineTab() {
         lipides: t.Lipides ?? 0,
       }
       setCibles(c)
-      const entries = await generateMealPlan(semaine, c)
+      const entries = await generateMutation.mutateAsync({ semaine, cibles: c })
       if (Array.isArray(entries) && entries.length === 0) {
         toast.error('Aucune recette : ajoute des recettes avant de générer.')
       } else {
         toast.success('Plan généré depuis tes cibles nutrition.')
       }
-      await loadPlan()
     } catch {
       toast.error('Génération impossible (cibles nutrition manquantes dans Santé ?).')
     } finally {

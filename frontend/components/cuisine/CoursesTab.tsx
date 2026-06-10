@@ -8,9 +8,10 @@
  * côté backend (/shopping-list/preview), cases à cocher côté client.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Check } from 'lucide-react'
-import { fetchShoppingPreview, type ShoppingItem } from '@/lib/cuisine'
+import type { ShoppingItem } from '@/lib/cuisine'
+import { useShoppingPreview } from '@/lib/queries/cuisine'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -41,22 +42,10 @@ const fmtQte = (it: ShoppingItem) =>
 export default function CoursesTab() {
   const semaine = currentMonday()
   const [mode, setMode] = useState<'cycle' | 'semaine'>('cycle')
-  const [items, setItems] = useState<ShoppingItem[] | null>(null)
   const [checked, setChecked] = useState<Set<string>>(new Set())
 
-  const load = useCallback(async () => {
-    setItems(null)
-    try {
-      const jours = mode === 'cycle' ? cycleJours() : undefined
-      setItems(await fetchShoppingPreview(semaine, jours))
-    } catch {
-      setItems([])
-    }
-  }, [semaine, mode])
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  const previewQ = useShoppingPreview(semaine, mode === 'cycle' ? cycleJours() : undefined)
+  const items: ShoppingItem[] | null = previewQ.isError ? [] : previewQ.data ?? null
 
   const toggle = (key: string) =>
     setChecked((prev) => {

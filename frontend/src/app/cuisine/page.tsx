@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { ChefHat, CalendarDays, ShoppingCart, Package } from 'lucide-react'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import RecettesTab from '@/components/cuisine/RecettesTab'
 import PlanSemaineTab from '@/components/cuisine/PlanSemaineTab'
 import CoursesTab from '@/components/cuisine/CoursesTab'
@@ -39,10 +40,12 @@ export default function CuisinePage() {
         </div>
       </div>
       <div key={active} className="p-6 animate-fade-in-up">
-        {active === 'recettes' && <RecettesTab />}
-        {active === 'plan' && <PlanSemaineTab />}
-        {active === 'courses' && <CoursesTab />}
-        {active === 'garde-manger' && <GardeMangerTab />}
+        <ErrorBoundary label="Cuisine">
+          {active === 'recettes' && <RecettesTab />}
+          {active === 'plan' && <PlanSemaineTab />}
+          {active === 'courses' && <CoursesTab />}
+          {active === 'garde-manger' && <GardeMangerTab />}
+        </ErrorBoundary>
       </div>
     </div>
   )
