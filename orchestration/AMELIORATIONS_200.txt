@@ -376,26 +376,26 @@ U. INTELLIGENCE TRANSVERSALE & CORRÉLATIONS (221-235)
 --------------------------------------------------------------------------------
 V. ASSISTANT IA PROACTIF & AGENTS (236-255)   >>> SECTION ABANDONNÉE ✗ (2026-06-09) : pas d'IA conversationnelle/agents dans le dashboard (l'utilisateur utilise Gemini/ChatGPT à part). Items 236-255 non retenus. <<<
 --------------------------------------------------------------------------------
-236. [L](***) Agent IA proactif quotidien qui propose des actions concrètes (pas seulement répond).
-237. [L](***) Mémoire long terme de l'assistant (préférences, faits, historique) persistée et requêtable (RAG local).
-238. [M](***) Agent multi-étapes avec plan + confirmation (approfondir l'existant #156).
-239. [M](**) Sous-agents spécialisés (finance, santé, agenda) orchestrés par un agent chef.
-240. [M](**) Chat vocal mains libres avec l'assistant (STT + TTS).
-241. [M](**) Briefing audio quotidien généré (podcast personnel de ta journée).
-242. [M](**) Assistant qui rédige tes messages/mails à partir d'un contexte (brouillons).
-243. [M](**) Q&A en langage naturel sur tes propres données (« combien dépensé en resto en mai ? »).
-244. [M](**) Coaching IA contextuel par module (nutrition, finance, études) au ton personnalisable.
-245. [M](**) Détection d'intention : une phrase libre route vers la bonne action/module.
-246. [M](**) Résumé automatique des notes/articles/livres sauvegardés.
-247. [M](**) Génération de plans (repas, entraînement, révisions) ajustés en langage naturel.
-248. [M](**) Agent « négociateur de calendrier » qui replanifie en cas de conflit.
-249. [M](**) Garde-fous & confirmations renforcés pour les actions sensibles de l'agent.
-250. [M](**) Historique conversationnel multi-sessions avec recherche sémantique.
-251. [M](**) Sélecteur de modèle/raisonnement par tâche (rapide vs profond) avec coût estimé.
-252. [M](**) Mode « explique-moi » : l'IA justifie chaque reco avec les données source.
-253. [M](**) Agent de veille : surveille sujets/prix/news et te notifie.
-254. [M](**) Personnalisation few-shot sur ton style à partir de tes données.
-255. [M](**) Feedback qualité des réponses IA (pouce haut/bas) qui améliore les prompts.
+236. [L](***) Agent IA proactif quotidien qui propose des actions concrètes (pas seulement répond).   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+237. [L](***) Mémoire long terme de l'assistant (préférences, faits, historique) persistée et requêtable (RAG local).   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+238. [M](***) Agent multi-étapes avec plan + confirmation (approfondir l'existant #156).   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+239. [M](**) Sous-agents spécialisés (finance, santé, agenda) orchestrés par un agent chef.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+240. [M](**) Chat vocal mains libres avec l'assistant (STT + TTS).   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+241. [M](**) Briefing audio quotidien généré (podcast personnel de ta journée).   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+242. [M](**) Assistant qui rédige tes messages/mails à partir d'un contexte (brouillons).   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+243. [M](**) Q&A en langage naturel sur tes propres données (« combien dépensé en resto en mai ? »).   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+244. [M](**) Coaching IA contextuel par module (nutrition, finance, études) au ton personnalisable.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+245. [M](**) Détection d'intention : une phrase libre route vers la bonne action/module.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+246. [M](**) Résumé automatique des notes/articles/livres sauvegardés.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+247. [M](**) Génération de plans (repas, entraînement, révisions) ajustés en langage naturel.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+248. [M](**) Agent « négociateur de calendrier » qui replanifie en cas de conflit.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+249. [M](**) Garde-fous & confirmations renforcés pour les actions sensibles de l'agent.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+250. [M](**) Historique conversationnel multi-sessions avec recherche sémantique.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+251. [M](**) Sélecteur de modèle/raisonnement par tâche (rapide vs profond) avec coût estimé.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+252. [M](**) Mode « explique-moi » : l'IA justifie chaque reco avec les données source.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+253. [M](**) Agent de veille : surveille sujets/prix/news et te notifie.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+254. [M](**) Personnalisation few-shot sur ton style à partir de tes données.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
+255. [M](**) Feedback qualité des réponses IA (pouce haut/bas) qui améliore les prompts.   ← ABANDONNÉ ✗ (2026-06-10 : pas d'IA conversationnelle/agents dans le dashboard — même décision que le module N.)
 
 --------------------------------------------------------------------------------
 W. FINANCES PERSONNELLES AVANCÉES (256-270)
@@ -709,3 +709,71 @@ AM. NOUVEAUX MODULES DE VIE (476-500)
 498. [L](**) Module « Long terme/Retraite » (projection, FIRE, planification).
 499. [L](**) Module « Communauté » (groupes, entraide, partage de modules).
 500. [L](***) « Mission Control OS » : marketplace de modules + thèmes + automatisations, extensible par la communauté.
+
+--------------------------------------------------------------------------------
+V. HARMONISATION BACKEND (501-517) — design 2026-06-10
+--------------------------------------------------------------------------------
+501. [S](**) api/habitudes/ en package (routes+schemas) + repository câblé + pagination listes.
+502. [S](**) api/agenda/ idem (découper routes_agenda.py 487 lignes en sous-routeurs).
+503. [S](**) api/garderobe/ idem (463 lignes, découper).
+504. [S](**) api/sante/ idem (411 lignes, découper).
+505. [S](**) api/entrainement/ idem (390 lignes, découper).
+506. [S](**) api/etudes/ idem.
+507. [S](**) api/budget/ idem.
+508. [S](**) api/cuisine/ idem.
+509. [S](**) api/journal/ idem.
+510. [S](**) api/livres/ idem.
+511. [S](**) api/musique/ idem.
+512. [S](**) api/skincare/ idem.
+513. [S](**) api/data/ idem.
+514. [S](*) api/scheduler/ idem.
+515. [S](*) api/notifications/ idem.
+516. [S](*) api/health/ idem (ou justifier de le laisser plat).
+517. [S](*) Corriger le cycle d'import app/main.py signalé par graphify.
+
+--------------------------------------------------------------------------------
+W. GÉNÉRALISATION FRONTEND + TESTS (518-533) — design 2026-06-10
+--------------------------------------------------------------------------------
+518. [M](**) lib/queries/agenda.ts (TanStack) + error boundary + tests vitest.
+519. [M](**) lib/queries/budget.ts idem + découpe MoisTab.tsx (377 l.).
+520. [M](**) lib/queries/cuisine.ts idem + découpe RecettesTab.tsx (558 l.).
+521. [M](**) lib/queries/donnees.ts idem.
+522. [M](**) lib/queries/entrainement.ts idem + découpe AujourdhuiTab.tsx (421 l.).
+523. [M](**) lib/queries/etudes.ts idem.
+524. [M](**) lib/queries/garderobe.ts idem.
+525. [M](**) lib/queries/habitudes.ts idem.
+526. [M](**) lib/queries/jobs.ts idem.
+527. [M](**) lib/queries/journal.ts idem.
+528. [M](**) lib/queries/livres.ts idem.
+529. [M](**) lib/queries/musique.ts idem.
+530. [M](**) lib/queries/sante.ts idem.
+531. [M](**) lib/queries/skincare.ts idem.
+532. [M](**) Découpe BuffettTab.tsx (391 l.) en sous-composants + tests.
+533. [S](*) Suppression des derniers appels api() directs hors lib/queries.
+--------------------------------------------------------------------------------
+X. MODULES FILMS + SÉRIES TMDB (534-541) — design 2026-06-10
+--------------------------------------------------------------------------------
+534. [M](***) Modèles WatchItem + SerieProgress + migration Alembic.
+535. [M](**) Service TMDB (httpx, cache TTL, dégradation gracieuse sans clé).
+536. [M](**) Routes films_series : recherche TMDB, CRUD watchlist, progression, stats.
+537. [M](**) Page Films réelle (onglets À voir/En cours/Vus, recherche, fiches).
+538. [M](**) Page Séries réelle (idem + compteurs saison/épisode).
+539. [S](*) Stats visionnage (vus/an, temps estimé) sur les deux pages.
+540. [S](*) Clé TMDB absente → mode manuel complet (test dédié).
+541. [S](*) Hooks TanStack + tests vitest pour les deux modules.
+
+--------------------------------------------------------------------------------
+Y. RÉORGANISATION UI (542-545) — design 2026-06-10
+--------------------------------------------------------------------------------
+542. [M](**) Sidebar groupée par domaines (Quotidien/Corps/Culture/Argent/Travail/Système) via lib/modules.ts.
+543. [M](**) Page /parametres centralisée (clé TMDB, dossier musique, rétention backups, préférences).
+544. [S](*) Store de settings backend (secrets en env, la page indique leur présence).
+545. [S](*) Module Documents livré → groupe Travail renommé « Travail & Admin ».
+
+--------------------------------------------------------------------------------
+Z. NOUVEAUX ITEMS (546-549) — design 2026-06-10
+--------------------------------------------------------------------------------
+546. [M](**) Palette Cmd+K : recherche dans les données (transactions, recettes, livres…).
+547. [M](**) Ajout rapide global depuis la palette (dépense, repas, séance).
+548. [L](**) Module Documents/Administratif (échéances CNI/passeport, contrats, garanties, rappels scheduler).
+549. [S](*) Vague 2 restante reprise par impact décroissant : (***) d'abord.
