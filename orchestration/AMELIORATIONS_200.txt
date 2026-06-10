@@ -741,7 +741,7 @@ W. GÉNÉRALISATION FRONTEND + TESTS (518-533) — design 2026-06-10
 522. [M](**) lib/queries/entrainement.ts idem + découpe AujourdhuiTab.tsx (421 l.).
 523. [M](**) lib/queries/etudes.ts idem.
 524. [M](**) lib/queries/garderobe.ts idem.
-525. [M](**) lib/queries/habitudes.ts idem.
+525. [M](**) lib/queries/habitudes.ts idem.   ← FINIS ✓ (2026-06-10 — référence chantier 2 : hooks + tests + 4 tabs migrés + ErrorBoundary)
 526. [M](**) lib/queries/jobs.ts idem.
 527. [M](**) lib/queries/journal.ts idem.
 528. [M](**) lib/queries/livres.ts idem.

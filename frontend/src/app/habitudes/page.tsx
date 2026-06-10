@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { CheckSquare, Grid3X3, CalendarDays, Settings2 } from 'lucide-react'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import AujourdhuiTab from '@/components/habitudes/AujourdhuiTab'
 import HeatmapTab from '@/components/habitudes/HeatmapTab'
 import MoisTab from '@/components/habitudes/MoisTab'
@@ -39,10 +40,12 @@ export default function HabitudesPage() {
         </div>
       </div>
       <div key={active} className="p-6 animate-fade-in-up">
-        {active === 'aujourd-hui' && <AujourdhuiTab />}
-        {active === 'mois' && <MoisTab />}
-        {active === 'heatmap' && <HeatmapTab />}
-        {active === 'gestion' && <GestionTab />}
+        <ErrorBoundary label="Habitudes">
+          {active === 'aujourd-hui' && <AujourdhuiTab />}
+          {active === 'mois' && <MoisTab />}
+          {active === 'heatmap' && <HeatmapTab />}
+          {active === 'gestion' && <GestionTab />}
+        </ErrorBoundary>
       </div>
     </div>
   )

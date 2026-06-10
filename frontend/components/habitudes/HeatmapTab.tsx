@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { fetchHabits, fetchHeatmap } from '@/lib/habitudes'
+import { useMemo } from 'react'
+import { useHeatmapRows } from '@/lib/queries/habitudes'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type HabitRow = { id: number; nom: string; days: Map<string, number> }
@@ -50,27 +50,16 @@ export default function HeatmapTab() {
   const weeks = buildWeeks(year)
   const monthPos = monthPositions(year, weeks)
 
-  const [rows, setRows] = useState<HabitRow[] | null>(null)
-  const [error, setError] = useState(false)
+  const rowsQ = useHeatmapRows(year)
+  const rows: HabitRow[] | null = useMemo(
+    () =>
+      rowsQ.data
+        ? rowsQ.data.map((r) => ({ id: r.id, nom: r.nom, days: new Map(r.data.map((d) => [d.date, d.valeur])) }))
+        : null,
+    [rowsQ.data],
+  )
 
-  useEffect(() => {
-    let cancelled = false
-    fetchHabits()
-      .then(async (habits: { id: number; nom: string }[]) => {
-        const loaded = await Promise.all(
-          habits.map(async (h) => {
-            const data: { date: string; valeur: number }[] = await fetchHeatmap(h.id, year)
-            const days = new Map(data.map((d) => [d.date, d.valeur]))
-            return { id: h.id, nom: h.nom, days }
-          })
-        )
-        if (!cancelled) setRows(loaded)
-      })
-      .catch(() => { if (!cancelled) setError(true) })
-    return () => { cancelled = true }
-  }, [year])
-
-  if (error) return <p className="text-sm text-[var(--destructive)]">Heatmap indisponible.</p>
+  if (rowsQ.isError) return <p className="text-sm text-[var(--destructive)]">Heatmap indisponible.</p>
   if (rows === null) return (
     <div className="space-y-3">
       {[0, 1, 2].map((i) => <Skeleton key={i} className="h-8" />)}

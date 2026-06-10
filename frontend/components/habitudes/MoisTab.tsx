@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { fetchHabits, fetchHeatmap, type Habit } from '@/lib/habitudes'
+import { useHabits, useHeatmap } from '@/lib/queries/habitudes'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
@@ -25,36 +25,22 @@ function monthCells(year: number, month: number): (Date | null)[] {
 }
 
 export default function MoisTab() {
-  const [habits, setHabits] = useState<Habit[] | null>(null)
   const [habitId, setHabitId] = useState<number | null>(null)
   const [cursor, setCursor] = useState(() => { const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() } })
-  const [done, setDone] = useState<Set<string>>(new Set())
-  const [loadedFor, setLoadedFor] = useState('')
+
+  const habitsQ = useHabits()
+  const habits = habitsQ.isError ? [] : habitsQ.data ?? null
 
   useEffect(() => {
-    fetchHabits()
-      .then((hs) => {
-        setHabits(hs)
-        if (hs.length > 0) setHabitId(hs[0].id)
-      })
-      .catch(() => setHabits([]))
-  }, [])
+    if (habitId == null && habits && habits.length > 0) setHabitId(habits[0].id)
+  }, [habits, habitId])
 
-  const dataKey = habitId == null ? '' : `${habitId}-${cursor.year}`
-  const loading = dataKey !== '' && loadedFor !== dataKey
-
-  useEffect(() => {
-    if (habitId == null) return
-    let cancelled = false
-    fetchHeatmap(habitId, cursor.year)
-      .then((data: { date: string; valeur: number }[]) => {
-        if (cancelled) return
-        setDone(new Set(data.filter((d) => d.valeur > 0).map((d) => d.date)))
-      })
-      .catch(() => { if (!cancelled) setDone(new Set()) })
-      .finally(() => { if (!cancelled) setLoadedFor(`${habitId}-${cursor.year}`) })
-    return () => { cancelled = true }
-  }, [habitId, cursor.year])
+  const heatmapQ = useHeatmap(habitId, cursor.year)
+  const loading = habitId != null && heatmapQ.isFetching
+  const done = useMemo(() => {
+    const data: { date: string; valeur: number }[] = Array.isArray(heatmapQ.data) ? heatmapQ.data : []
+    return new Set(data.filter((d) => d.valeur > 0).map((d) => d.date))
+  }, [heatmapQ.data])
 
   const cells = useMemo(() => monthCells(cursor.year, cursor.month), [cursor])
   const todayStr = ymd(new Date())

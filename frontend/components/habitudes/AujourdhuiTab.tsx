@@ -1,31 +1,26 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { fetchToday, fetchStreaks, checkEntry, deleteEntry } from '@/lib/habitudes'
+import { useCheckEntry, useDeleteEntry, useStreaks, useToday } from '@/lib/queries/habitudes'
 
 const today = new Date().toISOString().slice(0, 10)
 
 export default function AujourdhuiTab() {
-  const [items, setItems] = useState<any[]>([])
-  const [streaks, setStreaks] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const todayQ = useToday()
+  const streaksQ = useStreaks()
+  const checkEntry = useCheckEntry()
+  const deleteEntry = useDeleteEntry()
 
-  const load = () =>
-    Promise.all([
-      fetchToday().then(d => Array.isArray(d) ? d : []),
-      fetchStreaks().then(d => Array.isArray(d) ? d : []),
-    ]).then(([t, s]) => { setItems(t); setStreaks(s); setLoading(false) })
-
-  useEffect(() => { load() }, [])
+  const items: any[] = Array.isArray(todayQ.data) ? todayQ.data : []
+  const streaks: any[] = Array.isArray(streaksQ.data) ? streaksQ.data : []
+  const loading = todayQ.isLoading || streaksQ.isLoading
 
   const streakFor = (id: number) => streaks.find(s => s.habit_id === id)?.streak ?? 0
 
-  const toggle = async (item: any) => {
+  const toggle = (item: any) => {
     if (item.entry) {
-      await deleteEntry(item.entry.id)
+      deleteEntry.mutate(item.entry.id)
     } else {
-      await checkEntry(item.habit.id, today)
+      checkEntry.mutate({ habit_id: item.habit.id, date: today })
     }
-    load()
   }
 
   if (loading) {

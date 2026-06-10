@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { GripVertical, Plus, Archive, X, Link2 } from 'lucide-react'
 import {
@@ -18,11 +19,11 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { updateHabit, type Habit, type Streak, type Gamification } from '@/lib/habitudes'
 import {
-  fetchHabits, fetchStreaks, fetchGamification,
-  createHabit, updateHabit, archiveHabit,
-  type Habit, type Streak, type Gamification,
-} from '@/lib/habitudes'
+  habitudesKeys, useArchiveHabit, useCreateHabit, useGamification,
+  useHabits, useStreaks, useUpdateHabit,
+} from '@/lib/queries/habitudes'
 import { Skeleton } from '@/components/ui/skeleton'
 
 function parseLinked(raw: string | undefined): number[] {
@@ -35,19 +36,18 @@ function parseLinked(raw: string | undefined): number[] {
 }
 
 export default function GestionTab() {
-  const [habits, setHabits] = useState<Habit[] | null>(null)
-  const [streaks, setStreaks] = useState<Streak[]>([])
-  const [gami, setGami] = useState<Gamification[]>([])
+  const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [linkingId, setLinkingId] = useState<number | null>(null)
 
-  const load = useCallback(() => {
-    fetchHabits().then(setHabits).catch(() => setHabits([]))
-    fetchStreaks().then(d => setStreaks(Array.isArray(d) ? d : [])).catch(() => setStreaks([]))
-    fetchGamification().then(d => setGami(Array.isArray(d) ? d : [])).catch(() => setGami([]))
-  }, [])
-
-  useEffect(() => load(), [load])
+  const habitsQ = useHabits()
+  const habits = habitsQ.isError ? [] : habitsQ.data ?? null
+  const streaksQ = useStreaks()
+  const gamiQ = useGamification()
+  const streaks = (Array.isArray(streaksQ.data) ? streaksQ.data : []) as Streak[]
+  const gami = (Array.isArray(gamiQ.data) ? gamiQ.data : []) as Gamification[]
+  const archiveMutation = useArchiveHabit()
+  const updateMutation = useUpdateHabit()
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -57,35 +57,34 @@ export default function GestionTab() {
     const from = habits.findIndex((h) => h.id === active.id)
     const to = habits.findIndex((h) => h.id === over.id)
     const reordered = arrayMove(habits, from, to)
-    setHabits(reordered)
-    await Promise.all(reordered.map((h, i) => updateHabit(h.id, { ordre: i }))).catch(() => {
-      toast.error('Impossible de sauvegarder l\'ordre.')
-      load()
-    })
-  }
-
-  const handleArchive = async (h: Habit) => {
-    if (!confirm(`Archiver "${h.nom}" ? Elle ne sera plus visible dans la checklist.`)) return
+    // Optimiste : on pousse l'ordre dans le cache puis on persiste.
+    qc.setQueryData(habitudesKeys.habits(), reordered)
     try {
-      await archiveHabit(h.id)
-      toast.success(`"${h.nom}" archivée.`)
-      load()
+      await Promise.all(reordered.map((h, i) => updateHabit(h.id, { ordre: i })))
     } catch {
-      toast.error('Impossible d\'archiver cette habitude.')
+      toast.error("Impossible de sauvegarder l'ordre.")
+    } finally {
+      void qc.invalidateQueries({ queryKey: habitudesKeys.all })
     }
   }
 
-  const handleToggleLink = async (h: Habit, targetId: number) => {
+  const handleArchive = (h: Habit) => {
+    if (!confirm(`Archiver "${h.nom}" ? Elle ne sera plus visible dans la checklist.`)) return
+    archiveMutation.mutate(h.id, {
+      onSuccess: () => toast.success(`"${h.nom}" archivée.`),
+      onError: () => toast.error("Impossible d'archiver cette habitude."),
+    })
+  }
+
+  const handleToggleLink = (h: Habit, targetId: number) => {
     const current = parseLinked(h.linked_ids)
     const next = current.includes(targetId)
       ? current.filter((id) => id !== targetId)
       : [...current, targetId]
-    try {
-      await updateHabit(h.id, { linked_ids: JSON.stringify(next) })
-      load()
-    } catch {
-      toast.error('Impossible de mettre à jour les liaisons.')
-    }
+    updateMutation.mutate(
+      { id: h.id, patch: { linked_ids: JSON.stringify(next) } },
+      { onError: () => toast.error('Impossible de mettre à jour les liaisons.') },
+    )
   }
 
   return (
@@ -107,7 +106,7 @@ export default function GestionTab() {
       {showForm && (
         <NewHabitForm
           onClose={() => setShowForm(false)}
-          onCreated={() => { load(); setShowForm(false) }}
+          onCreated={() => setShowForm(false)}
         />
       )}
 
@@ -281,20 +280,18 @@ function NewHabitForm({ onClose, onCreated }: { onClose: () => void; onCreated: 
   const [type, setType] = useState('binaire')
   const [icone, setIcone] = useState('')
   const [couleur, setCouleur] = useState('#6366f1')
-  const [saving, setSaving] = useState(false)
+  const createMutation = useCreateHabit()
+  const saving = createMutation.isPending
 
-  const submit = async () => {
+  const submit = () => {
     if (!nom.trim()) { toast.error('Nom requis.'); return }
-    setSaving(true)
-    try {
-      await createHabit({ nom: nom.trim(), frequence, type, icone: icone || null, couleur })
-      toast.success(`"${nom}" créée.`)
-      onCreated()
-    } catch {
-      toast.error('Impossible de créer cette habitude.')
-    } finally {
-      setSaving(false)
-    }
+    createMutation.mutate(
+      { nom: nom.trim(), frequence, type, icone: icone || null, couleur },
+      {
+        onSuccess: () => { toast.success(`"${nom}" créée.`); onCreated() },
+        onError: () => toast.error('Impossible de créer cette habitude.'),
+      },
+    )
   }
 
   const inputCls = 'w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]'
