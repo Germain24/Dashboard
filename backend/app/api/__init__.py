@@ -18,7 +18,6 @@ from app.api import (
     routes_livres,
     routes_musique,
     routes_notifications,
-    routes_sante,
     routes_scheduler,
     routes_skincare,
 )
@@ -26,12 +25,13 @@ from app.api.agenda import router as agenda_router
 from app.api.finance import router as finance_router
 from app.api.garderobe import router as garderobe_router
 from app.api.habitudes import router as habitudes_router
+from app.api.sante import router as sante_router
 
 api_router = APIRouter()
 api_router.include_router(routes_health.router, tags=["health"])
 api_router.include_router(finance_router, prefix="/finance", tags=["finance"])
 api_router.include_router(garderobe_router, prefix="/garderobe")
-api_router.include_router(routes_sante.router, prefix="/sante", tags=["sante"])
+api_router.include_router(sante_router, prefix="/sante")
 api_router.include_router(agenda_router, prefix="/agenda")
 api_router.include_router(routes_etudes.router, prefix="/etudes", tags=["etudes"])
 api_router.include_router(routes_entrainement.router, prefix="/entrainement", tags=["entrainement"])

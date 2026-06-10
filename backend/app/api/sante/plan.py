@@ -1,35 +1,25 @@
-"""Endpoints du module Sante / Nutrition - CONV 3."""
-
+"""Sous-routeur Santé : cibles du jour + plan nutritionnel optimisé (#504)."""
 from __future__ import annotations
 
 import datetime as dt
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session, select
 
-from app.api.schemas_sante import (
-    AlimentRead,
-    MesureSanteCreate,
-    MesureSanteRead,
-    MesureSanteUpdate,
-    NutritionGoalRead,
-    NutritionGoalUpdate,
+from app.api.sante.schemas import (
     PlanGenerateRequest,
     PlanItem,
     PlanPatchRequest,
     PlanResponse,
-    ProjectionResponse,
     TargetsResponse,
-    WeightTrendOut,
 )
 from app.core.db import get_session
-from app.models.sante import Aliment, MesureSante, NutritionGoal, PlanNutrition
+from app.models.sante import MesureSante, PlanNutrition
 from app.services.sante import (
     calculate_daily_targets,
     default_intensity_for_date,
     ensure_active_goal,
-    project_weight_to_target,
 )
 from app.services.sante.aliments import load_aliments_dataframe
 from app.services.sante.optimizer import optimize_nutrition
@@ -48,6 +38,8 @@ try:
 except Exception:  # pragma: no cover — défensif
     _entrainement_intensity = None  # type: ignore
 
+router = APIRouter()
+
 
 def _resolve_intensity(session, date, sport_days) -> str:
     """Intensité officielle pour `date`. Priorise Entraînement, fallback Santé."""
@@ -57,13 +49,6 @@ def _resolve_intensity(session, date, sport_days) -> str:
         except Exception:
             pass
     return default_intensity_for_date(date, sport_days)
-
-router = APIRouter()
-
-
-@router.get("/ping")
-def ping() -> dict:
-    return {"module": "sante", "ready": True}
 
 
 def _history_payload(session: Session, limit_days: int = 90):
@@ -127,192 +112,6 @@ def _plan_to_response(plan, df):
         warning=plan.warning,
         budget_max_daily=float((plan.targets or {}).get("Prix_Max", 18.0)),
     )
-
-
-@router.get("/mesures", response_model=list[MesureSanteRead])
-def list_mesures(days: int = Query(180, ge=1, le=3650), session: Session = Depends(get_session)):
-    cutoff = dt.date.today() - dt.timedelta(days=days)
-    stmt = select(MesureSante).where(MesureSante.date >= cutoff).order_by(MesureSante.date.asc())
-    return [MesureSanteRead.model_validate(m) for m in session.exec(stmt).all()]
-
-
-@router.post("/mesures", response_model=MesureSanteRead, status_code=status.HTTP_201_CREATED)
-def upsert_mesure(payload: MesureSanteCreate, session: Session = Depends(get_session)):
-    existing = session.exec(select(MesureSante).where(MesureSante.date == payload.date)).first()
-    if existing:
-        if payload.poids is not None:
-            existing.poids = payload.poids
-        if payload.photo_url is not None:
-            existing.photo_url = payload.photo_url
-        if payload.note is not None:
-            existing.note = payload.note
-        if payload.extra is not None:
-            existing.extra = payload.extra
-        session.add(existing)
-        session.commit()
-        session.refresh(existing)
-        return MesureSanteRead.model_validate(existing)
-    m = MesureSante(**payload.model_dump())
-    session.add(m)
-    session.commit()
-    session.refresh(m)
-    return MesureSanteRead.model_validate(m)
-
-
-@router.patch("/mesures/{date}", response_model=MesureSanteRead)
-def update_mesure(date: dt.date, payload: MesureSanteUpdate, session: Session = Depends(get_session)):
-    existing = session.exec(select(MesureSante).where(MesureSante.date == date)).first()
-    if not existing:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"mesure du {date} introuvable")
-    data = payload.model_dump(exclude_unset=True)
-    for k, v in data.items():
-        setattr(existing, k, v)
-    session.add(existing)
-    session.commit()
-    session.refresh(existing)
-    return MesureSanteRead.model_validate(existing)
-
-
-@router.delete("/mesures/{date}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_mesure(date: dt.date, session: Session = Depends(get_session)):
-    existing = session.exec(select(MesureSante).where(MesureSante.date == date)).first()
-    if not existing:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"mesure du {date} introuvable")
-    session.delete(existing)
-    session.commit()
-
-
-@router.post("/water")
-def add_water(date: dt.date | None = None, ml: float = 250, session: Session = Depends(get_session)):
-    """Ajoute de l'eau (ml) au total du jour (#66 hydratation)."""
-    from app.services.sante.wellbeing import add_water as _add
-    return _add(session, date or dt.date.today(), ml)
-
-
-@router.get("/water/today")
-def water_today(session: Session = Depends(get_session)):
-    from app.services.sante.wellbeing import get_water
-    return get_water(session, dt.date.today())
-
-
-@router.post("/sleep")
-def log_sleep(heures: float, qualite: int | None = None, date: dt.date | None = None,
-              session: Session = Depends(get_session)):
-    """Enregistre le sommeil du jour (#68)."""
-    from app.services.sante.wellbeing import set_sleep
-    return set_sleep(session, date or dt.date.today(), heures, qualite)
-
-
-@router.get("/sleep/summary")
-def sleep_summary(days: int = 30, session: Session = Depends(get_session)):
-    """Corrélation sommeil ↔ poids sur la période."""
-    from app.services.sante.wellbeing import sleep_weight_summary
-    return sleep_weight_summary(session, days)
-
-
-@router.post("/photo", response_model=MesureSanteRead)
-async def upload_progress_photo(
-    file: UploadFile = File(...),
-    date: dt.date | None = None,
-    session: Session = Depends(get_session),
-):
-    """Téléverse une photo de progression pour une date (#69)."""
-    from app.services.sante.photos import save_progress_photo
-
-    content = await file.read()
-    try:
-        m = save_progress_photo(session, date or dt.date.today(), file.filename or "photo.jpg", content)
-    except ValueError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
-    return MesureSanteRead.model_validate(m)
-
-
-@router.get("/photos")
-def list_photos(session: Session = Depends(get_session)):
-    """Liste les mesures avec photo, triées par date (avant/après, #69)."""
-    from app.services.sante.photos import list_progress_photos
-    return list_progress_photos(session)
-
-
-@router.get("/workout-burn")
-def workout_burn(date: dt.date | None = None, session: Session = Depends(get_session)):
-    """Calories dépensées en séance ce jour (intégration Entraînement, #67)."""
-    from app.services.sante.workout import burned_kcal_for_date
-    return burned_kcal_for_date(session, date or dt.date.today())
-
-
-@router.get("/quality/weekly")
-def quality_weekly(days: int = Query(7, ge=1, le=31), session: Session = Depends(get_session)):
-    """Score de qualité nutritionnelle sur la fenêtre glissante (#65)."""
-    from app.services.sante.quality import weekly_nutrition_quality
-    return weekly_nutrition_quality(session, days=days)
-
-
-@router.get("/energy/balance")
-def energy_balance(days: int = Query(7, ge=1, le=31), session: Session = Depends(get_session)):
-    """Bilan énergétique moyen + alerte déficit/surplus agressif (#70)."""
-    from app.services.sante.energy import weekly_energy_balance
-    return weekly_energy_balance(session, days=days)
-
-
-@router.get("/favorites")
-def get_favorites():
-    """Liste des aliments favoris pour saisie rapide (#64)."""
-    from app.services.sante.favorites import list_favorites
-    return {"favorites": list_favorites()}
-
-
-@router.post("/favorites")
-def add_favorite_route(nom: str):
-    """Ajoute un aliment aux favoris."""
-    from app.services.sante.favorites import add_favorite
-    try:
-        return {"favorites": add_favorite(nom)}
-    except ValueError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
-
-
-@router.delete("/favorites")
-def remove_favorite_route(nom: str):
-    """Retire un aliment des favoris."""
-    from app.services.sante.favorites import remove_favorite
-    return {"favorites": remove_favorite(nom)}
-
-
-@router.get("/aliments", response_model=list[AlimentRead])
-def list_aliments(session: Session = Depends(get_session)):
-    """Liste le catalogue d'aliments lu depuis data/imports/aliments.csv.
-
-    Le CSV est la source de vérité (cf. services/sante/aliments.py). La table
-    SQL `aliment` n'est plus consultée par cette route.
-    """
-    from app.services.sante.aliments import load_aliments_from_csv
-    catalog = load_aliments_from_csv()
-    # On simule une `AlimentRead` par entrée (id séquentiel arbitraire pour
-    # garder la forme `{id, nom, proprietes}` de l'API V1).
-    return [
-        AlimentRead(id=i, nom=nom, proprietes=props)
-        for i, (nom, props) in enumerate(sorted(catalog.items()), start=1)
-    ]
-
-
-@router.get("/goal", response_model=NutritionGoalRead)
-def get_goal(session: Session = Depends(get_session)):
-    goal = ensure_active_goal(session)
-    return NutritionGoalRead.model_validate(goal)
-
-
-@router.patch("/goal", response_model=NutritionGoalRead)
-def update_goal(payload: NutritionGoalUpdate, session: Session = Depends(get_session)):
-    goal = ensure_active_goal(session)
-    data = payload.model_dump(exclude_unset=True)
-    for k, v in data.items():
-        setattr(goal, k, v)
-    goal.updated_at = dt.datetime.utcnow()
-    session.add(goal)
-    session.commit()
-    session.refresh(goal)
-    return NutritionGoalRead.model_validate(goal)
 
 
 @router.get("/targets/today", response_model=TargetsResponse)
@@ -448,34 +247,3 @@ def patch_plan(date: dt.date, payload: PlanPatchRequest, session: Session = Depe
     session.commit()
     session.refresh(plan)
     return _plan_to_response(plan, df)
-
-
-@router.get("/projection", response_model=ProjectionResponse)
-def get_projection(
-    target_weight: Optional[float] = Query(None),
-    session: Session = Depends(get_session),
-):
-    goal = ensure_active_goal(session)
-    if target_weight is None:
-        target_weight = goal.poids_cible
-    if target_weight is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aucun poids cible defini.")
-    rows = session.exec(
-        select(MesureSante).where(MesureSante.poids.isnot(None)).order_by(MesureSante.date.asc())
-    ).all()
-    measures = [(m.date, float(m.poids)) for m in rows if m.poids is not None]
-    result = project_weight_to_target(measures, target_weight)
-    if result is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aucune mesure de poids disponible.")
-    return ProjectionResponse(
-        target_weight=result.target_weight,
-        current_weight=result.current_weight,
-        delta_kg=result.delta_kg,
-        days_to_target=result.days_to_target,
-        target_date=result.target_date,
-        slope_kg_per_week=result.slope_kg_per_week,
-        confidence=result.confidence,
-        note=result.note,
-        trend_7d=WeightTrendOut(**vars(result.trend_7d)) if result.trend_7d else None,
-        trend_30d=WeightTrendOut(**vars(result.trend_30d)) if result.trend_30d else None,
-    )
