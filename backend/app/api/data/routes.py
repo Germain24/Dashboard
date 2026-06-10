@@ -7,9 +7,9 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
-from pydantic import BaseModel
 from sqlmodel import Session
 
+from app.api.data.schemas import ImportRequest
 from app.core.db import get_session
 from app.services.data_io import demo as demo_svc
 from app.services.data_io import export_import as io_svc
@@ -33,11 +33,6 @@ def export_all(session: Session = Depends(get_session)):
         content=body, media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{fname}"'},
     )
-
-
-class ImportRequest(BaseModel):
-    data: dict
-    mode: str = "replace"  # "replace" | "merge"
 
 
 @router.post("/import")
