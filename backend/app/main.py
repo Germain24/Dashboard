@@ -102,6 +102,7 @@ def create_app() -> FastAPI:
 
     # Photos locales (Santé #69, Garde-robe #75) servies depuis data/*_photos/.
     try:
+        from pathlib import Path
         from fastapi.staticfiles import StaticFiles
         from app.services.sante.photos import photos_dir as sante_photos_dir
         from app.services.garderobe.photos import photos_dir as garderobe_photos_dir
@@ -112,6 +113,10 @@ def create_app() -> FastAPI:
         ):
             directory.mkdir(parents=True, exist_ok=True)
             app.mount(url, StaticFiles(directory=str(directory)), name=url.strip("/").replace("/", "-"))
+
+        music_path = Path(settings.music_dir)
+        if music_path.exists():
+            app.mount("/media/music", StaticFiles(directory=str(music_path)), name="media-music")
     except Exception:  # pragma: no cover — défensif (ne bloque pas le démarrage)
         logging.getLogger(__name__).warning("Montage /media indisponible", exc_info=True)
 
