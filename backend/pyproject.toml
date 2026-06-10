@@ -32,6 +32,7 @@ dependencies = [
     "apscheduler>=3.11.2",
     # Robot / IA — chat agent Claude (CONV N)
     "anthropic>=0.40.0",
+    "mutagen>=1.47.0",
 ]
 
 [dependency-groups]
