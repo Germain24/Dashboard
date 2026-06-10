@@ -1,6 +1,44 @@
 from app.services.musique.playlists import reco_bibliotheque, to_m3u
 
 
+def test_set_membership_add_remove():
+    from sqlmodel import Session, SQLModel, create_engine, select
+    from sqlmodel.pool import StaticPool
+    from app.models.musique import MusicTrack, TrackAmbiance
+    from app.services.musique.playlists import set_membership
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        s.add(MusicTrack(path="A/B/1.flac")); s.commit()
+        set_membership(s, 1, "café", True)
+        set_membership(s, 1, "café", True)  # idempotent
+        assert len(s.exec(select(TrackAmbiance)).all()) == 1
+        set_membership(s, 1, "café", False)
+        assert s.exec(select(TrackAmbiance)).all() == []
+
+
+def test_set_membership_rejects_unknown_ambiance():
+    from sqlmodel import Session, SQLModel, create_engine
+    from sqlmodel.pool import StaticPool
+    from app.models.musique import MusicTrack
+    from app.services.musique.playlists import set_membership
+    import pytest
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        s.add(MusicTrack(path="A/B/1.flac")); s.commit()
+        with pytest.raises(ValueError):
+            set_membership(s, 1, "inexistante", True)
+
+
+def test_parse_suggestions_splits_list():
+    from app.services.musique.discovery import parse_suggestions
+    assert parse_suggestions("- Artiste A\n- Artiste B\n") == ["Artiste A", "Artiste B"]
+    assert parse_suggestions("1. X\n2. Y") == ["X", "Y"]
+
+
 def test_to_m3u_relative_paths():
     tracks = [
         {"path": "A/Alb/01.flac", "artist": "A", "title": "T1", "duree_sec": 200},
