@@ -720,7 +720,7 @@ V. HARMONISATION BACKEND (501-517) — design 2026-06-10
 505. [S](**) api/entrainement/ idem (390 lignes, découper).   ← FINIS ✓ (2026-06-10 — 6 sous-routeurs : exercises, program, sessions, cardio, analytics, jour)
 506. [S](**) api/etudes/ idem.   ← FINIS ✓ (2026-06-10 — 4 sous-routeurs : cours, evaluations, sessions, revision)
 507. [S](**) api/budget/ idem.   ← FINIS ✓ (2026-06-10 — 3 sous-routeurs : transactions, categories, analytics ; repositories câblés)
-508. [S](**) api/cuisine/ idem.
+508. [S](**) api/cuisine/ idem.   ← FINIS ✓ (2026-06-10 — 3 sous-routeurs : recipes, planning, pantry)
 509. [S](**) api/journal/ idem.
 510. [S](**) api/livres/ idem.
 511. [S](**) api/musique/ idem.

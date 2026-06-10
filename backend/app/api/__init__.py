@@ -8,7 +8,6 @@ le module dans l'OpenAPI.
 from fastapi import APIRouter
 
 from app.api import (
-    routes_cuisine,
     routes_data,
     routes_health,
     routes_journal,
@@ -20,6 +19,7 @@ from app.api import (
 )
 from app.api.agenda import router as agenda_router
 from app.api.budget import router as budget_router
+from app.api.cuisine import router as cuisine_router
 from app.api.entrainement import router as entrainement_router
 from app.api.etudes import router as etudes_router
 from app.api.finance import router as finance_router
@@ -36,7 +36,7 @@ api_router.include_router(agenda_router, prefix="/agenda")
 api_router.include_router(etudes_router, prefix="/etudes")
 api_router.include_router(entrainement_router, prefix="/entrainement")
 api_router.include_router(budget_router, prefix="/budget")
-api_router.include_router(routes_cuisine.router, prefix="/cuisine", tags=["cuisine"])
+api_router.include_router(cuisine_router, prefix="/cuisine")
 api_router.include_router(habitudes_router, prefix="/habitudes")
 api_router.include_router(routes_journal.router, prefix="/journal", tags=["journal"])
 api_router.include_router(routes_livres.router, prefix="/livres", tags=["livres"])
