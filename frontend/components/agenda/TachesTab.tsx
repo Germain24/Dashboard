@@ -3,9 +3,9 @@
  * TachesTab — liste des tâches triées par urgence + formulaire d'ajout.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Tache, TacheCreate } from "@/lib/agenda";
-import { createTask, deleteTask, fetchTasks, markTaskDone } from "@/lib/agenda";
+import { useAgendaTasks, useCreateTask, useDeleteTask, useMarkTaskDone } from "@/lib/queries/agenda";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -90,38 +90,33 @@ function TacheRow({ t, onDone, onDelete }: {
 }
 
 export default function TachesTab() {
-  const [tasks, setTasks] = useState<Tache[]>([]);
   const [filter, setFilter] = useState<"todo" | "done" | "all">("todo");
-  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<TacheCreate>({ titre: "", priorite: 3 });
 
-  function loadTasks() {
-    setLoading(true);
-    fetchTasks(filter === "all" ? undefined : filter)
-      .then(setTasks)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }
+  const tasksQ = useAgendaTasks(filter === "all" ? undefined : filter);
+  const tasks: Tache[] = tasksQ.data ?? [];
+  const loading = tasksQ.isLoading;
+  const createMutation = useCreateTask();
+  const doneMutation = useMarkTaskDone();
+  const deleteMutation = useDeleteTask();
 
-  useEffect(() => { loadTasks(); }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleCreate() {
+  function handleCreate() {
     if (!form.titre.trim()) return;
-    await createTask(form);
-    setForm({ titre: "", priorite: 3 });
-    setShowForm(false);
-    loadTasks();
+    createMutation.mutate(form, {
+      onSuccess: () => {
+        setForm({ titre: "", priorite: 3 });
+        setShowForm(false);
+      },
+    });
   }
 
-  async function handleDone(id: number) {
-    await markTaskDone(id);
-    loadTasks();
+  function handleDone(id: number) {
+    doneMutation.mutate(id);
   }
 
-  async function handleDelete(id: number) {
-    await deleteTask(id);
-    loadTasks();
+  function handleDelete(id: number) {
+    deleteMutation.mutate(id);
   }
 
   return (

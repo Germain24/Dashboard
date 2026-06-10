@@ -4,9 +4,10 @@
  * Grille 7 colonnes (lun→dim) avec les événements par jour.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Evenement } from "@/lib/agenda";
-import { couleurFor, fetchEvents, formatHeure } from "@/lib/agenda";
+import { couleurFor, formatHeure } from "@/lib/agenda";
+import { useAgendaEvents } from "@/lib/queries/agenda";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -29,8 +30,6 @@ const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 export default function MoisTab() {
   const [cursor, setCursor] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
-  const [events, setEvents] = useState<Evenement[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const days = useMemo(() => {
     const start = gridStart(cursor.y, cursor.m);
@@ -41,12 +40,9 @@ export default function MoisTab() {
     });
   }, [cursor]);
 
-  useEffect(() => {
-    setLoading(true);
-    const from = isoDate(days[0]) + "T00:00:00";
-    const to = isoDate(days[41]) + "T23:59:59";
-    fetchEvents(from, to).then(setEvents).catch(console.error).finally(() => setLoading(false));
-  }, [days]);
+  const eventsQ = useAgendaEvents(isoDate(days[0]) + "T00:00:00", isoDate(days[41]) + "T23:59:59");
+  const events: Evenement[] = eventsQ.data ?? [];
+  const loading = eventsQ.isLoading;
 
   const byDay = useMemo(() => {
     const m: Record<string, Evenement[]> = {};

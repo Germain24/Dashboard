@@ -4,9 +4,10 @@
  * Affiche les événements (ponctuels + récurrences virtuelles + entraînement).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Evenement } from "@/lib/agenda";
-import { couleurFor, fetchEvents, formatHeure, overlappingKeys, exportIcsUrl, syncIcalUrl, gcalStatus, gcalPull, CATEGORIE_COLORS } from "@/lib/agenda";
+import { couleurFor, formatHeure, overlappingKeys, exportIcsUrl, CATEGORIE_COLORS } from "@/lib/agenda";
+import { useAgendaEvents, useGcalPull, useGcalStatus, useSyncIcalUrl } from "@/lib/queries/agenda";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -31,14 +32,11 @@ const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 export default function SemaineTab() {
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
-  const [events, setEvents] = useState<Evenement[]>([]);
-  const [loading, setLoading] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [gcalReady, setGcalReady] = useState(false);
 
-  useEffect(() => {
-    gcalStatus().then((s) => setGcalReady(s.configured)).catch(() => {});
-  }, []);
+  const gcalReady = useGcalStatus().data?.configured ?? false;
+  const gcalPullMutation = useGcalPull();
+  const syncIcalMutation = useSyncIcalUrl();
 
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -46,16 +44,12 @@ export default function SemaineTab() {
     return d;
   });
 
-  useEffect(() => {
-    setLoading(true);
-    const from = isoDate(weekDates[0]) + "T00:00:00";
-    const to = isoDate(weekDates[6]) + "T23:59:59";
-    fetchEvents(from, to)
-      .then(setEvents)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekStart]);
+  const eventsQ = useAgendaEvents(
+    isoDate(weekDates[0]) + "T00:00:00",
+    isoDate(weekDates[6]) + "T23:59:59",
+  );
+  const events: Evenement[] = eventsQ.data ?? [];
+  const loading = eventsQ.isLoading;
 
   function prevWeek() {
     setWeekStart((d) => { const n = new Date(d); n.setDate(d.getDate() - 7); return n; });
@@ -70,16 +64,15 @@ export default function SemaineTab() {
         // Intégration OAuth : import direct depuis Google Calendar.
         const from = isoDate(weekDates[0]) + "T00:00:00";
         const to = isoDate(weekDates[6]) + "T23:59:59";
-        const r = await gcalPull(from, to);
+        const r = await gcalPullMutation.mutateAsync({ from, to });
         window.alert(`Google Calendar : ${r.created_events} ajouté(s), ${r.skipped_duplicates} déjà présent(s).`);
       } else {
         // Repli sans OAuth : adresse secrète .ics.
         const url = window.prompt("Adresse secrète au format iCal (Google Calendar) :");
         if (!url) return;
-        const r = await syncIcalUrl(url);
+        const r = await syncIcalMutation.mutateAsync(url);
         window.alert(`Sync : ${r.created_events} ajouté(s), ${r.skipped_duplicates} déjà présent(s).`);
       }
-      setWeekStart((d) => new Date(d));
     } catch {
       window.alert("Sync Google impossible.");
     }
@@ -93,9 +86,8 @@ export default function SemaineTab() {
     if (!url) return;
     try {
       window.localStorage.setItem("ical_sync_url", url);
-      const r = await syncIcalUrl(url);
+      const r = await syncIcalMutation.mutateAsync(url);
       window.alert(`iCal : ${r.created_events} ajouté(s), ${r.skipped_duplicates} déjà présent(s).`);
-      setWeekStart((d) => new Date(d));
     } catch {
       window.alert("Import iCal impossible (URL invalide ou injoignable).");
     }

@@ -8,10 +8,9 @@
  *   Tâches       — liste priorisée
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarDays, CalendarRange, CalendarClock, CheckSquare } from "lucide-react";
-import type { AgendaJour } from "@/lib/agenda";
-import { fetchToday } from "@/lib/agenda";
+import { useAgendaToday } from "@/lib/queries/agenda";
 import JourTab from "./JourTab";
 import SemaineTab from "./SemaineTab";
 import MoisTab from "./MoisTab";
@@ -28,16 +27,10 @@ const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
 
 export default function Agenda() {
   const [tab, setTab] = useState<Tab>("jour");
-  const [todayData, setTodayData] = useState<AgendaJour | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchToday()
-      .then(setTodayData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
+  const todayQ = useAgendaToday();
+  const todayData = todayQ.data ?? null;
+  const loading = todayQ.isLoading;
+  const error = todayQ.isError ? (todayQ.error as Error).message : null;
 
   return (
     <div className="space-y-0 animate-fade-in">
