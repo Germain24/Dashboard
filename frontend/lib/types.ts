@@ -988,6 +988,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/garderobe/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recommendations */
+        get: operations["recommendations_api_v1_garderobe_recommendations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/garderobe/planner": {
         parameters: {
             query?: never;
@@ -1023,23 +1040,6 @@ export interface paths {
          * @description Enregistre la tenue planifiée d'un jour (#79).
          */
         put: operations["set_planner_day_api_v1_garderobe_planner__date__put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/garderobe/recommendations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Recommendations */
-        get: operations["recommendations_api_v1_garderobe_recommendations_get"];
-        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1098,6 +1098,63 @@ export interface paths {
         head?: never;
         /** Update Mesure */
         patch: operations["update_mesure_api_v1_sante_mesures__date__patch"];
+        trace?: never;
+    };
+    "/api/v1/sante/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Progress Photo
+         * @description Téléverse une photo de progression pour une date (#69).
+         */
+        post: operations["upload_progress_photo_api_v1_sante_photo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sante/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Photos
+         * @description Liste les mesures avec photo, triées par date (avant/après, #69).
+         */
+        get: operations["list_photos_api_v1_sante_photos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sante/projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Projection */
+        get: operations["get_projection_api_v1_sante_projection_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/sante/water": {
@@ -1169,46 +1226,6 @@ export interface paths {
          * @description Corrélation sommeil ↔ poids sur la période.
          */
         get: operations["sleep_summary_api_v1_sante_sleep_summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/sante/photo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload Progress Photo
-         * @description Téléverse une photo de progression pour une date (#69).
-         */
-        post: operations["upload_progress_photo_api_v1_sante_photo_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/sante/photos": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Photos
-         * @description Liste les mesures avec photo, triées par date (avant/après, #69).
-         */
-        get: operations["list_photos_api_v1_sante_photos_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1415,23 +1432,6 @@ export interface paths {
         patch: operations["patch_plan_api_v1_sante_plan__date__patch"];
         trace?: never;
     };
-    "/api/v1/sante/projection": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Projection */
-        get: operations["get_projection_api_v1_sante_projection_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/agenda/ping": {
         parameters: {
             query?: never;
@@ -1463,6 +1463,43 @@ export interface paths {
         get: operations["today_api_v1_agenda_today_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agenda/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Slots Endpoint */
+        get: operations["slots_endpoint_api_v1_agenda_slots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agenda/focus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan Focus
+         * @description Planifie un bloc focus Études dans le premier créneau libre suffisant (#89).
+         */
+        post: operations["plan_focus_api_v1_agenda_focus_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1671,43 +1708,6 @@ export interface paths {
         put?: never;
         /** Done Tache */
         post: operations["done_tache_api_v1_agenda_tasks__task_id__done_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agenda/slots": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Slots Endpoint */
-        get: operations["slots_endpoint_api_v1_agenda_slots_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/agenda/focus": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Plan Focus
-         * @description Planifie un bloc focus Études dans le premier créneau libre suffisant.
-         */
-        post: operations["plan_focus_api_v1_agenda_focus_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2205,6 +2205,31 @@ export interface paths {
         patch: operations["patch_program_day_api_v1_entrainement_program_jours__weekday__patch"];
         trace?: never;
     };
+    "/api/v1/entrainement/program/seed-garmin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seed Garmin
+         * @description Peuple le programme actif avec les 4 séances Garmin de Germain.
+         *
+         *     Idempotent : par défaut, n'écrase pas les jours déjà configurés.
+         *     Passe `force=true` pour réinitialiser depuis le dump Garmin.
+         *
+         *     Note : samedi (Lower) reste à définir — pas dans le dump Garmin partagé.
+         */
+        post: operations["seed_garmin_api_v1_entrainement_program_seed_garmin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/entrainement/sessions": {
         parameters: {
             query?: never;
@@ -2275,6 +2300,41 @@ export interface paths {
         head?: never;
         /** Patch Set Endpoint */
         patch: operations["patch_set_endpoint_api_v1_entrainement_sessions__seance_id__sets__set_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/entrainement/cardio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cardio */
+        get: operations["list_cardio_api_v1_entrainement_cardio_get"];
+        put?: never;
+        /** Post Cardio */
+        post: operations["post_cardio_api_v1_entrainement_cardio_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entrainement/cardio/{course_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Cardio */
+        delete: operations["delete_cardio_api_v1_entrainement_cardio__course_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/entrainement/progression/{exercice_id}": {
@@ -2360,7 +2420,7 @@ export interface paths {
         };
         /**
          * Get Mesocycle
-         * @description État du mésocycle périodisé courant (ou inactif).
+         * @description État du mésocycle périodisé courant (ou inactif) (#110).
          */
         get: operations["get_mesocycle_api_v1_entrainement_mesocycle_get"];
         put?: never;
@@ -2408,100 +2468,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/entrainement/cardio": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Cardio */
-        get: operations["list_cardio_api_v1_entrainement_cardio_get"];
-        put?: never;
-        /** Post Cardio */
-        post: operations["post_cardio_api_v1_entrainement_cardio_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/entrainement/cardio/{course_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Cardio */
-        delete: operations["delete_cardio_api_v1_entrainement_cardio__course_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/entrainement/intensity/today": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Intensity Today */
-        get: operations["intensity_today_api_v1_entrainement_intensity_today_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/entrainement/intensity/{date}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Intensity For Date */
-        get: operations["intensity_for_date_api_v1_entrainement_intensity__date__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/entrainement/program/seed-garmin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Seed Garmin
-         * @description Peuple le programme actif avec les 4 séances Garmin de Germain.
-         *
-         *     Idempotent : par défaut, n'écrase pas les jours déjà configurés.
-         *     Passe `force=true` pour réinitialiser depuis le dump Garmin.
-         *
-         *     Note : samedi (Lower) reste à définir — pas dans le dump Garmin partagé.
-         */
-        post: operations["seed_garmin_api_v1_entrainement_program_seed_garmin_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/entrainement/today": {
         parameters: {
             query?: never;
@@ -2538,6 +2504,40 @@ export interface paths {
          * @description Total calories brûlées une date donnée (pour la CONV nutrition future).
          */
         get: operations["calories_for_date_api_v1_entrainement_calories__date__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entrainement/intensity/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Intensity Today */
+        get: operations["intensity_today_api_v1_entrainement_intensity_today_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entrainement/intensity/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Intensity For Date */
+        get: operations["intensity_for_date_api_v1_entrainement_intensity__date__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2917,27 +2917,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/cuisine/shopping-list/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Shopping Preview
-         * @description Liste de courses calculée (non persistée), scopable sur un sous-ensemble
-         *     de jours (`jours=0,1,2,3`) pour coller au cycle de cuisine.
-         */
-        get: operations["shopping_preview_api_v1_cuisine_shopping_list_preview_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/cuisine/recipes/{id}/macros": {
         parameters: {
             query?: never;
@@ -2953,6 +2932,58 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cuisine/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Favorites */
+        get: operations["list_favorites_api_v1_cuisine_favorites_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cuisine/recipes/{recipe_id}/favorite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Toggle Favorite */
+        post: operations["toggle_favorite_api_v1_cuisine_recipes__recipe_id__favorite_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cuisine/recipes/{recipe_id}/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Recipe Note */
+        get: operations["get_recipe_note_api_v1_cuisine_recipes__recipe_id__note_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Recipe Note */
+        patch: operations["set_recipe_note_api_v1_cuisine_recipes__recipe_id__note_patch"];
         trace?: never;
     };
     "/api/v1/cuisine/meal-plan": {
@@ -3004,6 +3035,27 @@ export interface paths {
         head?: never;
         /** Update Plan Entry */
         patch: operations["update_plan_entry_api_v1_cuisine_meal_plan__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/cuisine/shopping-list/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shopping Preview
+         * @description Liste de courses calculée (non persistée), scopable sur un sous-ensemble
+         *     de jours (`jours=0,1,2,3`) pour coller au cycle de cuisine.
+         */
+        get: operations["shopping_preview_api_v1_cuisine_shopping_list_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/cuisine/shopping-list": {
@@ -3091,58 +3143,6 @@ export interface paths {
         head?: never;
         /** Update Pantry Item */
         patch: operations["update_pantry_item_api_v1_cuisine_pantry__item_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/cuisine/favorites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Favorites */
-        get: operations["list_favorites_api_v1_cuisine_favorites_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cuisine/recipes/{recipe_id}/favorite": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Toggle Favorite */
-        post: operations["toggle_favorite_api_v1_cuisine_recipes__recipe_id__favorite_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cuisine/recipes/{recipe_id}/note": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Recipe Note */
-        get: operations["get_recipe_note_api_v1_cuisine_recipes__recipe_id__note_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Set Recipe Note */
-        patch: operations["set_recipe_note_api_v1_cuisine_recipes__recipe_id__note_patch"];
         trace?: never;
     };
     "/api/v1/habitudes/habits": {
@@ -3466,6 +3466,26 @@ export interface paths {
         patch: operations["update_book_api_v1_livres_books__id__patch"];
         trace?: never;
     };
+    "/api/v1/livres/books/{id}/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Estimate
+         * @description Temps de lecture restant estimé selon le rythme (#150).
+         */
+        get: operations["estimate_api_v1_livres_books__id__estimate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/livres/books/{id}/notes": {
         parameters: {
             query?: never;
@@ -3632,26 +3652,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/livres/books/{id}/estimate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Estimate
-         * @description Temps de lecture restant estimé selon le rythme (#150).
-         */
-        get: operations["estimate_api_v1_livres_books__id__estimate_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/musique/scan": {
         parameters: {
             query?: never;
@@ -3697,6 +3697,26 @@ export interface paths {
         get: operations["classify_progress_api_v1_musique_classify_progress_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/musique/classify/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Classify Reset
+         * @description Réinitialise les morceaux sans ambiance (échec Ollama) pour les reclasser.
+         */
+        post: operations["classify_reset_api_v1_musique_classify_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6719,7 +6739,7 @@ export interface components {
             cours_id?: number | null;
         };
         /** TransactionCreate */
-        app__api__routes_budget__TransactionCreate: {
+        app__api__budget__schemas__TransactionCreate: {
             /**
              * Date
              * Format: date
@@ -6751,7 +6771,20 @@ export interface components {
             tags: string[];
         };
         /** SessionCreate */
-        app__api__routes_livres__SessionCreate: {
+        app__api__etudes__schemas__SessionCreate: {
+            /** Cours Id */
+            cours_id?: number | null;
+            /** Date */
+            date?: string | null;
+            /** Duree Min */
+            duree_min: number;
+            /** Sujet */
+            sujet?: string | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** SessionCreate */
+        app__api__livres__schemas__SessionCreate: {
             /**
              * Date
              * Format: date
@@ -6763,19 +6796,6 @@ export interface components {
             page_debut?: number | null;
             /** Page Fin */
             page_fin?: number | null;
-        };
-        /** SessionCreate */
-        app__api__schemas_etudes__SessionCreate: {
-            /** Cours Id */
-            cours_id?: number | null;
-            /** Date */
-            date?: string | null;
-            /** Duree Min */
-            duree_min: number;
-            /** Sujet */
-            sujet?: string | null;
-            /** Note */
-            note?: string | null;
         };
         /** TransactionCreate */
         app__api__schemas_finance__TransactionCreate: {
@@ -8313,6 +8333,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                offset?: number;
             };
             header?: never;
             path?: never;
@@ -8393,6 +8414,26 @@ export interface operations {
             };
         };
     };
+    recommendations_api_v1_garderobe_recommendations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationOut"][];
+                };
+            };
+        };
+    };
     get_planner_api_v1_garderobe_planner_get: {
         parameters: {
             query?: {
@@ -8459,26 +8500,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    recommendations_api_v1_garderobe_recommendations_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecommendationOut"][];
                 };
             };
         };
@@ -8633,6 +8654,92 @@ export interface operations {
             };
         };
     };
+    upload_progress_photo_api_v1_sante_photo_post: {
+        parameters: {
+            query?: {
+                date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_progress_photo_api_v1_sante_photo_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MesureSanteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_photos_api_v1_sante_photos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_projection_api_v1_sante_projection_get: {
+        parameters: {
+            query?: {
+                target_weight?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     add_water_api_v1_sante_water_post: {
         parameters: {
             query?: {
@@ -8745,61 +8852,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_progress_photo_api_v1_sante_photo_post: {
-        parameters: {
-            query?: {
-                date?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_progress_photo_api_v1_sante_photo_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MesureSanteRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_photos_api_v1_sante_photos_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
         };
@@ -9204,37 +9256,6 @@ export interface operations {
             };
         };
     };
-    get_projection_api_v1_sante_projection_get: {
-        parameters: {
-            query?: {
-                target_weight?: number | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     ping_api_v1_agenda_ping_get: {
         parameters: {
             query?: never;
@@ -9273,6 +9294,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgendaJourResponse"];
+                };
+            };
+        };
+    };
+    slots_endpoint_api_v1_agenda_slots_get: {
+        parameters: {
+            query?: {
+                date?: string | null;
+                min_duration?: number;
+                day_start_h?: number;
+                day_end_h?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlotLibre"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    plan_focus_api_v1_agenda_focus_post: {
+        parameters: {
+            query?: {
+                duree_min?: number;
+                date?: string | null;
+                titre?: string | null;
+                /** @description Code/nom du cours à réviser */
+                cours?: string | null;
+                day_start_h?: number;
+                day_end_h?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvenementRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -9804,77 +9896,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TacheRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    slots_endpoint_api_v1_agenda_slots_get: {
-        parameters: {
-            query?: {
-                date?: string | null;
-                min_duration?: number;
-                day_start_h?: number;
-                day_end_h?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SlotLibre"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    plan_focus_api_v1_agenda_focus_post: {
-        parameters: {
-            query?: {
-                duree_min?: number;
-                date?: string | null;
-                titre?: string | null;
-                /** @description Code/nom du cours à réviser */
-                cours?: string | null;
-                day_start_h?: number;
-                day_end_h?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EvenementRead"];
                 };
             };
             /** @description Validation Error */
@@ -10516,7 +10537,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["app__api__schemas_etudes__SessionCreate"];
+                "application/json": components["schemas"]["app__api__etudes__schemas__SessionCreate"];
             };
         };
         responses: {
@@ -11030,6 +11051,39 @@ export interface operations {
             };
         };
     };
+    seed_garmin_api_v1_entrainement_program_seed_garmin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["GarminSeedRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GarminSeedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_sessions_endpoint_api_v1_entrainement_sessions_get: {
         parameters: {
             query?: {
@@ -11291,6 +11345,100 @@ export interface operations {
             };
         };
     };
+    list_cardio_api_v1_entrainement_cardio_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseCardioRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_cardio_api_v1_entrainement_cardio_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseCardioCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseCardioRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_cardio_api_v1_entrainement_cardio__course_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_progression_api_v1_entrainement_progression__exercice_id__get: {
         parameters: {
             query?: {
@@ -11488,12 +11636,9 @@ export interface operations {
             };
         };
     };
-    list_cardio_api_v1_entrainement_cardio_get: {
+    today_endpoint_api_v1_entrainement_today_get: {
         parameters: {
-            query?: {
-                from?: string | null;
-                to?: string | null;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -11506,70 +11651,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CourseCardioRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["TodayResponse"];
                 };
             };
         };
     };
-    post_cardio_api_v1_entrainement_cardio_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CourseCardioCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CourseCardioRead"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_cardio_api_v1_entrainement_cardio__course_id__delete: {
+    calories_for_date_api_v1_entrainement_calories__date__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                course_id: number;
+                date: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CaloriesDayResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -11633,90 +11738,6 @@ export interface operations {
             };
         };
     };
-    seed_garmin_api_v1_entrainement_program_seed_garmin_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["GarminSeedRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GarminSeedResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    today_endpoint_api_v1_entrainement_today_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TodayResponse"];
-                };
-            };
-        };
-    };
-    calories_for_date_api_v1_entrainement_calories__date__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                date: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CaloriesDayResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_transactions_api_v1_budget_transactions_get: {
         parameters: {
             query?: {
@@ -11759,7 +11780,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["app__api__routes_budget__TransactionCreate"];
+                "application/json": components["schemas"]["app__api__budget__schemas__TransactionCreate"];
             };
         };
         responses: {
@@ -12519,14 +12540,15 @@ export interface operations {
             };
         };
     };
-    shopping_preview_api_v1_cuisine_shopping_list_preview_get: {
+    recipe_macros_api_v1_cuisine_recipes__id__macros_get: {
         parameters: {
-            query: {
-                week: string;
-                jours?: string | null;
+            query?: {
+                portions?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                id: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -12551,18 +12573,102 @@ export interface operations {
             };
         };
     };
-    recipe_macros_api_v1_cuisine_recipes__id__macros_get: {
+    list_favorites_api_v1_cuisine_favorites_get: {
         parameters: {
-            query?: {
-                portions?: number;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
             };
+        };
+    };
+    toggle_favorite_api_v1_cuisine_recipes__recipe_id__favorite_post: {
+        parameters: {
+            query?: never;
             header?: never;
             path: {
-                id: number;
+                recipe_id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_recipe_note_api_v1_cuisine_recipes__recipe_id__note_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipe_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_recipe_note_api_v1_cuisine_recipes__recipe_id__note_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipe_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -12662,6 +12768,38 @@ export interface operations {
                 "application/json": components["schemas"]["MealPlanPatch"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    shopping_preview_api_v1_cuisine_shopping_list_preview_get: {
+        parameters: {
+            query: {
+                week: string;
+                jours?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -12906,126 +13044,15 @@ export interface operations {
             };
         };
     };
-    list_favorites_api_v1_cuisine_favorites_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    toggle_favorite_api_v1_cuisine_recipes__recipe_id__favorite_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipe_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_recipe_note_api_v1_cuisine_recipes__recipe_id__note_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipe_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    set_recipe_note_api_v1_cuisine_recipes__recipe_id__note_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipe_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NoteIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_habits_api_v1_habitudes_habits_get: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Champ de tri */
+                sort?: string | null;
+                order?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -13039,6 +13066,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -13719,6 +13755,37 @@ export interface operations {
             };
         };
     };
+    estimate_api_v1_livres_books__id__estimate_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_notes_api_v1_livres_books__id__notes_get: {
         parameters: {
             query?: never;
@@ -13957,7 +14024,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["app__api__routes_livres__SessionCreate"];
+                "application/json": components["schemas"]["app__api__livres__schemas__SessionCreate"];
             };
         };
         responses: {
@@ -14116,37 +14183,6 @@ export interface operations {
             };
         };
     };
-    estimate_api_v1_livres_books__id__estimate_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     run_scan_api_v1_musique_scan_post: {
         parameters: {
             query?: never;
@@ -14188,6 +14224,26 @@ export interface operations {
         };
     };
     classify_progress_api_v1_musique_classify_progress_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    classify_reset_api_v1_musique_classify_reset_post: {
         parameters: {
             query?: never;
             header?: never;
