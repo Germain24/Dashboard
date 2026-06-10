@@ -728,7 +728,7 @@ V. HARMONISATION BACKEND (501-517) — design 2026-06-10
 513. [S](**) api/data/ idem.   ← FINIS ✓ (2026-06-10)
 514. [S](*) api/scheduler/ idem.   ← FINIS ✓ (2026-06-10)
 515. [S](*) api/notifications/ idem.   ← FINIS ✓ (2026-06-10 — ré-export direct, route '''' sans préfixe)
-516. [S](*) api/health/ idem (ou justifier de le laisser plat).
+516. [S](*) api/health/ idem (ou justifier de le laisser plat).   ← FINIS ✓ (2026-06-10 — packagé : zéro routes_*.py restant)
 517. [S](*) Corriger le cycle d'import app/main.py signalé par graphify.
 
 --------------------------------------------------------------------------------

@@ -9,25 +9,15 @@ import subprocess
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Response
-from pydantic import BaseModel
 from sqlalchemy import text
 from sqlmodel import Session
 
 from app import __version__
+from app.api.health.schemas import HealthResponse
 from app.core.config import settings
 from app.core.db import engine
 
 router = APIRouter()
-
-
-class HealthResponse(BaseModel):
-    status: str
-    app: str
-    version: str
-    env: str
-    timezone: str
-    db: str
-    timestamp: str
 
 
 def _db_ok() -> bool:
