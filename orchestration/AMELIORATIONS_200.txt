@@ -718,7 +718,7 @@ V. HARMONISATION BACKEND (501-517) — design 2026-06-10
 503. [S](**) api/garderobe/ idem (463 lignes, découper).   ← FINIS ✓ (2026-06-10 — 4 sous-routeurs : vetements, tenues, insights, planner ; repository câblé, /history paginé)
 504. [S](**) api/sante/ idem (411 lignes, découper).   ← FINIS ✓ (2026-06-10 — 4 sous-routeurs : mesures, wellbeing, nutrition, plan)
 505. [S](**) api/entrainement/ idem (390 lignes, découper).   ← FINIS ✓ (2026-06-10 — 6 sous-routeurs : exercises, program, sessions, cardio, analytics, jour)
-506. [S](**) api/etudes/ idem.
+506. [S](**) api/etudes/ idem.   ← FINIS ✓ (2026-06-10 — 4 sous-routeurs : cours, evaluations, sessions, revision)
 507. [S](**) api/budget/ idem.
 508. [S](**) api/cuisine/ idem.
 509. [S](**) api/journal/ idem.
