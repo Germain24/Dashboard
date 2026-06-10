@@ -8,13 +8,14 @@ export interface Track {
   genre: string; duree_sec: number | null; cover: string | null; ambiances: string[];
 }
 export interface AmbianceCount { ambiance: string; count: number; }
-export interface ClassifyProgress { n_done: number; n_total: number; active: boolean; }
+export interface ClassifyProgress { n_done: number; n_total: number; active: boolean; error?: string | null; }
 
 export const mediaUrl = (rel: string) => `${MEDIA_BASE}/${rel.split("/").map(encodeURIComponent).join("/")}`;
 
 export const musiqueApi = {
   scan: () => api<{ ajoutes: number; majs: number; total: number }>("/musique/scan", { method: "POST" }),
   classify: () => api<{ message: string }>("/musique/classify", { method: "POST" }),
+  resetClassify: () => api<{ reinitialises: number }>("/musique/classify/reset", { method: "POST" }),
   progress: () => api<ClassifyProgress>("/musique/classify/progress"),
   tracks: (q = "", ambiance = "") => {
     const p = new URLSearchParams();

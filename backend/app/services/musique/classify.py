@@ -9,7 +9,10 @@ from app.models.musique import MusicTrack, TrackAmbiance
 from app.services.musique import ollama_client
 from app.services.musique.constants import AMBIANCES, AMBIANCE_NAMES
 
-_progress = {"n_done": 0, "n_total": 0, "active": False}
+_progress = {"n_done": 0, "n_total": 0, "active": False, "error": None}
+
+# Au-delà de ce nombre d'échecs Ollama consécutifs, on arrête le job (Ollama HS).
+_MAX_CONSECUTIVE_FAILS = 5
 
 
 def get_progress() -> dict:
@@ -45,15 +48,25 @@ def parse_ambiances(raw: str, ambiances: list[str]) -> list[str]:
 
 def classify_untagged(session: Session, *, generate=ollama_client.generate) -> dict:
     tracks = session.exec(select(MusicTrack).where(MusicTrack.classified == False)).all()  # noqa: E712
-    _progress.update(n_done=0, n_total=len(tracks), active=True)
+    _progress.update(n_done=0, n_total=len(tracks), active=True, error=None)
     classes = 0
+    fails = 0
     try:
         for track in tracks:
             try:
                 raw = generate(build_prompt(track.model_dump()))
-                ambiances = parse_ambiances(raw, AMBIANCE_NAMES)
             except Exception:
-                ambiances = []
+                # Échec Ollama : on NE marque PAS le morceau classé (réessayable).
+                fails += 1
+                if fails >= _MAX_CONSECUTIVE_FAILS:
+                    _progress["error"] = (
+                        "Ollama indisponible (le modèle plante ?). Classement interrompu — "
+                        "vérifie Ollama puis relance."
+                    )
+                    break
+                continue
+            fails = 0  # un succès réinitialise le compteur d'échecs
+            ambiances = parse_ambiances(raw, AMBIANCE_NAMES)
             for amb in ambiances:
                 session.add(TrackAmbiance(track_id=track.id, ambiance=amb, source="auto"))
             track.classified = True
@@ -65,3 +78,17 @@ def classify_untagged(session: Session, *, generate=ollama_client.generate) -> d
     finally:
         _progress["active"] = False
     return {"classes": classes, "total": len(tracks)}
+
+
+def reset_classification(session: Session) -> dict:
+    """Réinitialise les morceaux SANS ambiance (ex. après un échec Ollama) pour
+    qu'ils soient reclassés. Ne touche pas aux morceaux ayant déjà des ambiances."""
+    tagged_ids = {r.track_id for r in session.exec(select(TrackAmbiance)).all()}
+    n = 0
+    for track in session.exec(select(MusicTrack).where(MusicTrack.classified == True)).all():  # noqa: E712
+        if track.id not in tagged_ids:
+            track.classified = False
+            session.add(track)
+            n += 1
+    session.commit()
+    return {"reinitialises": n}
