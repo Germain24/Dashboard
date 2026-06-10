@@ -38,18 +38,25 @@ def _detached_kwargs() -> dict:
 
 
 def ensure_running(host: str | None = None, *, is_running_fn=is_running,
-                   popen=subprocess.Popen, sleep=time.sleep, attempts: int = 10) -> bool:
+                   popen=subprocess.Popen, sleep=time.sleep, attempts: int = 10,
+                   force_cpu: bool | None = None) -> bool:
     """Démarre `ollama serve` s'il n'est pas déjà actif. Retourne True si prêt.
 
     Ne lève jamais : si Ollama n'est pas installé (FileNotFoundError) ou ne démarre
     pas, retourne False (le module musique reste utilisable sans classement).
+    Si ``force_cpu`` (défaut = settings), lance avec OLLAMA_LLM_LIBRARY=cpu pour
+    éviter le crash du backend GPU/Vulkan sur certaines machines.
     """
+    import os
+
     host = host or settings.musique_ollama_host
     if is_running_fn(host):
         return True
+    cpu = settings.musique_ollama_force_cpu if force_cpu is None else force_cpu
+    env = {**os.environ, "OLLAMA_LLM_LIBRARY": "cpu"} if cpu else None
     try:
         popen(["ollama", "serve"], stdout=subprocess.DEVNULL,
-              stderr=subprocess.DEVNULL, **_detached_kwargs())
+              stderr=subprocess.DEVNULL, env=env, **_detached_kwargs())
     except FileNotFoundError:
         return False
     except Exception:
