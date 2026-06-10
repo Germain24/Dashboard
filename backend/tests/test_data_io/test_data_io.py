@@ -22,7 +22,8 @@ def _session() -> Session:
 
 def test_table_models_discovers_known_tables():
     models = io.table_models()
-    for t in ("budget_transaction", "book", "habit", "robot_conversation"):
+    # robot_conversation retiré : module Robot/IA supprimé (2026-06-09).
+    for t in ("budget_transaction", "book", "habit", "music_track"):
         assert t in models
 
 
