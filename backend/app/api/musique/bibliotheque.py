@@ -44,9 +44,11 @@ def classify_progress():
 
 
 @router.post("/classify/reset")
-def classify_reset(session: Session = Depends(get_session)):
-    """Réinitialise les morceaux sans ambiance (échec Ollama) pour les reclasser."""
-    return classify.reset_classification(session)
+def classify_reset(tout: bool = False, session: Session = Depends(get_session)):
+    """Réinitialise pour reclasser. Par défaut : morceaux sans ambiance (échec
+    Ollama). ``?tout=true`` : efface aussi les attributions auto (mauvais run),
+    en préservant les ambiances posées à la main."""
+    return classify.reset_classification(session, tout=tout)
 
 
 @router.get("/tracks")

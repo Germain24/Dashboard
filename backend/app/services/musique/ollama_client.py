@@ -11,11 +11,15 @@ from app.core.config import settings
 
 
 def generate(prompt: str, *, host: str | None = None, model: str | None = None,
-             _post=httpx.post) -> str:
+             options: dict | None = None, _post=httpx.post) -> str:
     host = host or settings.musique_ollama_host
     model = model or settings.musique_ollama_model
+    # Température 0 par défaut : ce client sert à de la CLASSIFICATION — la
+    # température 0.8 d'Ollama rendait les attributions d'ambiances aléatoires.
+    opts = {"temperature": 0, **(options or {})}
     resp = _post(f"{host}/api/generate",
-                 json={"model": model, "prompt": prompt, "stream": False}, timeout=120.0)
+                 json={"model": model, "prompt": prompt, "stream": False, "options": opts},
+                 timeout=120.0)
     resp.raise_for_status()
     return resp.json().get("response", "")
 

@@ -15,7 +15,8 @@ export const mediaUrl = (rel: string) => `${MEDIA_BASE}/${rel.split("/").map(enc
 export const musiqueApi = {
   scan: () => api<{ ajoutes: number; majs: number; total: number }>("/musique/scan", { method: "POST" }),
   classify: () => api<{ message: string }>("/musique/classify", { method: "POST" }),
-  resetClassify: () => api<{ reinitialises: number }>("/musique/classify/reset", { method: "POST" }),
+  resetClassify: (tout = false) =>
+    api<{ reinitialises: number }>(`/musique/classify/reset?tout=${tout}`, { method: "POST" }),
   progress: () => api<ClassifyProgress>("/musique/classify/progress"),
   tracks: (q = "", ambiance = "") => {
     const p = new URLSearchParams();

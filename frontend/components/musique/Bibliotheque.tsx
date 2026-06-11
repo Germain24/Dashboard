@@ -47,7 +47,11 @@ export function Bibliotheque() {
     });
   };
   const doReset = () => {
-    resetMutation.mutate(undefined, {
+    if (!confirm(
+      "Tout reclasser ?\n\nEfface les ambiances attribuées automatiquement "
+      + "(les ambiances ajoutées à la main sont conservées), puis relance « Classer ».",
+    )) return;
+    resetMutation.mutate(true, {
       onSuccess: (r) => {
         alert(`${r.reinitialises} morceau(x) à reclasser. Relance « Classer ».`);
         setError(null);

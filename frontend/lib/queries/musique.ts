@@ -60,7 +60,10 @@ export function useClassify() {
 }
 export function useResetClassify() {
   const invalidate = useInvalidateAll();
-  return useMutation({ mutationFn: () => musiqueApi.resetClassify(), onSuccess: invalidate });
+  return useMutation({
+    mutationFn: (tout: boolean = false) => musiqueApi.resetClassify(tout),
+    onSuccess: invalidate,
+  });
 }
 export function useAddAmbiance() {
   const invalidate = useInvalidateAll();
