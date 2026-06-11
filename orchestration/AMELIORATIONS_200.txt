@@ -749,7 +749,7 @@ W. GÉNÉRALISATION FRONTEND + TESTS (518-533) — design 2026-06-10
 530. [M](**) lib/queries/sante.ts idem.   ← FINIS ✓ (2026-06-11 — orchestrateur + 8 widgets migrés)
 531. [M](**) lib/queries/skincare.ts idem.   ← FINIS ✓ (2026-06-11)
 532. [M](**) Découpe BuffettTab.tsx (391 l.) en sous-composants + tests.   ← FINIS ✓ (2026-06-11 — buffett-ui + BuffettRunDetailView + BuffettActionsPanel, hôte 172 l.)
-533. [S](*) Suppression des derniers appels api() directs hors lib/queries.
+533. [S](*) Suppression des derniers appels api() directs hors lib/queries.   ← FINIS ✓ (2026-06-11 — TodayPanel/CyclePlanner migrés + fix QueryProvider SSR ; exceptions documentées : DaySignals (agrégateur best-effort), exports blob, actions plan* à la demande, onglets finance historiques)
 --------------------------------------------------------------------------------
 X. MODULES FILMS + SÉRIES TMDB (534-541) — design 2026-06-10
 --------------------------------------------------------------------------------

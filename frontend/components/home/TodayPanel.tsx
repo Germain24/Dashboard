@@ -9,13 +9,12 @@
  * réessai en cas d'échec backend, état vide explicite quand la journée est libre.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowRight, CalendarDays, Circle, Clock } from "lucide-react";
+import { useAgendaToday, useMarkTaskDone } from "@/lib/queries/agenda";
 import {
-  fetchToday,
-  markTaskDone,
   couleurFor,
   formatHeure,
   type AgendaJour,
@@ -56,33 +55,29 @@ function deadlineInfo(deadline: string | null): DeadlineInfo | null {
 }
 
 export function TodayPanel() {
-  const [state, setState] = useState<State>({ status: "loading" });
   const [tasks, setTasks] = useState<Tache[]>([]);
 
-  const load = useCallback(() => {
-    let active = true;
-    setState({ status: "loading" });
-    fetchToday()
-      .then((data) => {
-        if (!active) return;
-        setState({ status: "ready", data });
-        setTasks(data.taches_urgentes);
-      })
-      .catch(() => active && setState({ status: "error" }));
-    return () => {
-      active = false;
-    };
-  }, []);
+  const todayQ = useAgendaToday();
+  const markDoneMutation = useMarkTaskDone();
+  const state: State = todayQ.isLoading
+    ? { status: "loading" }
+    : todayQ.isError
+      ? { status: "error" }
+      : { status: "ready", data: todayQ.data as AgendaJour };
 
-  useEffect(() => load(), [load]);
+  useEffect(() => {
+    if (todayQ.data) setTasks(todayQ.data.taches_urgentes);
+  }, [todayQ.data]);
 
   // Fire-and-forget : retire la tâche immédiatement (optimiste), restaure +
   // toast si l'appel échoue. Non-async pour rester compatible avec onClick (void).
   function complete(task: Tache) {
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
-    markTaskDone(task.id).catch(() => {
-      setTasks((prev) => [...prev, task].sort((a, b) => a.priorite - b.priorite));
-      toast.error("Impossible de marquer la tâche faite. Réessaie.");
+    markDoneMutation.mutate(task.id, {
+      onError: () => {
+        setTasks((prev) => [...prev, task].sort((a, b) => a.priorite - b.priorite));
+        toast.error("Impossible de marquer la tâche faite. Réessaie.");
+      },
     });
   }
 
@@ -114,7 +109,7 @@ export function TodayPanel() {
             </p>
             <button
               type="button"
-              onClick={load}
+              onClick={() => void todayQ.refetch()}
               className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs font-medium transition-colors hover:bg-[var(--muted)]"
             >
               Réessayer

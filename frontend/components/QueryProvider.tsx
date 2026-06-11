@@ -15,6 +15,7 @@ import {
   MutationCache,
   QueryCache,
   QueryClient,
+  QueryClientProvider,
 } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
@@ -52,13 +53,15 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       : undefined,
   );
 
-  // Côté serveur (SSR), pas de persistance : rendu direct.
+  // Côté serveur (SSR/prerender), pas de persistance localStorage, mais un
+  // provider reste indispensable : les composants du layout (cloche, etc.)
+  // appellent useQuery dès le premier rendu.
   if (!persister) {
     return (
-      <>
+      <QueryClientProvider client={client}>
         {children}
         <Toaster position="bottom-right" richColors closeButton />
-      </>
+      </QueryClientProvider>
     );
   }
 

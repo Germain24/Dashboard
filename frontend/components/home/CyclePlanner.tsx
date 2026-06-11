@@ -13,16 +13,17 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { CalendarPlus, TriangleAlert } from "lucide-react";
 import {
   planPreview,
   planCommit,
   planPush,
-  gcalStatus,
   PLAN_TYPE_COLOR,
   type PlanProposition,
   type PlanBloc,
 } from "@/lib/agenda";
+import { agendaKeys, useGcalStatus } from "@/lib/queries/agenda";
 
 const COOKING_DAYS = [0, 4]; // dimanche=0, jeudi=4 (Date.getDay)
 
@@ -51,16 +52,15 @@ export function CyclePlanner() {
   const [committing, setCommitting] = useState(false);
   const [committed, setCommitted] = useState(false);
   const [plan, setPlan] = useState<PlanProposition | null>(null);
-  const [gcalOk, setGcalOk] = useState(false);
   const [pushing, setPushing] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
 
+  const qc = useQueryClient();
+  const gcalOk = useGcalStatus().data?.configured ?? false;
+
   useEffect(() => {
     setCookingDay(COOKING_DAYS.includes(new Date().getDay()));
-    gcalStatus()
-      .then((s) => setGcalOk(s.configured))
-      .catch(() => setGcalOk(false));
   }, []);
 
   // Gestion focus + fermeture quand le modal est ouvert (sans onClick sur div).
@@ -103,6 +103,8 @@ export function CyclePlanner() {
       toast.success(`${res.created} blocs ajoutés à l'agenda.`);
       setCommitted(true);
       setOpen(false);
+      // Les blocs écrits doivent rafraîchir TodayPanel / Agenda.
+      void qc.invalidateQueries({ queryKey: agendaKeys.all });
     } catch {
       toast.error("Échec de l'écriture dans l'agenda. Réessaie.");
     } finally {
