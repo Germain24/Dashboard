@@ -1,6 +1,7 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { fetchJobs, fetchRuns, forceRun, pauseJob, resumeJob } from '@/lib/jobs'
+import { useState } from 'react'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { useForceRun, useJobRuns, useJobs, usePauseJob, useResumeJob } from '@/lib/queries/jobs'
 
 const JOB_LABELS: Record<string, string> = {
   portfolio_snapshot: 'Snapshot portefeuille',
@@ -16,13 +17,9 @@ type JobRun = { id: number; started_at: string; finished_at: string | null; stat
 type Job = { job_id: string; next_run: string | null; paused: boolean; last_run: JobRun | null; last_failed: boolean }
 
 export default function JobsPage() {
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const load = () => {
-    fetchJobs().then((j: Job[]) => { setJobs(j); setLoading(false) }).catch(() => setLoading(false))
-  }
-  useEffect(() => { load() }, [])
+  const jobsQ = useJobs()
+  const jobs: Job[] = jobsQ.data ?? []
+  const loading = jobsQ.isLoading
 
   if (loading) {
     return <div className="p-6"><div className="h-64 w-full rounded-lg bg-[var(--muted)] animate-pulse" /></div>
@@ -31,27 +28,26 @@ export default function JobsPage() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">Jobs automatiques</h1>
-      {jobs.length === 0 && <p className="text-sm text-[var(--muted-foreground)]">Aucun job configuré.</p>}
-      <div className="space-y-3">
-        {jobs.map((job) => <JobCard key={job.job_id} job={job} onChange={load} />)}
-      </div>
+      <ErrorBoundary label="Jobs">
+        {jobs.length === 0 && <p className="text-sm text-[var(--muted-foreground)]">Aucun job configuré.</p>}
+        <div className="space-y-3">
+          {jobs.map((job) => <JobCard key={job.job_id} job={job} />)}
+        </div>
+      </ErrorBoundary>
     </div>
   )
 }
 
-function JobCard({ job, onChange }: { job: Job; onChange: () => void }) {
+function JobCard({ job }: { job: Job }) {
   const [showHistory, setShowHistory] = useState(false)
-  const [runs, setRuns] = useState<JobRun[] | null>(null)
 
-  const toggleHistory = async () => {
-    const next = !showHistory
-    setShowHistory(next)
-    if (next && runs === null) {
-      try { setRuns(await fetchRuns(job.job_id)) } catch { setRuns([]) }
-    }
-  }
+  const runsQ = useJobRuns(showHistory ? job.job_id : null)
+  const runs: JobRun[] | null = showHistory ? (runsQ.isError ? [] : runsQ.data ?? null) : null
+  const forceRunMutation = useForceRun()
+  const pauseMutation = usePauseJob()
+  const resumeMutation = useResumeJob()
 
-  const handleRun = async () => { await forceRun(job.job_id); setRuns(null); setTimeout(onChange, 1000) }
+  const handleRun = () => forceRunMutation.mutate(job.job_id)
 
   return (
     <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
@@ -79,20 +75,20 @@ function JobCard({ job, onChange }: { job: Job; onChange: () => void }) {
               {new Date(job.last_run.started_at).toLocaleString('fr-CA')}
             </div>
           )}
-          <button onClick={() => void toggleHistory()} className="text-xs text-[var(--ring)] hover:underline">
+          <button onClick={() => setShowHistory((v) => !v)} className="text-xs text-[var(--ring)] hover:underline">
             {showHistory ? 'Masquer l’historique' : 'Historique'}
           </button>
         </div>
         <div className="flex gap-2 shrink-0">
-          <button onClick={() => void handleRun()}
+          <button onClick={handleRun}
             className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors">
             Lancer
           </button>
           {job.paused ? (
-            <button onClick={() => void resumeJob(job.job_id).then(onChange)}
+            <button onClick={() => resumeMutation.mutate(job.job_id)}
               className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors">Reprendre</button>
           ) : (
-            <button onClick={() => void pauseJob(job.job_id).then(onChange)}
+            <button onClick={() => pauseMutation.mutate(job.job_id)}
               className="rounded border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors">Pause</button>
           )}
         </div>

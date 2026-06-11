@@ -1,49 +1,54 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Bell, Settings2, Trash2, BellRing } from 'lucide-react'
+import type { Notification, NotifPref } from '@/lib/notifications'
 import {
-  fetchNotifications, markRead, markAllRead, clearAll, fetchPrefs, setPref,
-  type Notification, type NotifPref,
-} from '@/lib/notifications'
+  useClearNotifications, useMarkAllRead, useMarkRead,
+  useNotifPrefs, useNotifications, useSetNotifPref,
+} from '@/lib/queries/jobs'
 
 const POLL_MS = 30_000
 
 export function NotificationsWidget() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
   const [open, setOpen] = useState(false)
   const [showPrefs, setShowPrefs] = useState(false)
-  const [prefs, setPrefs] = useState<NotifPref[]>([])
   const ref = useRef<HTMLDivElement>(null)
   const lastSeenId = useRef<number | null>(null)
 
+  const notificationsQ = useNotifications(15)
+  const notifications: Notification[] = notificationsQ.data ?? []
+  const prefsQ = useNotifPrefs()
+  const prefs: NotifPref[] = prefsQ.isError ? [] : prefsQ.data ?? []
+  const markReadMutation = useMarkRead()
+  const markAllReadMutation = useMarkAllRead()
+  const clearMutation = useClearNotifications()
+  const setPrefMutation = useSetNotifPref()
+
+  // Poll : TanStack refait la requête, on garde la cadence historique.
+  useEffect(() => {
+    const t = setInterval(() => void notificationsQ.refetch(), POLL_MS)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const unreadCount = notifications.filter((n) => !n.lu).length
 
-  const notifyBrowser = useCallback((items: Notification[]) => {
+  // Notifications navigateur sur les nouveautés (pas de spam au 1er chargement).
+  useEffect(() => {
+    if (!notificationsQ.data) return
+    const items = notificationsQ.data
+    const prev = lastSeenId.current
+    lastSeenId.current = items.reduce((m, n) => Math.max(m, n.id), prev ?? 0)
+    if (prev == null) return
     if (typeof window === 'undefined' || !('Notification' in window)) return
     if (window.Notification.permission !== 'granted') return
-    const prev = lastSeenId.current
-    if (prev == null) return // 1er chargement : pas de spam rétroactif
     for (const n of items) {
       if (n.id > prev && !n.lu) {
         try { new window.Notification(n.titre, { body: n.message || undefined }) } catch { /* noop */ }
       }
     }
-  }, [])
-
-  const load = useCallback(() => {
-    fetchNotifications(15).then((data) => {
-      notifyBrowser(data)
-      lastSeenId.current = data.reduce((m, n) => Math.max(m, n.id), lastSeenId.current ?? 0)
-      setNotifications(data)
-    }).catch(() => { /* non critique */ })
-  }, [notifyBrowser])
-
-  useEffect(() => {
-    load()
-    const t = setInterval(() => load(), POLL_MS)
-    return () => clearInterval(t)
-  }, [load])
+  }, [notificationsQ.data])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -53,33 +58,20 @@ export function NotificationsWidget() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const openPrefs = async () => {
-    setShowPrefs((v) => !v)
-    if (!showPrefs) {
-      try { setPrefs(await fetchPrefs()) } catch { setPrefs([]) }
-    }
+  const openPrefs = () => setShowPrefs((v) => !v)
+
+  const togglePref = (source: string, enabled: boolean) => {
+    setPrefMutation.mutate({ source, enabled })
   }
 
-  const togglePref = async (source: string, enabled: boolean) => {
-    setPrefs((p) => p.map((x) => (x.source === source ? { ...x, enabled } : x)))
-    try { await setPref(source, enabled); load() } catch { /* noop */ }
-  }
-
-  const onClickNotif = async (n: Notification) => {
+  const onClickNotif = (n: Notification) => {
     if (n.lu) return
-    setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, lu: true } : x)))
-    try { await markRead(n.id) } catch { /* noop */ }
+    markReadMutation.mutate(n.id)
   }
 
-  const handleMarkAllRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, lu: true })))
-    try { await markAllRead() } catch { /* noop */ }
-  }
+  const handleMarkAllRead = () => markAllReadMutation.mutate()
 
-  const handleClear = async () => {
-    setNotifications([])
-    try { await clearAll() } catch { /* noop */ }
-  }
+  const handleClear = () => clearMutation.mutate()
 
   const requestPush = async () => {
     if (!('Notification' in window)) return
