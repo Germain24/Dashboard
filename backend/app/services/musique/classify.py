@@ -1,9 +1,12 @@
-"""Classement autonome des morceaux par ambiance via Ollama.
+"""Classement autonome des morceaux par ambiance.
 
-Un morceau par appel : les prompts « par lot » font s'effondrer les petits
-modèles (qwen2.5:3b se contente d'énumérer les ambiances dans l'ordre).
-Le classement reprend aussi les morceaux marqués « classés » mais sans aucune
-ambiance (vieux runs ratés) : auto-guérison sans bouton Réinitialiser.
+Provider : API Claude (par lots, fiable) si ANTHROPIC_API_KEY est configurée,
+sinon Ollama local en unitaire — les prompts « par lot » font s'effondrer les
+petits modèles (qwen2.5:3b se contente d'énumérer les ambiances dans l'ordre).
+
+Sémantique : un morceau ``classified=True`` n'est JAMAIS reclassé, même s'il
+n'a aucune ambiance (= traité, aucune playlist adaptée). Seul le bouton
+Réinitialiser permet de le remettre dans la file.
 """
 from __future__ import annotations
 
@@ -12,7 +15,7 @@ import unicodedata
 from sqlmodel import Session, select
 
 from app.models.musique import MusicTrack, TrackAmbiance
-from app.services.musique import ollama_client
+from app.services.musique import claude_client, ollama_client
 from app.services.musique.constants import AMBIANCES, AMBIANCE_NAMES
 
 _progress = {"n_done": 0, "n_total": 0, "active": False, "error": None}
@@ -79,46 +82,98 @@ def parse_ambiances(raw: str, ambiances: list[str]) -> list[str]:
 
 
 def _pending_tracks(session: Session) -> list[MusicTrack]:
-    """Morceaux à classer : jamais classés + classés sans aucune ambiance."""
-    tagged_ids = {r.track_id for r in session.exec(select(TrackAmbiance)).all()}
-    return [
-        t for t in session.exec(select(MusicTrack)).all()
-        if not t.classified or t.id not in tagged_ids
-    ]
+    """Morceaux à classer : uniquement ceux jamais traités (classified=False).
+
+    Un morceau classé sans ambiance est un résultat valide (« aucune playlist
+    adaptée ») : il n'est pas repris ici.
+    """
+    return list(session.exec(select(MusicTrack).where(MusicTrack.classified == False)).all())  # noqa: E712
 
 
-def classify_untagged(session: Session, *, generate=ollama_client.generate) -> dict:
+def classify_untagged(session: Session, *, generate=None, classify_lot=None) -> dict:
+    """Classe les morceaux en attente.
+
+    - ``classify_lot`` (lots de dicts -> liste d'ambiances par morceau) : API Claude.
+    - ``generate`` (prompt -> texte) : Ollama unitaire.
+    - Aucun des deux fourni : Claude si la clé API est configurée, sinon Ollama.
+    """
     tracks = _pending_tracks(session)
     _progress.update(n_done=0, n_total=len(tracks), active=True, error=None)
+    try:
+        if generate is None and classify_lot is None:
+            if claude_client.is_configured():
+                classify_lot = claude_client.classify_batch
+            else:
+                generate = ollama_client.generate
+        if classify_lot is not None:
+            classes = _classify_par_lots(session, tracks, classify_lot)
+        else:
+            classes = _classify_unitaire(session, tracks, generate)
+    finally:
+        _progress["active"] = False
+    return {"classes": classes, "total": len(tracks)}
+
+
+def _classify_par_lots(session: Session, tracks: list[MusicTrack], classify_lot) -> int:
+    """Chemin API Claude : un appel par lot. Tout morceau d'un lot réussi est
+    marqué classé, même sans ambiance ; un lot en échec reste réessayable."""
     classes = 0
     fails = 0
-    try:
-        for track in tracks:
-            try:
-                raw = generate(build_prompt(track.model_dump()))
-            except Exception:
-                # Échec Ollama : on NE marque PAS le morceau classé (réessayable).
-                fails += 1
-                if fails >= _MAX_CONSECUTIVE_FAILS:
-                    _progress["error"] = (
-                        "Ollama indisponible (le modèle plante ?). Classement interrompu — "
-                        "vérifie Ollama puis relance."
-                    )
-                    break
-                continue
-            fails = 0  # un succès réinitialise le compteur d'échecs
-            ambiances = parse_ambiances(raw, AMBIANCE_NAMES)
+    for i in range(0, len(tracks), claude_client.BATCH_SIZE):
+        lot = tracks[i:i + claude_client.BATCH_SIZE]
+        try:
+            resultats = classify_lot([t.model_dump() for t in lot])
+        except Exception:
+            fails += 1
+            if fails >= 2:
+                _progress["error"] = (
+                    "API Claude indisponible. Classement interrompu — vérifie "
+                    "ANTHROPIC_API_KEY et la connexion, puis relance."
+                )
+                break
+            continue
+        fails = 0
+        for track, ambiances in zip(lot, resultats):
             for amb in ambiances:
                 session.add(TrackAmbiance(track_id=track.id, ambiance=amb, source="auto"))
             track.classified = True
             session.add(track)
-            session.commit()
             if ambiances:
                 classes += 1
             _progress["n_done"] += 1
-    finally:
-        _progress["active"] = False
-    return {"classes": classes, "total": len(tracks)}
+        session.commit()
+    return classes
+
+
+def _classify_unitaire(session: Session, tracks: list[MusicTrack], generate) -> int:
+    """Chemin Ollama : un morceau par appel (les lots font dérailler les petits
+    modèles locaux)."""
+    classes = 0
+    fails = 0
+    for track in tracks:
+        try:
+            raw = generate(build_prompt(track.model_dump()))
+        except Exception:
+            # Échec Ollama : on NE marque PAS le morceau classé (réessayable).
+            fails += 1
+            if fails >= _MAX_CONSECUTIVE_FAILS:
+                _progress["error"] = (
+                    "Ollama indisponible (le modèle plante ?). Classement interrompu — "
+                    "vérifie Ollama puis relance."
+                )
+                break
+            continue
+        fails = 0  # un succès réinitialise le compteur d'échecs
+        ambiances = parse_ambiances(raw, AMBIANCE_NAMES)
+        for amb in ambiances:
+            session.add(TrackAmbiance(track_id=track.id, ambiance=amb, source="auto"))
+        track.classified = True
+        session.add(track)
+        session.commit()
+        if ambiances:
+            classes += 1
+        _progress["n_done"] += 1
+    return classes
 
 
 def reset_classification(session: Session, *, tout: bool = False) -> dict:

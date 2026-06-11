@@ -65,10 +65,11 @@ export function Bibliotheque() {
         <button onClick={doScan} disabled={!!busy}
           className="rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm">{busy || "Scanner"}</button>
         <button onClick={() => doClassify()}
-          className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm">Classer (Ollama)</button>
+          className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm"
+          title="Classe les nouveaux morceaux (API Claude si configurée, sinon Ollama local)">Classer (IA)</button>
         <button onClick={() => doReset()}
           className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted-foreground)]"
-          title="Remettre à classer les morceaux sans ambiance (après un échec Ollama)">Réinitialiser</button>
+          title="Efface les ambiances attribuées automatiquement et remet tout à classer (les ambiances manuelles sont conservées)">Réinitialiser</button>
         {progress && <span className="text-xs text-[var(--muted-foreground)]">Classement {progress.n_done}/{progress.n_total}</span>}
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…"
           className="ml-auto px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--background)]" />

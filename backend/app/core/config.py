@@ -111,8 +111,15 @@ class Settings(BaseSettings):
     entrainement_sets_mrv: int = 20              # Maximum Recoverable Volume
     entrainement_mesocycle_accumulation_weeks: int = 4
 
+    # --- API Claude (Anthropic) ---
+    # Clé API pour le classement musical des nouveaux morceaux. Vide = le
+    # classement retombe sur Ollama local (unitaire, plus lent).
+    anthropic_api_key: str = ""
+
     # --- Musique (module playlists par ambiance) ---
     music_dir: str = "C:/Users/germa/Music"
+    # Modèle Claude utilisé pour classer les morceaux par lots.
+    musique_claude_model: str = "claude-opus-4-8"
     musique_ollama_host: str = "http://localhost:11434"
     musique_ollama_model: str = "qwen2.5:3b"  # généraliste (classement fiable)
     musique_ollama_autostart: bool = True  # démarrer `ollama serve` au boot si absent

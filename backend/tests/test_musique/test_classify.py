@@ -87,9 +87,9 @@ def test_classify_failure_does_not_mark_classified():
         assert s.exec(select(TrackAmbiance)).all() == []
 
 
-def test_classify_reprend_les_classes_sans_ambiance():
-    """Auto-guérison : un morceau marqué classé mais SANS ambiance (vieux run
-    raté) est repris par le classement, sans bouton Réinitialiser."""
+def test_classify_ne_reprend_jamais_un_morceau_classe():
+    """Un morceau classified=True n'est JAMAIS reclassé — même avec 0 ambiance.
+    classified=True + 0 ambiance = « traité, aucune playlist adaptée »."""
     from sqlmodel import Session, SQLModel, create_engine, select
     from sqlmodel.pool import StaticPool
     from app.models.musique import MusicTrack, TrackAmbiance
@@ -97,16 +97,60 @@ def test_classify_reprend_les_classes_sans_ambiance():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     SQLModel.metadata.create_all(engine)
     with Session(engine) as s:
-        s.add(MusicTrack(path="A/1.flac", title="T1", classified=True))  # raté : sans ambiance
-        s.add(MusicTrack(path="B/2.flac", title="T2", classified=True))  # ok : a une ambiance
+        s.add(MusicTrack(path="A/1.flac", title="T1", classified=True))   # traité : 0 ambiance
+        s.add(MusicTrack(path="B/2.flac", title="T2", classified=True))   # traité : 1 ambiance
+        s.add(MusicTrack(path="C/3.flac", title="T3", classified=False))  # nouveau
         s.commit()
         s.add(TrackAmbiance(track_id=2, ambiance="café", source="auto"))
         s.commit()
 
         res = classify_untagged(s, generate=lambda prompt, **kw: "énergie")
-        assert res["total"] == 1, "seul le morceau sans ambiance doit être repris"
+        assert res["total"] == 1, "seul le nouveau morceau doit être traité"
         ambs = {(ta.track_id, ta.ambiance) for ta in s.exec(select(TrackAmbiance)).all()}
-        assert (1, "énergie") in ambs
+        assert ambs == {(2, "café"), (3, "énergie")}
+
+
+def test_classify_untagged_par_lots_marque_aussi_les_zero_ambiance():
+    """Chemin API Claude (par lots) : tout morceau traité est marqué classified,
+    y compris ceux sans aucune ambiance (pour ne jamais les refaire)."""
+    from sqlmodel import Session, SQLModel, create_engine, select
+    from sqlmodel.pool import StaticPool
+    from app.models.musique import MusicTrack, TrackAmbiance
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        s.add(MusicTrack(path="A/1.flac", title="T1"))
+        s.add(MusicTrack(path="B/2.flac", title="T2"))
+        s.commit()
+
+        res = classify_untagged(s, classify_lot=lambda tracks: [["soirée"], []])
+        assert res == {"classes": 1, "total": 2}
+        for t in s.exec(select(MusicTrack)).all():
+            assert t.classified is True
+        ambs = [(ta.track_id, ta.ambiance) for ta in s.exec(select(TrackAmbiance)).all()]
+        assert ambs == [(1, "soirée")]
+
+
+def test_classify_untagged_par_lots_echec_reste_reclassable():
+    """Si l'appel API échoue, aucun morceau du lot n'est marqué classé."""
+    from sqlmodel import Session, SQLModel, create_engine, select
+    from sqlmodel.pool import StaticPool
+    from app.models.musique import MusicTrack, TrackAmbiance
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+
+    def boom(tracks):
+        raise RuntimeError("API down")
+
+    with Session(engine) as s:
+        s.add(MusicTrack(path="A/1.flac", title="T1")); s.commit()
+        res = classify_untagged(s, classify_lot=boom)
+        assert res["classes"] == 0
+        t = s.exec(select(MusicTrack)).first()
+        assert t.classified is False
+        assert s.exec(select(TrackAmbiance)).all() == []
 
 
 def test_reset_classification_targets_empty_only():
