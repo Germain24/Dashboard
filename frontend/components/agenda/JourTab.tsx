@@ -56,7 +56,9 @@ export default function JourTab({ data }: { data: AgendaJour }) {
   const [showSlots, setShowSlots] = useState(true);
 
   const allEvents: Evenement[] = [...data.evenements];
-  if (data.seance_entrainement) allEvents.push(data.seance_entrainement);
+  // Séance loggée (horaire réel) → timeline ; séance planifiée (flexible,
+  // fin=null) → badge seulement, elle se fait à n'importe quel moment.
+  if (data.seance_entrainement?.fin) allEvents.push(data.seance_entrainement);
   allEvents.sort((a, b) => a.debut.localeCompare(b.debut));
 
   const dayStart = 7 * 60;

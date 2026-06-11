@@ -35,7 +35,9 @@ def list_events(
     if include_training:
         for single_date in dates_in_range(from_dt.date(), to_dt.date()):
             blk = get_training_block_for_date(session, single_date)
-            if blk:
+            # Seules les séances loggées (horaire réel) sont des événements ;
+            # une séance planifiée (fin=None) reste flexible, hors timeline.
+            if blk and blk.get("fin"):
                 items.append(blk)
     items.sort(key=lambda x: x["debut"])
     return [ev_to_read(e) for e in items]
@@ -58,7 +60,7 @@ def check_conflicts(
     items = get_full_calendar(session, from_dt, to_dt)
     for single_date in dates_in_range(from_dt.date(), to_dt.date()):
         blk = get_training_block_for_date(session, single_date)
-        if blk:
+        if blk and blk.get("fin"):  # une séance flexible n'entre en conflit avec rien
             items.append(blk)
     conflicts = find_conflicts(debut, fin, items, ignore_id=ignore_id)
     return [ev_to_read(e) for e in conflicts]

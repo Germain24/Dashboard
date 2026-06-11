@@ -71,14 +71,17 @@ def get_training_block_for_date(
         if prog:
             pj = program_day_for_date(session, date, programme_id=prog.id)
             if pj and pj.label.lower() not in ("repos", "rest"):
-                debut_dt = dt.datetime.combine(date, dt.time(9, 0))
+                # Séance planifiée mais pas encore loggée : aucun horaire imposé.
+                # fin=None = bloc « flexible » — il n'occupe aucun créneau
+                # (free_slots ignore les blocs sans fin) et n'apparaît pas
+                # comme un événement à heure fixe dans les vues semaine/mois.
                 return {
                     "id": None,
                     "titre": f"Entraînement — {pj.label}",
-                    "debut": debut_dt,
-                    "fin": debut_dt + dt.timedelta(hours=1),
+                    "debut": dt.datetime.combine(date, dt.time.min),
+                    "fin": None,
                     "lieu": "Gym",
-                    "description": f"Séance planifiée : {pj.label}",
+                    "description": f"Séance planifiée : {pj.label} · horaire libre",
                     "source": "entrainement",
                     "source_id": None,
                     "categorie": "sport",
