@@ -1,35 +1,34 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Target, BookMarked, Sparkles } from 'lucide-react'
-import {
-  fetchAnnualStats, fetchRecommendations, setReadingGoal,
-  type AnnualStats, type Recommendation,
-} from '@/lib/livres'
+import type { AnnualStats, Recommendation } from '@/lib/livres'
+import { useAnnualStats, useLivresRecommendations, useSetReadingGoal } from '@/lib/queries/livres'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export default function StatsTab() {
   const year = new Date().getFullYear()
-  const [stats, setStats] = useState<AnnualStats | null>(null)
-  const [reco, setReco] = useState<Recommendation[]>([])
   const [goalInput, setGoalInput] = useState('')
-  const [error, setError] = useState(false)
 
-  const load = useCallback(() => {
-    fetchAnnualStats(year)
-      .then((s) => { setStats(s); setGoalInput(String(s.challenge.goal)) })
-      .catch(() => setError(true))
-    fetchRecommendations().then((d) => setReco(Array.isArray(d) ? d : [])).catch(() => setReco([]))
-  }, [year])
+  const statsQ = useAnnualStats(year)
+  const stats: AnnualStats | null = statsQ.data ?? null
+  const recoQ = useLivresRecommendations()
+  const reco: Recommendation[] = Array.isArray(recoQ.data) ? recoQ.data : []
+  const goalMutation = useSetReadingGoal()
+  const error = statsQ.isError
 
-  useEffect(() => load(), [load])
+  useEffect(() => {
+    if (stats) setGoalInput(String(stats.challenge.goal))
+  }, [stats])
 
-  const saveGoal = async () => {
+  const saveGoal = () => {
     const g = parseInt(goalInput, 10)
     if (isNaN(g) || g < 0) { toast.error('Objectif invalide.'); return }
-    try { await setReadingGoal(g); toast.success('Objectif mis à jour.'); load() }
-    catch { toast.error('Objectif non sauvegardé.') }
+    goalMutation.mutate(g, {
+      onSuccess: () => toast.success('Objectif mis à jour.'),
+      onError: () => toast.error('Objectif non sauvegardé.'),
+    })
   }
 
   if (error) return <p className="text-sm text-[var(--destructive)]">Statistiques indisponibles.</p>

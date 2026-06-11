@@ -1,13 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { X, Trash2, Quote as QuoteIcon, StickyNote, Clock } from 'lucide-react'
+import type { Book, Statut, Estimate, BookNote, BookQuote } from '@/lib/livres'
 import {
-  updateBook, deleteBook, fetchEstimate, fetchNotes, createNote, deleteNote,
-  fetchQuotes, createQuote, deleteQuote, createReadingSession,
-  type Book, type Statut, type Estimate, type BookNote, type BookQuote,
-} from '@/lib/livres'
+  useBookEstimate, useBookNotes, useBookQuotes, useCreateBookNote, useCreateBookQuote,
+  useCreateReadingSession, useDeleteBook, useDeleteBookNote, useDeleteBookQuote, useUpdateBook,
+} from '@/lib/queries/livres'
 
 const STATUT_LABELS: Record<Statut, string> = {
   en_cours: 'En cours', a_lire: 'À lire', lu: 'Lu', abandonne: 'Abandonné',
@@ -30,61 +30,78 @@ export default function BookDetailModal({
   onDeleted: () => void
 }) {
   const [statut, setStatut] = useState<Statut>(book.statut)
-  const [estimate, setEstimate] = useState<Estimate | null>(null)
-  const [notes, setNotes] = useState<BookNote[]>([])
-  const [quotes, setQuotes] = useState<BookQuote[]>([])
   const [newNote, setNewNote] = useState('')
   const [newQuote, setNewQuote] = useState('')
   const [pageFin, setPageFin] = useState('')
   const [duree, setDuree] = useState('')
 
-  const loadAux = useCallback(() => {
-    fetchEstimate(book.id).then(setEstimate).catch(() => setEstimate(null))
-    fetchNotes(book.id).then((d) => setNotes(Array.isArray(d) ? d : [])).catch(() => setNotes([]))
-    fetchQuotes(book.id).then((d) => setQuotes(Array.isArray(d) ? d : [])).catch(() => setQuotes([]))
-  }, [book.id])
+  const estimate: Estimate | null = useBookEstimate(book.id).data ?? null
+  const notesQ = useBookNotes(book.id)
+  const quotesQ = useBookQuotes(book.id)
+  const notes: BookNote[] = Array.isArray(notesQ.data) ? notesQ.data : []
+  const quotes: BookQuote[] = Array.isArray(quotesQ.data) ? quotesQ.data : []
 
-  useEffect(() => loadAux(), [loadAux])
+  const updateMutation = useUpdateBook()
+  const deleteMutation = useDeleteBook()
+  const sessionMutation = useCreateReadingSession()
+  const noteMutation = useCreateBookNote()
+  const deleteNoteMutation = useDeleteBookNote()
+  const quoteMutation = useCreateBookQuote()
+  const deleteQuoteMutation = useDeleteBookQuote()
 
-  const changeStatut = async (s: Statut) => {
+  const changeStatut = (s: Statut) => {
     setStatut(s)
     const patch: Partial<Book> = { statut: s }
     if (s === 'lu' && !book.date_fin) patch.date_fin = new Date().toISOString().slice(0, 10)
-    try { await updateBook(book.id, patch); onChanged() } catch { toast.error('Statut non sauvegardé.') }
+    updateMutation.mutate({ id: book.id, patch }, {
+      onSuccess: onChanged,
+      onError: () => toast.error('Statut non sauvegardé.'),
+    })
   }
 
-  const logSession = async () => {
+  const logSession = () => {
     const d = parseInt(duree, 10)
     if (!d || d <= 0) { toast.error('Durée invalide.'); return }
     const pf = pageFin ? parseInt(pageFin, 10) : null
-    try {
-      await createReadingSession(book.id, {
+    sessionMutation.mutate(
+      [book.id, {
         date: new Date().toISOString().slice(0, 10),
         duree_minutes: d,
         page_debut: book.page_courante ?? 0,
         page_fin: pf,
-      })
-      toast.success('Session enregistrée.')
-      setDuree(''); setPageFin('')
-      loadAux(); onChanged()
-    } catch { toast.error('Session non enregistrée.') }
+      }],
+      {
+        onSuccess: () => {
+          toast.success('Session enregistrée.')
+          setDuree(''); setPageFin('')
+          onChanged()
+        },
+        onError: () => toast.error('Session non enregistrée.'),
+      },
+    )
   }
 
-  const addNote = async () => {
+  const addNote = () => {
     if (!newNote.trim()) return
-    try { await createNote(book.id, newNote.trim(), book.page_courante ?? null); setNewNote(''); loadAux() }
-    catch { toast.error('Note non ajoutée.') }
+    noteMutation.mutate({ id: book.id, contenu: newNote.trim(), page: book.page_courante ?? null }, {
+      onSuccess: () => setNewNote(''),
+      onError: () => toast.error('Note non ajoutée.'),
+    })
   }
-  const addQuote = async () => {
+  const addQuote = () => {
     if (!newQuote.trim()) return
-    try { await createQuote(book.id, newQuote.trim(), book.page_courante ?? null); setNewQuote(''); loadAux() }
-    catch { toast.error('Citation non ajoutée.') }
+    quoteMutation.mutate({ id: book.id, texte: newQuote.trim(), page: book.page_courante ?? null }, {
+      onSuccess: () => setNewQuote(''),
+      onError: () => toast.error('Citation non ajoutée.'),
+    })
   }
 
-  const remove = async () => {
+  const remove = () => {
     if (!confirm(`Supprimer « ${book.titre} » ?`)) return
-    try { await deleteBook(book.id); toast.success('Livre supprimé.'); onDeleted() }
-    catch { toast.error('Suppression impossible.') }
+    deleteMutation.mutate(book.id, {
+      onSuccess: () => { toast.success('Livre supprimé.'); onDeleted() },
+      onError: () => toast.error('Suppression impossible.'),
+    })
   }
 
   const inputCls = 'rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]'
@@ -153,7 +170,7 @@ export default function BookDetailModal({
             <button onClick={() => void addNote()} className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)]">+</button>
           </div>
           {notes.map((n) => (
-            <Row key={n.id} onDelete={() => void deleteNote(n.id).then(loadAux)}>
+            <Row key={n.id} onDelete={() => deleteNoteMutation.mutate(n.id)}>
               {n.page != null && <span className="text-[var(--muted-foreground)]">p.{n.page} · </span>}{n.contenu}
             </Row>
           ))}
@@ -166,7 +183,7 @@ export default function BookDetailModal({
             <button onClick={() => void addQuote()} className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)]">+</button>
           </div>
           {quotes.map((qt) => (
-            <Row key={qt.id} onDelete={() => void deleteQuote(qt.id).then(loadAux)}>
+            <Row key={qt.id} onDelete={() => deleteQuoteMutation.mutate(qt.id)}>
               <span className="italic">« {qt.texte} »</span>
             </Row>
           ))}

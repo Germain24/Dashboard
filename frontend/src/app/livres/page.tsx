@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Library, BarChart3 } from 'lucide-react'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import BibliothequeTab from '@/components/livres/BibliothequeTab'
 import StatsTab from '@/components/livres/StatsTab'
 
@@ -35,8 +36,10 @@ export default function LivresPage() {
         </div>
       </div>
       <div key={active} className="p-6 animate-fade-in-up">
-        {active === 'bibliotheque' && <BibliothequeTab />}
-        {active === 'stats' && <StatsTab />}
+        <ErrorBoundary label="Livres">
+          {active === 'bibliotheque' && <BibliothequeTab />}
+          {active === 'stats' && <StatsTab />}
+        </ErrorBoundary>
       </div>
     </div>
   )

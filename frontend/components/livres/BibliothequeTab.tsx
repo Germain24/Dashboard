@@ -1,12 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { BookOpen, Clock, CheckCircle2, Bookmark, XCircle, Plus, Search, X } from 'lucide-react'
-import {
-  fetchBooks, updateBook, createBook, searchBooks,
-  type Book, type Statut, type SearchResult,
-} from '@/lib/livres'
+import type { Book, Statut, SearchResult } from '@/lib/livres'
+import { searchBooks } from '@/lib/livres'
+import { useBooks, useCreateBook, useUpdateBook } from '@/lib/queries/livres'
 import { Skeleton } from '@/components/ui/skeleton'
 import BookDetailModal from '@/components/livres/BookDetailModal'
 
@@ -39,23 +38,19 @@ function Stars({ note, onSet }: { note: number | null; onSet?: (n: number) => vo
 }
 
 export default function BibliothequeTab() {
-  const [livres, setLivres] = useState<Book[] | null>(null)
   const [filtre, setFiltre] = useState<Statut | 'tous'>('tous')
   const [sort, setSort] = useState<'recent' | 'note'>('recent')
   const [selected, setSelected] = useState<Book | null>(null)
   const [showAdd, setShowAdd] = useState(false)
 
-  const load = useCallback(() => {
-    fetchBooks({ sort: sort === 'note' ? 'note' : undefined })
-      .then((d) => setLivres(Array.isArray(d) ? d : []))
-      .catch(() => setLivres([]))
-  }, [sort])
+  const booksQ = useBooks({ sort: sort === 'note' ? 'note' : undefined })
+  const livres: Book[] | null = booksQ.isError ? [] : booksQ.data ?? null
+  const updateMutation = useUpdateBook()
 
-  useEffect(() => load(), [load])
-
-  const setNote = async (b: Book, note: number) => {
-    setLivres((prev) => prev?.map((x) => (x.id === b.id ? { ...x, note } : x)) ?? prev)
-    try { await updateBook(b.id, { note }) } catch { toast.error('Note non sauvegardée.'); load() }
+  const setNote = (b: Book, note: number) => {
+    updateMutation.mutate({ id: b.id, patch: { note } }, {
+      onError: () => toast.error('Note non sauvegardée.'),
+    })
   }
 
   if (livres === null) {
@@ -183,7 +178,7 @@ export default function BibliothequeTab() {
       {showAdd && (
         <AddBookDialog
           onClose={() => setShowAdd(false)}
-          onAdded={() => { setShowAdd(false); load() }}
+          onAdded={() => setShowAdd(false)}
         />
       )}
 
@@ -191,8 +186,8 @@ export default function BibliothequeTab() {
         <BookDetailModal
           book={selected}
           onClose={() => setSelected(null)}
-          onChanged={() => { load() }}
-          onDeleted={() => { setSelected(null); load() }}
+          onChanged={() => {}}
+          onDeleted={() => setSelected(null)}
         />
       )}
     </div>
@@ -203,6 +198,7 @@ function AddBookDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () 
   const [q, setQ] = useState('')
   const [results, setResults] = useState<SearchResult[] | null>(null)
   const [searching, setSearching] = useState(false)
+  const createMutation = useCreateBook()
 
   const runSearch = async () => {
     if (!q.trim()) return
@@ -217,26 +213,31 @@ function AddBookDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () 
     }
   }
 
-  const add = async (r: SearchResult) => {
-    try {
-      await createBook({
+  const add = (r: SearchResult) => {
+    createMutation.mutate(
+      {
         titre: r.titre, auteur: r.auteur, pages: r.pages, isbn: r.isbn,
         couverture_url: r.couverture_url, statut: 'a_lire',
-      })
-      toast.success(`« ${r.titre} » ajouté à « À lire ».`)
-      onAdded()
-    } catch {
-      toast.error('Ajout impossible.')
-    }
+      },
+      {
+        onSuccess: () => {
+          toast.success(`« ${r.titre} » ajouté à « À lire ».`)
+          onAdded()
+        },
+        onError: () => toast.error('Ajout impossible.'),
+      },
+    )
   }
 
-  const addManual = async () => {
+  const addManual = () => {
     if (!q.trim()) return
-    try {
-      await createBook({ titre: q.trim(), statut: 'a_lire' })
-      toast.success(`« ${q.trim()} » ajouté.`)
-      onAdded()
-    } catch { toast.error('Ajout impossible.') }
+    createMutation.mutate({ titre: q.trim(), statut: 'a_lire' }, {
+      onSuccess: () => {
+        toast.success(`« ${q.trim()} » ajouté.`)
+        onAdded()
+      },
+      onError: () => toast.error('Ajout impossible.'),
+    })
   }
 
   return (
