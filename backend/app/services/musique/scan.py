@@ -9,6 +9,7 @@ from app.models.musique import MusicTrack
 from app.services.musique.constants import AUDIO_EXTENSIONS
 
 _COVER_NAMES = ("Folder.jpg", "folder.jpg", "cover.jpg", "cover.png", "Cover.jpg")
+_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 
 
 def relative_to_root(path: Path, root: Path) -> str:
@@ -19,6 +20,10 @@ def find_cover(album_dir: Path) -> Path | None:
     for name in _COVER_NAMES:
         candidate = album_dir / name
         if candidate.exists():
+            return candidate
+    # Repli : pochette au nom quelconque (rip Spotify/web) — première image du dossier.
+    for candidate in sorted(album_dir.iterdir()):
+        if candidate.is_file() and candidate.suffix.lower() in _IMAGE_EXTENSIONS:
             return candidate
     return None
 

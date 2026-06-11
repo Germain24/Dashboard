@@ -22,6 +22,29 @@ def test_find_cover_none_when_absent(tmp_path):
     assert scan.find_cover(album) is None
 
 
+def test_find_cover_fallback_any_image(tmp_path):
+    """Pochette au nom quelconque (rip Spotify/web) : on prend la première image."""
+    album = tmp_path / "Album"
+    album.mkdir()
+    (album / "thriller-michael-jackson.jpg").write_bytes(b"x")
+    assert scan.find_cover(album) == album / "thriller-michael-jackson.jpg"
+
+
+def test_find_cover_fallback_ignores_audio(tmp_path):
+    album = tmp_path / "Album"
+    album.mkdir()
+    (album / "01.flac").write_bytes(b"x")
+    assert scan.find_cover(album) is None
+
+
+def test_find_cover_canonical_name_wins_over_fallback(tmp_path):
+    album = tmp_path / "Album"
+    album.mkdir()
+    (album / "aaa-random.png").write_bytes(b"x")
+    (album / "cover.jpg").write_bytes(b"x")
+    assert scan.find_cover(album) == album / "cover.jpg"
+
+
 def test_scan_library_indexes_audio(tmp_path, monkeypatch):
     # Arborescence factice : 1 morceau flac + une pochette.
     album = tmp_path / "Artiste" / "Album"
