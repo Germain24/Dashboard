@@ -740,7 +740,7 @@ W. GÉNÉRALISATION FRONTEND + TESTS (518-533) — design 2026-06-10
 521. [M](**) lib/queries/donnees.ts idem.   ← FINIS ✓ (2026-06-10 — downloads restés directs : pas de cache)
 522. [M](**) lib/queries/entrainement.ts idem + découpe AujourdhuiTab.tsx (421 l.).   ← FINIS ✓ (2026-06-10 — SlotCard + SeanceWidgets extraits, hôte 128 l. ; 6 composants migrés)
 523. [M](**) lib/queries/etudes.ts idem.   ← FINIS ✓ (2026-06-10 — 7 composants migrés, deck de révision figé localement)
-524. [M](**) lib/queries/garderobe.ts idem.
+524. [M](**) lib/queries/garderobe.ts idem.   ← FINIS ✓ (2026-06-10 — orchestrateur + 4 tabs migrés, suggestion 1×/jour conservée)
 525. [M](**) lib/queries/habitudes.ts idem.   ← FINIS ✓ (2026-06-10 — référence chantier 2 : hooks + tests + 4 tabs migrés + ErrorBoundary)
 526. [M](**) lib/queries/jobs.ts idem.
 527. [M](**) lib/queries/journal.ts idem.

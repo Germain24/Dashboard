@@ -2,9 +2,10 @@
 
 /** Planificateur de tenues sur la semaine, lié à l'agenda (#79). */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Vetement, WeekPlan, PlannerDay } from "@/lib/garderobe";
-import { garderobeApi, emojiForCategorie } from "@/lib/garderobe";
+import { emojiForCategorie } from "@/lib/garderobe";
+import { useSetPlannerDay, useWeekPlanner } from "@/lib/queries/garderobe";
 
 const PLAN_SLOTS = ["Manteau", "Haut", "Pantalon", "Chaussures"] as const;
 const SLOT_CATS: Record<string, string[]> = {
@@ -16,13 +17,12 @@ const SLOT_CATS: Record<string, string[]> = {
 const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 export function WeekPlannerTab({ wardrobe }: { wardrobe: Vetement[] }) {
-  const [plan, setPlan] = useState<WeekPlan | null>(null);
   const [start, setStart] = useState<string | undefined>(undefined);
   const [savingDate, setSavingDate] = useState<string | null>(null);
 
-  useEffect(() => {
-    garderobeApi.getPlanner(start).then(setPlan).catch(() => {});
-  }, [start]);
+  const planQ = useWeekPlanner(start);
+  const plan: WeekPlan | null = planQ.data ?? null;
+  const setDayMutation = useSetPlannerDay();
 
   const shiftWeek = (deltaDays: number) => {
     const base = plan ? new Date(plan.start) : new Date();
@@ -30,21 +30,14 @@ export function WeekPlannerTab({ wardrobe }: { wardrobe: Vetement[] }) {
     setStart(base.toISOString().slice(0, 10));
   };
 
-  const setSlot = async (day: PlannerDay, slot: string, vetId: string) => {
+  const setSlot = (day: PlannerDay, slot: string, vetId: string) => {
     const tenue: Record<string, string | null> = {};
     for (const s of PLAN_SLOTS) tenue[s] = day.tenue[s]?.id ?? null;
     tenue[slot] = vetId || null;
     setSavingDate(day.date);
-    try {
-      const res = await garderobeApi.setPlannerDay(day.date, tenue);
-      setPlan((p) =>
-        p ? { ...p, days: p.days.map((d) => (d.date === day.date ? { ...d, tenue: res.tenue } : d)) } : p,
-      );
-    } catch {
-      /* toast global */
-    } finally {
-      setSavingDate(null);
-    }
+    setDayMutation.mutate({ date: day.date, tenue }, {
+      onSettled: () => setSavingDate(null),
+    });
   };
 
   if (!plan) return <p className="text-sm text-[var(--muted-foreground)]">Chargement du planning…</p>;

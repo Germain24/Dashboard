@@ -1,15 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { StatsResponse, WearFrequency, Vetement } from "@/lib/garderobe";
-import { emojiForCategorie, assetUrl, garderobeApi } from "@/lib/garderobe";
+import { emojiForCategorie, assetUrl } from "@/lib/garderobe";
+import { useWearFrequence } from "@/lib/queries/garderobe";
 
 export function StatsTab({ stats }: { stats: StatsResponse }) {
-  const [freq, setFreq] = useState<WearFrequency | null>(null);
-
-  useEffect(() => {
-    garderobeApi.frequence(5).then(setFreq).catch(() => {});
-  }, []);
+  const freq: WearFrequency | null = useWearFrequence(5).data ?? null;
 
   return (
     <div className="space-y-6">

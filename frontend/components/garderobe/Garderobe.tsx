@@ -3,15 +3,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Shirt, Sparkles, PieChart, Clock, CalendarDays } from "lucide-react";
 import {
-  garderobeApi,
   type SlotInfo,
-  type StatsResponse,
   type SuggestResponse,
-  type TenueHistory,
-  type Recommendation,
   type Vetement,
-  type Weather,
 } from "@/lib/garderobe";
+import {
+  useGarderobeRecommendations,
+  useGarderobeSlots,
+  useGarderobeStats,
+  useMeteo,
+  useSuggestTenue,
+  useTenueHistory,
+  useValiderTenue,
+  useVetements,
+} from "@/lib/queries/garderobe";
 import { SlotCard } from "./SlotCard";
 import { WeatherBanner } from "./WeatherBanner";
 import { ThermalScore } from "./ThermalScore";
@@ -42,60 +47,34 @@ function todayKey(): string {
 
 export function Garderobe() {
   const [tab, setTab] = useState<Tab>("inventaire");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const [slots, setSlots] = useState<SlotInfo[]>([]);
-  const [wardrobe, setWardrobe] = useState<Vetement[]>([]);
-  const [weather, setWeather] = useState<Weather | null>(null);
   const [suggestion, setSuggestion] = useState<SuggestResponse | null>(null);
   const [tenue, setTenue] = useState<Record<string, Vetement | null>>({});
   const [useBody, setUseBody] = useState(false);
-  const [stats, setStats] = useState<StatsResponse | null>(null);
-  const [history, setHistory] = useState<TenueHistory[]>([]);
-  const [recs, setRecs] = useState<Recommendation[]>([]);
-  const [validating, setValidating] = useState(false);
-  const [resuggesting, setResuggesting] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [slotsResp, ward, w, st, hist, rec] = await Promise.all([
-          garderobeApi.getSlots(),
-          garderobeApi.listVetements(),
-          garderobeApi.getMeteo(),
-          garderobeApi.stats(),
-          garderobeApi.history(20),
-          garderobeApi.recommendations(),
-        ]);
-        if (cancelled) return;
-        setSlots(slotsResp.slots);
-        setWardrobe(ward);
-        setWeather(w);
-        setStats(st);
-        setHistory(hist);
-        setRecs(rec);
+  const slotsQ = useGarderobeSlots();
+  const wardrobeQ = useVetements();
+  const weatherQ = useMeteo();
+  const statsQ = useGarderobeStats();
+  const historyQ = useTenueHistory(20);
+  const recsQ = useGarderobeRecommendations();
+  const suggestMutation = useSuggestTenue();
+  const validerMutation = useValiderTenue();
 
-        const last = typeof window !== "undefined" ? localStorage.getItem(LAST_SUGGESTION_KEY) : null;
-        if (last !== todayKey()) {
-          const sug = await garderobeApi.suggest();
-          if (cancelled) return;
-          applySuggestion(sug);
-          if (typeof window !== "undefined") {
-            localStorage.setItem(LAST_SUGGESTION_KEY, todayKey());
-          }
-        }
-        setLoading(false);
-      } catch (e: any) {
-        if (cancelled) return;
-        setError(e?.message ?? "Erreur de chargement");
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const slots = slotsQ.data?.slots ?? [];
+  const wardrobe = wardrobeQ.data ?? [];
+  const weather = weatherQ.data ?? null;
+  const stats = statsQ.data ?? null;
+  const history = historyQ.data ?? [];
+  const recs = recsQ.data ?? [];
+  const loading =
+    slotsQ.isLoading || wardrobeQ.isLoading || weatherQ.isLoading ||
+    statsQ.isLoading || historyQ.isLoading || recsQ.isLoading;
+  const firstError = [slotsQ, wardrobeQ, weatherQ, statsQ, historyQ, recsQ].find((q) => q.isError);
+  const error = actionError ?? (firstError ? ((firstError.error as Error)?.message ?? "Erreur de chargement") : null);
+  const validating = validerMutation.isPending;
+  const resuggesting = suggestMutation.isPending;
 
   const applySuggestion = useCallback((sug: SuggestResponse) => {
     setSuggestion(sug);
@@ -105,17 +84,28 @@ export function Garderobe() {
     setTenue(next);
   }, []);
 
-  const onResuggest = async () => {
-    setResuggesting(true);
-    try {
-      const sug = await garderobeApi.suggest();
-      applySuggestion(sug);
-      localStorage.setItem(LAST_SUGGESTION_KEY, todayKey());
-    } catch (e: any) {
-      setError(e?.message ?? "Suggestion impossible");
-    } finally {
-      setResuggesting(false);
-    }
+  // Suggestion automatique une fois par jour, après le premier chargement.
+  useEffect(() => {
+    if (loading || firstError) return;
+    const last = typeof window !== "undefined" ? localStorage.getItem(LAST_SUGGESTION_KEY) : null;
+    if (last === todayKey() || suggestMutation.isPending || suggestion) return;
+    suggestMutation.mutate({}, {
+      onSuccess: (sug) => {
+        applySuggestion(sug);
+        if (typeof window !== "undefined") localStorage.setItem(LAST_SUGGESTION_KEY, todayKey());
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  const onResuggest = () => {
+    suggestMutation.mutate({}, {
+      onSuccess: (sug) => {
+        applySuggestion(sug);
+        localStorage.setItem(LAST_SUGGESTION_KEY, todayKey());
+      },
+      onError: (e) => setActionError(e instanceof Error ? e.message : "Suggestion impossible"),
+    });
   };
 
   const onReset = () => {
@@ -125,27 +115,16 @@ export function Garderobe() {
     setUseBody(false);
   };
 
-  const onValider = async () => {
-    setValidating(true);
-    try {
-      const payload: Record<string, string | null> = {};
-      for (const [sid, v] of Object.entries(tenue)) payload[sid] = v?.id ?? null;
-      await garderobeApi.valider({ tenue: payload, use_body: useBody });
-      const [ward, st, hist] = await Promise.all([
-        garderobeApi.listVetements(),
-        garderobeApi.stats(),
-        garderobeApi.history(20),
-      ]);
-      setWardrobe(ward);
-      setStats(st);
-      setHistory(hist);
-      onReset();
-      localStorage.removeItem(LAST_SUGGESTION_KEY);
-    } catch (e: any) {
-      setError(e?.message ?? "Validation impossible");
-    } finally {
-      setValidating(false);
-    }
+  const onValider = () => {
+    const payload: Record<string, string | null> = {};
+    for (const [sid, v] of Object.entries(tenue)) payload[sid] = v?.id ?? null;
+    validerMutation.mutate({ tenue: payload, use_body: useBody }, {
+      onSuccess: () => {
+        onReset();
+        localStorage.removeItem(LAST_SUGGESTION_KEY);
+      },
+      onError: (e) => setActionError(e instanceof Error ? e.message : "Validation impossible"),
+    });
   };
 
   const slotsMap = useMemo(() => {
@@ -296,7 +275,7 @@ export function Garderobe() {
         {tab === "inventaire" && (
           <InventaireTab
             wardrobe={wardrobe}
-            onReload={() => { garderobeApi.listVetements().then(setWardrobe).catch(() => {}); }}
+            onReload={() => void wardrobeQ.refetch()}
           />
         )}
         {tab === "semaine" && <WeekPlannerTab wardrobe={wardrobe} />}

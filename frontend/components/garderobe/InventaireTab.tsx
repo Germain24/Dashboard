@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { Vetement } from "@/lib/garderobe";
-import { emojiForCategorie, assetUrl, mediaUrl, garderobeApi } from "@/lib/garderobe";
+import { emojiForCategorie, assetUrl, mediaUrl } from "@/lib/garderobe";
+import { useUploadVetementPhoto } from "@/lib/queries/garderobe";
 import { dominantColorFromFile } from "@/lib/dominantColor";
 
 export function InventaireTab({ wardrobe, onReload }: { wardrobe: Vetement[]; onReload?: () => void }) {
@@ -92,13 +93,15 @@ function VetementCard({ v, onReload }: { v: Vetement; onReload?: () => void }) {
     : v.proprete_pct < 50 ? "border-amber-500"
     : "border-[var(--border)]";
 
+  const uploadMutation = useUploadVetementPhoto();
+
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
       const couleur = (await dominantColorFromFile(file)) ?? undefined;
-      await garderobeApi.uploadPhoto(v.id, file, couleur);
+      await uploadMutation.mutateAsync({ id: v.id, file, couleurDominante: couleur });
       onReload?.();
     } catch {
       /* toast global */
