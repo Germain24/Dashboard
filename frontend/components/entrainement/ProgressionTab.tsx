@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  entrainementApi,
   type Exercice,
   type MuscleVolume,
   type ProgressionResponse,
   type TrainingCorrelation,
 } from "@/lib/entrainement";
+import { useMuscleVolume, useProgression, useTrainingCorrelation } from "@/lib/queries/entrainement";
 
 type Props = {
   exercices: Exercice[];
@@ -19,25 +19,11 @@ export function ProgressionTab({ exercices }: Props) {
     muscuExos.find((e) => e.nom === "Squat barre")?.id ?? muscuExos[0]?.id ?? null,
   );
   const [days, setDays] = useState<number>(90);
-  const [data, setData] = useState<ProgressionResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!selected) {
-      setData(null);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    setErr(null);
-    entrainementApi
-      .getProgression(selected, days)
-      .then((d) => { if (!cancelled) setData(d); })
-      .catch((e) => { if (!cancelled) setErr(e?.message ?? "Erreur"); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [selected, days]);
+  const progressionQ = useProgression(selected, days);
+  const data: ProgressionResponse | null = selected ? progressionQ.data ?? null : null;
+  const loading = progressionQ.isFetching;
+  const err = progressionQ.isError ? ((progressionQ.error as Error)?.message ?? "Erreur") : null;
 
   return (
     <div className="space-y-4">
@@ -133,17 +119,10 @@ const VOLUME_STATUS: Record<MuscleVolume["status"], { label: string; cls: string
 
 function MuscleVolumePanel() {
   const [days, setDays] = useState<number>(7);
-  const [vols, setVols] = useState<MuscleVolume[] | null>(null);
-  const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    entrainementApi
-      .getMuscleVolume(days)
-      .then((d) => { if (!cancelled) { setVols(d); setErr(null); } })
-      .catch((e) => { if (!cancelled) setErr(e?.message ?? "Erreur"); });
-    return () => { cancelled = true; };
-  }, [days]);
+  const volsQ = useMuscleVolume(days);
+  const vols: MuscleVolume[] | null = volsQ.data ?? null;
+  const err = volsQ.isError ? ((volsQ.error as Error)?.message ?? "Erreur") : null;
 
   return (
     <div className="rounded border border-[var(--border)] p-3 space-y-3">
@@ -198,17 +177,9 @@ function MuscleVolumePanel() {
 }
 
 function CorrelationPanel() {
-  const [data, setData] = useState<TrainingCorrelation | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    entrainementApi
-      .getCorrelation(12)
-      .then((d) => { if (!cancelled) { setData(d); setErr(null); } })
-      .catch((e) => { if (!cancelled) setErr(e?.message ?? "Erreur"); });
-    return () => { cancelled = true; };
-  }, []);
+  const correlationQ = useTrainingCorrelation(12);
+  const data: TrainingCorrelation | null = correlationQ.data ?? null;
+  const err = correlationQ.isError ? ((correlationQ.error as Error)?.message ?? "Erreur") : null;
 
   const corr = data?.correlation ?? null;
   const interpretation =

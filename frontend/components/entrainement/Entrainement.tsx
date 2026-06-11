@@ -1,15 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Dumbbell, ClipboardList, BarChart2, Activity, CalendarDays } from "lucide-react";
-import {
-  entrainementApi,
-  type Exercice,
-  type IntensityResponse,
-  type Programme,
-  type Seance,
-  todayKey,
-} from "@/lib/entrainement";
+import { todayKey } from "@/lib/entrainement";
+import { useExercices, useIntensityToday, useProgram, useSessions } from "@/lib/queries/entrainement";
 import { AujourdhuiTab } from "./AujourdhuiTab";
 import { ProgrammeTab } from "./ProgrammeTab";
 import { ProgressionTab } from "./ProgressionTab";
@@ -28,47 +22,24 @@ const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
 
 export function Entrainement() {
   const [tab, setTab] = useState<Tab>("aujourdhui");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const [program, setProgram] = useState<Programme | null>(null);
-  const [exercices, setExercices] = useState<Exercice[]>([]);
-  const [sessions, setSessions] = useState<Seance[]>([]);
-  const [intensity, setIntensity] = useState<IntensityResponse | null>(null);
+  const today = todayKey();
+  const from = new Date();
+  from.setDate(from.getDate() - 30);
+  const fromKey = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, "0")}-${String(from.getDate()).padStart(2, "0")}`;
 
-  const reloadAll = useCallback(async () => {
-    const today = todayKey();
-    const from = new Date();
-    from.setDate(from.getDate() - 30);
-    const fromKey = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, "0")}-${String(from.getDate()).padStart(2, "0")}`;
+  const programQ = useProgram();
+  const exercicesQ = useExercices();
+  const sessionsQ = useSessions({ from: fromKey, to: today });
+  const intensityQ = useIntensityToday();
 
-    const [p, ex, ss, i] = await Promise.all([
-      entrainementApi.getProgram(),
-      entrainementApi.listExercices(),
-      entrainementApi.listSessions({ from: fromKey, to: today }),
-      entrainementApi.getIntensityToday(),
-    ]);
-    setProgram(p);
-    setExercices(ex);
-    setSessions(ss);
-    setIntensity(i);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        await reloadAll();
-        if (cancelled) return;
-        setLoading(false);
-      } catch (e: any) {
-        if (cancelled) return;
-        setError(e?.message ?? "Erreur de chargement");
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [reloadAll]);
+  const program = programQ.data ?? null;
+  const exercices = exercicesQ.data ?? [];
+  const sessions = sessionsQ.data ?? [];
+  const intensity = intensityQ.data ?? null;
+  const loading = programQ.isLoading || exercicesQ.isLoading || sessionsQ.isLoading || intensityQ.isLoading;
+  const firstError = [programQ, exercicesQ, sessionsQ, intensityQ].find((q) => q.isError);
+  const error = firstError ? ((firstError.error as Error)?.message ?? "Erreur de chargement") : null;
 
   if (loading) {
     return (
@@ -120,13 +91,12 @@ export function Entrainement() {
 
       <div key={tab} className="p-6 animate-fade-in-up">
         {tab === "aujourdhui" && (
-          <AujourdhuiTab onSessionsChanged={reloadAll} />
+          <AujourdhuiTab />
         )}
         {tab === "programme" && program && (
           <ProgrammeTab
             program={program}
             exercices={exercices}
-            onProgramChanged={reloadAll}
           />
         )}
         {tab === "progression" && (

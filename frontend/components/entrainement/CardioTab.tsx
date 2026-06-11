@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  entrainementApi,
-  formatPaceFromSeconds,
-  type CourseCardio,
-} from "@/lib/entrainement";
+import { useState } from "react";
+import { formatPaceFromSeconds, type CourseCardio } from "@/lib/entrainement";
+import { useCardioList, useCreateCardio, useDeleteCardio } from "@/lib/queries/entrainement";
 
 function todayKey(): string {
   const d = new Date();
@@ -13,8 +10,6 @@ function todayKey(): string {
 }
 
 export function CardioTab() {
-  const [items, setItems] = useState<CourseCardio[]>([]);
-  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
   const [date, setDate] = useState<string>(todayKey());
@@ -22,56 +17,40 @@ export function CardioTab() {
   const [minutes, setMinutes] = useState<string>("");
   const [seconds, setSeconds] = useState<string>("");
   const [note, setNote] = useState<string>("");
-  const [saving, setSaving] = useState(false);
 
-  const reload = async () => {
-    setLoading(true);
-    try {
-      const rows = await entrainementApi.listCardio();
-      setItems(rows);
-    } catch (e: any) {
-      setErr(e?.message ?? "Erreur");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const cardioQ = useCardioList();
+  const items: CourseCardio[] = cardioQ.data ?? [];
+  const loading = cardioQ.isLoading;
+  const createMutation = useCreateCardio();
+  const deleteMutation = useDeleteCardio();
+  const saving = createMutation.isPending;
 
-  useEffect(() => { reload(); }, []);
-
-  const handleSave = async () => {
-    setSaving(true);
+  const handleSave = () => {
     setErr(null);
-    try {
-      const km = parseFloat(distance);
-      const sec = parseInt(minutes || "0", 10) * 60 + parseInt(seconds || "0", 10);
-      if (!km || km <= 0 || sec <= 0) {
-        throw new Error("Distance et durée requises.");
-      }
-      await entrainementApi.createCardio({
-        date,
-        distance_km: km,
-        duree_sec: sec,
-        note: note || null,
-      });
-      setDistance("");
-      setMinutes("");
-      setSeconds("");
-      setNote("");
-      await reload();
-    } catch (e: any) {
-      setErr(e?.message ?? "Erreur");
-    } finally {
-      setSaving(false);
+    const km = parseFloat(distance);
+    const sec = parseInt(minutes || "0", 10) * 60 + parseInt(seconds || "0", 10);
+    if (!km || km <= 0 || sec <= 0) {
+      setErr("Distance et durée requises.");
+      return;
     }
+    createMutation.mutate(
+      { date, distance_km: km, duree_sec: sec, note: note || null },
+      {
+        onSuccess: () => {
+          setDistance("");
+          setMinutes("");
+          setSeconds("");
+          setNote("");
+        },
+        onError: (e) => setErr(e instanceof Error ? e.message : "Erreur"),
+      },
+    );
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      await entrainementApi.deleteCardio(id);
-      await reload();
-    } catch (e: any) {
-      setErr(e?.message ?? "Erreur");
-    }
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id, {
+      onError: (e) => setErr(e instanceof Error ? e.message : "Erreur"),
+    });
   };
 
   const totalKm = items.reduce((s, i) => s + i.distance_km, 0);

@@ -2,46 +2,43 @@
 
 import { useState } from "react";
 import {
-  entrainementApi,
   WEEKDAY_LABELS_FULL,
   type Exercice,
   type Programme,
   type ProgrammeJour,
 } from "@/lib/entrainement";
+import { usePatchProgramJour } from "@/lib/queries/entrainement";
 
 type Props = {
   program: Programme;
   exercices: Exercice[];
-  onProgramChanged: () => Promise<void>;
 };
 
 const LABEL_OPTIONS = [
   "Push", "Pull", "Legs", "Upper", "Lower", "Repos", "Cardio", "Custom",
 ];
 
-export function ProgrammeTab({ program, exercices, onProgramChanged }: Props) {
+export function ProgrammeTab({ program, exercices }: Props) {
   const [editing, setEditing] = useState<number | null>(null);
   const [draftLabel, setDraftLabel] = useState<string>("");
-  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const patchMutation = usePatchProgramJour();
+  const busy = patchMutation.isPending;
 
   const handleEdit = (j: ProgrammeJour) => {
     setEditing(j.weekday);
     setDraftLabel(j.label);
   };
 
-  const handleSave = async (weekday: number) => {
-    setBusy(true);
+  const handleSave = (weekday: number) => {
     setErr(null);
-    try {
-      await entrainementApi.patchProgramJour(weekday, { label: draftLabel });
-      await onProgramChanged();
-      setEditing(null);
-    } catch (e: any) {
-      setErr(e?.message ?? "Erreur");
-    } finally {
-      setBusy(false);
-    }
+    patchMutation.mutate(
+      { weekday, payload: { label: draftLabel } },
+      {
+        onSuccess: () => setEditing(null),
+        onError: (e) => setErr(e instanceof Error ? e.message : "Erreur"),
+      },
+    );
   };
 
   return (

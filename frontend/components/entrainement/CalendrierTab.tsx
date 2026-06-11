@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import {
-  entrainementApi,
   INTENSITY_LABELS,
   type Exercice,
   type Programme,
   type Seance,
 } from "@/lib/entrainement";
+import { useSessionDetail } from "@/lib/queries/entrainement";
 
 type Props = {
   sessions: Seance[];
@@ -16,9 +16,11 @@ type Props = {
 
 export function CalendrierTab({ sessions, program }: Props) {
   const [openId, setOpenId] = useState<number | null>(null);
-  const [details, setDetails] = useState<Seance | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+
+  const detailQ = useSessionDetail(openId);
+  const details: Seance | null = detailQ.data ?? null;
+  const loading = detailQ.isFetching;
+  const err = detailQ.isError ? ((detailQ.error as Error)?.message ?? "Erreur") : null;
 
   const days = useMemo(() => {
     const map = new Map<string, Seance[]>();
@@ -30,19 +32,7 @@ export function CalendrierTab({ sessions, program }: Props) {
     return [...map.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [sessions]);
 
-  const openSession = async (id: number) => {
-    setOpenId(id);
-    setLoading(true);
-    setErr(null);
-    try {
-      const d = await entrainementApi.getSession(id);
-      setDetails(d);
-    } catch (e: any) {
-      setErr(e?.message ?? "Erreur");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const openSession = (id: number) => setOpenId(id);
 
   return (
     <div className="space-y-4">
@@ -91,7 +81,7 @@ export function CalendrierTab({ sessions, program }: Props) {
       {openId !== null && (
         <div
           className="fixed inset-0 z-40 bg-black/40"
-          onClick={() => { setOpenId(null); setDetails(null); }}
+          onClick={() => setOpenId(null)}
         >
           <div
             className="absolute right-0 top-0 h-full w-full max-w-md bg-[var(--background)] border-l border-[var(--border)] p-4 overflow-auto"
@@ -100,7 +90,7 @@ export function CalendrierTab({ sessions, program }: Props) {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Détail séance</h3>
               <button
-                onClick={() => { setOpenId(null); setDetails(null); }}
+                onClick={() => setOpenId(null)}
                 className="text-sm rounded border border-[var(--border)] px-2 py-1"
               >Fermer</button>
             </div>
