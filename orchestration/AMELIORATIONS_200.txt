@@ -745,7 +745,7 @@ W. GÉNÉRALISATION FRONTEND + TESTS (518-533) — design 2026-06-10
 526. [M](**) lib/queries/jobs.ts idem.   ← FINIS ✓ (2026-06-10 — couvre jobs + notifications, widget cloche migré, poll 30s conservé)
 527. [M](**) lib/queries/journal.ts idem.   ← FINIS ✓ (2026-06-10)
 528. [M](**) lib/queries/livres.ts idem.   ← FINIS ✓ (2026-06-10)
-529. [M](**) lib/queries/musique.ts idem.
+529. [M](**) lib/queries/musique.ts idem.   ← FINIS ✓ (2026-06-10 — poll de classement Ollama resté impératif)
 530. [M](**) lib/queries/sante.ts idem.
 531. [M](**) lib/queries/skincare.ts idem.
 532. [M](**) Découpe BuffettTab.tsx (391 l.) en sous-composants + tests.

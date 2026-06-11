@@ -1,25 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { mediaUrl, musiqueApi, type AmbianceCount, type Track } from "@/lib/musique";
+import { useAddAmbiance, useAmbiances, usePlaylist, usePlaylistReco } from "@/lib/queries/musique";
 
 export function Ambiances() {
-  const [ambiances, setAmbiances] = useState<AmbianceCount[]>([]);
   const [sel, setSel] = useState<string>("café");
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [reco, setReco] = useState<Track[]>([]);
 
-  useEffect(() => { void musiqueApi.ambiances().then(setAmbiances).catch(() => {}); }, []);
-  const load = (a: string) => {
-    void musiqueApi.playlist(a).then(setTracks).catch(() => {});
-    void musiqueApi.reco(a).then(setReco).catch(() => {});
-  };
-  useEffect(() => {
-    void musiqueApi.playlist(sel).then(setTracks).catch(() => {});
-    void musiqueApi.reco(sel).then(setReco).catch(() => {});
-  }, [sel]);
+  const ambiances: AmbianceCount[] = useAmbiances().data ?? [];
+  const tracks: Track[] = usePlaylist(sel).data ?? [];
+  const reco: Track[] = usePlaylistReco(sel).data ?? [];
+  const addMutation = useAddAmbiance();
 
-  const add = async (id: number) => { await musiqueApi.addAmbiance(id, sel); load(sel); };
+  const add = (id: number) => addMutation.mutate({ id, ambiance: sel });
 
   return (
     <div className="space-y-4">
@@ -56,7 +49,7 @@ export function Ambiances() {
             {reco.slice(0, 15).map((t) => (
               <div key={t.id} className="flex items-center gap-2 text-sm">
                 <span className="flex-1 truncate">{t.title} — <span className="text-[var(--muted-foreground)]">{t.artist}</span></span>
-                <button onClick={() => void add(t.id)} className="text-xs px-2 py-0.5 rounded border border-[var(--border)]">+ ajouter</button>
+                <button onClick={() => add(t.id)} className="text-xs px-2 py-0.5 rounded border border-[var(--border)]">+ ajouter</button>
               </div>
             ))}
           </div>

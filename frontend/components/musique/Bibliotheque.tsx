@@ -1,48 +1,64 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { mediaUrl, musiqueApi, type Track } from "@/lib/musique";
+import {
+  musiqueKeys, useClassify, useResetClassify, useScanLibrary, useTracks,
+} from "@/lib/queries/musique";
 
 export function Bibliotheque() {
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const qc = useQueryClient();
   const [q, setQ] = useState("");
-  const [busy, setBusy] = useState("");
   const [progress, setProgress] = useState<{ n_done: number; n_total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = () => { void musiqueApi.tracks(q).then(setTracks).catch(() => {}); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, [q]);
+  const tracksQ = useTracks(q);
+  const tracks: Track[] = tracksQ.data ?? [];
+  const scanMutation = useScanLibrary();
+  const classifyMutation = useClassify();
+  const resetMutation = useResetClassify();
+  const busy = scanMutation.isPending ? "Scan…" : "";
 
-  const doScan = async () => {
-    setBusy("Scan…");
-    try { const r = await musiqueApi.scan(); alert(`Scan : ${r.ajoutes} ajoutés, ${r.total} au total`); load(); }
-    finally { setBusy(""); }
+  const doScan = () => {
+    scanMutation.mutate(undefined, {
+      onSuccess: (r) => alert(`Scan : ${r.ajoutes} ajoutés, ${r.total} au total`),
+    });
   };
   const doClassify = () => {
     setError(null);
-    void musiqueApi.classify().then(() => {
-      const poll = setInterval(() => {
-        void musiqueApi.progress().catch(() => null).then((p) => {
-          if (!p) return;
-          setProgress({ n_done: p.n_done, n_total: p.n_total });
-          setError(p.error ?? null);
-          if (!p.active) { clearInterval(poll); setProgress(null); load(); }
-        });
-      }, 1500);
+    classifyMutation.mutate(undefined, {
+      onSuccess: () => {
+        // Le classement tourne en arrière-plan côté backend : on garde le poll
+        // imperatif (progress n'est pas une donnée cacheable).
+        const poll = setInterval(() => {
+          void musiqueApi.progress().catch(() => null).then((p) => {
+            if (!p) return;
+            setProgress({ n_done: p.n_done, n_total: p.n_total });
+            setError(p.error ?? null);
+            if (!p.active) {
+              clearInterval(poll);
+              setProgress(null);
+              void qc.invalidateQueries({ queryKey: musiqueKeys.all });
+            }
+          });
+        }, 1500);
+      },
     });
   };
   const doReset = () => {
-    void musiqueApi.resetClassify().then((r) => {
-      alert(`${r.reinitialises} morceau(x) à reclasser. Relance « Classer ».`);
-      setError(null);
+    resetMutation.mutate(undefined, {
+      onSuccess: (r) => {
+        alert(`${r.reinitialises} morceau(x) à reclasser. Relance « Classer ».`);
+        setError(null);
+      },
     });
   };
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2 items-center">
-        <button onClick={() => void doScan()} disabled={!!busy}
+        <button onClick={doScan} disabled={!!busy}
           className="rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm">{busy || "Scanner"}</button>
         <button onClick={() => doClassify()}
           className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm">Classer (Ollama)</button>
