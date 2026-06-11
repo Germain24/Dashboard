@@ -2,8 +2,8 @@
 
 /** Score de qualité nutritionnelle sur 7 jours (#65). */
 
-import { useEffect, useState } from "react";
-import { santeApi, type WeeklyQuality } from "@/lib/sante";
+import type { WeeklyQuality } from "@/lib/sante";
+import { useWeeklyQuality } from "@/lib/queries/sante";
 
 function scoreColor(s: number): string {
   if (s >= 80) return "var(--success)";
@@ -12,11 +12,7 @@ function scoreColor(s: number): string {
 }
 
 export function NutritionQualityWidget() {
-  const [q, setQ] = useState<WeeklyQuality | null>(null);
-
-  useEffect(() => {
-    santeApi.weeklyQuality(7).then(setQ).catch(() => {});
-  }, []);
+  const q: WeeklyQuality | null = useWeeklyQuality(7).data ?? null;
 
   if (!q || q.score === null) return null;
 

@@ -2,15 +2,11 @@
 
 /** Alerte déficit/surplus calorique trop agressif sur 7 jours (#70). */
 
-import { useEffect, useState } from "react";
-import { santeApi, type EnergyBalance } from "@/lib/sante";
+import type { EnergyBalance } from "@/lib/sante";
+import { useEnergyBalance } from "@/lib/queries/sante";
 
 export function EnergyBalanceAlert() {
-  const [bal, setBal] = useState<EnergyBalance | null>(null);
-
-  useEffect(() => {
-    santeApi.energyBalance(7).then(setBal).catch(() => {});
-  }, []);
+  const bal: EnergyBalance | null = useEnergyBalance(7).data ?? null;
 
   // On n'affiche que si le rythme mérite une alerte.
   if (!bal || bal.level === "ok" || bal.avg_balance == null) return null;

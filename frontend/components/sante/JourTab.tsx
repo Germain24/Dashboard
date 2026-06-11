@@ -7,8 +7,8 @@ import {
   MACRO_KEYS,
   MACRO_UNITS,
   INTENSITY_LABELS,
-  santeApi,
 } from "@/lib/sante";
+import { usePatchPlan } from "@/lib/queries/sante";
 import { MacroBar } from "./MacroBar";
 import { ConsoDrawer } from "./ConsoDrawer";
 import { WaterWidget } from "./WaterWidget";
@@ -33,9 +33,10 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
     plan?.budget_max_daily !== undefined ? String(plan.budget_max_daily) : "18",
   );
   const [generating, setGenerating] = useState(false);
-  const [savingConso, setSavingConso] = useState(false);
   const [consoDrawerOpen, setConsoDrawerOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const patchPlanMutation = usePatchPlan();
+  const savingConso = patchPlanMutation.isPending;
 
   const handleGenerate = async (force = false) => {
     setGenerating(true);
@@ -54,26 +55,21 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
   };
 
   // "J'ai suivi le plan" → consumed_grams = quantites du plan
-  const handleConsommeLePlan = async () => {
+  const handleConsommeLePlan = () => {
     if (!plan) return;
-    setSavingConso(true);
     setErr(null);
-    try {
-      const consumed_grams: Record<string, number> = {};
-      for (const it of plan.items) consumed_grams[it.aliment] = it.quantite_g;
-      const updated = await santeApi.patchPlan(plan.date, { consumed_grams });
-      onPlanUpdated?.(updated);
-    } catch (e: any) {
-      setErr(e?.message ?? "Erreur enregistrement conso");
-    } finally {
-      setSavingConso(false);
-    }
+    const consumed_grams: Record<string, number> = {};
+    for (const it of plan.items) consumed_grams[it.aliment] = it.quantite_g;
+    patchPlanMutation.mutate({ date: plan.date, patch: { consumed_grams } }, {
+      onSuccess: (updated) => onPlanUpdated?.(updated),
+      onError: (e) => setErr(e instanceof Error ? e.message : "Erreur enregistrement conso"),
+    });
   };
 
   // Edition manuelle (drawer)
   const handleSaveConso = async (grams: Record<string, number>) => {
     if (!plan) return;
-    const updated = await santeApi.patchPlan(plan.date, { consumed_grams: grams });
+    const updated = await patchPlanMutation.mutateAsync({ date: plan.date, patch: { consumed_grams: grams } });
     onPlanUpdated?.(updated);
   };
 

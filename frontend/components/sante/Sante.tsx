@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Sun, TrendingUp, Activity, Target, Camera } from "lucide-react";
+import { todayKey } from "@/lib/sante";
 import {
-  santeApi,
-  type MesureSante,
-  type NutritionGoal,
-  type PlanResponse,
-  type ProjectionResponse,
-  todayKey,
-} from "@/lib/sante";
+  useGeneratePlan,
+  useMesures,
+  useNutritionGoal,
+  usePlanToday,
+  useProjection,
+  useUpdateNutritionGoal,
+  useUpsertMesure,
+} from "@/lib/queries/sante";
 import { JourTab } from "./JourTab";
 import { TendanceTab } from "./TendanceTab";
 import { CompositionTab } from "./CompositionTab";
@@ -29,80 +31,40 @@ const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
 
 export function Sante() {
   const [tab, setTab] = useState<Tab>("jour");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [goal, setGoal] = useState<NutritionGoal | null>(null);
-  const [mesures, setMesures] = useState<MesureSante[]>([]);
-  const [plan, setPlan] = useState<PlanResponse | null>(null);
-  const [projection, setProjection] = useState<ProjectionResponse | null>(null);
 
   // Drawer micros
   const [microsOpen, setMicrosOpen] = useState(false);
 
-  const reloadAll = useCallback(async () => {
-    const [g, ms] = await Promise.all([santeApi.getGoal(), santeApi.listMesures(180)]);
-    setGoal(g);
-    setMesures(ms);
-    // Plan du jour (peut ne pas exister)
-    try {
-      const p = await santeApi.getPlanToday();
-      setPlan(p);
-    } catch {
-      setPlan(null);
-    }
-    // Projection (peut échouer si pas de poids cible)
-    if (g.poids_cible) {
-      try {
-        const proj = await santeApi.getProjection();
-        setProjection(proj);
-      } catch {
-        setProjection(null);
-      }
-    } else {
-      setProjection(null);
-    }
-  }, []);
+  const goalQ = useNutritionGoal();
+  const mesuresQ = useMesures(180);
+  const planQ = usePlanToday();
+  const projectionQ = useProjection();
+  const generateMutation = useGeneratePlan();
+  const upsertMesureMutation = useUpsertMesure();
+  const updateGoalMutation = useUpdateNutritionGoal();
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        await reloadAll();
-        if (cancelled) return;
-        setLoading(false);
-      } catch (e: any) {
-        if (cancelled) return;
-        setError(e?.message ?? "Erreur de chargement");
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [reloadAll]);
+  const goal = goalQ.data ?? null;
+  const mesures = mesuresQ.data ?? [];
+  // Plan du jour et projection peuvent légitimement ne pas exister (404).
+  const plan = planQ.data ?? null;
+  const projection = goal?.poids_cible ? projectionQ.data ?? null : null;
+  const loading = goalQ.isLoading || mesuresQ.isLoading;
+  const error =
+    goalQ.isError || mesuresQ.isError
+      ? (((goalQ.error ?? mesuresQ.error) as Error)?.message ?? "Erreur de chargement")
+      : null;
 
   const onGeneratePlan = async (opts: { intensity?: string; budget_max_daily?: number; force?: boolean } = {}) => {
     const today = todayKey();
-    const p = await santeApi.generatePlan({ date: today, ...opts });
-    setPlan(p);
-    return p;
+    return generateMutation.mutateAsync({ date: today, ...opts });
   };
 
   const onSaveMesure = async (m: { date: string; poids?: number; photo_url?: string; note?: string }) => {
-    await santeApi.upsertMesure(m);
-    await reloadAll();
+    await upsertMesureMutation.mutateAsync(m);
   };
 
   const onSaveGoal = async (patch: any) => {
-    const g = await santeApi.updateGoal(patch);
-    setGoal(g);
-    if (g.poids_cible) {
-      try {
-        const proj = await santeApi.getProjection();
-        setProjection(proj);
-      } catch {
-        setProjection(null);
-      }
-    }
+    await updateGoalMutation.mutateAsync(patch);
   };
 
   if (loading) {
@@ -154,7 +116,7 @@ export function Sante() {
             plan={plan}
             goal={goal}
             onGenerate={onGeneratePlan}
-            onPlanUpdated={(p) => setPlan(p)}
+            onPlanUpdated={() => {}}
             onOpenMicros={() => setMicrosOpen(true)}
           />
         )}

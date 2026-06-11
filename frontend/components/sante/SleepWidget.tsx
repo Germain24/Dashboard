@@ -2,33 +2,24 @@
 
 /** Widget de sommeil : saisie durée/qualité du jour + corrélation poids (#68). */
 
-import { useEffect, useState } from "react";
-import { santeApi } from "@/lib/sante";
+import { useState } from "react";
+import { useLogSleep, useSleepSummary } from "@/lib/queries/sante";
 
 export function SleepWidget() {
   const [heures, setHeures] = useState<string>("");
   const [qualite, setQualite] = useState<number | null>(null);
   const [saved, setSaved] = useState<{ sommeil_h: number; sommeil_q?: number } | null>(null);
-  const [summary, setSummary] = useState<{ n: number; correlation: number | null; sommeil_moyen_h: number | null } | null>(null);
-  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    santeApi.sleepSummary().then(setSummary).catch(() => {});
-  }, []);
+  const summary = useSleepSummary().data ?? null;
+  const logMutation = useLogSleep();
+  const saving = logMutation.isPending;
 
-  const save = async () => {
+  const save = () => {
     const h = parseFloat(heures);
     if (!Number.isFinite(h) || h <= 0) return;
-    setSaving(true);
-    try {
-      const res = await santeApi.logSleep(h, qualite ?? undefined);
-      setSaved({ sommeil_h: res.sommeil_h, sommeil_q: res.sommeil_q });
-      santeApi.sleepSummary().then(setSummary).catch(() => {});
-    } catch {
-      /* toast global */
-    } finally {
-      setSaving(false);
-    }
+    logMutation.mutate({ heures: h, qualite: qualite ?? undefined }, {
+      onSuccess: (res) => setSaved({ sommeil_h: res.sommeil_h, sommeil_q: res.sommeil_q }),
+    });
   };
 
   const corrLabel = (c: number | null): string => {

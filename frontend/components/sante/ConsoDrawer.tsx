@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { santeApi, type PlanItem } from "@/lib/sante";
+import type { PlanItem } from "@/lib/sante";
+import {
+  useAddSanteFavorite, useRemoveSanteFavorite, useSanteAliments, useSanteFavorites,
+} from "@/lib/queries/sante";
 
 type Props = {
   open: boolean;
@@ -25,16 +28,17 @@ export function ConsoDrawer({ open, onClose, planItems, initialConsumed, onSave 
   const [err, setErr] = useState<string | null>(null);
 
   // Favoris (#64) + lignes ajoutées hors plan
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [catalog, setCatalog] = useState<string[]>([]);
   const [extra, setExtra] = useState<string[]>([]);
   const [picker, setPicker] = useState("");
 
-  useEffect(() => {
-    if (!open) return;
-    santeApi.listFavorites().then(setFavorites).catch(() => {});
-    santeApi.listAliments().then((al) => setCatalog(al.map((a) => a.nom))).catch(() => {});
-  }, [open]);
+  const favorites: string[] = useSanteFavorites().data ?? [];
+  const alimentsQ = useSanteAliments();
+  const catalog: string[] = useMemo(
+    () => (alimentsQ.data ?? []).map((a) => a.nom),
+    [alimentsQ.data],
+  );
+  const addFavMutation = useAddSanteFavorite();
+  const removeFavMutation = useRemoveSanteFavorite();
 
   const planNames = useMemo(() => new Set(planItems.map((it) => it.aliment)), [planItems]);
 
@@ -86,15 +90,9 @@ export function ConsoDrawer({ open, onClose, planItems, initialConsumed, onSave 
     setGrams((g) => ({ ...g, [aliment]: g[aliment] || 100 }));
   };
 
-  const toggleFavorite = async (aliment: string) => {
-    try {
-      const next = favorites.includes(aliment)
-        ? await santeApi.removeFavorite(aliment)
-        : await santeApi.addFavorite(aliment);
-      setFavorites(next);
-    } catch {
-      /* toast global */
-    }
+  const toggleFavorite = (aliment: string) => {
+    if (favorites.includes(aliment)) removeFavMutation.mutate(aliment);
+    else addFavMutation.mutate(aliment);
   };
 
   const handleSave = async () => {

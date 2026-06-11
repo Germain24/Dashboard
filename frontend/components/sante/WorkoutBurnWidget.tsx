@@ -2,8 +2,8 @@
 
 /** Calories dépensées en séance ce jour — intégration Entraînement (#67). */
 
-import { useEffect, useState } from "react";
-import { santeApi, type WorkoutBurn } from "@/lib/sante";
+import type { WorkoutBurn } from "@/lib/sante";
+import { useWorkoutBurn } from "@/lib/queries/sante";
 
 type Props = {
   /** Calories consommées aujourd'hui (depuis plan.consumed), si connues. */
@@ -11,11 +11,7 @@ type Props = {
 };
 
 export function WorkoutBurnWidget({ consumedCalories }: Props) {
-  const [burn, setBurn] = useState<WorkoutBurn | null>(null);
-
-  useEffect(() => {
-    santeApi.workoutBurn().then(setBurn).catch(() => {});
-  }, []);
+  const burn: WorkoutBurn | null = useWorkoutBurn().data ?? null;
 
   if (!burn || !burn.available || burn.total_kcal <= 0) return null;
 

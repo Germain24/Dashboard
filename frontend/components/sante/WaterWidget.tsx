@@ -2,19 +2,13 @@
 
 /** Widget d'hydratation : suivi de l'eau du jour + ajout rapide (#66). */
 
-import { useEffect, useState } from "react";
-import { santeApi } from "@/lib/sante";
+import { useAddWater, useWaterToday } from "@/lib/queries/sante";
 
 export function WaterWidget() {
-  const [state, setState] = useState<{ eau_ml: number; cible_ml: number; pct: number } | null>(null);
+  const state = useWaterToday().data ?? null;
+  const addMutation = useAddWater();
 
-  useEffect(() => {
-    santeApi.waterToday().then(setState).catch(() => {});
-  }, []);
-
-  const add = async (ml: number) => {
-    try { setState(await santeApi.addWater(ml)); } catch { /* toast global */ }
-  };
+  const add = (ml: number) => addMutation.mutate(ml);
 
   if (!state) return null;
   const pct = Math.min(100, state.pct);

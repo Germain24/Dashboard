@@ -3,54 +3,37 @@
 /** Photos de progression avant/après stockées localement (#69). */
 
 import { useEffect, useRef, useState } from "react";
-import { santeApi, mediaUrl, todayKey, type ProgressPhoto } from "@/lib/sante";
+import { mediaUrl, todayKey, type ProgressPhoto } from "@/lib/sante";
+import { useProgressPhotos, useUploadProgressPhoto } from "@/lib/queries/sante";
 import { Button } from "@/components/ui/button";
 
 export function ProgressionTab() {
-  const [photos, setPhotos] = useState<ProgressPhoto[]>([]);
   const [beforeIdx, setBeforeIdx] = useState(0);
   const [afterIdx, setAfterIdx] = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [actionErr, setActionErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const load = async () => {
-    const list = await santeApi.listPhotos();
-    setPhotos(list);
-    setBeforeIdx(0);
-    setAfterIdx(Math.max(0, list.length - 1));
-  };
+  const photosQ = useProgressPhotos();
+  const photos: ProgressPhoto[] = photosQ.data ?? [];
+  const uploadMutation = useUploadProgressPhoto();
+  const uploading = uploadMutation.isPending;
+  const err = actionErr ?? (photosQ.isError ? ((photosQ.error as Error)?.message ?? "Erreur de chargement") : null);
 
   useEffect(() => {
-    let active = true;
-    void (async () => {
-      try {
-        const list = await santeApi.listPhotos();
-        if (!active) return;
-        setPhotos(list);
-        setBeforeIdx(0);
-        setAfterIdx(Math.max(0, list.length - 1));
-      } catch (e: any) {
-        if (active) setErr(e?.message ?? "Erreur de chargement");
-      }
-    })();
-    return () => { active = false; };
-  }, []);
+    setBeforeIdx(0);
+    setAfterIdx(Math.max(0, photos.length - 1));
+  }, [photos.length]);
 
-  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    setErr(null);
-    try {
-      await santeApi.uploadPhoto(file, todayKey());
-      await load();
-    } catch (e: any) {
-      setErr(e?.message ?? "Échec de l'envoi");
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
+    setActionErr(null);
+    uploadMutation.mutate([file, todayKey()], {
+      onError: (er) => setActionErr(er instanceof Error ? er.message : "Échec de l'envoi"),
+      onSettled: () => {
+        if (fileRef.current) fileRef.current.value = "";
+      },
+    });
   };
 
   const before = photos[beforeIdx];

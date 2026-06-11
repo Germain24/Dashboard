@@ -1,5 +1,10 @@
 import { Sante } from "@/components/sante/Sante";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function SantePage() {
-  return <Sante />;
+  return (
+    <ErrorBoundary label="Santé">
+      <Sante />
+    </ErrorBoundary>
+  );
 }
