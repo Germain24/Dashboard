@@ -1,7 +1,8 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { fetchCours, createCours, patchCours, deleteCours, type Cours } from "@/lib/etudes";
+import type { Cours } from "@/lib/etudes";
+import { useCours, useCreateCours, useDeleteCours, usePatchCours } from "@/lib/queries/etudes";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const LETTRE_COLOR: Record<string, string> = {
@@ -12,8 +13,6 @@ const LETTRE_COLOR: Record<string, string> = {
 };
 
 export function CoursTab() {
-  const [cours, setCours] = useState<Cours[]>([]);
-  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [semestre, setSemestre] = useState("");
   const [editId, setEditId] = useState<number | null>(null);
   const [editNote, setEditNote] = useState("");
@@ -21,47 +20,41 @@ export function CoursTab() {
   const [adding, setAdding] = useState(false);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
-  const load = useCallback(() => {
-    let active = true;
-    fetchCours(semestre ? { semestre } : undefined)
-      .then((data) => { if (active) { setCours(data); setStatus("ready"); } })
-      .catch(() => active && setStatus("error"));
-    return () => { active = false; };
-  }, [semestre]);
-  useEffect(() => load(), [load]);
+  const coursQ = useCours(semestre ? { semestre } : undefined);
+  const cours: Cours[] = coursQ.data ?? [];
+  const status: "loading" | "error" | "ready" =
+    coursQ.isLoading ? "loading" : coursQ.isError ? "error" : "ready";
+  const createMutation = useCreateCours();
+  const patchMutation = usePatchCours();
+  const deleteMutation = useDeleteCours();
 
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!form.code || !form.nom || !form.semestre) return;
-    try {
-      await createCours({ ...form, credits: Number(form.credits) });
-      setForm({ code: "", nom: "", semestre: "", credits: "3", prof: "", local: "" });
-      setAdding(false);
-      load();
-    } catch {
-      toast.error("Impossible de créer le cours.");
-    }
+    createMutation.mutate({ ...form, credits: Number(form.credits) }, {
+      onSuccess: () => {
+        setForm({ code: "", nom: "", semestre: "", credits: "3", prof: "", local: "" });
+        setAdding(false);
+      },
+      onError: () => toast.error("Impossible de créer le cours."),
+    });
   };
 
-  const handleNoteFinale = async (id: number) => {
+  const handleNoteFinale = (id: number) => {
     const n = parseFloat(editNote);
     if (isNaN(n) || n < 0 || n > 100) return;
-    try {
-      await patchCours(id, { note_finale: n });
-      setEditId(null);
-      load();
-    } catch {
-      toast.error("Impossible d'enregistrer la note.");
-    }
+    patchMutation.mutate({ id, patch: { note_finale: n } }, {
+      onSuccess: () => setEditId(null),
+      onError: () => toast.error("Impossible d'enregistrer la note."),
+    });
   };
 
-  const remove = async (id: number) => {
-    try {
-      await deleteCours(id);
-      load();
-    } catch {
-      setConfirmId(null);
-      toast.error("Suppression impossible.");
-    }
+  const remove = (id: number) => {
+    deleteMutation.mutate(id, {
+      onError: () => {
+        setConfirmId(null);
+        toast.error("Suppression impossible.");
+      },
+    });
   };
 
   return (
@@ -101,7 +94,7 @@ export function CoursTab() {
         {status === "error" && (
           <div className="flex flex-col items-start gap-2 py-2">
             <p className="text-sm text-[var(--muted-foreground)]">Cours indisponibles pour le moment.</p>
-            <button onClick={() => { setStatus("loading"); load(); }}
+            <button onClick={() => void coursQ.refetch()}
               className="rounded border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--accent)]">
               Réessayer
             </button>

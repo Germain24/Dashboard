@@ -2,13 +2,14 @@
 
 /** Révision espacée (spaced repetition, SM-2) sur fiches (#99). */
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Clock, Trash2, Check, X, Sparkles } from "lucide-react";
+import type { Cours, RevisionCard } from "@/lib/etudes";
 import {
-  fetchRevisionCards, addRevisionCard, reviewRevisionCard, deleteRevisionCard,
-  fetchCours, type RevisionCard, type Cours,
-} from "@/lib/etudes";
+  useAddRevisionCard, useCours, useDeleteRevisionCard,
+  useReviewRevisionCard, useRevisionCards,
+} from "@/lib/queries/etudes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,63 +33,72 @@ const GRADE_CLASS: Record<(typeof GRADES)[number]["tone"], string> = {
 };
 
 export function RevisionTab() {
-  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
-  const [cards, setCards] = useState<RevisionCard[]>([]);
-  const [due, setDue] = useState<RevisionCard[]>([]);
-  const [cours, setCours] = useState<Cours[]>([]);
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ recto: "", verso: "", cours_id: "" });
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  // Deck figé localement : on n'avance dans la pile qu'à la fin (invalidation).
+  const [deck, setDeck] = useState<RevisionCard[] | null>(null);
 
-  const load = useCallback(() => {
-    let active = true;
-    Promise.all([fetchRevisionCards(false), fetchRevisionCards(true), fetchCours()])
-      .then(([all, d, c]) => {
-        if (!active) return;
-        setCards(all); setDue(d); setCours(c);
-        setIdx(0); setRevealed(false); setConfirmId(null);
-        setStatus("ready");
-      })
-      .catch(() => active && setStatus("error"));
-    return () => { active = false; };
-  }, []);
-  useEffect(() => load(), [load]);
+  const allQ = useRevisionCards(false);
+  const dueQ = useRevisionCards(true);
+  const coursQ = useCours();
+  const cards: RevisionCard[] = allQ.data ?? [];
+  const cours: Cours[] = coursQ.data ?? [];
+  const status: "loading" | "error" | "ready" =
+    allQ.isLoading || dueQ.isLoading || coursQ.isLoading ? "loading"
+    : allQ.isError || dueQ.isError || coursQ.isError ? "error" : "ready";
+
+  useEffect(() => {
+    if (dueQ.data) {
+      setDeck(dueQ.data);
+      setIdx(0);
+      setRevealed(false);
+      setConfirmId(null);
+    }
+  }, [dueQ.data]);
+
+  const due = deck ?? [];
+  const reviewMutation = useReviewRevisionCard();
+  const addMutation = useAddRevisionCard();
+  const deleteMutation = useDeleteRevisionCard();
 
   const current = due[idx];
 
-  const grade = async (q: number) => {
+  const grade = (q: number) => {
     if (!current) return;
-    try {
-      await reviewRevisionCard(current.id, q);
-      if (idx + 1 < due.length) { setIdx(idx + 1); setRevealed(false); }
-      else { load(); }
-    } catch {
-      toast.error("Échec de l'enregistrement de la révision.");
-    }
+    const last = idx + 1 >= due.length;
+    reviewMutation.mutate({ id: current.id, quality: q }, {
+      onSuccess: () => {
+        // Avance localement ; la dernière carte laisse l'invalidation recharger le deck.
+        if (!last) { setIdx(idx + 1); setRevealed(false); }
+      },
+      onError: () => toast.error("Échec de l'enregistrement de la révision."),
+    });
   };
 
-  const add = async () => {
+  const add = () => {
     if (!form.recto.trim() || !form.verso.trim()) return;
-    try {
-      await addRevisionCard(form.recto, form.verso, form.cours_id ? Number(form.cours_id) : undefined);
-      setForm({ recto: "", verso: "", cours_id: "" });
-      setAdding(false);
-      load();
-    } catch {
-      toast.error("Impossible de créer la fiche.");
-    }
+    addMutation.mutate(
+      { recto: form.recto, verso: form.verso, coursId: form.cours_id ? Number(form.cours_id) : undefined },
+      {
+        onSuccess: () => {
+          setForm({ recto: "", verso: "", cours_id: "" });
+          setAdding(false);
+        },
+        onError: () => toast.error("Impossible de créer la fiche."),
+      },
+    );
   };
 
-  const remove = async (id: number) => {
-    try {
-      await deleteRevisionCard(id);
-      load();
-    } catch {
-      setConfirmId(null);
-      toast.error("Suppression impossible.");
-    }
+  const remove = (id: number) => {
+    deleteMutation.mutate(id, {
+      onError: () => {
+        setConfirmId(null);
+        toast.error("Suppression impossible.");
+      },
+    });
   };
 
   if (status === "loading") return <Skeleton lines={6} />;
@@ -97,7 +107,7 @@ export function RevisionTab() {
     return (
       <div className="flex flex-col items-start gap-2 py-2">
         <p className="text-sm text-[var(--muted-foreground)]">Fiches indisponibles pour le moment.</p>
-        <Button variant="secondary" size="sm" onClick={() => { setStatus("loading"); load(); }}>Réessayer</Button>
+        <Button variant="secondary" size="sm" onClick={() => { void allQ.refetch(); void dueQ.refetch(); void coursQ.refetch(); }}>Réessayer</Button>
       </div>
     );
   }

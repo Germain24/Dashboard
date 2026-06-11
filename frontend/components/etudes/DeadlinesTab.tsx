@@ -1,7 +1,8 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { fetchDeadlines, fetchCours, createEvaluation, deleteEvaluation, type Evaluation, type Cours } from "@/lib/etudes";
+import type { Cours, Evaluation } from "@/lib/etudes";
+import { useCours, useCreateEvaluation, useDeadlines, useDeleteEvaluation } from "@/lib/queries/etudes";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const URGENCE_COLOR = (j: number | undefined) => {
@@ -13,47 +14,46 @@ const URGENCE_COLOR = (j: number | undefined) => {
 };
 
 export function DeadlinesTab() {
-  const [deadlines, setDeadlines] = useState<Evaluation[]>([]);
-  const [cours, setCours] = useState<Cours[]>([]);
-  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ cours_id: "", titre: "", type_eval: "devoir", date_limite: "" });
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
-  const load = useCallback(() => {
-    let active = true;
-    Promise.all([fetchDeadlines(90), fetchCours()])
-      .then(([dl, cl]) => { if (active) { setDeadlines(dl); setCours(cl); setStatus("ready"); } })
-      .catch(() => active && setStatus("error"));
-    return () => { active = false; };
-  }, []);
-  useEffect(() => load(), [load]);
+  const deadlinesQ = useDeadlines(90);
+  const coursQ = useCours();
+  const deadlines: Evaluation[] = deadlinesQ.data ?? [];
+  const cours: Cours[] = coursQ.data ?? [];
+  const status: "loading" | "error" | "ready" =
+    deadlinesQ.isLoading || coursQ.isLoading ? "loading"
+    : deadlinesQ.isError || coursQ.isError ? "error" : "ready";
+  const createMutation = useCreateEvaluation();
+  const deleteMutation = useDeleteEvaluation();
 
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!form.cours_id || !form.titre) return;
-    try {
-      await createEvaluation({
+    createMutation.mutate(
+      {
         cours_id: Number(form.cours_id),
         titre: form.titre,
         type_eval: form.type_eval,
         date_limite: form.date_limite || undefined,
-      });
-      setForm({ cours_id: "", titre: "", type_eval: "devoir", date_limite: "" });
-      setAdding(false);
-      load();
-    } catch {
-      toast.error("Impossible de créer l'évaluation.");
-    }
+      },
+      {
+        onSuccess: () => {
+          setForm({ cours_id: "", titre: "", type_eval: "devoir", date_limite: "" });
+          setAdding(false);
+        },
+        onError: () => toast.error("Impossible de créer l'évaluation."),
+      },
+    );
   };
 
-  const remove = async (id: number) => {
-    try {
-      await deleteEvaluation(id);
-      load();
-    } catch {
-      setConfirmId(null);
-      toast.error("Suppression impossible.");
-    }
+  const remove = (id: number) => {
+    deleteMutation.mutate(id, {
+      onError: () => {
+        setConfirmId(null);
+        toast.error("Suppression impossible.");
+      },
+    });
   };
 
   const coursMap = Object.fromEntries(cours.map(c => [c.id, c.code]));
@@ -105,7 +105,7 @@ export function DeadlinesTab() {
         {status === "error" && (
           <div className="flex flex-col items-start gap-2 py-2">
             <p className="text-sm text-[var(--muted-foreground)]">Deadlines indisponibles pour le moment.</p>
-            <button onClick={() => { setStatus("loading"); load(); }}
+            <button onClick={() => { void deadlinesQ.refetch(); void coursQ.refetch(); }}
               className="rounded border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--accent)]">
               Réessayer
             </button>

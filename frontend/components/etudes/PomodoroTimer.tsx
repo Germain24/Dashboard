@@ -3,7 +3,8 @@
 /** Timer Pomodoro : crée automatiquement une session à la fin d'un cycle (#93). */
 
 import { useEffect, useRef, useState } from "react";
-import { createSession, type Cours } from "@/lib/etudes";
+import type { Cours } from "@/lib/etudes";
+import { useCreateEtudesSession } from "@/lib/queries/etudes";
 
 const DURATIONS = [25, 50];
 
@@ -15,22 +16,25 @@ export function PomodoroTimer({ cours, onLogged }: { cours: Cours[]; onLogged: (
   const [sujet, setSujet] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const createMutation = useCreateEtudesSession();
 
-  async function finishCycle() {
+  function finishCycle() {
     setRunning(false);
-    try {
-      await createSession({
+    createMutation.mutate(
+      {
         cours_id: coursId ? Number(coursId) : undefined,
         duree_min: workMin,
         sujet: sujet || "Pomodoro",
-      });
-      setStatus(`✓ Session de ${workMin} min enregistrée.`);
-      onLogged();
-    } catch {
-      setStatus("Erreur lors de l'enregistrement.");
-    } finally {
-      setRemaining(workMin * 60);
-    }
+      },
+      {
+        onSuccess: () => {
+          setStatus(`✓ Session de ${workMin} min enregistrée.`);
+          onLogged();
+        },
+        onError: () => setStatus("Erreur lors de l'enregistrement."),
+        onSettled: () => setRemaining(workMin * 60),
+      },
+    );
   }
 
   // Réinitialise le compteur quand la durée change (hors session en cours).

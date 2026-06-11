@@ -1,6 +1,7 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { fetchGpa, fetchCours, type GpaResult, type Cours } from "@/lib/etudes";
+import { useMemo, useState } from "react";
+import type { GpaResult } from "@/lib/etudes";
+import { useCours, useGpa } from "@/lib/queries/etudes";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const GPA_COLOR = (gpa: number) => {
@@ -11,26 +12,17 @@ const GPA_COLOR = (gpa: number) => {
 };
 
 export function GpaTab() {
-  const [result, setResult] = useState<GpaResult | null>(null);
-  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [semestre, setSemestre] = useState("");
-  const [semestres, setSemestres] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchCours().then(cours => {
-      const s = [...new Set(cours.map(c => c.semestre))].sort();
-      setSemestres(s);
-    }).catch(() => {});
-  }, []);
-
-  const loadGpa = useCallback(() => {
-    let active = true;
-    fetchGpa(semestre || undefined)
-      .then((r) => { if (active) { setResult(r); setStatus("ready"); } })
-      .catch(() => active && setStatus("error"));
-    return () => { active = false; };
-  }, [semestre]);
-  useEffect(() => loadGpa(), [loadGpa]);
+  const coursQ = useCours();
+  const semestres = useMemo(
+    () => [...new Set((coursQ.data ?? []).map((c) => c.semestre))].sort(),
+    [coursQ.data],
+  );
+  const gpaQ = useGpa(semestre || undefined);
+  const result: GpaResult | null = gpaQ.data ?? null;
+  const status: "loading" | "error" | "ready" =
+    gpaQ.isLoading ? "loading" : gpaQ.isError ? "error" : "ready";
 
   const gpaVal = result?.gpa;
   const radius = 54;
@@ -53,7 +45,7 @@ export function GpaTab() {
       {status === "error" && (
         <div className="flex flex-col items-start gap-2 py-2">
           <p className="text-sm text-[var(--muted-foreground)]">GPA indisponible pour le moment.</p>
-          <button onClick={() => { setStatus("loading"); loadGpa(); }}
+          <button onClick={() => void gpaQ.refetch()}
             className="rounded border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--accent)]">
             Réessayer
           </button>

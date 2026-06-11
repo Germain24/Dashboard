@@ -1,55 +1,55 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { fetchSessions, createSession, deleteSession, fetchCours, type SessionEtude, type Cours } from "@/lib/etudes";
+import type { Cours, SessionEtude } from "@/lib/etudes";
+import { useCours, useCreateEtudesSession, useDeleteEtudesSession, useEtudesSessions } from "@/lib/queries/etudes";
 import { planFocus } from "@/lib/agenda";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PomodoroTimer } from "./PomodoroTimer";
 
 export function SessionsTab() {
-  const [sessions, setSessions] = useState<SessionEtude[]>([]);
-  const [cours, setCours] = useState<Cours[]>([]);
-  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ cours_id: "", duree_min: "25", sujet: "", note: "" });
   const [focusMsg, setFocusMsg] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
-  const load = useCallback(() => {
-    let active = true;
-    Promise.all([fetchSessions(), fetchCours()])
-      .then(([s, c]) => { if (active) { setSessions(s); setCours(c); setStatus("ready"); } })
-      .catch(() => active && setStatus("error"));
-    return () => { active = false; };
-  }, []);
-  useEffect(() => load(), [load]);
+  const sessionsQ = useEtudesSessions();
+  const coursQ = useCours();
+  const sessions: SessionEtude[] = sessionsQ.data ?? [];
+  const cours: Cours[] = coursQ.data ?? [];
+  const status: "loading" | "error" | "ready" =
+    sessionsQ.isLoading || coursQ.isLoading ? "loading"
+    : sessionsQ.isError || coursQ.isError ? "error" : "ready";
+  const createMutation = useCreateEtudesSession();
+  const deleteMutation = useDeleteEtudesSession();
 
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!form.duree_min) return;
-    try {
-      await createSession({
+    createMutation.mutate(
+      {
         cours_id: form.cours_id ? Number(form.cours_id) : undefined,
         duree_min: Number(form.duree_min),
         sujet: form.sujet || undefined,
         note: form.note || undefined,
-      });
-      setForm({ cours_id: "", duree_min: "25", sujet: "", note: "" });
-      setAdding(false);
-      load();
-    } catch {
-      toast.error("Impossible d'enregistrer la session.");
-    }
+      },
+      {
+        onSuccess: () => {
+          setForm({ cours_id: "", duree_min: "25", sujet: "", note: "" });
+          setAdding(false);
+        },
+        onError: () => toast.error("Impossible d'enregistrer la session."),
+      },
+    );
   };
 
-  const remove = async (id: number) => {
-    try {
-      await deleteSession(id);
-      load();
-    } catch {
-      setConfirmId(null);
-      toast.error("Suppression impossible.");
-    }
+  const remove = (id: number) => {
+    deleteMutation.mutate(id, {
+      onError: () => {
+        setConfirmId(null);
+        toast.error("Suppression impossible.");
+      },
+    });
   };
 
   const handlePlanFocus = async () => {
@@ -95,7 +95,7 @@ export function SessionsTab() {
       </div>
       {focusMsg && <div className="text-xs text-[var(--muted-foreground)]">{focusMsg}</div>}
 
-      <PomodoroTimer cours={cours} onLogged={load} />
+      <PomodoroTimer cours={cours} onLogged={() => {}} />
 
       {adding && (
         <div className="border rounded p-3 space-y-2 text-sm bg-[var(--card)]">
@@ -135,7 +135,7 @@ export function SessionsTab() {
         {status === "error" && (
           <div className="flex flex-col items-start gap-2 py-2">
             <p className="text-sm text-[var(--muted-foreground)]">Sessions indisponibles pour le moment.</p>
-            <button onClick={() => { setStatus("loading"); load(); }}
+            <button onClick={() => { void sessionsQ.refetch(); void coursQ.refetch(); }}
               className="rounded border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--accent)]">
               Réessayer
             </button>
