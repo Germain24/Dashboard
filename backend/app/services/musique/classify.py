@@ -1,6 +1,13 @@
-"""Classement autonome des morceaux par ambiance via Ollama."""
+"""Classement autonome des morceaux par ambiance via Ollama.
+
+Les morceaux partent par lots (BATCH_SIZE par prompt) : ~10× moins d'appels
+Ollama qu'en morceau-par-morceau, crucial en CPU. Le classement reprend aussi
+les morceaux marqués « classés » mais sans aucune ambiance (vieux runs ratés) :
+pas besoin du bouton Réinitialiser pour s'auto-guérir.
+"""
 from __future__ import annotations
 
+import re
 import unicodedata
 
 from sqlmodel import Session, select
@@ -13,6 +20,12 @@ _progress = {"n_done": 0, "n_total": 0, "active": False, "error": None}
 
 # Au-delà de ce nombre d'échecs Ollama consécutifs, on arrête le job (Ollama HS).
 _MAX_CONSECUTIVE_FAILS = 5
+
+# Morceaux par prompt. Assez grand pour aller vite, assez petit pour que le
+# modèle (qwen2.5:3b) reste fiable sur la liste numérotée.
+BATCH_SIZE = 8
+
+_LINE_RE = re.compile(r"^\s*(\d+)\s*[:.\-–]\s*(.*)$")
 
 
 def get_progress() -> dict:
@@ -36,6 +49,22 @@ def build_prompt(track: dict) -> str:
     )
 
 
+def build_batch_prompt(tracks: list[dict]) -> str:
+    lignes = "\n".join(f"- {name} : {desc}" for name, desc in AMBIANCES.items())
+    morceaux = "\n".join(
+        f"{i}. artiste={t.get('artist','')}, album={t.get('album','')}, "
+        f"titre={t.get('title','')}, genre={t.get('genre','')}"
+        for i, t in enumerate(tracks, start=1)
+    )
+    return (
+        "Tu classes des morceaux de musique par ambiance. Ambiances possibles :\n"
+        f"{lignes}\n\n"
+        f"Morceaux :\n{morceaux}\n\n"
+        "Réponds avec UNE ligne par morceau, au format exact "
+        "`numéro: ambiance1, ambiance2` (ou `numéro: aucune`). Pas de phrase."
+    )
+
+
 def parse_ambiances(raw: str, ambiances: list[str]) -> list[str]:
     norm_map = {_norm(a): a for a in ambiances}
     out: list[str] = []
@@ -46,18 +75,47 @@ def parse_ambiances(raw: str, ambiances: list[str]) -> list[str]:
     return out
 
 
+def parse_batch_response(raw: str, n: int, ambiances: list[str]) -> dict[int, list[str]]:
+    """Réponse numérotée → {numéro: ambiances}. Un numéro absent = morceau non
+    traité (il sera retenté au prochain run, sans être marqué classé)."""
+    out: dict[int, list[str]] = {}
+    for line in raw.splitlines():
+        m = _LINE_RE.match(line)
+        if not m:
+            continue
+        num = int(m.group(1))
+        if 1 <= num <= n and num not in out:
+            out[num] = parse_ambiances(m.group(2), ambiances)
+    # Lot de 1 : certains modèles répondent sans numéro — la réponse brute vaut
+    # pour le seul morceau du lot.
+    if not out and n == 1 and raw.strip():
+        out[1] = parse_ambiances(raw, ambiances)
+    return out
+
+
+def _pending_tracks(session: Session) -> list[MusicTrack]:
+    """Morceaux à classer : jamais classés + classés sans aucune ambiance."""
+    tagged_ids = {r.track_id for r in session.exec(select(TrackAmbiance)).all()}
+    return [
+        t for t in session.exec(select(MusicTrack)).all()
+        if not t.classified or t.id not in tagged_ids
+    ]
+
+
 def classify_untagged(session: Session, *, generate=ollama_client.generate) -> dict:
-    tracks = session.exec(select(MusicTrack).where(MusicTrack.classified == False)).all()  # noqa: E712
+    tracks = _pending_tracks(session)
     _progress.update(n_done=0, n_total=len(tracks), active=True, error=None)
     classes = 0
     fails = 0
     try:
-        for track in tracks:
+        for start in range(0, len(tracks), BATCH_SIZE):
+            batch = tracks[start:start + BATCH_SIZE]
             try:
-                raw = generate(build_prompt(track.model_dump()))
+                raw = generate(build_batch_prompt([t.model_dump() for t in batch]))
             except Exception:
-                # Échec Ollama : on NE marque PAS le morceau classé (réessayable).
+                # Échec Ollama : on NE marque PAS les morceaux classés (réessayables).
                 fails += 1
+                _progress["n_done"] += len(batch)
                 if fails >= _MAX_CONSECUTIVE_FAILS:
                     _progress["error"] = (
                         "Ollama indisponible (le modèle plante ?). Classement interrompu — "
@@ -66,15 +124,21 @@ def classify_untagged(session: Session, *, generate=ollama_client.generate) -> d
                     break
                 continue
             fails = 0  # un succès réinitialise le compteur d'échecs
-            ambiances = parse_ambiances(raw, AMBIANCE_NAMES)
-            for amb in ambiances:
-                session.add(TrackAmbiance(track_id=track.id, ambiance=amb, source="auto"))
-            track.classified = True
-            session.add(track)
+            parsed = parse_batch_response(raw, len(batch), AMBIANCE_NAMES)
+            for i, track in enumerate(batch, start=1):
+                if i not in parsed:
+                    # Numéro manquant dans la réponse : non traité, sera retenté.
+                    _progress["n_done"] += 1
+                    continue
+                ambiances = parsed[i]
+                for amb in ambiances:
+                    session.add(TrackAmbiance(track_id=track.id, ambiance=amb, source="auto"))
+                track.classified = True
+                session.add(track)
+                if ambiances:
+                    classes += 1
+                _progress["n_done"] += 1
             session.commit()
-            if ambiances:
-                classes += 1
-            _progress["n_done"] += 1
     finally:
         _progress["active"] = False
     return {"classes": classes, "total": len(tracks)}
