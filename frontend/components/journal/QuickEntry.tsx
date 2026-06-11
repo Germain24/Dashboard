@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { journalApi, TAGS_EMOTIONS, type MoodEntry } from "@/lib/journal";
+import { TAGS_EMOTIONS, type MoodEntry } from "@/lib/journal";
+import { useJournalEntry, usePutJournalEntry } from "@/lib/queries/journal";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -25,23 +26,24 @@ export function QuickEntry({ onSaved }: { onSaved?: () => void }) {
   const [energie, setEnergie] = useState(3);
   const [tags, setTags] = useState<string[]>([]);
   const [note, setNote] = useState("");
-  const [saving, setSaving] = useState(false);
+
+  const entryQ = useJournalEntry(date);
+  const putMutation = usePutJournalEntry();
+  const saving = putMutation.isPending;
 
   useEffect(() => {
-    journalApi.getEntry(date).then((e: MoodEntry) => {
-      setHumeur(e.humeur); setEnergie(e.energie); setTags(e.tags); setNote(e.note);
-    }).catch(() => {});
-  }, [date]);
+    const e: MoodEntry | undefined = entryQ.data;
+    if (!e) return;
+    setHumeur(e.humeur); setEnergie(e.energie); setTags(e.tags); setNote(e.note);
+  }, [entryQ.data]);
 
   const toggleTag = (t: string) =>
     setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      await journalApi.putEntry(date, { humeur, energie, tags, note });
-      onSaved?.();
-    } finally { setSaving(false); }
+  const save = () => {
+    putMutation.mutate({ date, body: { humeur, energie, tags, note } }, {
+      onSuccess: () => onSaved?.(),
+    });
   };
 
   return (

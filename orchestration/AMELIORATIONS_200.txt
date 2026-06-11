@@ -743,7 +743,7 @@ W. GÉNÉRALISATION FRONTEND + TESTS (518-533) — design 2026-06-10
 524. [M](**) lib/queries/garderobe.ts idem.   ← FINIS ✓ (2026-06-10 — orchestrateur + 4 tabs migrés, suggestion 1×/jour conservée)
 525. [M](**) lib/queries/habitudes.ts idem.   ← FINIS ✓ (2026-06-10 — référence chantier 2 : hooks + tests + 4 tabs migrés + ErrorBoundary)
 526. [M](**) lib/queries/jobs.ts idem.   ← FINIS ✓ (2026-06-10 — couvre jobs + notifications, widget cloche migré, poll 30s conservé)
-527. [M](**) lib/queries/journal.ts idem.
+527. [M](**) lib/queries/journal.ts idem.   ← FINIS ✓ (2026-06-10)
 528. [M](**) lib/queries/livres.ts idem.
 529. [M](**) lib/queries/musique.ts idem.
 530. [M](**) lib/queries/sante.ts idem.

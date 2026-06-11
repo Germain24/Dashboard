@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { journalApi, type MoodTrends } from "@/lib/journal";
+import type { MoodTrends } from "@/lib/journal";
+import { useMoodTrends } from "@/lib/queries/journal";
 
 export function TrendsTab() {
-  const [t, setT] = useState<MoodTrends | null>(null);
-  useEffect(() => { journalApi.trends(30).then(setT).catch(() => {}); }, []);
+  const t: MoodTrends | null = useMoodTrends(30).data ?? null;
   if (!t) return <p className="text-sm text-[var(--muted-foreground)]">Chargement…</p>;
   if (t.n === 0) return <p className="text-sm text-[var(--muted-foreground)]">Aucune entrée sur 30 jours.</p>;
 

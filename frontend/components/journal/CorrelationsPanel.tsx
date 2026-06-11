@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { journalApi, type CorrelationsOut } from "@/lib/journal";
+import type { CorrelationsOut } from "@/lib/journal";
+import { useJournalCorrelations } from "@/lib/queries/journal";
 
 const LABEL: Record<string, string> = {
   sommeil: "Sommeil", sport: "Sport", poids: "Poids", depenses: "Dépenses",
 };
 
 export function CorrelationsPanel() {
-  const [data, setData] = useState<CorrelationsOut | null>(null);
-  useEffect(() => { journalApi.correlations(90).then(setData).catch(() => {}); }, []);
+  const data: CorrelationsOut | null = useJournalCorrelations(90).data ?? null;
   if (!data) return <p className="text-sm text-[var(--muted-foreground)]">Chargement…</p>;
   const humeur = data.correlations.filter((c) => c.source === "humeur");
 
