@@ -1,28 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { skincareApi, type SkincareProduct, type SkincareToday } from "@/lib/skincare";
+import type { SkincareProduct, SkincareToday } from "@/lib/skincare";
+import { useSkincareToday, useToRepurchase } from "@/lib/queries/skincare";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Freshness } from "@/components/Freshness";
 
 export function Skincare() {
-  const [today, setToday] = useState<SkincareToday | null>(null);
-  const [repurchase, setRepurchase] = useState<SkincareProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
-
-  useEffect(() => {
-    Promise.all([skincareApi.today(), skincareApi.toRepurchase()])
-      .then(([t, r]) => {
-        setToday(t);
-        setRepurchase(r);
-        setUpdatedAt(Date.now());
-      })
-      .catch((e) => setError(e?.message ?? "Erreur de chargement"))
-      .finally(() => setLoading(false));
-  }, []);
+  const todayQ = useSkincareToday();
+  const repurchaseQ = useToRepurchase();
+  const today: SkincareToday | null = todayQ.data ?? null;
+  const repurchase: SkincareProduct[] = repurchaseQ.data ?? [];
+  const loading = todayQ.isLoading || repurchaseQ.isLoading;
+  const error = todayQ.isError || repurchaseQ.isError
+    ? (((todayQ.error ?? repurchaseQ.error) as Error)?.message ?? "Erreur de chargement")
+    : null;
+  const updatedAt = todayQ.dataUpdatedAt || null;
 
   if (loading) {
     return (
