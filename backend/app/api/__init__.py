@@ -23,6 +23,7 @@ from app.api.musique import router as musique_router
 from app.api.notifications import router as notifications_router
 from app.api.sante import router as sante_router
 from app.api.scheduler import router as scheduler_router
+from app.api.films_series import router as films_series_router
 from app.api.skincare import router as skincare_router
 
 api_router = APIRouter()
@@ -41,5 +42,6 @@ api_router.include_router(livres_router, prefix="/livres")
 api_router.include_router(musique_router, prefix="/musique")
 api_router.include_router(scheduler_router, prefix="/jobs")
 api_router.include_router(notifications_router, prefix="/notifications")
+api_router.include_router(films_series_router, prefix="/films-series")
 api_router.include_router(skincare_router, prefix="/skincare")
 api_router.include_router(data_router, prefix="/data")

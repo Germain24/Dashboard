@@ -107,7 +107,7 @@ export const MODULES: Module[] = [
     description: "À voir, vus, notes.",
     icon: Film,
     group: "Culture",
-    ready: false,
+    ready: true,
   },
   {
     slug: "musique",
@@ -123,7 +123,7 @@ export const MODULES: Module[] = [
     description: "En cours, à voir, vues.",
     icon: Tv,
     group: "Culture",
-    ready: false,
+    ready: true,
   },
 
   // ── Santé & Sport ─────────────────────────────────────────────

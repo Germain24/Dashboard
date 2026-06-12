@@ -23,5 +23,6 @@ from app.models.journal import MoodEntry  # noqa: F401
 from app.models.musique import MusicTrack, TrackAmbiance  # noqa: F401
 from app.models.livres import Book, BookNote, BookQuote, ReadingSession  # noqa: F401
 from app.models.sante import Aliment, MesureSante, NutritionGoal, PlanNutrition  # noqa: F401
+from app.models.films_series import SerieProgress, WatchItem  # noqa: F401
 from app.models.scheduler import JobRun, Notification  # noqa: F401
 from app.models.skincare import SkincareProduct, SkincareLog  # noqa: F401

@@ -111,6 +111,11 @@ class Settings(BaseSettings):
     entrainement_sets_mrv: int = 20              # Maximum Recoverable Volume
     entrainement_mesocycle_accumulation_weeks: int = 4
 
+    # --- TMDB (Films & Séries) ---
+    # Clé API TMDB pour enrichir la watchlist. Vide = mode manuel sans métadonnées.
+    # Obtenir sur https://www.themoviedb.org/settings/api
+    tmdb_api_key: str = ""
+
     # --- API Claude (Anthropic) ---
     # Clé API pour le classement musical des nouveaux morceaux. Vide = le
     # classement retombe sur Ollama local (unitaire, plus lent).

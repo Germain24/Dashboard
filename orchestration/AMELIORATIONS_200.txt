@@ -753,14 +753,14 @@ W. GÉNÉRALISATION FRONTEND + TESTS (518-533) — design 2026-06-10
 --------------------------------------------------------------------------------
 X. MODULES FILMS + SÉRIES TMDB (534-541) — design 2026-06-10
 --------------------------------------------------------------------------------
-534. [M](***) Modèles WatchItem + SerieProgress + migration Alembic.
-535. [M](**) Service TMDB (httpx, cache TTL, dégradation gracieuse sans clé).
-536. [M](**) Routes films_series : recherche TMDB, CRUD watchlist, progression, stats.
-537. [M](**) Page Films réelle (onglets À voir/En cours/Vus, recherche, fiches).
-538. [M](**) Page Séries réelle (idem + compteurs saison/épisode).
-539. [S](*) Stats visionnage (vus/an, temps estimé) sur les deux pages.
-540. [S](*) Clé TMDB absente → mode manuel complet (test dédié).
-541. [S](*) Hooks TanStack + tests vitest pour les deux modules.
+534. [M](***) Modèles WatchItem + SerieProgress + migration Alembic.   ← FINIS ✓ (2026-06-11)
+535. [M](**) Service TMDB (httpx, cache TTL, dégradation gracieuse sans clé).   ← FINIS ✓ (2026-06-11)
+536. [M](**) Routes films_series : recherche TMDB, CRUD watchlist, progression, stats.   ← FINIS ✓ (2026-06-11)
+537. [M](**) Page Films réelle (onglets À voir/En cours/Vus, recherche, fiches).   ← FINIS ✓ (2026-06-11)
+538. [M](**) Page Séries réelle (idem + compteurs saison/épisode).   ← FINIS ✓ (2026-06-11)
+539. [S](*) Stats visionnage (vus/an, temps estimé) sur les deux pages.   ← FINIS ✓ (2026-06-11)
+540. [S](*) Clé TMDB absente → mode manuel complet (test dédié).   ← FINIS ✓ (2026-06-11)
+541. [S](*) Hooks TanStack + tests vitest pour les deux modules.   ← FINIS ✓ (2026-06-11)
 
 --------------------------------------------------------------------------------
 Y. RÉORGANISATION UI (542-545) — design 2026-06-10
