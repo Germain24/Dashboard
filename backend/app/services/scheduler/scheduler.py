@@ -60,3 +60,12 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(run_job, "cron", hour=23, minute=55,
                       args=["daily_snapshot", snapshot.run],
                       id="daily_snapshot", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(run_job, "cron", hour=8, minute=0,
+                      args=["courses_check", automatisations.run_courses_check],
+                      id="courses_check", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(run_job, "cron", hour=8, minute=10,
+                      args=["skincare_reorder", automatisations.run_skincare_reorder],
+                      id="skincare_reorder", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(run_job, "cron", day=1, hour=7, minute=30,
+                      args=["budget_rebalancing", automatisations.run_budget_rebalancing],
+                      id="budget_rebalancing", replace_existing=True, misfire_grace_time=3600)

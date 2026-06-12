@@ -340,10 +340,10 @@ T. AUTOMATISATIONS DE VIE & ROUTINES (201-220)
 205. [L](***) Constructeur d'automatisations no-code visuel (« if this then that ») entre modules.
 206. [M](**) Modèles de routines prêts à l'emploi (semaine type, jour sport, jour off) activables en un clic.   ← FINIS ✓ (2026-06-11 — 3 templates (semaine_type, jour_sport, mode_weekend) + GET /automatisations/templates + POST activate + UI dans /snapshot)
 207. [S](**) Mode « vacances/absence » qui suspend les rappels non essentiels et adapte les routines.   ← FINIS ✓ (2026-06-11 — mode_vacances dans SettingsStore + check dans habit_reminders + agenda_reminders + GET/POST /automatisations/vacances + toggle UI)
-208. [M](**) Courses auto : quand un ingrédient récurrent passe sous un seuil, l'ajouter à la liste.
-209. [M](**) Réapprovisionnement auto des consommables (skincare, compléments) basé sur la cadence de consommation.
-210. [M](**) Remplissage auto de la semaine depuis les objectifs (sport, études, repas) en respectant les contraintes d'agenda.
-211. [M](**) Rééquilibrage budgétaire auto en fin de mois (report d'enveloppes, ajustement des cibles).
+208. [M](**) Courses auto : quand un ingrédient récurrent passe sous un seuil, l'ajouter à la liste.   ← FINIS ✓ (2026-06-11 — items_below_threshold + check_pantry_low_stock (seuil_min JSON) + run_courses_check (Notification) + job courses_check 8h + routes GET/POST + 8 tests)
+209. [M](**) Réapprovisionnement auto des consommables (skincare, compléments) basé sur la cadence de consommation.   ← FINIS ✓ (2026-06-11 — days_of_stock_remaining (quotidien/n_par_semaine/hebdo_jours) + check_skincare_reorder (stock=0/perimé/jours<14) + run_skincare_reorder_check + job skincare_reorder 8h10 + routes + 10 tests)
+210. [M](**) Remplissage auto de la semaine depuis les objectifs (sport, études, repas) en respectant les contraintes d'agenda.   ← FINIS ✓ (2026-06-11 — suggest_sport_events (depuis programme entraînement actif) + suggest_etudes_events (depuis objectif hebdo, free_slots) + fill_week_auto (idempotent, source=auto_semaine) + routes GET/POST + 10 tests)
+211. [M](**) Rééquilibrage budgétaire auto en fin de mois (report d'enveloppes, ajustement des cibles).   ← FINIS ✓ (2026-06-11 — compute_rebalancing pur (over>100%/under 30-75%) + run_monthly_rebalancing (Notification + suggestions next_month) + job budget_rebalancing 1er du mois + routes + 8 tests)
 212. [M](***) « Journal de vie » auto-généré : snapshot quotidien unifié multi-modules, consultable jour par jour.   ← FINIS ✓ (2026-06-11 — DailySnapshot model + alembic + build_daily_snapshot (habitudes/budget/santé/humeur/entraînement/agenda) + job daily_snapshot 23h55 + routes + /snapshot page + 4 tests backend)
 213. [M](**) Détection d'anomalies de routine (sommeil/poids/dépenses qui dévient) avec alerte proactive.
 214. [S](**) Rappels contextuels (heure + lieu si dispo) plutôt que purement horaires.

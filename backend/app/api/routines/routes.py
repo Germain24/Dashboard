@@ -166,3 +166,91 @@ def set_vacation_mode(enabled: bool, session: Session = Depends(get_session)):
     from app.services.settings import set_preferences
     prefs = set_preferences({"mode_vacances": enabled})
     return {"mode_vacances": prefs.get("mode_vacances", False)}
+
+
+# ─── Courses auto (#208) ─────────────────────────────────────────────────────
+
+@router.get("/courses/low-stock")
+def get_low_stock():
+    from app.services.automatisations.courses import check_pantry_low_stock
+    return check_pantry_low_stock()
+
+
+@router.post("/courses/check")
+def trigger_courses_check(session: Session = Depends(get_session)):
+    from app.services.automatisations.courses import run_courses_check
+    n = run_courses_check(session)
+    return {"items_sous_seuil": n}
+
+
+# ─── Réappro skincare (#209) ─────────────────────────────────────────────────
+
+@router.get("/skincare/reorder")
+def get_skincare_reorder(session: Session = Depends(get_session)):
+    from app.services.automatisations.reapprovisionnement import check_skincare_reorder
+    return check_skincare_reorder(session)
+
+
+@router.post("/skincare/reorder-check")
+def trigger_skincare_reorder(session: Session = Depends(get_session)):
+    from app.services.automatisations.reapprovisionnement import run_skincare_reorder_check
+    n = run_skincare_reorder_check(session)
+    return {"produits_a_renouveler": n}
+
+
+# ─── Semaine auto (#210) ─────────────────────────────────────────────────────
+
+@router.get("/semaine-auto")
+def get_semaine_auto(
+    week_start: str | None = None,
+    dry_run: bool = True,
+    session: Session = Depends(get_session),
+):
+    try:
+        ws = dt.date.fromisoformat(week_start) if week_start else _current_monday()
+    except ValueError:
+        raise HTTPException(400, detail="Date invalide (YYYY-MM-DD)")
+    from app.services.automatisations.semaine_auto import fill_week_auto
+    suggestions = fill_week_auto(session, week_start=ws, dry_run=dry_run)
+    return {"week_start": ws.isoformat(), "events": suggestions, "count": len(suggestions)}
+
+
+@router.post("/semaine-auto/apply")
+def apply_semaine_auto(
+    week_start: str | None = None,
+    session: Session = Depends(get_session),
+):
+    try:
+        ws = dt.date.fromisoformat(week_start) if week_start else _current_monday()
+    except ValueError:
+        raise HTTPException(400, detail="Date invalide (YYYY-MM-DD)")
+    from app.services.automatisations.semaine_auto import fill_week_auto
+    created = fill_week_auto(session, week_start=ws, dry_run=False)
+    return {"week_start": ws.isoformat(), "created": len(created)}
+
+
+def _current_monday() -> dt.date:
+    today = dt.date.today()
+    return today - dt.timedelta(days=today.weekday())
+
+
+# ─── Rééquilibrage budget (#211) ─────────────────────────────────────────────
+
+@router.get("/budget/rebalancing")
+def get_budget_rebalancing(mois: str | None = None, session: Session = Depends(get_session)):
+    from app.services.automatisations.budget_rebalancing import (
+        compute_rebalancing,
+    )
+    from app.services.budget.envelopes import get_envelope_status
+    m = mois or dt.date.today().strftime("%Y-%m")
+    statuts = get_envelope_status(session, m)
+    suggestions = compute_rebalancing(statuts)
+    return {"mois": m, "suggestions": suggestions, "count": len(suggestions)}
+
+
+@router.post("/budget/rebalancing/apply")
+def apply_budget_rebalancing(mois: str | None = None, session: Session = Depends(get_session)):
+    from app.services.automatisations.budget_rebalancing import run_monthly_rebalancing
+    m = mois or dt.date.today().strftime("%Y-%m")
+    suggestions = run_monthly_rebalancing(session, mois=m)
+    return {"mois": m, "suggestions": suggestions, "count": len(suggestions)}
