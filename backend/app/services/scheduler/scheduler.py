@@ -22,6 +22,7 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
         ical_sync,
         nutrition_plan,
         portfolio_snapshot,
+        snapshot,
         weather_refresh,
     )
     from app.services.scheduler.runner import run_job
@@ -56,3 +57,6 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(run_job, "cron", hour=21, minute=0,
                       args=["recap_soir", automatisations.run_recap_soir],
                       id="recap_soir", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(run_job, "cron", hour=23, minute=55,
+                      args=["daily_snapshot", snapshot.run],
+                      id="daily_snapshot", replace_existing=True, misfire_grace_time=3600)

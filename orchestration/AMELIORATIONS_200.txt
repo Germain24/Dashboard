@@ -338,13 +338,13 @@ T. AUTOMATISATIONS DE VIE & ROUTINES (201-220)
 203. [M](**) Routine matinale auto : briefing du jour (météo, agenda, tâches, macro cible, tenue suggérée) poussé en notification à heure fixe.   ← FINIS ✓ (2026-06-11 — build_morning_briefing + job briefing_matin (cron 7h) + 3 tests)
 204. [M](**) Routine du soir : récap journée (dépenses, calories, habitudes, demain) + préparation du lendemain.   ← FINIS ✓ (2026-06-11 — build_evening_recap + job recap_soir (cron 21h) + 3 tests)
 205. [L](***) Constructeur d'automatisations no-code visuel (« if this then that ») entre modules.
-206. [M](**) Modèles de routines prêts à l'emploi (semaine type, jour sport, jour off) activables en un clic.
-207. [S](**) Mode « vacances/absence » qui suspend les rappels non essentiels et adapte les routines.
+206. [M](**) Modèles de routines prêts à l'emploi (semaine type, jour sport, jour off) activables en un clic.   ← FINIS ✓ (2026-06-11 — 3 templates (semaine_type, jour_sport, mode_weekend) + GET /automatisations/templates + POST activate + UI dans /snapshot)
+207. [S](**) Mode « vacances/absence » qui suspend les rappels non essentiels et adapte les routines.   ← FINIS ✓ (2026-06-11 — mode_vacances dans SettingsStore + check dans habit_reminders + agenda_reminders + GET/POST /automatisations/vacances + toggle UI)
 208. [M](**) Courses auto : quand un ingrédient récurrent passe sous un seuil, l'ajouter à la liste.
 209. [M](**) Réapprovisionnement auto des consommables (skincare, compléments) basé sur la cadence de consommation.
 210. [M](**) Remplissage auto de la semaine depuis les objectifs (sport, études, repas) en respectant les contraintes d'agenda.
 211. [M](**) Rééquilibrage budgétaire auto en fin de mois (report d'enveloppes, ajustement des cibles).
-212. [M](***) « Journal de vie » auto-généré : snapshot quotidien unifié multi-modules, consultable jour par jour.
+212. [M](***) « Journal de vie » auto-généré : snapshot quotidien unifié multi-modules, consultable jour par jour.   ← FINIS ✓ (2026-06-11 — DailySnapshot model + alembic + build_daily_snapshot (habitudes/budget/santé/humeur/entraînement/agenda) + job daily_snapshot 23h55 + routes + /snapshot page + 4 tests backend)
 213. [M](**) Détection d'anomalies de routine (sommeil/poids/dépenses qui dévient) avec alerte proactive.
 214. [S](**) Rappels contextuels (heure + lieu si dispo) plutôt que purement horaires.
 215. [M](**) Chaînage d'actions cross-module (« recettes ») avec confirmation unique.
@@ -358,7 +358,7 @@ T. AUTOMATISATIONS DE VIE & ROUTINES (201-220)
 U. INTELLIGENCE TRANSVERSALE & CORRÉLATIONS (221-235)
 --------------------------------------------------------------------------------
 221. [L](***) Moteur de corrélations cross-modules (sommeil↔poids↔énergie↔productivité↔dépenses) avec visualisations.
-222. [M](***) Score de bien-être global quotidien agrégeant santé, finance, habitudes, agenda.
+222. [M](***) Score de bien-être global quotidien agrégeant santé, finance, habitudes, agenda.   ← FINIS ✓ (2026-06-11 — compute_wellbeing_score pur (habitudes 30 + humeur 25 + nutrition 25 + entraînement 20) + labels + GET /automatisations/wellbeing + widget circulaire dans /snapshot + 4 tests)
 223. [M](**) Insights hebdomadaires auto-générés (tendances, réussites, points de vigilance).
 224. [M](**) Détection de causalités probables (nuits courtes → grignotage → dépassement calorique).
 225. [M](**) Tableau de bord « Vue 360 » : synthèse de toute ta vie sur un écran.

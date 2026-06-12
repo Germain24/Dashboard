@@ -231,6 +231,14 @@ export const MODULES: Module[] = [
     group: "Système",
     ready: true,
   },
+  {
+    slug: "snapshot",
+    label: "Journal de vie",
+    description: "Snapshot quotidien unifié multi-modules.",
+    icon: Smile,
+    group: "Quotidien",
+    ready: true,
+  },
 ];
 
 /** Modules groupés dans l'ordre canonique, pour la nav groupée (sidebar, mobile). */

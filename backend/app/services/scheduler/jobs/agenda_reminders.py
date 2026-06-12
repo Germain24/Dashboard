@@ -18,6 +18,10 @@ from app.services.agenda.reminders import (
 
 
 def run(session) -> str:
+    from app.services.settings import get_preferences
+    if get_preferences().get("mode_vacances"):
+        return "Mode vacances actif — rappels suspendus"
+
     from app.services.agenda.entrainement_bridge import get_training_block_for_date
     from app.services.agenda.events import get_full_calendar
 

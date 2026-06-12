@@ -14,6 +14,10 @@ from app.services.habitudes.reminders import unchecked_habits, should_remind, ma
 
 
 def run(session) -> str:
+    from app.services.settings import get_preferences
+    if get_preferences().get("mode_vacances"):
+        return "Mode vacances actif — rappels suspendus"
+
     today = dt.date.today()
     if not should_remind(today):
         return "Rappel déjà envoyé aujourd'hui"

@@ -16,6 +16,7 @@ DEFAULT_PREFS: dict = {
     "jobrun_retention_days": 30,
     "notification_retention_days": 30,
     "music_dir": "C:/Users/germa/Music",
+    "mode_vacances": False,
 }
 
 _ALLOWED_KEYS = set(DEFAULT_PREFS.keys())

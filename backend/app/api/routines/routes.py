@@ -1,6 +1,8 @@
-"""Routes Routines (#201)."""
+"""Routes Routines, Snapshot, Wellbeing, Templates (#201, 206, 212, 222)."""
 
 from __future__ import annotations
+
+import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -15,6 +17,14 @@ from app.services.automatisations.engine import (
     get_routines,
     update_routine,
 )
+from app.services.automatisations.snapshot import (
+    build_daily_snapshot,
+    get_recent_snapshots,
+    get_snapshot,
+    save_snapshot,
+)
+from app.services.automatisations.templates import get_template, get_templates
+from app.services.automatisations.wellbeing import compute_wellbeing_score
 
 router = APIRouter()
 
@@ -77,3 +87,82 @@ def run_routine(routine_id: int, session: Session = Depends(get_session)):
         raise HTTPException(404)
     result = execute_routine(session, routine_id)
     return {"result": result}
+
+
+# ─── Templates (#206) ─────────────────────────────────────────────────────────
+
+@router.get("/templates")
+def list_templates():
+    return get_templates()
+
+
+@router.post("/templates/{template_id}/activate", status_code=201)
+def activate_template(template_id: str, session: Session = Depends(get_session)):
+    tpl = get_template(template_id)
+    if not tpl:
+        raise HTTPException(404, detail="Template introuvable")
+    payload = {k: v for k, v in tpl.items() if k != "id"}
+    r = create_routine(session, **payload)
+    return _out(r)
+
+
+# ─── Journal de vie / Snapshot (#212) ─────────────────────────────────────────
+
+@router.get("/snapshot")
+def list_snapshots(days: int = 30, session: Session = Depends(get_session)):
+    import json
+    snaps = get_recent_snapshots(session, days=days)
+    return [{"date": s.date, "data": json.loads(s.data)} for s in snaps]
+
+
+@router.get("/snapshot/{date_str}")
+def get_snapshot_by_date(date_str: str, session: Session = Depends(get_session)):
+    import json
+    try:
+        date = dt.date.fromisoformat(date_str)
+    except ValueError:
+        raise HTTPException(400, detail="Date invalide (YYYY-MM-DD)")
+    snap = get_snapshot(session, date)
+    if not snap:
+        # Calcul à la volée si absent
+        data = build_daily_snapshot(session, date)
+        return {"date": date, "data": data, "cached": False}
+    return {"date": snap.date, "data": json.loads(snap.data), "cached": True}
+
+
+@router.post("/snapshot/{date_str}/rebuild")
+def rebuild_snapshot(date_str: str, session: Session = Depends(get_session)):
+    import json
+    try:
+        date = dt.date.fromisoformat(date_str)
+    except ValueError:
+        raise HTTPException(400, detail="Date invalide (YYYY-MM-DD)")
+    snap = save_snapshot(session, date)
+    return {"date": snap.date, "data": json.loads(snap.data)}
+
+
+# ─── Score bien-être (#222) ───────────────────────────────────────────────────
+
+@router.get("/wellbeing")
+def get_wellbeing(date: str | None = None, session: Session = Depends(get_session)):
+    try:
+        d = dt.date.fromisoformat(date) if date else dt.date.today()
+    except ValueError:
+        raise HTTPException(400, detail="Date invalide")
+    data = build_daily_snapshot(session, d)
+    return {"date": d, **compute_wellbeing_score(data)}
+
+
+# ─── Mode vacances (#207) ─────────────────────────────────────────────────────
+
+@router.get("/vacances")
+def get_vacation_mode():
+    from app.services.settings import get_preferences
+    return {"mode_vacances": get_preferences().get("mode_vacances", False)}
+
+
+@router.post("/vacances")
+def set_vacation_mode(enabled: bool, session: Session = Depends(get_session)):
+    from app.services.settings import set_preferences
+    prefs = set_preferences({"mode_vacances": enabled})
+    return {"mode_vacances": prefs.get("mode_vacances", False)}
