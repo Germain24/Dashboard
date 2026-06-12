@@ -15,7 +15,8 @@ const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${BACKEND_ORIGINS}`,
+  // Images livres (Open Library, Amazon, Indigo) + autres sources externes
+  `img-src 'self' data: blob: https: ${BACKEND_ORIGINS}`,
   `media-src 'self' blob: ${BACKEND_ORIGINS}`,
   "font-src 'self' data:",
   `connect-src 'self' ${BACKEND_ORIGINS}`,
