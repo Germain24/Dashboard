@@ -5,6 +5,7 @@ import {
   Database,
   Dumbbell,
   Film,
+  FolderOpen,
   GraduationCap,
   HeartPulse,
   ListTodo,
@@ -30,21 +31,21 @@ import {
  */
 
 export type ModuleGroup =
-  | "Vie quotidienne"
+  | "Quotidien"
   | "Culture"
-  | "Santé & Sport"
-  | "Organisation"
-  | "Finances"
-  | "Outils";
+  | "Corps"
+  | "Travail & Admin"
+  | "Argent"
+  | "Système";
 
 /** Ordre d'affichage des groupes dans toutes les surfaces de navigation. */
 export const GROUP_ORDER: ModuleGroup[] = [
-  "Vie quotidienne",
+  "Quotidien",
   "Culture",
-  "Santé & Sport",
-  "Organisation",
-  "Finances",
-  "Outils",
+  "Corps",
+  "Travail & Admin",
+  "Argent",
+  "Système",
 ];
 
 export type Module = {
@@ -64,7 +65,7 @@ export const MODULES: Module[] = [
     label: "Habitudes",
     description: "Habit tracker hebdomadaire.",
     icon: ListTodo,
-    group: "Vie quotidienne",
+    group: "Quotidien",
     ready: true,
   },
   {
@@ -72,7 +73,7 @@ export const MODULES: Module[] = [
     label: "Garde-robe",
     description: "Vêtements, tenues, score thermique.",
     icon: Shirt,
-    group: "Vie quotidienne",
+    group: "Quotidien",
     ready: true,
   },
   {
@@ -80,7 +81,7 @@ export const MODULES: Module[] = [
     label: "Cuisine",
     description: "Recettes & meal planning.",
     icon: ChefHat,
-    group: "Vie quotidienne",
+    group: "Quotidien",
     ready: true,
   },
   {
@@ -88,7 +89,7 @@ export const MODULES: Module[] = [
     label: "Skincare",
     description: "Routines matin/soir, produits, fréquence.",
     icon: Sparkles,
-    group: "Vie quotidienne",
+    group: "Quotidien",
     ready: true,
   },
 
@@ -132,7 +133,7 @@ export const MODULES: Module[] = [
     label: "Santé",
     description: "Mesures, nutrition, plan macros.",
     icon: HeartPulse,
-    group: "Santé & Sport",
+    group: "Corps",
     ready: true,
   },
   {
@@ -140,7 +141,7 @@ export const MODULES: Module[] = [
     label: "Entraînement",
     description: "Séances de sport, prise de muscle.",
     icon: Dumbbell,
-    group: "Santé & Sport",
+    group: "Corps",
     ready: true,
   },
   {
@@ -148,7 +149,7 @@ export const MODULES: Module[] = [
     label: "Journal",
     description: "Suivi d'humeur & tendances.",
     icon: Smile,
-    group: "Santé & Sport",
+    group: "Corps",
     ready: true,
   },
 
@@ -158,7 +159,7 @@ export const MODULES: Module[] = [
     label: "Agenda",
     description: "Événements, rappels.",
     icon: Calendar,
-    group: "Organisation",
+    group: "Travail & Admin",
     ready: true,
   },
   {
@@ -166,7 +167,15 @@ export const MODULES: Module[] = [
     label: "Études",
     description: "Suivi des sessions de travail.",
     icon: GraduationCap,
-    group: "Organisation",
+    group: "Travail & Admin",
+    ready: true,
+  },
+  {
+    slug: "documents",
+    label: "Documents",
+    description: "Échéances, contrats, garanties, rappels.",
+    icon: FolderOpen,
+    group: "Travail & Admin",
     ready: true,
   },
 
@@ -176,7 +185,7 @@ export const MODULES: Module[] = [
     label: "Finance",
     description: "Portefeuille long terme + scoring Buffett.",
     icon: TrendingUp,
-    group: "Finances",
+    group: "Argent",
     ready: true,
   },
   {
@@ -184,7 +193,7 @@ export const MODULES: Module[] = [
     label: "Budget",
     description: "Dépenses personnelles.",
     icon: Wallet,
-    group: "Finances",
+    group: "Argent",
     ready: true,
   },
 
@@ -194,7 +203,7 @@ export const MODULES: Module[] = [
     label: "Jobs",
     description: "Tâches planifiées & automatisations.",
     icon: Settings,
-    group: "Outils",
+    group: "Système",
     ready: true,
   },
   {
@@ -202,7 +211,15 @@ export const MODULES: Module[] = [
     label: "Données",
     description: "Export/import, backup & démo.",
     icon: Database,
-    group: "Outils",
+    group: "Système",
+    ready: true,
+  },
+  {
+    slug: "parametres",
+    label: "Paramètres",
+    description: "Intégrations, préférences, rétention.",
+    icon: Settings,
+    group: "Système",
     ready: true,
   },
 ];

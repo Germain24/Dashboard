@@ -765,15 +765,15 @@ X. MODULES FILMS + SÉRIES TMDB (534-541) — design 2026-06-10
 --------------------------------------------------------------------------------
 Y. RÉORGANISATION UI (542-545) — design 2026-06-10
 --------------------------------------------------------------------------------
-542. [M](**) Sidebar groupée par domaines (Quotidien/Corps/Culture/Argent/Travail/Système) via lib/modules.ts.
-543. [M](**) Page /parametres centralisée (clé TMDB, dossier musique, rétention backups, préférences).
-544. [S](*) Store de settings backend (secrets en env, la page indique leur présence).
-545. [S](*) Module Documents livré → groupe Travail renommé « Travail & Admin ».
+542. [M](**) Sidebar groupée par domaines (Quotidien/Corps/Culture/Argent/Travail/Système) via lib/modules.ts.   ← FINIS ✓ (2026-06-11 — groupes renommés + GROUP_ORDER + parametres + documents dans lib/modules.ts)
+543. [M](**) Page /parametres centralisée (clé TMDB, dossier musique, rétention backups, préférences).   ← FINIS ✓ (2026-06-11 — /parametres : intégrations (présence clé) + préférences éditables + SettingsStore JSON)
+544. [S](*) Store de settings backend (secrets en env, la page indique leur présence).   ← FINIS ✓ (2026-06-11 — SettingsStore + GET/POST /settings + _ALLOWED_KEYS + 5 tests)
+545. [S](*) Module Documents livré → groupe Travail renommé « Travail & Admin ».   ← FINIS ✓ (2026-06-11)
 
 --------------------------------------------------------------------------------
 Z. NOUVEAUX ITEMS (546-549) — design 2026-06-10
 --------------------------------------------------------------------------------
-546. [M](**) Palette Cmd+K : recherche dans les données (transactions, recettes, livres…).
-547. [M](**) Ajout rapide global depuis la palette (dépense, repas, séance).
-548. [L](**) Module Documents/Administratif (échéances CNI/passeport, contrats, garanties, rappels scheduler).
-549. [S](*) Vague 2 restante reprise par impact décroissant : (***) d'abord.
+546. [M](**) Palette Cmd+K : recherche dans les données (transactions, recettes, livres…).   ← FINIS ✓ (2026-06-11 — /api/search + useDebounce 250ms + CommandPalette async)
+547. [M](**) Ajout rapide global depuis la palette (dépense, repas, séance).   ← FINIS ✓ (2026-06-11 — préfixe ">" → 4 actions rapides dans CommandPalette)
+548. [L](**) Module Documents/Administratif (échéances CNI/passeport, contrats, garanties, rappels scheduler).   ← FINIS ✓ (2026-06-11 — Document model + alembic + services + routes + 11 tests ; frontend lib/documents.ts + queries + 5 tests vitest + DocumentsTab + EcheancesTab + /documents page avec onglets)
+549. [S](*) Vague 2 restante reprise par impact décroissant : (***) d'abord.   ← FINIS ✓ (2026-06-11)
