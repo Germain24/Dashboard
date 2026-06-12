@@ -345,7 +345,7 @@ T. AUTOMATISATIONS DE VIE & ROUTINES (201-220)
 210. [M](**) Remplissage auto de la semaine depuis les objectifs (sport, études, repas) en respectant les contraintes d'agenda.   ← FINIS ✓ (2026-06-11 — suggest_sport_events (depuis programme entraînement actif) + suggest_etudes_events (depuis objectif hebdo, free_slots) + fill_week_auto (idempotent, source=auto_semaine) + routes GET/POST + 10 tests)
 211. [M](**) Rééquilibrage budgétaire auto en fin de mois (report d'enveloppes, ajustement des cibles).   ← FINIS ✓ (2026-06-11 — compute_rebalancing pur (over>100%/under 30-75%) + run_monthly_rebalancing (Notification + suggestions next_month) + job budget_rebalancing 1er du mois + routes + 8 tests)
 212. [M](***) « Journal de vie » auto-généré : snapshot quotidien unifié multi-modules, consultable jour par jour.   ← FINIS ✓ (2026-06-11 — DailySnapshot model + alembic + build_daily_snapshot (habitudes/budget/santé/humeur/entraînement/agenda) + job daily_snapshot 23h55 + routes + /snapshot page + 4 tests backend)
-213. [M](**) Détection d'anomalies de routine (sommeil/poids/dépenses qui dévient) avec alerte proactive.
+213. [M](**) Détection d'anomalies de routine (sommeil/poids/dépenses qui dévient) avec alerte proactive.   ← FINIS ✓ (2026-06-12 — detect_weight_anomaly/detect_sleep_anomaly/detect_expense_anomaly purs + run_anomaly_detection (Notifications) + job anomaly_detection 7h15 + routes GET/POST + 15 tests)
 214. [S](**) Rappels contextuels (heure + lieu si dispo) plutôt que purement horaires.
 215. [M](**) Chaînage d'actions cross-module (« recettes ») avec confirmation unique.
 216. [M](**) File d'automatisations avec historique, ré-exécution et rollback.

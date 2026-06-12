@@ -46,6 +46,13 @@ def run_skincare_reorder(session) -> str:
     return f"{n} produit(s) a renouveler" if n else "stock skincare ok"
 
 
+def run_anomaly_detection(session) -> str:
+    """Détecte les anomalies de poids/sommeil/dépenses (#213)."""
+    from app.services.automatisations.anomalies import run_anomaly_detection as _detect
+    anomalies = _detect(session)
+    return f"{len(anomalies)} anomalie(s) detectee(s)" if anomalies else "aucune anomalie"
+
+
 def run_budget_rebalancing(session) -> str:
     """Rééquilibrage budgétaire du mois précédent (#211), lancé en début de mois."""
     from app.services.automatisations.budget_rebalancing import run_monthly_rebalancing

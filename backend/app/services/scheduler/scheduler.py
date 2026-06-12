@@ -69,3 +69,6 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(run_job, "cron", day=1, hour=7, minute=30,
                       args=["budget_rebalancing", automatisations.run_budget_rebalancing],
                       id="budget_rebalancing", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(run_job, "cron", hour=7, minute=15,
+                      args=["anomaly_detection", automatisations.run_anomaly_detection],
+                      id="anomaly_detection", replace_existing=True, misfire_grace_time=3600)

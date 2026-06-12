@@ -254,3 +254,30 @@ def apply_budget_rebalancing(mois: str | None = None, session: Session = Depends
     m = mois or dt.date.today().strftime("%Y-%m")
     suggestions = run_monthly_rebalancing(session, mois=m)
     return {"mois": m, "suggestions": suggestions, "count": len(suggestions)}
+
+
+# ─── Anomalies (#213) ─────────────────────────────────────────────────────────
+
+@router.get("/anomalies")
+def get_anomalies(session: Session = Depends(get_session)):
+    from app.services.automatisations.anomalies import (
+        detect_weight_anomaly,
+        detect_sleep_anomaly,
+        detect_expense_anomaly,
+        _get_weight_series,
+        _get_sleep_series,
+        _get_weekly_expense_series,
+    )
+    today = dt.date.today()
+    return {
+        "poids": detect_weight_anomaly(_get_weight_series(session, today)),
+        "sommeil": detect_sleep_anomaly(_get_sleep_series(session, today)),
+        "depenses": detect_expense_anomaly(_get_weekly_expense_series(session, today)),
+    }
+
+
+@router.post("/anomalies/check")
+def trigger_anomaly_check(session: Session = Depends(get_session)):
+    from app.services.automatisations.anomalies import run_anomaly_detection
+    anomalies = run_anomaly_detection(session)
+    return {"anomalies": anomalies, "count": len(anomalies)}
