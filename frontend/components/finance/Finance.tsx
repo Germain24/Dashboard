@@ -1,13 +1,86 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, BarChart3, RefreshCw, Star, LayoutGrid, CreditCard } from "lucide-react";
+import { TrendingUp, BarChart3, RefreshCw, Star, LayoutGrid, CreditCard, Target } from "lucide-react";
 import { PortefeuilleTab } from "./PortefeuilleTab";
 import { SuiviTab } from "./SuiviTab";
 import { CompositionTab } from "./CompositionTab";
 import { BuffettTab } from "./BuffettTab";
 import { RebalancingTab } from "./RebalancingTab";
 import { TransactionsTab } from "./TransactionsTab";
+import { useObjectifPatrimoine, useSetObjectifPatrimoine } from "@/lib/queries/finance";
+
+function ObjectifWidget() {
+  const { data, isLoading } = useObjectifPatrimoine();
+  const setObjectif = useSetObjectifPatrimoine();
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState("");
+
+  if (isLoading || !data) return null;
+
+  const pct = Math.min(data.progression_pct, 100);
+  const color = data.atteint ? "var(--success, #22c55e)" : pct >= 75 ? "#f59e0b" : "var(--ring)";
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+
+  return (
+    <div className="flex items-center gap-3 text-sm bg-[var(--muted)] rounded-lg px-3 py-2">
+      <Target size={15} style={{ color }} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[var(--muted-foreground)]">Objectif patrimoine</span>
+          <span className="font-semibold tabular-nums" style={{ color }}>
+            {fmt(data.valeur_eur)} / {fmt(data.objectif_eur)}
+          </span>
+        </div>
+        <div className="mt-1 h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${pct}%`, background: color }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-0.5">
+          <span className="text-[var(--muted-foreground)] text-xs">{pct.toFixed(1)} %</span>
+          {!data.atteint && (
+            <span className="text-[var(--muted-foreground)] text-xs">
+              Reste {fmt(data.restant_eur)}
+            </span>
+          )}
+          {data.atteint && <span className="text-xs font-medium" style={{ color }}>Objectif atteint !</span>}
+        </div>
+      </div>
+      <button
+        onClick={() => { setEditing(true); setVal(String(data.objectif_eur)); }}
+        className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] px-1"
+        title="Modifier l'objectif"
+      >
+        ✏
+      </button>
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditing(false)}>
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 w-72 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold mb-3">Objectif patrimoine</h3>
+            <input
+              type="number"
+              value={val}
+              onChange={e => setVal(e.target.value)}
+              className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-[var(--background)] mb-3"
+              placeholder="300000"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)]">Annuler</button>
+              <button
+                onClick={() => { setObjectif.mutate(Number(val)); setEditing(false); }}
+                className="px-3 py-1.5 text-sm rounded-lg bg-[var(--ring)] text-white"
+              >Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type Tab = "suivi" | "portefeuille" | "composition" | "rebalancing" | "buffett" | "transactions";
 
@@ -30,6 +103,9 @@ export function Finance() {
         <div className="mb-4">
           <h1 className="text-xl font-semibold tracking-tight">Finance</h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Portefeuille long terme</p>
+        </div>
+        <div className="mb-4">
+          <ObjectifWidget />
         </div>
 
         {/* Tabs — style Linear */}

@@ -7,7 +7,7 @@ Tous sont montés sous le même préfixe `/finance` : les URLs sont inchangées.
 
 from fastapi import APIRouter
 
-from . import buffett, portfolio, rebalancing, risk, transactions
+from . import buffett, objectif, portfolio, rebalancing, risk, transactions
 
 router = APIRouter(tags=["finance"])
 router.include_router(portfolio.router)
@@ -15,3 +15,4 @@ router.include_router(risk.router)
 router.include_router(transactions.router)
 router.include_router(buffett.router)
 router.include_router(rebalancing.router)
+router.include_router(objectif.router)

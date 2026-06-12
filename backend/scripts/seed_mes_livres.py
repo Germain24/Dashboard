@@ -1,16 +1,21 @@
-"""Synchronise mes livres personnels dans la base (upsert par titre).
+"""Synchronise mes livres personnels depuis data/mes_livres.json (upsert par titre).
 
 Usage :  uv run python scripts/seed_mes_livres.py
 
+Pour ajouter ou modifier un livre :
+  1. Editer  backend/data/mes_livres.json
+  2. Relancer ce script
+
 Comportement :
-- Nouveau livre  -> cree
-- Livre existant -> met a jour les champs modifies (pages, genre, couverture_url, isbn, auteur)
-  Le statut et page_courante ne sont PAS ecrasés (pour préserver ta progression).
+- Nouveau livre  -> cree en base
+- Livre existant -> met a jour pages / genre / auteur / isbn / couverture_url
+  Le statut et page_courante ne sont PAS ecrases (progression preservee).
 """
 
 from __future__ import annotations
 
 import datetime as dt
+import json
 import sys
 from pathlib import Path
 
@@ -19,52 +24,44 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sqlmodel import Session, select  # noqa: E402
 
 from app.core.db import engine  # noqa: E402
+from app.core.config import settings  # noqa: E402
 from app.models.livres import Book  # noqa: E402
 
-# Champs mis à jour si le livre existe déjà (on ne touche pas statut / page_courante)
+LIVRES_JSON = settings.data_dir / "mes_livres.json"
+
+# Champs mis a jour si le livre existe deja (statut / page_courante preserves)
 UPDATABLE_FIELDS = ["auteur", "isbn", "pages", "genre", "couverture_url"]
 
-LIVRES_INITIAUX: list[dict] = [
-    # ── Finance / Mentalité ───────────────────────────────────────────────────
-    {
-        "titre": "Same as Ever: A Guide to What Never Changes",
-        "auteur": "Morgan Housel",
-        "isbn": "9780593332702",
-        "pages": 240,
-        "genre": "Psychologie comportementale et sociale",
-        "statut": "a_lire",
-        "couverture_url": "https://m.media-amazon.com/images/I/417ycDMhl5L._SY445_SX342_ML2_.jpg",
-    },
-    # ── Sport / Musculation ───────────────────────────────────────────────────
-    {
-        "titre": "Muscle Ladder: Get Jacked Using Science",
-        "auteur": "Jeff Nippard",
-        "isbn": "1628604867",
-        "pages": 390,
-        "genre": "Science du sport et de l'exercice",
-        "statut": "a_lire",
-        "couverture_url": "https://www.indigo.ca/cdn/shop/files/image_00ce1607-896f-4323-b76f-46445faacf8a.jpg?v=1757685494&width=299",
-    },
-    # ── Ajoute tes autres livres ici ─────────────────────────────────────────
-    # {
-    #     "titre": "...",
-    #     "auteur": "...",
-    #     "isbn": None,
-    #     "pages": None,
-    #     "genre": "...",       # Essai / Roman / SF / Sport / Finance / Informatique / etc.
-    #     "statut": "a_lire",   # "a_lire" | "en_cours" | "lu" | "abandonne"
-    #     "couverture_url": None,
-    # },
-]
+
+def load_livres() -> list[dict]:
+    if not LIVRES_JSON.exists():
+        print(f"Fichier introuvable : {LIVRES_JSON}")
+        print("Creez ce fichier JSON avec une liste de livres.")
+        return []
+    try:
+        data = json.loads(LIVRES_JSON.read_text(encoding="utf-8"))
+        if not isinstance(data, list):
+            print("ERREUR : mes_livres.json doit contenir une liste JSON.")
+            return []
+        return data
+    except json.JSONDecodeError as e:
+        print(f"ERREUR JSON : {e}")
+        return []
 
 
 def main() -> None:
-    added = 0
-    updated = 0
+    livres = load_livres()
+    if not livres:
+        return
+
+    added = updated = 0
     with Session(engine) as session:
         existing = {b.titre: b for b in session.exec(select(Book)).all()}
-        for data in LIVRES_INITIAUX:
-            titre = data["titre"]
+        for data in livres:
+            titre = data.get("titre", "").strip()
+            if not titre:
+                print("  [ignore] entree sans titre")
+                continue
             if titre in existing:
                 book = existing[titre]
                 changed = []
@@ -91,11 +88,12 @@ def main() -> None:
                     created_at=dt.datetime.utcnow(),
                 )
                 session.add(book)
-                print(f"  [+]   {titre} ({book.auteur})")
+                print(f"  [+]   {titre}")
                 added += 1
         session.commit()
 
     print(f"\nOK: {added} ajoute(s), {updated} mis a jour.")
+    print(f"Source : {LIVRES_JSON}")
 
 
 if __name__ == "__main__":

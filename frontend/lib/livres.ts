@@ -108,3 +108,7 @@ export const createReadingSession = (
   id: number, data: { date: string; duree_minutes: number; page_debut?: number | null; page_fin?: number | null },
 ) =>
   fetch(`${BASE}/books/${id}/sessions`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(data) }).then(json)
+
+
+export const syncFromJson = (): Promise<{ added: number; updated: number; source: string }> =>
+  fetch(`${BASE}/sync-from-json`, { method: 'POST' }).then(json)

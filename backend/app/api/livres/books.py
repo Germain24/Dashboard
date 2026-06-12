@@ -55,6 +55,55 @@ def delete_book(id: int, session: Session = Depends(get_session)):
         raise HTTPException(404)
 
 
+@router.post("/sync-from-json")
+def sync_from_json(session: Session = Depends(get_session)):
+    """Synchronise la bibliothèque depuis data/mes_livres.json (upsert par titre).
+
+    Équivalent à relancer scripts/seed_mes_livres.py depuis l'interface.
+    """
+    import datetime as dt
+    import json
+    from app.core.config import settings as _settings
+
+    path = _settings.data_dir / "mes_livres.json"
+    if not path.exists():
+        raise HTTPException(404, detail=f"Fichier introuvable : {path}")
+    try:
+        livres = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(400, detail=f"JSON invalide : {e}")
+
+    UPDATABLE = ["auteur", "isbn", "pages", "genre", "couverture_url"]
+    existing = {b.titre: b for b in session.exec(select(books_svc.Book)).all()}
+    added = updated = 0
+    for data in livres:
+        titre = data.get("titre", "").strip()
+        if not titre:
+            continue
+        if titre in existing:
+            book = existing[titre]
+            changed = [f for f in UPDATABLE if data.get(f) is not None and getattr(book, f) != data[f]]
+            for f in changed:
+                setattr(book, f, data[f])
+            if changed:
+                session.add(book)
+                updated += 1
+        else:
+            session.add(books_svc.Book(
+                titre=titre,
+                auteur=data.get("auteur", ""),
+                isbn=data.get("isbn"),
+                pages=data.get("pages"),
+                genre=data.get("genre", ""),
+                statut=data.get("statut", "a_lire"),
+                couverture_url=data.get("couverture_url"),
+                created_at=dt.datetime.utcnow(),
+            ))
+            added += 1
+    session.commit()
+    return {"added": added, "updated": updated, "source": str(path)}
+
+
 @router.get("/books/{id}/estimate")
 def estimate(id: int, session: Session = Depends(get_session)):
     """Temps de lecture restant estimé selon le rythme (#150)."""

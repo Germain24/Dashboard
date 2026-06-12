@@ -17,6 +17,8 @@ DEFAULT_PREFS: dict = {
     "notification_retention_days": 30,
     "music_dir": "C:/Users/germa/Music",
     "mode_vacances": False,
+    # Objectif patrimonial d'investissement (montant cible en EUR)
+    "objectif_patrimoine_eur": 300_000,
 }
 
 _ALLOWED_KEYS = set(DEFAULT_PREFS.keys())

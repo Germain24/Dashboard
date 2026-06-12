@@ -76,3 +76,25 @@ export function useCreatePosition() {
     },
   });
 }
+
+/** Objectif patrimoine — lecture + mise à jour. */
+export const financeObjectifKeys = {
+  objectif: () => [...financeKeys.all, "objectif-patrimoine"] as const,
+};
+
+export function useObjectifPatrimoine() {
+  return useQuery({
+    queryKey: financeObjectifKeys.objectif(),
+    queryFn: () => financeApi.objectifPatrimoine(),
+  });
+}
+
+export function useSetObjectifPatrimoine() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (objectif_eur: number) => financeApi.setObjectifPatrimoine(objectif_eur),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: financeObjectifKeys.objectif() });
+    },
+  });
+}

@@ -313,4 +313,18 @@ export const financeApi = {
 
   // Rebalancing
   rebalancing: () => get<RebalancingDiff | null>("/rebalancing/diff"),
+
+  // Objectif patrimoine
+  objectifPatrimoine: () =>
+    get<{
+      objectif_eur: number;
+      valeur_eur: number;
+      valeur_cad: number;
+      taux_cad_eur: number;
+      progression_pct: number;
+      restant_eur: number;
+      atteint: boolean;
+    }>("/objectif-patrimoine"),
+  setObjectifPatrimoine: (objectif_eur: number) =>
+    post<{ objectif_eur: number }>("/objectif-patrimoine", { objectif_eur }),
 };

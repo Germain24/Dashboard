@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { BookOpen, Clock, CheckCircle2, Bookmark, XCircle, Plus, Search, X } from 'lucide-react'
+import { BookOpen, Clock, CheckCircle2, Bookmark, XCircle, Plus, Search, X, RefreshCw } from 'lucide-react'
 import type { Book, Statut, SearchResult } from '@/lib/livres'
-import { searchBooks } from '@/lib/livres'
+import { searchBooks, syncFromJson } from '@/lib/livres'
 import { useBooks, useCreateBook, useUpdateBook } from '@/lib/queries/livres'
 import { Skeleton } from '@/components/ui/skeleton'
 import BookDetailModal from '@/components/livres/BookDetailModal'
@@ -45,6 +45,7 @@ export default function BibliothequeTab() {
 
   const booksQ = useBooks({ sort: sort === 'note' ? 'note' : undefined })
   const livres: Book[] | null = booksQ.isError ? [] : booksQ.data ?? null
+  const refetch = () => booksQ.refetch()
   const updateMutation = useUpdateBook()
 
   const setNote = (b: Book, note: number) => {
@@ -106,12 +107,29 @@ export default function BibliothequeTab() {
             </select>
           </label>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 rounded-md bg-[var(--primary)] px-3 py-2 text-sm font-medium text-[var(--primary-foreground)] hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" /> Ajouter
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              try {
+                const r = await syncFromJson()
+                toast.success(`Sync JSON : ${r.added} ajouté(s), ${r.updated} mis à jour`)
+                refetch()
+              } catch {
+                toast.error('Erreur lors de la synchronisation')
+              }
+            }}
+            className="flex items-center gap-1.5 rounded-md border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--muted)]"
+            title="Synchroniser depuis data/mes_livres.json"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Sync JSON
+          </button>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 rounded-md bg-[var(--primary)] px-3 py-2 text-sm font-medium text-[var(--primary-foreground)] hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" /> Ajouter
+          </button>
+        </div>
       </div>
 
       {/* Liste */}

@@ -1,0 +1,20 @@
+[
+  {
+    "titre": "Same as Ever: A Guide to What Never Changes",
+    "auteur": "Morgan Housel",
+    "isbn": "9780593332702",
+    "pages": 240,
+    "genre": "Psychologie comportementale et sociale",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/417ycDMhl5L._SY445_SX342_ML2_.jpg"
+  },
+  {
+    "titre": "Muscle Ladder: Get Jacked Using Science",
+    "auteur": "Jeff Nippard",
+    "isbn": "1628604867",
+    "pages": 390,
+    "genre": "Science du sport et de l'exercice",
+    "statut": "a_lire",
+    "couverture_url": "https://www.indigo.ca/cdn/shop/files/image_00ce1607-896f-4323-b76f-46445faacf8a.jpg?v=1757685494&width=299"
+  }
+]
