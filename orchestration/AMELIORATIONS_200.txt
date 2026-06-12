@@ -333,10 +333,10 @@ modules & pages, intégrations, complétude maximale. Même légende d'effort/im
 --------------------------------------------------------------------------------
 T. AUTOMATISATIONS DE VIE & ROUTINES (201-220)
 --------------------------------------------------------------------------------
-201. [M](***) Moteur de routines déclaratif : décrire une routine (déclencheur → conditions → actions) en UI/YAML et l'exécuter via le scheduler.
+201. [M](***) Moteur de routines déclaratif : décrire une routine (déclencheur → conditions → actions) en UI/YAML et l'exécuter via le scheduler.   ← FINIS ✓ (2026-06-11 — Routine model + alembic + engine CRUD + execute_routine (notify|job) + routes CRUD+run + /routines page + lib/routines.ts + queries + 5 vitest + 8 tests backend)
 202. [M](***) Bus d'événements interne : réagir à un événement métier (nouvelle transaction, poids saisi, séance loggée) et pas seulement au cron.   ← FINIS ✓ (2026-06-10) app/core/events.py : EventBus publish/subscribe thread-safe en mémoire (mono-process, cohérent cache #11 / rate limit #193) + Event immuable horodaté UTC + helper emit() + désabonnement + WILDCARD ; handler en échec isolé (les autres reçoivent, exception journalisée, jamais propagée à l'émetteur) ; classe Events = noms canoniques `module.action`. Câblage de référence : create_transaction publie budget.transaction_created. Fondation des automatisations T (déclencheurs #201 routines, briefings #203/#204, anomalies #213). Tests TDD (tests/test_events.py, 11 cas + intégration DB). NB : pris avant #201 car les déclencheurs événementiels des routines en dépendent.
-203. [M](**) Routine matinale auto : briefing du jour (météo, agenda, tâches, macro cible, tenue suggérée) poussé en notification à heure fixe.
-204. [M](**) Routine du soir : récap journée (dépenses, calories, habitudes, demain) + préparation du lendemain.
+203. [M](**) Routine matinale auto : briefing du jour (météo, agenda, tâches, macro cible, tenue suggérée) poussé en notification à heure fixe.   ← FINIS ✓ (2026-06-11 — build_morning_briefing + job briefing_matin (cron 7h) + 3 tests)
+204. [M](**) Routine du soir : récap journée (dépenses, calories, habitudes, demain) + préparation du lendemain.   ← FINIS ✓ (2026-06-11 — build_evening_recap + job recap_soir (cron 21h) + 3 tests)
 205. [L](***) Constructeur d'automatisations no-code visuel (« if this then that ») entre modules.
 206. [M](**) Modèles de routines prêts à l'emploi (semaine type, jour sport, jour off) activables en un clic.
 207. [S](**) Mode « vacances/absence » qui suspend les rappels non essentiels et adapte les routines.

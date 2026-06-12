@@ -16,6 +16,7 @@ def get_scheduler(db_url: str | None = None) -> AsyncIOScheduler:
 def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     from app.services.scheduler.jobs import (
         agenda_reminders,
+        automatisations,
         backup_db,
         habit_reminders,
         ical_sync,
@@ -49,3 +50,9 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(run_job, "cron", hour=4, minute=0,
                       args=["purge_old", purge.run],
                       id="purge_old", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(run_job, "cron", hour=7, minute=0,
+                      args=["briefing_matin", automatisations.run_briefing_matin],
+                      id="briefing_matin", replace_existing=True, misfire_grace_time=3600)
+    scheduler.add_job(run_job, "cron", hour=21, minute=0,
+                      args=["recap_soir", automatisations.run_recap_soir],
+                      id="recap_soir", replace_existing=True, misfire_grace_time=3600)

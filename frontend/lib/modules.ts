@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Tv,
   Wallet,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -219,6 +220,14 @@ export const MODULES: Module[] = [
     label: "Paramètres",
     description: "Intégrations, préférences, rétention.",
     icon: Settings,
+    group: "Système",
+    ready: true,
+  },
+  {
+    slug: "routines",
+    label: "Routines",
+    description: "Automatisations déclenchées par cron ou événement.",
+    icon: Zap,
     group: "Système",
     ready: true,
   },

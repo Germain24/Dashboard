@@ -25,6 +25,7 @@ from app.api.sante import router as sante_router
 from app.api.scheduler import router as scheduler_router
 from app.api.documents import router as documents_router
 from app.api.films_series import router as films_series_router
+from app.api.routines import router as routines_router
 from app.api.search import router as search_router
 from app.api.settings import router as settings_router
 from app.api.skincare import router as skincare_router
@@ -51,3 +52,4 @@ api_router.include_router(skincare_router, prefix="/skincare")
 api_router.include_router(data_router, prefix="/data")
 api_router.include_router(settings_router)
 api_router.include_router(search_router)
+api_router.include_router(routines_router, prefix="/automatisations", tags=["automatisations"])
