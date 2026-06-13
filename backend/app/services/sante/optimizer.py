@@ -57,6 +57,7 @@ _OPT_NUTRIENT_MAP: list[tuple[str, str]] = [
     ("Sélénium", "Selenium"),
     ("Phosphore", "Phosphore"),
     ("Sucres_Max", "TotalSugars"),
+    ("AGSatures_Max", "AG satures"),
 ]
 
 _WEIGHTS: dict[str, float] = {
@@ -67,6 +68,7 @@ _WEIGHTS: dict[str, float] = {
     "TotalSugars": 500.0,
     "Sodium": 500.0,
     "Cholesterol": 500.0,
+    "AG satures": 500.0,
 }
 
 # Nutriments "max" — clés CSV

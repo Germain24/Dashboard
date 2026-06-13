@@ -40,6 +40,8 @@ DAILY_BASE_TARGETS_NUTRIENTS: dict[str, float] = {
     "Zinc": 11.0,
     "Cholesterol_Max": 300.0,
     "Sucres_Max": 50.0,
+    # AGSatures_Max n'est PAS fixe : calculé par calculate_daily_targets à
+    # ≈10 % des calories (OMS/AHA), donc proportionnel à la cible énergétique.
 }
 
 DEFAULT_PRIX_MAX_DAILY: float = 18.0  # CAD/jour, valeur legacy
@@ -83,13 +85,16 @@ NUTRIENT_KEY_TO_CSV: dict[str, str] = {
     "Sélénium": "Selenium",
     "Zinc": "Zinc",
     "Sucres_Max": "TotalSugars",  # synthétique = somme de tous les sucres
+    "AGSatures_Max": "AG satures",  # plafond gras saturés (≈10 % des calories)
 }
 
 # Inverse pour les totaux
 CSV_TO_NUTRIENT_KEY: dict[str, str] = {v: k for k, v in NUTRIENT_KEY_TO_CSV.items()}
 
 # Nutriments "max" : pénalisés quand dépassés, pas quand sous le seuil
-TRACKED_MAX_NUTRIENTS: list[str] = ["Sodium_Max", "Cholesterol_Max", "Sucres_Max"]
+TRACKED_MAX_NUTRIENTS: list[str] = [
+    "Sodium_Max", "Cholesterol_Max", "Sucres_Max", "AGSatures_Max",
+]
 
 # Sucres décomposés dans le CSV (somme = TotalSugars)
 SUGAR_COMPONENTS: list[str] = ["Glucose", "Fructose", "Galactose", "Saccharose", "Lactose"]

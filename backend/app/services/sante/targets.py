@@ -71,6 +71,10 @@ def calculate_daily_targets(
         "Protéines": proteins,
         "Lipides": lipids,
         "Glucides": glucides,
+        # Plafond gras saturés ≈ 10 % des calories (OMS/AHA), proportionnel à la
+        # cible énergétique. Pénalisé en dépassement -> écarte l'optimiseur des
+        # graisses saturées bon marché (huile de coco) vers les gras insaturés.
+        "AGSatures_Max": cals * 0.10 / 9.0,
         **DAILY_BASE_TARGETS_NUTRIENTS,
         "Prix_Max": prix_max_daily,
         "Poids_Corps": p,
