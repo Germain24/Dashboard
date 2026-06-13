@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.models.routines import Routine
 from app.models.scheduler import Notification, JobRun
@@ -64,7 +64,9 @@ def test_execute_notify_action(session):
     )
     result = execute_routine(session, r.id)
     assert "notif créée" in result
-    notifs = session.query(Notification).filter_by(source=f"routine_{r.id}").all()
+    notifs = session.exec(
+        select(Notification).where(Notification.source == f"routine_{r.id}")
+    ).all()
     assert len(notifs) == 1
     assert notifs[0].titre == "Test"
 
