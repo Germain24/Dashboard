@@ -11,6 +11,7 @@ import datetime as dt
 from app.models.scheduler import Notification
 from app.services.agenda.reminders import (
     due_events,
+    format_reminder,
     load_reminded,
     reminder_key,
     save_reminded,
@@ -43,9 +44,7 @@ def run(session) -> str:
         key = reminder_key(e.get("titre", "Événement"), e["debut"])
         if key in reminded:
             continue
-        heure = e["debut"].strftime("%H:%M")
-        lieu = e.get("lieu")
-        message = f"À {heure}" + (f" · {lieu}" if lieu else "")
+        message = format_reminder(e["debut"], now, e.get("lieu"))
         session.add(Notification(
             source="agenda_reminder",
             level="info",

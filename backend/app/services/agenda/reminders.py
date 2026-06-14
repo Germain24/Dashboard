@@ -26,6 +26,22 @@ def reminder_key(titre: str, debut: dt.datetime) -> str:
     return f"{debut.strftime('%Y-%m-%dT%H:%M')}|{titre}"
 
 
+def format_reminder(
+    debut: dt.datetime, now: dt.datetime, lieu: Optional[str] = None
+) -> str:
+    """Message de rappel contextuel (#214) : temps relatif + heure + lieu si dispo.
+
+    Ex. « dans 25 min · 14:30 · Local B-2045 ». Plus actionnable qu'un simple
+    « À 14:30 » : on sait *dans combien de temps* et *où*.
+    """
+    mins = round((debut - now).total_seconds() / 60)
+    quand = "maintenant" if mins <= 0 else f"dans {mins} min"
+    msg = f"{quand} · {debut.strftime('%H:%M')}"
+    if lieu:
+        msg += f" · {lieu}"
+    return msg
+
+
 def due_events(
     events: list[dict[str, Any]],
     now: dt.datetime,
