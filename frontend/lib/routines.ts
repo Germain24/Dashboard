@@ -79,3 +79,15 @@ export type BuilderOptions = {
 
 export const fetchBuilderOptions = (): Promise<BuilderOptions> =>
   fetch(`${BASE}/routines/builder-options`).then(json)
+
+// ── Recettes cross-module (#215) ─────────────────────────────────────────────
+
+export type Recipe = {
+  id: string; name: string; emoji: string; description: string; nb_actions: number
+}
+
+export const fetchRecipes = (): Promise<Recipe[]> =>
+  fetch(`${BASE}/recipes`).then(json)
+
+export const runRecipe = (id: string): Promise<{ result: string }> =>
+  fetch(`${BASE}/recipes/${id}/run`, { method: 'POST' }).then(json)

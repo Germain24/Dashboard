@@ -8,6 +8,7 @@ import { ModuleHeader } from '@/components/layout'
 import {
   useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine,
   useKillSwitch, useSetKillSwitch, useRoutineRuns, useBuilderOptions,
+  useRecipes, useRunRecipe,
 } from '@/lib/queries/routines'
 import type { Routine, RoutineAction } from '@/lib/routines'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -301,6 +302,8 @@ function RoutinesContent() {
         </button>
       </div>
 
+      <RecipesSection />
+
       <div className="space-y-3 mb-6">
         <h2 className="text-xs font-semibold text-[var(--muted-foreground)]">Intégrées</h2>
         <BuiltinCard
@@ -382,6 +385,55 @@ function KillSwitchBanner() {
       >
         {on ? 'Réactiver' : 'Tout couper'}
       </button>
+    </div>
+  )
+}
+
+/** Recettes : chaînes d'actions cross-module lancées à la demande (#215).
+ *  Confirmation unique en deux temps (Lancer → Confirmer). */
+function RecipesSection() {
+  const { data: recipes } = useRecipes()
+  const run = useRunRecipe()
+  const [confirming, setConfirming] = useState<string | null>(null)
+
+  if (!recipes?.length) return null
+
+  const launch = (id: string) => {
+    run.mutate(id, {
+      onSuccess: (r) => toast.success(r.result?.startsWith('bloqu') ? 'Bloqué (kill switch)' : 'Recette lancée'),
+      onError: () => toast.error('Échec de la recette'),
+    })
+    setConfirming(null)
+  }
+
+  return (
+    <div className="space-y-3 mb-6">
+      <h2 className="text-xs font-semibold text-[var(--muted-foreground)]">Recettes (lancer à la demande)</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {recipes.map((rec) => (
+          <div key={rec.id} className="flex flex-col rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+            <p className="text-sm font-medium text-[var(--foreground)]">{rec.emoji} {rec.name}</p>
+            <p className="mt-1 flex-1 text-xs text-[var(--muted-foreground)]">{rec.description}</p>
+            <p className="mt-2 text-[11px] text-[var(--muted-foreground)]">{rec.nb_actions} action{rec.nb_actions > 1 ? 's' : ''} enchaînées</p>
+            {confirming === rec.id ? (
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => launch(rec.id)} disabled={run.isPending}
+                  className="flex-1 rounded-lg bg-[var(--primary)] py-1.5 text-xs font-medium text-[var(--primary-foreground)] disabled:opacity-40">
+                  Confirmer ?
+                </button>
+                <button onClick={() => setConfirming(null)} className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs">
+                  Annuler
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirming(rec.id)}
+                className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] py-1.5 text-xs font-medium hover:bg-[var(--accent)]">
+                <Play size={13} /> Lancer
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

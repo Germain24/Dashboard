@@ -128,6 +128,24 @@ def routine_builder_options():
     return builder_options()
 
 
+# ─── Recettes cross-module (#215) ─────────────────────────────────────────────
+
+@router.get("/recipes")
+def list_recipes():
+    """Recettes (chaînes d'actions cross-module) lançables à la demande."""
+    from app.services.automatisations.recipes import get_recipes
+    return get_recipes()
+
+
+@router.post("/recipes/{recipe_id}/run")
+def run_recipe_endpoint(recipe_id: str, session: Session = Depends(get_session)):
+    """Exécute une recette (avec confirmation unique côté UI)."""
+    from app.services.automatisations.recipes import get_recipe, run_recipe
+    if get_recipe(recipe_id) is None:
+        raise HTTPException(404, detail="Recette introuvable")
+    return {"result": run_recipe(session, recipe_id)}
+
+
 # ─── Templates (#206) ─────────────────────────────────────────────────────────
 
 @router.get("/templates")

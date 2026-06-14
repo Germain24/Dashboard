@@ -81,6 +81,37 @@ def _log_run(session: Session, routine: Routine, status: str, detail: str) -> No
     ))
 
 
+def run_action_list(session: Session, actions: list[dict], *, source: str) -> tuple[str, str]:
+    """Exécute une liste d'actions (notify/job). Retourne (status, detail).
+
+    Réutilisé par les routines ET les recettes (#215). N'engage pas le commit
+    (laissé à l'appelant). `source` préfixe les notifications créées.
+    """
+    results: list[str] = []
+    status = "ok"
+    try:
+        for action in actions:
+            t = action.get("type")
+            if t == "notify":
+                session.add(Notification(
+                    source=source,
+                    level=action.get("level", "info"),
+                    titre=action.get("titre", "Routine"),
+                    message=action.get("message", ""),
+                ))
+                results.append("notif créée")
+            elif t == "job":
+                job_id = action.get("job_id", "")
+                _trigger_job_now(job_id)
+                results.append(f"job {job_id!r} déclenché")
+            else:
+                results.append(f"action inconnue: {t!r}")
+    except Exception as exc:  # une action a échoué -> "error"
+        status = "error"
+        results.append(f"erreur: {exc}")
+    return status, ("; ".join(results) or "ok")
+
+
 def execute_routine(session: Session, routine_id: int) -> str:
     """Exécute les actions d'une routine et met à jour last_run_at.
 
@@ -99,33 +130,10 @@ def execute_routine(session: Session, routine_id: int) -> str:
         return "bloqué (kill switch global actif)"
 
     actions = json.loads(routine.actions)
-    results: list[str] = []
-    status = "ok"
-
-    try:
-        for action in actions:
-            t = action.get("type")
-            if t == "notify":
-                session.add(Notification(
-                    source=f"routine_{routine_id}",
-                    level=action.get("level", "info"),
-                    titre=action.get("titre", "Routine"),
-                    message=action.get("message", ""),
-                ))
-                results.append("notif créée")
-            elif t == "job":
-                job_id = action.get("job_id", "")
-                _trigger_job_now(job_id)
-                results.append(f"job {job_id!r} déclenché")
-            else:
-                results.append(f"action inconnue: {t!r}")
-    except Exception as exc:  # une action a échoué -> audit "error"
-        status = "error"
-        results.append(f"erreur: {exc}")
+    status, detail = run_action_list(session, actions, source=f"routine_{routine_id}")
 
     routine.last_run_at = utcnow()
     session.add(routine)
-    detail = "; ".join(results) or "ok"
     _log_run(session, routine, status, detail)
     session.commit()
     return detail

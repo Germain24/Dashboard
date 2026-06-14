@@ -4,8 +4,10 @@ import {
   deleteRoutine,
   fetchBuilderOptions,
   fetchKillSwitch,
+  fetchRecipes,
   fetchRoutineRuns,
   fetchRoutines,
+  runRecipe,
   runRoutine,
   setKillSwitch,
   updateRoutine,
@@ -71,3 +73,14 @@ export const useRoutineRuns = (limit = 30) =>
 
 export const useBuilderOptions = () =>
   useQuery({ queryKey: ['routines', 'builder-options'], queryFn: fetchBuilderOptions, staleTime: Infinity })
+
+export const useRecipes = () =>
+  useQuery({ queryKey: ['routines', 'recipes'], queryFn: fetchRecipes, staleTime: Infinity })
+
+export const useRunRecipe = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => runRecipe(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.runs() }),
+  })
+}
