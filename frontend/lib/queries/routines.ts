@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createRoutine,
   deleteRoutine,
+  fetchBuilderOptions,
   fetchKillSwitch,
   fetchRoutineRuns,
   fetchRoutines,
@@ -67,3 +68,6 @@ export const useSetKillSwitch = () => {
 
 export const useRoutineRuns = (limit = 30) =>
   useQuery({ queryKey: routinesKeys.runs(), queryFn: () => fetchRoutineRuns(limit) })
+
+export const useBuilderOptions = () =>
+  useQuery({ queryKey: ['routines', 'builder-options'], queryFn: fetchBuilderOptions, staleTime: Infinity })

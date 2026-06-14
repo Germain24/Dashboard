@@ -68,3 +68,14 @@ export const setKillSwitch = (enabled: boolean): Promise<{ enabled: boolean }> =
 
 export const fetchRoutineRuns = (limit = 30): Promise<RoutineRun[]> =>
   fetch(`${BASE}/routines/runs?limit=${limit}`).then(json)
+
+// ── Constructeur no-code (#205) ──────────────────────────────────────────────
+
+export type BuilderOptions = {
+  events: { value: string; label: string }[]
+  jobs: { id: string; label: string }[]
+  action_types: { type: string; label: string }[]
+}
+
+export const fetchBuilderOptions = (): Promise<BuilderOptions> =>
+  fetch(`${BASE}/routines/builder-options`).then(json)

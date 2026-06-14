@@ -121,6 +121,13 @@ def list_routine_runs(
     return [r.model_dump() for r in runs]
 
 
+@router.get("/routines/builder-options")
+def routine_builder_options():
+    """Options du constructeur no-code : événements, jobs, types d'action (#205)."""
+    from app.services.automatisations.builder import builder_options
+    return builder_options()
+
+
 # ─── Templates (#206) ─────────────────────────────────────────────────────────
 
 @router.get("/templates")
