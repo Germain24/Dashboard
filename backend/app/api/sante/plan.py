@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import secrets
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -163,7 +164,10 @@ def generate_plan(payload: PlanGenerateRequest, session: Session = Depends(get_s
     if df.empty:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Catalogue aliments vide.")
     budget = payload.budget_max_daily if payload.budget_max_daily is not None else comp.get("Prix_Max")
-    plan_items, warning = optimize_nutrition(df, comp, budget_max_daily=budget)
+    # « Re-générer » (force=True) : seed aléatoire -> un plan différent à chaque
+    # clic. Première génération du jour (force=False) : déterministe (seed=None).
+    seed = secrets.randbelow(2**31) if payload.force else None
+    plan_items, warning = optimize_nutrition(df, comp, budget_max_daily=budget, seed=seed)
     if plan_items is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, warning or "Optimisation impossible")
     quantites = {it["Aliment"]: float(it["Quantite_g"]) for it in plan_items}

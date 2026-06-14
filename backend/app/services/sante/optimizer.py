@@ -82,6 +82,7 @@ def optimize_nutrition(
     df: pd.DataFrame,
     targets: dict[str, float],
     budget_max_daily: Optional[float] = None,
+    seed: Optional[int] = None,
 ) -> tuple[list[dict[str, Any]] | None, str]:
     """Optimise le plan alimentaire pour atteindre les cibles données.
 
@@ -91,6 +92,9 @@ def optimize_nutrition(
                  Glucides, Poids_Corps + les micronutriments.
         budget_max_daily: budget CAD/jour. Si None, prend `targets["Prix_Max"]`
                           ou DEFAULT_PRIX_MAX_DAILY.
+        seed: si fourni, perturbe le point de départ SLSQP (jitter aléatoire
+              reproductible) pour obtenir un plan DIFFÉRENT à chaque « Re-générer »
+              sans changer les contraintes ni l'objectif. None = déterministe.
 
     Returns:
         (plan, warning) :
@@ -125,6 +129,14 @@ def optimize_nutrition(
     cal_arr = df["Energie"].values
     prot_arr = df["Proteines"].values
 
+    # Vecteur de « préférence » aléatoire (variété du Re-générer) : un petit coût
+    # linéaire par aliment, seedé. Assez grand pour départager différemment les
+    # aliments nutritionnellement ≈ équivalents, assez petit pour ne pas dégrader
+    # l'atteinte des cibles. seed=None -> vecteur nul -> résultat déterministe.
+    taste_arr = np.zeros(num_foods)
+    if seed is not None:
+        taste_arr = np.random.default_rng(seed).uniform(0.0, 0.5, num_foods)
+
     def objective(x: np.ndarray) -> float:
         error = 0.0
         for csv_col, target_val, weight in nutrient_targets:
@@ -153,6 +165,8 @@ def optimize_nutrition(
 
         # Petite pénalité prix : favorise les options moins chères à nutrition équivalente
         error += 0.001 * float(np.dot(x, prix_arr))
+        # Préférence aléatoire (variété) — nulle si seed=None.
+        error += float(np.dot(x, taste_arr))
         return error
 
     # Contraintes dures : budget, calories min, protéines min
@@ -206,6 +220,16 @@ def optimize_nutrition(
             x0[i] = 0.05
         lo, hi = bounds[i]
         x0[i] = max(lo, min(x0[i], hi))
+
+    # Variété (« Re-générer ») : un jitter aléatoire du point de départ amène
+    # SLSQP vers un autre optimum local ≈ équivalent -> un plan différent (autres
+    # aliments) mais tout aussi valide. Contraintes et objectif inchangés.
+    if seed is not None:
+        rng = np.random.default_rng(seed)
+        for i in range(num_foods):
+            lo, hi = bounds[i]
+            x0[i] = x0[i] * rng.uniform(0.3, 1.7) + rng.uniform(0.0, 0.2)
+            x0[i] = max(lo, min(x0[i], hi))
 
     res = minimize(
         objective, x0,
