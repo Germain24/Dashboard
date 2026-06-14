@@ -2,9 +2,13 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Zap, Play, Trash2, Plus, X, Clock, Radio } from 'lucide-react'
+import { Zap, Play, Trash2, Plus, X, Clock, Radio, ShieldAlert, History } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine } from '@/lib/queries/routines'
+import { ModuleHeader } from '@/components/layout'
+import {
+  useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine,
+  useKillSwitch, useSetKillSwitch, useRoutineRuns,
+} from '@/lib/queries/routines'
 import type { Routine } from '@/lib/routines'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -192,6 +196,8 @@ function RoutinesContent() {
 
   return (
     <div>
+      <KillSwitchBanner />
+
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-[var(--muted-foreground)]">
           {routines?.length ?? 0} routine{(routines?.length ?? 0) > 1 ? 's' : ''} configurée{(routines?.length ?? 0) > 1 ? 's' : ''}
@@ -205,7 +211,7 @@ function RoutinesContent() {
       </div>
 
       <div className="space-y-3 mb-6">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">Intégrées</h2>
+        <h2 className="text-xs font-semibold text-[var(--muted-foreground)]">Intégrées</h2>
         <BuiltinCard
           id="briefing_matin"
           label="☀️ Briefing matin"
@@ -221,7 +227,7 @@ function RoutinesContent() {
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">Personnalisées</h2>
+        <h2 className="text-xs font-semibold text-[var(--muted-foreground)]">Personnalisées</h2>
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 2 }).map((_, i) => (
@@ -239,7 +245,89 @@ function RoutinesContent() {
         )}
       </div>
 
+      <AuditLog />
+
       {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
+    </div>
+  )
+}
+
+/** Kill switch global (#217) : coupe toutes les automatisations d'un coup. */
+function KillSwitchBanner() {
+  const { data } = useKillSwitch()
+  const setKill = useSetKillSwitch()
+  const on = data?.enabled ?? false
+  return (
+    <div
+      className={`mb-6 flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border px-4 py-3 ${
+        on
+          ? 'border-[var(--destructive)] bg-[var(--destructive-muted)]'
+          : 'border-[var(--glass-border)] bg-[var(--card)] backdrop-blur-[var(--glass-blur)]'
+      }`}
+    >
+      <div className="flex items-center gap-2.5">
+        <ShieldAlert size={18} className={on ? 'text-[var(--destructive)]' : 'text-[var(--muted-foreground)]'} />
+        <div>
+          <p className="text-sm font-medium text-[var(--foreground)]">
+            {on ? 'Automatisations désactivées' : 'Kill switch global'}
+          </p>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            {on
+              ? 'Aucune routine ne s’exécute (manuelle ou planifiée). Chaque tentative est journalisée.'
+              : 'Coupe toutes les automatisations d’un seul interrupteur en cas de besoin.'}
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => setKill.mutate(!on)}
+        disabled={setKill.isPending}
+        aria-pressed={on}
+        className={`shrink-0 rounded-[var(--radius-full)] px-3.5 py-1.5 text-sm font-medium transition-colors ${
+          on
+            ? 'bg-[var(--destructive)] text-[var(--destructive-foreground)]'
+            : 'border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--accent)]'
+        }`}
+      >
+        {on ? 'Réactiver' : 'Tout couper'}
+      </button>
+    </div>
+  )
+}
+
+/** Journal d'audit des déclenchements (#217). */
+function AuditLog() {
+  const { data: runs } = useRoutineRuns(20)
+  if (!runs?.length) return null
+  const STATUS: Record<string, { label: string; cls: string }> = {
+    ok: { label: 'OK', cls: 'bg-[var(--success-muted)] text-[var(--success-foreground)]' },
+    blocked: { label: 'Bloqué', cls: 'bg-[var(--warning-muted)] text-[var(--warning-foreground)]' },
+    error: { label: 'Erreur', cls: 'bg-[var(--destructive-muted)] text-[var(--destructive-foreground)]' },
+  }
+  return (
+    <div className="mt-8">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
+        <History size={13} /> Journal des déclenchements
+      </h2>
+      <ul className="divide-y divide-[var(--glass-border)] rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)]">
+        {runs.map((run) => {
+          const s = STATUS[run.status] ?? STATUS.ok
+          return (
+            <li key={run.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+              <span className={`shrink-0 rounded-[var(--radius-full)] px-2 py-0.5 text-[11px] font-medium ${s.cls}`}>
+                {s.label}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[var(--foreground)]">
+                {run.routine_name}
+                <span className="ml-2 text-xs text-[var(--muted-foreground)]">{run.detail}</span>
+              </span>
+              <time className="shrink-0 text-xs text-[var(--muted-foreground)] tabular-nums">
+                {new Date(run.ran_at).toLocaleString('fr-CA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </time>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }
@@ -247,13 +335,7 @@ function RoutinesContent() {
 export default function RoutinesPage() {
   return (
     <div className="space-y-0 animate-fade-in">
-      <div className="px-6 py-5 border-b border-[var(--border)]">
-        <div className="flex items-center gap-2 mb-1">
-          <Zap size={20} className="text-[var(--muted-foreground)]" />
-          <h1 className="text-xl font-semibold tracking-tight">Routines</h1>
-        </div>
-        <p className="text-sm text-[var(--muted-foreground)]">Automatisations déclenchées par cron ou événement</p>
-      </div>
+      <ModuleHeader title="Routines" subtitle="Automatisations déclenchées par cron ou événement" />
       <div className="p-6 animate-fade-in-up">
         <ErrorBoundary label="Routines">
           <RoutinesContent />

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from sqlmodel import SQLModel, Field
 
 
@@ -16,4 +17,15 @@ class Routine(SQLModel, table=True):
     actions: str = "[]"         # JSON list of {type, ...params}
     enabled: bool = True
     last_run_at: dt.datetime | None = None
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
+
+
+class RoutineRun(SQLModel, table=True):
+    """Journal d'audit d'un déclenchement de routine (#217)."""
+    __tablename__ = "routine_run"
+    id: int | None = Field(default=None, primary_key=True)
+    routine_id: int = Field(foreign_key="routine.id", index=True)
+    routine_name: str = ""
+    ran_at: dt.datetime = Field(default_factory=utcnow)
+    status: str = "ok"          # "ok" | "blocked" | "error"
+    detail: str = ""

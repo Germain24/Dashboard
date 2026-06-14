@@ -349,7 +349,7 @@ T. AUTOMATISATIONS DE VIE & ROUTINES (201-220)
 214. [S](**) Rappels contextuels (heure + lieu si dispo) plutôt que purement horaires.
 215. [M](**) Chaînage d'actions cross-module (« recettes ») avec confirmation unique.
 216. [M](**) File d'automatisations avec historique, ré-exécution et rollback.
-217. [S](*) Kill switch global des automatisations + journal d'audit des déclenchements.
+217. [S](*) Kill switch global des automatisations + journal d'audit des déclenchements.   ← FINIS ✓ (2026-06-13) (pref automatisations_kill_switch + modèle RoutineRun/migration ; execute_routine bloque + journalise ok/blocked/error ; endpoints /routines/kill-switch & /routines/runs ; UI bannière kill switch + journal sur la page Routines ; 4 tests TDD)
 218. [M](**) Suggestions d'automatisation apprises de tes habitudes (« tu fais X tous les lundis, automatiser ? »).
 219. [M](**) Webhooks entrants/sortants pour déclencher/notifier des automatisations depuis l'extérieur.
 220. [M](**) Planificateur « deep work » : réserve auto des blocs de concentration selon la charge agenda/études.

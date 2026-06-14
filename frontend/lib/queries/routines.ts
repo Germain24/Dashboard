@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createRoutine,
   deleteRoutine,
+  fetchKillSwitch,
+  fetchRoutineRuns,
   fetchRoutines,
   runRoutine,
+  setKillSwitch,
   updateRoutine,
   type Routine,
 } from '@/lib/routines'
@@ -11,6 +14,8 @@ import {
 export const routinesKeys = {
   all: ['routines'] as const,
   list: () => ['routines', 'list'] as const,
+  killSwitch: () => ['routines', 'kill-switch'] as const,
+  runs: () => ['routines', 'runs'] as const,
 }
 
 export const useRoutines = () =>
@@ -41,5 +46,24 @@ export const useDeleteRoutine = () => {
   })
 }
 
-export const useRunRoutine = () =>
-  useMutation({ mutationFn: (id: number) => runRoutine(id) })
+export const useRunRoutine = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => runRoutine(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.runs() }),
+  })
+}
+
+export const useKillSwitch = () =>
+  useQuery({ queryKey: routinesKeys.killSwitch(), queryFn: fetchKillSwitch })
+
+export const useSetKillSwitch = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (enabled: boolean) => setKillSwitch(enabled),
+    onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.killSwitch() }),
+  })
+}
+
+export const useRoutineRuns = (limit = 30) =>
+  useQuery({ queryKey: routinesKeys.runs(), queryFn: () => fetchRoutineRuns(limit) })

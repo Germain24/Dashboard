@@ -44,3 +44,27 @@ export const deleteRoutine = (id: number): Promise<void> =>
 
 export const runRoutine = (id: number): Promise<{ result: string }> =>
   fetch(`${BASE}/routines/${id}/run`, { method: 'POST' }).then(json)
+
+// ── Kill switch global + journal d'audit (#217) ──────────────────────────────
+
+export type RoutineRun = {
+  id: number
+  routine_id: number
+  routine_name: string
+  ran_at: string
+  status: 'ok' | 'blocked' | 'error'
+  detail: string
+}
+
+export const fetchKillSwitch = (): Promise<{ enabled: boolean }> =>
+  fetch(`${BASE}/routines/kill-switch`).then(json)
+
+export const setKillSwitch = (enabled: boolean): Promise<{ enabled: boolean }> =>
+  fetch(`${BASE}/routines/kill-switch`, {
+    method: 'POST',
+    headers: jsonHeaders,
+    body: JSON.stringify({ enabled }),
+  }).then(json)
+
+export const fetchRoutineRuns = (limit = 30): Promise<RoutineRun[]> =>
+  fetch(`${BASE}/routines/runs?limit=${limit}`).then(json)

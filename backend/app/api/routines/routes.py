@@ -14,9 +14,11 @@ from app.services.automatisations.engine import (
     delete_routine,
     execute_routine,
     get_routine,
+    get_routine_runs,
     get_routines,
     update_routine,
 )
+from app.services.settings import get_preferences, set_preferences
 from app.services.automatisations.snapshot import (
     build_daily_snapshot,
     get_recent_snapshots,
@@ -87,6 +89,36 @@ def run_routine(routine_id: int, session: Session = Depends(get_session)):
         raise HTTPException(404)
     result = execute_routine(session, routine_id)
     return {"result": result}
+
+
+# ─── Kill switch global + journal d'audit (#217) ──────────────────────────────
+
+class KillSwitchPatch(BaseModel):
+    enabled: bool
+
+
+@router.get("/routines/kill-switch")
+def read_kill_switch():
+    """État du kill switch global des automatisations."""
+    return {"enabled": bool(get_preferences().get("automatisations_kill_switch"))}
+
+
+@router.post("/routines/kill-switch")
+def set_kill_switch(body: KillSwitchPatch):
+    """Active/désactive le kill switch global (bloque toutes les routines)."""
+    prefs = set_preferences({"automatisations_kill_switch": body.enabled})
+    return {"enabled": bool(prefs.get("automatisations_kill_switch"))}
+
+
+@router.get("/routines/runs")
+def list_routine_runs(
+    limit: int = 50,
+    routine_id: int | None = None,
+    session: Session = Depends(get_session),
+):
+    """Journal d'audit des déclenchements (plus récent en premier)."""
+    runs = get_routine_runs(session, limit=limit, routine_id=routine_id)
+    return [r.model_dump() for r in runs]
 
 
 # ─── Templates (#206) ─────────────────────────────────────────────────────────

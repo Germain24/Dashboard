@@ -24,8 +24,12 @@ from app.models.musique import MusicTrack, TrackAmbiance  # noqa: F401
 from app.models.livres import Book, BookNote, BookQuote, ReadingSession  # noqa: F401
 from app.models.sante import Aliment, MesureSante, NutritionGoal, PlanNutrition  # noqa: F401
 from app.models.documents import Document  # noqa: F401
-from app.models.routines import Routine  # noqa: F401
+from app.models.routines import Routine, RoutineRun  # noqa: F401
 from app.models.snapshot import DailySnapshot  # noqa: F401
 from app.models.films_series import SerieProgress, WatchItem  # noqa: F401
 from app.models.scheduler import JobRun, Notification  # noqa: F401
 from app.models.skincare import SkincareProduct, SkincareLog  # noqa: F401
+from app.models.travail import WorkShift  # noqa: F401
+from app.models.objectifs import LongTermGoal  # noqa: F401
+from app.models.gaming import Game, GameGoal  # noqa: F401
+from app.models.langues import ProjetInternational, VocabEntry  # noqa: F401

@@ -19,6 +19,9 @@ DEFAULT_PREFS: dict = {
     "mode_vacances": False,
     # Objectif patrimonial d'investissement (montant cible en EUR)
     "objectif_patrimoine_eur": 300_000,
+    # Kill switch global des automatisations (#217) : si True, aucune routine
+    # ne s'exécute (manuelle ou planifiée) — chaque tentative est journalisée.
+    "automatisations_kill_switch": False,
 }
 
 _ALLOWED_KEYS = set(DEFAULT_PREFS.keys())
