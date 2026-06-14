@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
 import {
-  useBudgetCategories, useBudgetSummary, useByCategory, useEnvelopes,
+  useBudgetCategories, useBudgetComparison, useBudgetSummary, useByCategory, useEnvelopes,
   useRecurring, useSavingsGoal, useSetSavingsGoal, useTrend,
 } from '@/lib/queries/budget'
+import type { Comparison } from '@/lib/budget'
 import { Donut, TrendChart } from './charts'
 
 const formatCAD = (v: number) =>
@@ -19,6 +20,7 @@ export default function MoisTab() {
   const month = new Date().toISOString().slice(0, 7)
 
   const summaryQ = useBudgetSummary(month)
+  const comparisonQ = useBudgetComparison(month)
   const envelopesQ = useEnvelopes(month)
   const categoriesQ = useBudgetCategories()
   const byCatQ = useByCategory(month)
@@ -109,8 +111,8 @@ export default function MoisTab() {
       {/* Reste à vivre (#117) */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
         <div>
-          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Reste à vivre</p>
-          <p className={`font-mono text-3xl font-bold ${reste >= 0 ? 'text-[var(--foreground)]' : 'text-[var(--destructive)]'}`}>
+          <p className="mb-1 text-xs font-medium text-[var(--muted-foreground)]">Reste à vivre</p>
+          <p className={`font-display text-3xl tabular-nums ${reste >= 0 ? 'text-[var(--foreground)]' : 'text-[var(--destructive)]'}`}>
             {formatCAD(reste)}
           </p>
         </div>
@@ -165,19 +167,22 @@ export default function MoisTab() {
       {/* Stats cards */}
       <div className="grid grid-cols-3 gap-4 stagger">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
-          <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider mb-1">Revenus</p>
-          <p className="text-2xl font-bold font-mono text-[var(--success)]">{formatCAD(s.revenus)}</p>
+          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Revenus</p>
+          <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--success)]">{formatCAD(s.revenus)}</p>
+          <Delta cmp={comparisonQ.data?.revenus} favorableWhen="up" />
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
-          <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider mb-1">Dépenses</p>
-          <p className="text-2xl font-bold font-mono text-[var(--destructive)]">{formatCAD(Math.abs(s.depenses))}</p>
+          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Dépenses</p>
+          <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--destructive)]">{formatCAD(Math.abs(s.depenses))}</p>
+          <Delta cmp={comparisonQ.data?.depenses} favorableWhen="down" />
           {s.revenus > 0 && <p className="text-xs text-[var(--muted-foreground)] mt-1">{depensesPct}% des revenus</p>}
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
-          <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider mb-1">Solde</p>
-          <p className={`text-2xl font-bold font-mono ${s.solde >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>
+          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Solde</p>
+          <p className={`font-display text-[1.75rem] leading-tight tabular-nums ${s.solde >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>
             {formatCAD(s.solde)}
           </p>
+          <Delta cmp={comparisonQ.data?.solde} favorableWhen="up" />
         </div>
       </div>
 
@@ -215,14 +220,14 @@ export default function MoisTab() {
       <div className="grid gap-4 sm:grid-cols-2">
         <a href="/cuisine"
           className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:bg-[var(--muted)] animate-fade-in-up">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Courses ce mois</p>
-          <p className="font-mono text-xl font-bold">{formatCAD(groceryCost)}</p>
+          <p className="mb-1 text-xs font-medium text-[var(--muted-foreground)]">Courses ce mois</p>
+          <p className="font-display text-xl tabular-nums">{formatCAD(groceryCost)}</p>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">Planifier dans Cuisine →</p>
         </a>
         <a href="/finance"
           className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:bg-[var(--muted)] animate-fade-in-up">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Épargne du mois (à investir)</p>
-          <p className={`font-mono text-xl font-bold ${reste >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>{formatCAD(reste)}</p>
+          <p className="mb-1 text-xs font-medium text-[var(--muted-foreground)]">Épargne du mois (à investir)</p>
+          <p className={`font-display text-xl tabular-nums ${reste >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>{formatCAD(reste)}</p>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">Investir dans Finance →</p>
         </a>
       </div>
@@ -303,5 +308,22 @@ export default function MoisTab() {
         </div>
       )}
     </div>
+  )
+}
+
+/** Variation vs mois précédent (#229). Couleur selon que la variation est
+ *  favorable (revenus/solde : hausse = bien ; dépenses : baisse = bien). */
+function Delta({ cmp, favorableWhen }: { cmp?: Comparison; favorableWhen: 'up' | 'down' }) {
+  if (!cmp || cmp.direction === 'flat') return null
+  const favorable = cmp.direction === favorableWhen
+  const arrow = cmp.direction === 'up' ? '↑' : '↓'
+  const pct = cmp.delta_pct == null ? null : Math.abs(cmp.delta_pct)
+  return (
+    <p
+      className={`mt-1 text-xs tabular-nums ${favorable ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}
+      title={`${formatCAD(cmp.previous)} le mois précédent`}
+    >
+      {arrow} {pct == null ? '—' : `${pct.toFixed(0)}%`} vs mois préc.
+    </p>
   )
 }

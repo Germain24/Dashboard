@@ -19,6 +19,19 @@ export async function fetchSummary(month: string) {
   return (await fetch(`${BASE}/summary?month=${month}`)).json()
 }
 
+// Comparaison mois vs mois précédent (#229)
+export type Comparison = {
+  current: number; previous: number; delta: number
+  delta_pct: number | null; direction: 'up' | 'down' | 'flat'
+}
+export type MonthlyComparison = {
+  mois: string; mois_precedent: string
+  revenus: Comparison; depenses: Comparison; solde: Comparison
+}
+export async function fetchSummaryComparison(month: string): Promise<MonthlyComparison> {
+  return (await fetch(`${BASE}/summary/compare?month=${month}`)).json()
+}
+
 export async function fetchEnvelopes(month: string) {
   return (await fetch(`${BASE}/envelopes?month=${month}`)).json()
 }

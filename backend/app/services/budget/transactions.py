@@ -58,3 +58,31 @@ def get_monthly_summary(session: Session, mois: str) -> dict:
 
 def get_disposable(session: Session, mois: str) -> float:
     return get_monthly_summary(session, mois)["solde"]
+
+
+def _previous_month(mois: str) -> str:
+    """'YYYY-MM' du mois précédent."""
+    year, month = int(mois[:4]), int(mois[5:7])
+    if month == 1:
+        return f"{year - 1:04d}-12"
+    return f"{year:04d}-{month - 1:02d}"
+
+
+def get_monthly_comparison(session: Session, mois: str) -> dict:
+    """Synthèse du mois comparée au mois précédent (#229).
+
+    Renvoie pour revenus/dépenses/solde un objet {current, previous, delta,
+    delta_pct, direction} via le helper générique period_over_period.
+    """
+    from app.core.compare import period_over_period
+
+    prev = _previous_month(mois)
+    cur_s = get_monthly_summary(session, mois)
+    prev_s = get_monthly_summary(session, prev)
+    return {
+        "mois": mois,
+        "mois_precedent": prev,
+        "revenus": period_over_period(cur_s["revenus"], prev_s["revenus"]),
+        "depenses": period_over_period(cur_s["depenses"], prev_s["depenses"]),
+        "solde": period_over_period(cur_s["solde"], prev_s["solde"]),
+    }

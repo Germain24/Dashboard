@@ -23,6 +23,12 @@ def disposable(month: str, session: Session = Depends(get_session)):
     return {"mois": month, "disposable": tx_svc.get_disposable(session, month)}
 
 
+@router.get("/summary/compare")
+def monthly_summary_compare(month: str, session: Session = Depends(get_session)):
+    """Synthèse du mois vs mois précédent (revenus/dépenses/solde + deltas) (#229)."""
+    return tx_svc.get_monthly_comparison(session, month)
+
+
 @router.get("/cashflow")
 def cashflow(from_date: dt.date, to_date: dt.date, session: Session = Depends(get_session)):
     txs = tx_svc.get_transactions(session, from_date, to_date)

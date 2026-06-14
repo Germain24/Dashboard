@@ -365,7 +365,7 @@ U. INTELLIGENCE TRANSVERSALE & CORRÉLATIONS (221-235)
 226. [M](**) Objectifs de vie inter-modules (ex. perdre 5 kg + économiser 2000€ en 3 mois) avec suivi unifié.
 227. [M](**) Recommandations personnalisées priorisées par impact estimé.
 228. [M](**) Prédiction de tendances (poids, épargne, dépenses) par régression/séries temporelles.
-229. [S](**) Comparaison période sur période (cette semaine vs précédente) partout.
+229. [S](**) Comparaison période sur période (cette semaine vs précédente) partout.   ← FINIS ✓ (2026-06-13) (helper générique app/core/compare.py period_over_period + tests ; endpoint budget /summary/compare mois vs mois précédent ; UI Budget : deltas vs mois préc. sur Revenus/Dépenses/Solde, colorés selon favorable. Réutilisable par les autres modules.)
 230. [M](**) « Time machine » : rejouer l'état de ta vie à une date passée (snapshots navigables).
 231. [M](**) Détection de surcharge (agenda + études + sport trop denses) avec suggestion d'allègement.
 232. [M](**) Budget d'énergie personnelle : modéliser ta capacité du jour et caler les tâches dessus.

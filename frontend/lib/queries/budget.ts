@@ -14,6 +14,7 @@ import {
   fetchRules,
   fetchSavingsGoal,
   fetchSummary,
+  fetchSummaryComparison,
   fetchTransactions,
   fetchTrend,
   importCsv,
@@ -27,6 +28,7 @@ export const budgetKeys = {
     [...budgetKeys.all, "transactions", params ?? {}] as const,
   categories: () => [...budgetKeys.all, "categories"] as const,
   summary: (month: string) => [...budgetKeys.all, "summary", month] as const,
+  summaryCompare: (month: string) => [...budgetKeys.all, "summary-compare", month] as const,
   envelopes: (month: string) => [...budgetKeys.all, "envelopes", month] as const,
   disposable: (month: string) => [...budgetKeys.all, "disposable", month] as const,
   cashflow: (from: string, to: string) => [...budgetKeys.all, "cashflow", from, to] as const,
@@ -45,6 +47,9 @@ export function useBudgetCategories() {
 }
 export function useBudgetSummary(month: string) {
   return useQuery({ queryKey: budgetKeys.summary(month), queryFn: () => fetchSummary(month) });
+}
+export function useBudgetComparison(month: string) {
+  return useQuery({ queryKey: budgetKeys.summaryCompare(month), queryFn: () => fetchSummaryComparison(month) });
 }
 export function useEnvelopes(month: string) {
   return useQuery({ queryKey: budgetKeys.envelopes(month), queryFn: () => fetchEnvelopes(month) });
