@@ -67,6 +67,18 @@ export async function fetchRecurring(): Promise<Recurring[]> {
   return Array.isArray(d) ? d : []
 }
 
+// Récurrent vs ponctuel + projection annuelle (#266)
+export type RecurringProjection = {
+  recurrents: Recurring[]
+  nb_recurrents: number
+  recurrent_mensuel_total: number
+  projection_annuelle_recurrents: number
+  ponctuel_total: number
+}
+export async function fetchRecurringProjection(): Promise<RecurringProjection> {
+  return (await fetch(`${BASE}/recurring/projection`)).json()
+}
+
 export type SavingsGoal = { objectif: number; epargne: number; progress_pct: number }
 
 export async function fetchSavingsGoal(): Promise<SavingsGoal> {

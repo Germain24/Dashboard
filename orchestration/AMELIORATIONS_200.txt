@@ -410,7 +410,7 @@ W. FINANCES PERSONNELLES AVANCÉES (256-270)
 263. [M](**) Objectifs d'épargne par enveloppe avec virements programmés simulés.
 264. [M](**) Comparateur de scénarios d'investissement (DCA vs lump sum, allocations).
 265. [M](**) Alertes de marché personnalisées (seuils de prix, dividendes, résultats).
-266. [M](**) Dépenses récurrentes vs ponctuelles avec projection annuelle.
+266. [M](**) Dépenses récurrentes vs ponctuelles avec projection annuelle.   ← FINIS ✓ (2026-06-13) (détection des récurrences déjà en place ; ajout helper recurring_vs_oneoff (récurrent mensuel + projection ×12 + total ponctuel) + endpoint /budget/recurring/projection + UI : projection annuelle « ≈ X/an » dans l'en-tête Abonnements détectés ; 1 test TDD)
 267. [M](**) Multi-devises consolidées avec historique de change (étendre #55).
 268. [M](**) Rapport d'indépendance financière (FIRE) : taux d'épargne, années restantes.
 269. [M](**) Suivi immobilier (valeur, loyers, charges, rendement).

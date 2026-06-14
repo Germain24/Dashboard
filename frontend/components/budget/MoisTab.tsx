@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import {
   useBudgetCategories, useBudgetComparison, useBudgetSummary, useByCategory, useEnvelopes,
-  useRecurring, useSavingsGoal, useSetSavingsGoal, useTrend,
+  useRecurring, useRecurringProjection, useSavingsGoal, useSetSavingsGoal, useTrend,
 } from '@/lib/queries/budget'
 import type { Comparison } from '@/lib/budget'
 import { Donut, TrendChart } from './charts'
@@ -26,6 +26,7 @@ export default function MoisTab() {
   const byCatQ = useByCategory(month)
   const trendQ = useTrend(6)
   const recurringQ = useRecurring()
+  const projectionQ = useRecurringProjection()
   const savingsQ = useSavingsGoal()
   const setGoalMutation = useSetSavingsGoal()
 
@@ -238,7 +239,12 @@ export default function MoisTab() {
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
             <div>
               <h2 className="text-sm font-semibold">Abonnements détectés</h2>
-              <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">Dépenses mensuelles récurrentes</p>
+              <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                Dépenses mensuelles récurrentes
+                {projectionQ.data && projectionQ.data.projection_annuelle_recurrents > 0 && (
+                  <> · ≈ <span className="font-medium text-[var(--foreground)]">{formatCAD(projectionQ.data.projection_annuelle_recurrents)}/an</span> projetés</>
+                )}
+              </p>
             </div>
             <span className="text-sm font-mono font-semibold">
               {formatCAD(recurring.reduce((s, r) => s + r.montant_moyen, 0))}<span className="text-xs text-[var(--muted-foreground)]"> /mois</span>

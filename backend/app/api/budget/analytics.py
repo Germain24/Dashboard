@@ -62,6 +62,12 @@ def recurring(session: Session = Depends(get_session)):
     return analytics_svc.recurring_expenses(session)
 
 
+@router.get("/recurring/projection")
+def recurring_projection(session: Session = Depends(get_session)):
+    """Récurrentes vs ponctuelles + projection annuelle des abonnements (#266)."""
+    return analytics_svc.recurring_summary(session)
+
+
 @router.get("/savings-goal")
 def get_savings_goal(session: Session = Depends(get_session)):
     """Objectif d'épargne mensuel + progression contre le solde du mois courant (#121)."""

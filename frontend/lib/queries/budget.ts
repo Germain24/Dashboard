@@ -11,6 +11,7 @@ import {
   fetchDisposable,
   fetchEnvelopes,
   fetchRecurring,
+  fetchRecurringProjection,
   fetchRules,
   fetchSavingsGoal,
   fetchSummary,
@@ -35,6 +36,7 @@ export const budgetKeys = {
   byCategory: (month: string) => [...budgetKeys.all, "by-category", month] as const,
   trend: (months: number) => [...budgetKeys.all, "trend", months] as const,
   recurring: () => [...budgetKeys.all, "recurring"] as const,
+  recurringProjection: () => [...budgetKeys.all, "recurring-projection"] as const,
   savingsGoal: () => [...budgetKeys.all, "savings-goal"] as const,
   rules: () => [...budgetKeys.all, "rules"] as const,
 };
@@ -68,6 +70,9 @@ export function useTrend(months = 6) {
 }
 export function useRecurring() {
   return useQuery({ queryKey: budgetKeys.recurring(), queryFn: fetchRecurring });
+}
+export function useRecurringProjection() {
+  return useQuery({ queryKey: budgetKeys.recurringProjection(), queryFn: fetchRecurringProjection });
 }
 export function useSavingsGoal() {
   return useQuery({ queryKey: budgetKeys.savingsGoal(), queryFn: fetchSavingsGoal });

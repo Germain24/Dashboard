@@ -86,3 +86,23 @@ def test_detect_recurring_ignores_unstable_amount_and_irregular_cadence():
     assert detect_recurring(weekly) == []
     # trop peu d'occurrences
     assert detect_recurring([_txd(-5.0, "Z", dt.date(2026, 1, 1)), _txd(-5.0, "Z", dt.date(2026, 2, 1))]) == []
+
+
+def test_recurring_vs_oneoff_projects_annual(monkeypatch):
+    from app.services.budget.analytics import recurring_vs_oneoff
+    txs = [
+        # Abonnement mensuel (récurrent) : 16 × 3 mois.
+        _txd(-16.0, "Spotify", dt.date(2026, 1, 5)),
+        _txd(-16.0, "Spotify", dt.date(2026, 2, 5)),
+        _txd(-16.0, "Spotify", dt.date(2026, 3, 5)),
+        # Ponctuels.
+        _txd(-50.0, "Resto", dt.date(2026, 1, 12)),
+        _txd(-30.0, "Amazon", dt.date(2026, 2, 20)),
+        # Revenu : ignoré.
+        _txd(2000.0, "Salaire", dt.date(2026, 1, 1)),
+    ]
+    out = recurring_vs_oneoff(txs)
+    assert out["nb_recurrents"] == 1
+    assert out["recurrent_mensuel_total"] == 16.0
+    assert out["projection_annuelle_recurrents"] == 192.0
+    assert out["ponctuel_total"] == 80.0  # 50 + 30, revenu exclu

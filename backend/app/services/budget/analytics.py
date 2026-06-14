@@ -127,9 +127,38 @@ def annual_export(session, year: int) -> str:
     return build_annual_csv(txs, cats)
 
 
+def recurring_vs_oneoff(txs, **kwargs) -> dict[str, Any]:
+    """Sépare dépenses récurrentes (abonnements) vs ponctuelles + projection
+    annuelle des récurrentes (#266). Pur.
+
+    - `recurrent_mensuel_total`        : somme des abonnements mensuels détectés
+    - `projection_annuelle_recurrents` : ×12
+    - `ponctuel_total`                 : dépenses non récurrentes sur la période
+    """
+    recurring = detect_recurring(txs, **kwargs)
+    rec_keys = {(r["marchand"] or "").strip().lower() for r in recurring}
+    rec_monthly = sum(r["montant_moyen"] for r in recurring)
+    oneoff = sum(
+        abs(t.montant) for t in txs
+        if t.montant < 0 and (getattr(t, "marchand", "") or "").strip().lower() not in rec_keys
+    )
+    return {
+        "recurrents": recurring,
+        "nb_recurrents": len(recurring),
+        "recurrent_mensuel_total": round(rec_monthly, 2),
+        "projection_annuelle_recurrents": round(rec_monthly * 12, 2),
+        "ponctuel_total": round(oneoff, 2),
+    }
+
+
 def recurring_expenses(session) -> list[dict[str, Any]]:
     from app.services.budget import transactions as tx_svc
     return detect_recurring(tx_svc.get_transactions(session))
+
+
+def recurring_summary(session) -> dict[str, Any]:
+    from app.services.budget import transactions as tx_svc
+    return recurring_vs_oneoff(tx_svc.get_transactions(session))
 
 
 def spending_trend(session, months: int = 6, *, today: Optional[dt.date] = None) -> list[dict[str, Any]]:
