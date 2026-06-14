@@ -430,7 +430,7 @@ X. SANTÉ & BIEN-ÊTRE APPROFONDIS (271-288)
 279. [M](**) Méditation / respiration guidée avec suivi de pratique.
 280. [M](**) Bibliothèque d'exercices avec démonstrations et progressions.
 281. [M](**) Périodisation d'entraînement (mésocycles, deload) automatique.
-282. [M](**) Estimation 1RM et suivi des records personnels (PR) par exercice.
+282. [M](**) Estimation 1RM et suivi des records personnels (PR) par exercice.   ← FINIS ✓ (2026-06-13) (1RM Epley déjà en place ; ajout du PR board : service personal_records (meilleur 1RM + charge max all-time par exercice) + endpoint GET /entrainement/records + UI section « Records personnels » dans l'onglet Progression ; 3 tests TDD)
 283. [M](**) Scanner code-barres alimentaire (Open Food Facts) pour saisie rapide.
 284. [M](**) Analyse micro-nutriments (vitamines, minéraux) au-delà des macros.
 285. [M](**) Suivi composition corporelle (masse grasse/maigre) via impédancemètre.

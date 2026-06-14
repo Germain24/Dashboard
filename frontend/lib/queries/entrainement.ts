@@ -26,6 +26,7 @@ export const entrainementKeys = {
     [...entrainementKeys.all, "progression", exerciceId, days] as const,
   muscleVolume: (days: number) => [...entrainementKeys.all, "muscle-volume", days] as const,
   correlation: (weeks: number) => [...entrainementKeys.all, "correlation", weeks] as const,
+  records: () => [...entrainementKeys.all, "records"] as const,
 };
 
 export function useEntrainementToday() {
@@ -82,6 +83,12 @@ export function useTrainingCorrelation(weeks = 12) {
   return useQuery({
     queryKey: entrainementKeys.correlation(weeks),
     queryFn: () => entrainementApi.getCorrelation(weeks),
+  });
+}
+export function useRecords() {
+  return useQuery({
+    queryKey: entrainementKeys.records(),
+    queryFn: () => entrainementApi.getRecords(),
   });
 }
 

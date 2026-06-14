@@ -108,6 +108,20 @@ export type ProgressionResponse = {
   delta_4w_pct: number | null;
 };
 
+// Records personnels par exercice (#282)
+export type ExerciceRecord = {
+  exercice_id: number;
+  exercice_nom: string;
+  best_1rm_kg: number;
+  best_1rm_reps: number;
+  best_1rm_poids_kg: number;
+  best_1rm_date: string | null;
+  heaviest_kg: number;
+  heaviest_reps: number;
+  heaviest_date: string | null;
+  nb_sets: number;
+};
+
 export type MuscleVolume = {
   muscle: string;
   sets: number;
@@ -280,6 +294,7 @@ export const entrainementApi = {
     api<{ exercice_id: number; nom: string; current_1rm_kg: number; formula: string }>(
       `/entrainement/1rm/${exercice_id}`,
     ),
+  getRecords: () => api<ExerciceRecord[]>(`/entrainement/records`),
   getMuscleVolume: (days = 7) =>
     api<MuscleVolume[]>(`/entrainement/volume/muscles?days=${days}`),
   getCorrelation: (weeks = 12) =>

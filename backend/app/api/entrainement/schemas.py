@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -109,7 +110,7 @@ class SetSerieUpdate(BaseModel):
 
 
 class SeanceCreate(BaseModel):
-    date: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    date: dt.datetime = Field(default_factory=utcnow)
     type: Optional[str] = None
     duree_min: Optional[int] = None
     note: Optional[str] = None
@@ -169,6 +170,19 @@ class OneRMResponse(BaseModel):
     nom: str
     current_1rm_kg: float
     formula: str = "epley"
+
+
+class ExerciceRecordOut(BaseModel):
+    exercice_id: int
+    exercice_nom: str
+    best_1rm_kg: float
+    best_1rm_reps: int
+    best_1rm_poids_kg: float
+    best_1rm_date: Optional[dt.date] = None
+    heaviest_kg: float
+    heaviest_reps: int
+    heaviest_date: Optional[dt.date] = None
+    nb_sets: int
 
 
 class MuscleVolumeOut(BaseModel):

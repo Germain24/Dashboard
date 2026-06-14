@@ -3,11 +3,14 @@
 import { useState } from "react";
 import {
   type Exercice,
+  type ExerciceRecord,
   type MuscleVolume,
   type ProgressionResponse,
   type TrainingCorrelation,
 } from "@/lib/entrainement";
-import { useMuscleVolume, useProgression, useTrainingCorrelation } from "@/lib/queries/entrainement";
+import {
+  useMuscleVolume, useProgression, useRecords, useTrainingCorrelation,
+} from "@/lib/queries/entrainement";
 
 type Props = {
   exercices: Exercice[];
@@ -27,6 +30,7 @@ export function ProgressionTab({ exercices }: Props) {
 
   return (
     <div className="space-y-4">
+      <RecordsPanel />
       <MuscleVolumePanel />
       <CorrelationPanel />
 
@@ -116,6 +120,57 @@ const VOLUME_STATUS: Record<MuscleVolume["status"], { label: string; cls: string
   optimal: { label: "Optimal", cls: "text-[var(--success)] border-[var(--success)]" },
   sur: { label: "Sur-entraîné", cls: "text-[var(--warning)] border-[var(--warning)]" },
 };
+
+/** Tableau des records personnels (PR) tous exercices confondus (#282). */
+function RecordsPanel() {
+  const { data, isLoading } = useRecords();
+  const records: ExerciceRecord[] = data ?? [];
+  const fmtDate = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString("fr-CA", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
+
+  return (
+    <details open className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+      <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
+        🏆 Records personnels {records.length > 0 && <span className="text-[var(--muted-foreground)]">({records.length})</span>}
+      </summary>
+      {isLoading ? (
+        <p className="mt-3 text-sm text-[var(--muted-foreground)]">Chargement…</p>
+      ) : records.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--muted-foreground)]">
+          Aucun record encore — enregistre des séries pour voir tes 1RM estimés et charges max par exercice.
+        </p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--glass-border)] text-left text-xs text-[var(--muted-foreground)]">
+                <th className="px-3 py-2">Exercice</th>
+                <th className="px-3 py-2 text-right">1RM estimé</th>
+                <th className="px-3 py-2 text-right">Issu de</th>
+                <th className="px-3 py-2 text-right">Charge max</th>
+                <th className="px-3 py-2 text-right">Le</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((r) => (
+                <tr key={r.exercice_id} className="border-b border-[var(--glass-border)]">
+                  <td className="px-3 py-1.5 font-medium text-[var(--foreground)]">{r.exercice_nom}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums font-semibold">{r.best_1rm_kg.toFixed(1)} kg</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-[var(--muted-foreground)]">
+                    {r.best_1rm_reps}×{r.best_1rm_poids_kg.toFixed(1)}kg
+                  </td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{r.heaviest_kg.toFixed(1)} kg</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-[var(--muted-foreground)]">{fmtDate(r.best_1rm_date)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-2 px-3 text-[11px] text-[var(--muted-foreground)]">1RM estimé via la formule d&apos;Epley.</p>
+        </div>
+      )}
+    </details>
+  );
+}
 
 function MuscleVolumePanel() {
   const [days, setDays] = useState<number>(7);

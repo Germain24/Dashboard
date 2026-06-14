@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from app.api.entrainement.schemas import (
     CorrelationResponse,
+    ExerciceRecordOut,
     MesocycleResponse,
     MuscleVolumeOut,
     OneRMResponse,
@@ -46,6 +47,13 @@ def get_one_rm(exercice_id: int, session: Session = Depends(get_session)):
     if e is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "exercice introuvable")
     return OneRMResponse(exercice_id=exercice_id, nom=e.nom, current_1rm_kg=current_1rm(session, exercice_id))
+
+
+@router.get("/records", response_model=list[ExerciceRecordOut])
+def get_records(session: Session = Depends(get_session)):
+    """Records personnels (PR) par exercice : meilleur 1RM + charge max (#282)."""
+    from app.services.entrainement.records import personal_records
+    return [ExerciceRecordOut(**vars(r)) for r in personal_records(session)]
 
 
 @router.get("/volume/muscles", response_model=list[MuscleVolumeOut])
