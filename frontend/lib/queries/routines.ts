@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createRoutine,
   deleteRoutine,
+  fetchAutomationSuggestions,
   fetchBuilderOptions,
   fetchKillSwitch,
   fetchRecipes,
@@ -89,6 +90,9 @@ export const useRollbackRun = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.runs() }),
   })
 }
+
+export const useAutomationSuggestions = () =>
+  useQuery({ queryKey: ['routines', 'suggestions'], queryFn: fetchAutomationSuggestions })
 
 export const useBuilderOptions = () =>
   useQuery({ queryKey: ['routines', 'builder-options'], queryFn: fetchBuilderOptions, staleTime: Infinity })

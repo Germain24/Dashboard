@@ -71,6 +71,19 @@ export const setKillSwitch = (enabled: boolean): Promise<{ enabled: boolean }> =
 export const fetchRoutineRuns = (limit = 30): Promise<RoutineRun[]> =>
   fetch(`${BASE}/routines/runs?limit=${limit}`).then(json)
 
+// Suggestions d'automatisation apprises des habitudes (#218)
+export type AutomationSuggestion = {
+  titre: string
+  weekday: number
+  jour: string
+  heure: string
+  occurrences: number
+  message: string
+}
+
+export const fetchAutomationSuggestions = (): Promise<{ suggestions: AutomationSuggestion[]; count: number }> =>
+  fetch(`${BASE}/suggestions`).then(json)
+
 // File d'automatisations : ré-exécution + rollback (#216)
 export const rerunRoutineRun = (runId: number): Promise<{ result: string }> =>
   fetch(`${BASE}/routines/runs/${runId}/rerun`, { method: 'POST' }).then(json)

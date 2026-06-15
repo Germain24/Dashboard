@@ -2,15 +2,15 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Zap, Play, Trash2, Plus, X, Clock, Radio, ShieldAlert, History, RotateCcw, Undo2 } from 'lucide-react'
+import { Zap, Play, Trash2, Plus, X, Clock, Radio, ShieldAlert, History, RotateCcw, Undo2, Lightbulb } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ModuleHeader } from '@/components/layout'
 import {
   useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine,
   useKillSwitch, useSetKillSwitch, useRoutineRuns, useBuilderOptions,
-  useRecipes, useRunRecipe, useRerunRun, useRollbackRun,
+  useRecipes, useRunRecipe, useRerunRun, useRollbackRun, useAutomationSuggestions,
 } from '@/lib/queries/routines'
-import type { Routine, RoutineAction } from '@/lib/routines'
+import type { Routine, RoutineAction, AutomationSuggestion } from '@/lib/routines'
 import { Skeleton } from '@/components/ui/skeleton'
 
 function TriggerBadge({ type, value }: { type: string; value: string }) {
@@ -339,6 +339,8 @@ function RoutinesContent() {
         )}
       </div>
 
+      <SuggestionsSection />
+
       <AuditLog />
 
       {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
@@ -434,6 +436,57 @@ function RecipesSection() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** Suggestions d'automatisation apprises des habitudes (#218). */
+function SuggestionsSection() {
+  const { data } = useAutomationSuggestions()
+  const add = useAddRoutine()
+  const suggestions = data?.suggestions ?? []
+  if (!suggestions.length) return null
+
+  const createReminder = (s: AutomationSuggestion) => {
+    const [hh, mm] = s.heure.split(':').map(Number)
+    const cronDow = (s.weekday + 1) % 7 // python lun=0 -> cron dim=0..sam=6
+    add.mutate(
+      {
+        name: `Rappel : ${s.titre}`,
+        trigger_type: 'cron',
+        trigger_value: `${mm} ${hh} * * ${cronDow}`,
+        actions: [{ type: 'notify', titre: s.titre, message: `Rappel ${s.jour} — ${s.titre}` }] as RoutineAction[],
+      },
+      {
+        onSuccess: () => toast.success(`Rappel créé : ${s.titre} (${s.jour})`),
+        onError: () => toast.error('Échec de la création'),
+      },
+    )
+  }
+
+  return (
+    <div className="mt-8">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
+        <Lightbulb size={13} /> Suggestions (apprises de tes habitudes)
+      </h2>
+      <ul className="space-y-2">
+        {suggestions.map((s) => (
+          <li
+            key={`${s.titre}-${s.weekday}`}
+            className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-[var(--border)] bg-[var(--accent)]/30 px-4 py-2.5 text-sm"
+          >
+            <span className="min-w-0 flex-1 text-[var(--foreground)]">{s.message}</span>
+            <button
+              type="button"
+              onClick={() => createReminder(s)}
+              disabled={add.isPending}
+              className="shrink-0 rounded-[var(--radius)] bg-[var(--ring)] px-3 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              Créer le rappel
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

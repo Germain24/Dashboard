@@ -360,3 +360,13 @@ def trigger_anomaly_check(session: Session = Depends(get_session)):
     from app.services.automatisations.anomalies import run_anomaly_detection
     anomalies = run_anomaly_detection(session)
     return {"anomalies": anomalies, "count": len(anomalies)}
+
+
+# ─── Suggestions d'automatisation apprises des habitudes (#218) ────────────────
+
+@router.get("/suggestions")
+def get_automation_suggestions(session: Session = Depends(get_session)):
+    """Patterns récurrents (même titre, même jour de semaine) proposés à l'automatisation."""
+    from app.services.automatisations.suggestions import suggest_automations
+    suggestions = suggest_automations(session)
+    return {"suggestions": suggestions, "count": len(suggestions)}
