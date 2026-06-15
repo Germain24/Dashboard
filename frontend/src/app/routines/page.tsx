@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Zap, Play, Trash2, Plus, X, Clock, Radio, ShieldAlert, History, RotateCcw, Undo2, Lightbulb } from 'lucide-react'
+import { Zap, Play, Trash2, Plus, X, Clock, Radio, ShieldAlert, History, RotateCcw, Undo2, Lightbulb, Activity } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ModuleHeader } from '@/components/layout'
 import {
   useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine,
   useKillSwitch, useSetKillSwitch, useRoutineRuns, useBuilderOptions,
   useRecipes, useRunRecipe, useRerunRun, useRollbackRun, useAutomationSuggestions, useApplyDeepWork,
+  useCorrelations,
 } from '@/lib/queries/routines'
 import type { Routine, RoutineAction, AutomationSuggestion } from '@/lib/routines'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -366,6 +367,8 @@ function RoutinesContent() {
 
       <DeepWorkCard />
 
+      <CorrelationsSection />
+
       <SuggestionsSection />
 
       <AuditLog />
@@ -463,6 +466,45 @@ function RecipesSection() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** Corrélations cross-modules (#221) : liens entre métriques de vie. */
+function CorrelationsSection() {
+  const { data } = useCorrelations()
+  const correlations = data?.correlations ?? []
+  if (!correlations.length) return null
+  return (
+    <div className="mt-8">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
+        <Activity size={13} /> Corrélations (liens repérés, pas des causalités)
+      </h2>
+      <ul className="space-y-2">
+        {correlations.map((c) => {
+          const pos = c.r >= 0
+          return (
+            <li
+              key={`${c.a}-${c.b}`}
+              className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] px-4 py-2.5 text-sm"
+            >
+              <span className="min-w-0 flex-1 truncate text-[var(--foreground)]">
+                {c.a} ↔ {c.b}
+                <span className="ml-2 text-xs text-[var(--muted-foreground)]">{c.interpretation} · n={c.n}</span>
+              </span>
+              <div className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-[var(--muted)] sm:block">
+                <div
+                  className={`h-full ${pos ? 'bg-[var(--success-foreground)]' : 'bg-[var(--warning-foreground)]'}`}
+                  style={{ width: `${Math.round(Math.abs(c.r) * 100)}%` }}
+                />
+              </div>
+              <span className={`shrink-0 tabular-nums text-xs font-medium ${pos ? 'text-[var(--success-foreground)]' : 'text-[var(--warning-foreground)]'}`}>
+                {c.r > 0 ? '+' : ''}{c.r.toFixed(2)}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

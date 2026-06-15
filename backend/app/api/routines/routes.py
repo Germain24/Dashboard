@@ -415,3 +415,13 @@ def trigger_incoming_webhook(token: str, session: Session = Depends(get_session)
         return {"result": trigger_webhook(session, token)}
     except ValueError:
         raise HTTPException(404, "Webhook inconnu")
+
+
+# ─── Corrélations cross-modules (#221) ─────────────────────────────────────────
+
+@router.get("/correlations")
+def get_correlations(days: int = 60, session: Session = Depends(get_session)):
+    """Liens (Pearson) entre métriques de vie sur la fenêtre récente."""
+    from app.services.automatisations.correlations import compute_correlations
+    correlations = compute_correlations(session, days=days)
+    return {"days": days, "correlations": correlations, "count": len(correlations)}

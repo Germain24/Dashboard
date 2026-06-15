@@ -89,6 +89,12 @@ export const fetchAutomationSuggestions = (): Promise<{ suggestions: AutomationS
 export const applyDeepWork = (nBlocks = 5): Promise<{ week_start: string; created: number }> =>
   fetch(`${BASE}/deep-work/apply?n_blocks=${nBlocks}`, { method: 'POST' }).then(json)
 
+// Corrélations cross-modules (#221)
+export type Correlation = { a: string; b: string; r: number; n: number; interpretation: string }
+
+export const fetchCorrelations = (): Promise<{ days: number; correlations: Correlation[]; count: number }> =>
+  fetch(`${BASE}/correlations`).then(json)
+
 // File d'automatisations : ré-exécution + rollback (#216)
 export const rerunRoutineRun = (runId: number): Promise<{ result: string }> =>
   fetch(`${BASE}/routines/runs/${runId}/rerun`, { method: 'POST' }).then(json)

@@ -5,6 +5,7 @@ import {
   applyDeepWork,
   fetchAutomationSuggestions,
   fetchBuilderOptions,
+  fetchCorrelations,
   fetchKillSwitch,
   fetchRecipes,
   fetchRoutineRuns,
@@ -91,6 +92,9 @@ export const useRollbackRun = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.runs() }),
   })
 }
+
+export const useCorrelations = () =>
+  useQuery({ queryKey: ['routines', 'correlations'], queryFn: fetchCorrelations })
 
 export const useApplyDeepWork = () =>
   useMutation({ mutationFn: (nBlocks?: number) => applyDeepWork(nBlocks) })
