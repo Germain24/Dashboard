@@ -8,7 +8,7 @@ import { ModuleHeader } from '@/components/layout'
 import {
   useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine,
   useKillSwitch, useSetKillSwitch, useRoutineRuns, useBuilderOptions,
-  useRecipes, useRunRecipe, useRerunRun, useRollbackRun, useAutomationSuggestions,
+  useRecipes, useRunRecipe, useRerunRun, useRollbackRun, useAutomationSuggestions, useApplyDeepWork,
 } from '@/lib/queries/routines'
 import type { Routine, RoutineAction, AutomationSuggestion } from '@/lib/routines'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -364,6 +364,8 @@ function RoutinesContent() {
         )}
       </div>
 
+      <DeepWorkCard />
+
       <SuggestionsSection />
 
       <AuditLog />
@@ -461,6 +463,33 @@ function RecipesSection() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** Planificateur deep work (#220) : réserve des blocs de focus sur les jours légers. */
+function DeepWorkCard() {
+  const apply = useApplyDeepWork()
+  const onClick = () =>
+    apply.mutate(5, {
+      onSuccess: (r) =>
+        toast.success(r.created > 0 ? `${r.created} bloc(s) deep work réservé(s) cette semaine` : 'Blocs deep work déjà en place'),
+      onError: () => toast.error('Échec de la planification'),
+    })
+  return (
+    <div className="mt-8 flex items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-[var(--border)] bg-[var(--accent)]/30 px-4 py-3">
+      <Clock size={15} className="shrink-0 text-[var(--muted-foreground)]" />
+      <span className="min-w-0 flex-1 text-sm text-[var(--foreground)]">
+        Deep work — réserve auto des blocs de concentration sur tes jours les moins chargés.
+      </span>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={apply.isPending}
+        className="shrink-0 rounded-[var(--radius)] bg-[var(--ring)] px-3 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+      >
+        {apply.isPending ? 'Planification…' : 'Planifier ma semaine'}
+      </button>
     </div>
   )
 }

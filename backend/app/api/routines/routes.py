@@ -314,6 +314,39 @@ def _current_monday() -> dt.date:
     return today - dt.timedelta(days=today.weekday())
 
 
+# ─── Planificateur deep work (#220) ───────────────────────────────────────────
+
+@router.get("/deep-work")
+def get_deep_work(
+    week_start: str | None = None,
+    n_blocks: int = 5,
+    session: Session = Depends(get_session),
+):
+    """Aperçu des blocs de concentration proposés (jours les moins chargés d'abord)."""
+    try:
+        ws = dt.date.fromisoformat(week_start) if week_start else _current_monday()
+    except ValueError:
+        raise HTTPException(400, detail="Date invalide (YYYY-MM-DD)")
+    from app.services.automatisations.deep_work import plan_deep_work
+    blocks = plan_deep_work(session, ws, n_blocks=n_blocks, dry_run=True)
+    return {"week_start": ws.isoformat(), "blocks": blocks, "count": len(blocks)}
+
+
+@router.post("/deep-work/apply")
+def apply_deep_work(
+    week_start: str | None = None,
+    n_blocks: int = 5,
+    session: Session = Depends(get_session),
+):
+    try:
+        ws = dt.date.fromisoformat(week_start) if week_start else _current_monday()
+    except ValueError:
+        raise HTTPException(400, detail="Date invalide (YYYY-MM-DD)")
+    from app.services.automatisations.deep_work import plan_deep_work
+    created = plan_deep_work(session, ws, n_blocks=n_blocks, dry_run=False)
+    return {"week_start": ws.isoformat(), "created": len(created)}
+
+
 # ─── Rééquilibrage budget (#211) ─────────────────────────────────────────────
 
 @router.get("/budget/rebalancing")

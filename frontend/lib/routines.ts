@@ -85,6 +85,10 @@ export type AutomationSuggestion = {
 export const fetchAutomationSuggestions = (): Promise<{ suggestions: AutomationSuggestion[]; count: number }> =>
   fetch(`${BASE}/suggestions`).then(json)
 
+// Planificateur deep work (#220)
+export const applyDeepWork = (nBlocks = 5): Promise<{ week_start: string; created: number }> =>
+  fetch(`${BASE}/deep-work/apply?n_blocks=${nBlocks}`, { method: 'POST' }).then(json)
+
 // File d'automatisations : ré-exécution + rollback (#216)
 export const rerunRoutineRun = (runId: number): Promise<{ result: string }> =>
   fetch(`${BASE}/routines/runs/${runId}/rerun`, { method: 'POST' }).then(json)

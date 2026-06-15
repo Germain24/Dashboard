@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createRoutine,
   deleteRoutine,
+  applyDeepWork,
   fetchAutomationSuggestions,
   fetchBuilderOptions,
   fetchKillSwitch,
@@ -90,6 +91,9 @@ export const useRollbackRun = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.runs() }),
   })
 }
+
+export const useApplyDeepWork = () =>
+  useMutation({ mutationFn: (nBlocks?: number) => applyDeepWork(nBlocks) })
 
 export const useAutomationSuggestions = () =>
   useQuery({ queryKey: ['routines', 'suggestions'], queryFn: fetchAutomationSuggestions })
