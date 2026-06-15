@@ -1,10 +1,11 @@
 const BASE = '/api/automatisations'
 
-export type TriggerType = 'cron' | 'event'
+export type TriggerType = 'cron' | 'event' | 'webhook'
 
 export type RoutineAction =
   | { type: 'notify'; titre: string; message: string; level?: string }
   | { type: 'job'; job_id: string }
+  | { type: 'webhook'; url: string }
   | { type: string; [k: string]: unknown }
 
 export type Routine = {

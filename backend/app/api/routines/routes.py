@@ -18,6 +18,7 @@ from app.services.automatisations.engine import (
     get_routines,
     rerun_run,
     rollback_run,
+    trigger_webhook,
     update_routine,
 )
 from app.services.settings import get_preferences, set_preferences
@@ -370,3 +371,14 @@ def get_automation_suggestions(session: Session = Depends(get_session)):
     from app.services.automatisations.suggestions import suggest_automations
     suggestions = suggest_automations(session)
     return {"suggestions": suggestions, "count": len(suggestions)}
+
+
+# ─── Webhook entrant (#219) ───────────────────────────────────────────────────
+
+@router.post("/webhooks/{token}")
+def trigger_incoming_webhook(token: str, session: Session = Depends(get_session)):
+    """Déclenche la routine associée à ce token de webhook (le token = secret)."""
+    try:
+        return {"result": trigger_webhook(session, token)}
+    except ValueError:
+        raise HTTPException(404, "Webhook inconnu")

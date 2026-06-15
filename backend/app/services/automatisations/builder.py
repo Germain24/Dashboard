@@ -36,6 +36,7 @@ BUILDER_JOBS: list[dict[str, str]] = [
 BUILDER_ACTION_TYPES: list[dict[str, str]] = [
     {"type": "notify", "label": "Envoyer une notification"},
     {"type": "job", "label": "Lancer une automatisation"},
+    {"type": "webhook", "label": "Appeler un webhook (URL externe)"},
 ]
 
 

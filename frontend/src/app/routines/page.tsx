@@ -47,28 +47,35 @@ function AddModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   // Déclencheur
-  const [mode, setMode] = useState<'schedule' | 'event'>('schedule')
+  const [mode, setMode] = useState<'schedule' | 'event' | 'webhook'>('schedule')
   const [freq, setFreq] = useState('daily')
   const [hour, setHour] = useState(7)
   const [minute, setMinute] = useState(0)
   const [weekday, setWeekday] = useState(1) // lundi (cron 1)
   const [dom, setDom] = useState(1)
   const [eventValue, setEventValue] = useState('')
+  // Token de webhook entrant (#219) — secret, généré une fois.
+  const [webhookToken] = useState(() =>
+    (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)).replace(/-/g, ''))
   // Actions
   const [actions, setActions] = useState<RoutineAction[]>([])
 
   // cron weekday : nos boutons Lun..Dim -> cron 1..6,0
   const cronWeekday = weekday === 7 ? 0 : weekday
-  const triggerType = mode === 'schedule' ? 'cron' : 'event'
+  const triggerType = mode === 'schedule' ? 'cron' : mode === 'event' ? 'event' : 'webhook'
   const triggerValue =
-    mode === 'schedule' ? buildCron(freq, hour, minute, cronWeekday, dom) : eventValue
+    mode === 'schedule' ? buildCron(freq, hour, minute, cronWeekday, dom)
+      : mode === 'event' ? eventValue
+        : webhookToken
+  const webhookUrl =
+    typeof window !== 'undefined' ? `${window.location.origin}/api/automatisations/webhooks/${webhookToken}` : ''
 
   const addAction = () => setActions((a) => [...a, { type: 'notify', titre: '', message: '' }])
   const updateAction = (i: number, patch: Partial<RoutineAction>) =>
     setActions((a) => a.map((act, j) => (j === i ? { ...act, ...patch } as RoutineAction : act)))
   const removeAction = (i: number) => setActions((a) => a.filter((_, j) => j !== i))
 
-  const valid = name.trim() && (mode === 'schedule' || eventValue) && actions.length > 0
+  const valid = name.trim() && (mode !== 'event' || eventValue) && actions.length > 0
   const pad = (n: number) => String(n).padStart(2, '0')
 
   const submit = () => {
@@ -100,7 +107,7 @@ function AddModal({ onClose }: { onClose: () => void }) {
           <fieldset className="rounded-[var(--radius)] border border-[var(--glass-border)] p-3">
             <legend className="px-1 text-xs font-semibold text-[var(--muted-foreground)]">SI…</legend>
             <div className="mb-2 flex gap-2">
-              {([['schedule', '⏱ À une heure'], ['event', '⚡ Sur événement']] as const).map(([m, label]) => (
+              {([['schedule', '⏱ À une heure'], ['event', '⚡ Sur événement'], ['webhook', '🔗 Webhook']] as const).map(([m, label]) => (
                 <button key={m} onClick={() => setMode(m)}
                   className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition-colors ${mode === m ? 'border-[var(--primary)] bg-[color-mix(in_srgb,var(--ring)_12%,transparent)] text-[var(--foreground)]' : 'border-[var(--border)] text-[var(--muted-foreground)]'}`}>
                   {label}
@@ -127,11 +134,20 @@ function AddModal({ onClose }: { onClose: () => void }) {
                 <span>:</span>
                 <input type="number" min={0} max={59} className={`${cls} w-16 tabular-nums`} value={minute} onChange={(e) => setMinute(+e.target.value)} />
               </div>
-            ) : (
+            ) : mode === 'event' ? (
               <select className={`${cls} w-full`} value={eventValue} onChange={(e) => setEventValue(e.target.value)}>
                 <option value="">— Choisir un événement —</option>
                 {opts?.events.map((ev) => <option key={ev.value} value={ev.value}>{ev.label}</option>)}
               </select>
+            ) : (
+              <div className="space-y-1.5">
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Un POST sur cette URL (secrète) déclenchera la routine. À créer pour obtenir l'URL.
+                </p>
+                <code className="block break-all rounded-[var(--radius)] bg-[var(--muted)] px-2 py-1.5 text-[11px] text-[var(--foreground)]">
+                  POST {webhookUrl}
+                </code>
+              </div>
             )}
           </fieldset>
 
@@ -144,7 +160,13 @@ function AddModal({ onClose }: { onClose: () => void }) {
                 <div key={i} className="rounded-lg border border-[var(--border)] p-2">
                   <div className="flex items-center gap-2">
                     <select className={`${cls} flex-1`} value={act.type}
-                      onChange={(e) => updateAction(i, e.target.value === 'notify' ? { type: 'notify', titre: '', message: '' } : { type: 'job', job_id: '' })}>
+                      onChange={(e) => {
+                        const v = e.target.value
+                        updateAction(i,
+                          v === 'notify' ? { type: 'notify', titre: '', message: '' }
+                            : v === 'webhook' ? { type: 'webhook', url: '' }
+                              : { type: 'job', job_id: '' })
+                      }}>
                       {opts?.action_types.map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
                     </select>
                     <button onClick={() => removeAction(i)} aria-label="Retirer" className="p-1 text-[var(--muted-foreground)] hover:text-[var(--destructive)]"><Trash2 size={15} /></button>
@@ -154,6 +176,8 @@ function AddModal({ onClose }: { onClose: () => void }) {
                       <input className={`${cls} w-full`} placeholder="Titre" value={(act as { titre?: string }).titre ?? ''} onChange={(e) => updateAction(i, { titre: e.target.value })} />
                       <input className={`${cls} w-full`} placeholder="Message" value={(act as { message?: string }).message ?? ''} onChange={(e) => updateAction(i, { message: e.target.value })} />
                     </div>
+                  ) : act.type === 'webhook' ? (
+                    <input className={`${cls} mt-2 w-full`} placeholder="https://exemple.com/webhook" value={(act as { url?: string }).url ?? ''} onChange={(e) => updateAction(i, { url: e.target.value })} />
                   ) : (
                     <select className={`${cls} mt-2 w-full`} value={(act as { job_id?: string }).job_id ?? ''} onChange={(e) => updateAction(i, { job_id: e.target.value })}>
                       <option value="">— Choisir une automatisation —</option>
@@ -173,7 +197,8 @@ function AddModal({ onClose }: { onClose: () => void }) {
             <span className="font-medium text-[var(--foreground)]">Aperçu :</span>{' '}
             {mode === 'schedule'
               ? `${FREQ.find((f) => f.id === freq)?.label}${freq === 'weekly' ? ' ' + WEEKDAYS[weekday - 1] : freq === 'monthly' ? ` le ${dom}` : ''} à ${pad(hour)}:${pad(minute)}`
-              : eventLabel ? `quand : ${eventLabel}` : 'choisis un événement'}
+              : mode === 'webhook' ? 'appel webhook entrant'
+                : eventLabel ? `quand : ${eventLabel}` : 'choisis un événement'}
             {' → '}{actions.length} action{actions.length > 1 ? 's' : ''}
           </p>
 

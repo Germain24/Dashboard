@@ -101,7 +101,7 @@ def run_action_list(
     """
     results: list[str] = []
     status = "ok"
-    created: dict = {"notifications": [], "jobs": []}
+    created: dict = {"notifications": [], "jobs": [], "webhooks": []}
     try:
         for action in actions:
             t = action.get("type")
@@ -121,6 +121,11 @@ def run_action_list(
                 _trigger_job_now(job_id)
                 created["jobs"].append(job_id)
                 results.append(f"job {job_id!r} déclenché")
+            elif t == "webhook":  # sortant (#219) : POST JSON best-effort
+                url = action.get("url", "")
+                ok = _post_webhook(url, action.get("payload") or {"source": source})
+                created["webhooks"].append(url)
+                results.append(f"webhook {'envoyé' if ok else 'échoué'}: {url}")
             else:
                 results.append(f"action inconnue: {t!r}")
     except Exception as exc:  # une action a échoué -> "error"
@@ -179,6 +184,24 @@ def rerun_run(session: Session, run_id: int) -> str:
     return execute_routine(session, run.routine_id)
 
 
+def trigger_webhook(session: Session, token: str) -> str:
+    """Déclencheur entrant (#219) : exécute la routine dont trigger_type="webhook"
+    et trigger_value == token. Le token EST le secret (URL non devinable).
+
+    Respecte le kill switch (via execute_routine). Lève ValueError si aucun
+    webhook ne correspond (-> 404 côté route).
+    """
+    routine = session.exec(
+        select(Routine)
+        .where(Routine.trigger_type == "webhook", Routine.trigger_value == token)
+    ).first()
+    if not routine:
+        raise ValueError("Webhook inconnu")
+    if not routine.enabled:
+        return "routine désactivée"
+    return execute_routine(session, routine.id)
+
+
 def rollback_run(session: Session, run_id: int) -> str:
     """Annule ce qui est RÉVERSIBLE dans un run (#216).
 
@@ -201,9 +224,9 @@ def rollback_run(session: Session, run_id: int) -> str:
             deleted += 1
 
     parts = [f"{deleted} notification(s) supprimée(s)"]
-    jobs = created.get("jobs", [])
-    if jobs:
-        parts.append(f"{len(jobs)} job(s) non réversible(s) (effets déjà appliqués)")
+    non_rev = len(created.get("jobs", [])) + len(created.get("webhooks", []))
+    if non_rev:
+        parts.append(f"{non_rev} action(s) non réversible(s) (effets déjà appliqués)")
 
     run.rolled_back = True
     session.add(run)
@@ -221,3 +244,26 @@ def _trigger_job_now(job_id: str) -> None:
             job.modify(next_run_time=dt.datetime.now())
     except Exception:
         pass
+
+
+def _post_webhook(url: str, payload: dict) -> bool:
+    """Webhook sortant (#219) : POST JSON best-effort. Retourne True si 2xx.
+
+    Garde-fou : seuls http/https sont autorisés (pas de file://, etc.). Échec
+    silencieux (timeout/erreur réseau) -> False, sans propager (le run continue).
+    """
+    if not isinstance(url, str) or not url.startswith(("http://", "https://")):
+        return False
+    try:
+        import urllib.request
+
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310 (schéma validé)
+            return 200 <= resp.status < 300
+    except Exception:
+        return False
