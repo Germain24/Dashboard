@@ -70,6 +70,6 @@ def run_recipe(session: Session, recipe_id: str) -> str:
         raise ValueError(f"Recette {recipe_id!r} introuvable")
     if get_preferences().get("automatisations_kill_switch"):
         return "bloqué (kill switch global actif)"
-    _status, detail = run_action_list(session, recipe["actions"], source=f"recipe_{recipe_id}")
+    _status, detail, _created = run_action_list(session, recipe["actions"], source=f"recipe_{recipe_id}")
     session.commit()
     return detail

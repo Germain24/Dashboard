@@ -29,3 +29,7 @@ class RoutineRun(SQLModel, table=True):
     ran_at: dt.datetime = Field(default_factory=utcnow)
     status: str = "ok"          # "ok" | "blocked" | "error"
     detail: str = ""
+    # Artefacts réversibles créés par ce run, p.ex. {"notifications":[id], "jobs":["x"]}
+    # — sert au rollback (#216). Les notifications sont supprimables ; les jobs non.
+    created_ids: str = "{}"
+    rolled_back: bool = False

@@ -7,6 +7,8 @@ import {
   fetchRecipes,
   fetchRoutineRuns,
   fetchRoutines,
+  rerunRoutineRun,
+  rollbackRoutineRun,
   runRecipe,
   runRoutine,
   setKillSwitch,
@@ -70,6 +72,23 @@ export const useSetKillSwitch = () => {
 
 export const useRoutineRuns = (limit = 30) =>
   useQuery({ queryKey: routinesKeys.runs(), queryFn: () => fetchRoutineRuns(limit) })
+
+// Ré-exécution + rollback d'un run (#216)
+export const useRerunRun = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (runId: number) => rerunRoutineRun(runId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.all }),
+  })
+}
+
+export const useRollbackRun = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (runId: number) => rollbackRoutineRun(runId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.runs() }),
+  })
+}
 
 export const useBuilderOptions = () =>
   useQuery({ queryKey: ['routines', 'builder-options'], queryFn: fetchBuilderOptions, staleTime: Infinity })

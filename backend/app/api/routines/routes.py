@@ -16,6 +16,8 @@ from app.services.automatisations.engine import (
     get_routine,
     get_routine_runs,
     get_routines,
+    rerun_run,
+    rollback_run,
     update_routine,
 )
 from app.services.settings import get_preferences, set_preferences
@@ -119,6 +121,26 @@ def list_routine_runs(
     """Journal d'audit des déclenchements (plus récent en premier)."""
     runs = get_routine_runs(session, limit=limit, routine_id=routine_id)
     return [r.model_dump() for r in runs]
+
+
+# ─── File d'automatisations : ré-exécution + rollback (#216) ───────────────────
+
+@router.post("/routines/runs/{run_id}/rerun")
+def rerun_routine_run(run_id: int, session: Session = Depends(get_session)):
+    """Ré-exécute la routine d'un run passé (crée un nouveau run)."""
+    try:
+        return {"result": rerun_run(session, run_id)}
+    except ValueError as exc:
+        raise HTTPException(404, str(exc))
+
+
+@router.post("/routines/runs/{run_id}/rollback")
+def rollback_routine_run(run_id: int, session: Session = Depends(get_session)):
+    """Annule les artefacts réversibles d'un run (notifications créées)."""
+    try:
+        return {"result": rollback_run(session, run_id)}
+    except ValueError as exc:
+        raise HTTPException(404, str(exc))
 
 
 @router.get("/routines/builder-options")

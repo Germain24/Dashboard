@@ -71,45 +71,62 @@ def delete_routine(session: Session, routine_id: int) -> bool:
 
 # ─── EXÉCUTION ────────────────────────────────────────────────────────────────
 
-def _log_run(session: Session, routine: Routine, status: str, detail: str) -> None:
-    """Écrit une entrée d'audit pour un déclenchement (#217)."""
+def _log_run(
+    session: Session, routine: Routine, status: str, detail: str,
+    created: dict | None = None,
+) -> None:
+    """Écrit une entrée d'audit pour un déclenchement (#217).
+
+    `created` (#216) = artefacts réversibles produits par le run, sérialisés en
+    JSON dans `created_ids` pour permettre le rollback.
+    """
     session.add(RoutineRun(
         routine_id=routine.id,
         routine_name=routine.name,
         status=status,
         detail=detail[:1000],
+        created_ids=json.dumps(created or {"notifications": [], "jobs": []}),
     ))
 
 
-def run_action_list(session: Session, actions: list[dict], *, source: str) -> tuple[str, str]:
-    """Exécute une liste d'actions (notify/job). Retourne (status, detail).
+def run_action_list(
+    session: Session, actions: list[dict], *, source: str,
+) -> tuple[str, str, dict]:
+    """Exécute une liste d'actions (notify/job). Retourne (status, detail, created).
 
     Réutilisé par les routines ET les recettes (#215). N'engage pas le commit
-    (laissé à l'appelant). `source` préfixe les notifications créées.
+    (laissé à l'appelant). `source` préfixe les notifications créées. `created`
+    recense les artefacts réversibles (ids de notifications) + jobs déclenchés
+    (non réversibles), pour le rollback (#216).
     """
     results: list[str] = []
     status = "ok"
+    created: dict = {"notifications": [], "jobs": []}
     try:
         for action in actions:
             t = action.get("type")
             if t == "notify":
-                session.add(Notification(
+                notif = Notification(
                     source=source,
                     level=action.get("level", "info"),
                     titre=action.get("titre", "Routine"),
                     message=action.get("message", ""),
-                ))
+                )
+                session.add(notif)
+                session.flush()  # pour récupérer l'id (rollback)
+                created["notifications"].append(notif.id)
                 results.append("notif créée")
             elif t == "job":
                 job_id = action.get("job_id", "")
                 _trigger_job_now(job_id)
+                created["jobs"].append(job_id)
                 results.append(f"job {job_id!r} déclenché")
             else:
                 results.append(f"action inconnue: {t!r}")
     except Exception as exc:  # une action a échoué -> "error"
         status = "error"
         results.append(f"erreur: {exc}")
-    return status, ("; ".join(results) or "ok")
+    return status, ("; ".join(results) or "ok"), created
 
 
 def execute_routine(session: Session, routine_id: int) -> str:
@@ -130,11 +147,11 @@ def execute_routine(session: Session, routine_id: int) -> str:
         return "bloqué (kill switch global actif)"
 
     actions = json.loads(routine.actions)
-    status, detail = run_action_list(session, actions, source=f"routine_{routine_id}")
+    status, detail, created = run_action_list(session, actions, source=f"routine_{routine_id}")
 
     routine.last_run_at = utcnow()
     session.add(routine)
-    _log_run(session, routine, status, detail)
+    _log_run(session, routine, status, detail, created)
     session.commit()
     return detail
 
@@ -148,6 +165,50 @@ def get_routine_runs(
         q = q.where(RoutineRun.routine_id == routine_id)
     q = q.order_by(RoutineRun.id.desc()).limit(limit)
     return list(session.exec(q).all())
+
+
+def rerun_run(session: Session, run_id: int) -> str:
+    """Ré-exécute la routine d'un run passé (#216). Crée un nouveau RoutineRun.
+
+    Respecte le kill switch (via execute_routine). Lève ValueError si le run ou
+    la routine n'existent plus.
+    """
+    run = session.get(RoutineRun, run_id)
+    if not run:
+        raise ValueError(f"Run {run_id} introuvable")
+    return execute_routine(session, run.routine_id)
+
+
+def rollback_run(session: Session, run_id: int) -> str:
+    """Annule ce qui est RÉVERSIBLE dans un run (#216).
+
+    Seules les notifications créées par le run sont supprimables. Les actions
+    `job` ont déjà appliqué leurs effets dans d'autres modules -> non réversibles,
+    juste signalées. Idempotent (un run déjà annulé n'est pas rejoué).
+    """
+    run = session.get(RoutineRun, run_id)
+    if not run:
+        raise ValueError(f"Run {run_id} introuvable")
+    if run.rolled_back:
+        return "Déjà annulé."
+
+    created = json.loads(run.created_ids or "{}")
+    deleted = 0
+    for nid in created.get("notifications", []):
+        notif = session.get(Notification, nid)
+        if notif is not None:
+            session.delete(notif)
+            deleted += 1
+
+    parts = [f"{deleted} notification(s) supprimée(s)"]
+    jobs = created.get("jobs", [])
+    if jobs:
+        parts.append(f"{len(jobs)} job(s) non réversible(s) (effets déjà appliqués)")
+
+    run.rolled_back = True
+    session.add(run)
+    session.commit()
+    return " ; ".join(parts)
 
 
 def _trigger_job_now(job_id: str) -> None:

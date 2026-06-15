@@ -54,6 +54,8 @@ export type RoutineRun = {
   ran_at: string
   status: 'ok' | 'blocked' | 'error'
   detail: string
+  created_ids?: string
+  rolled_back?: boolean
 }
 
 export const fetchKillSwitch = (): Promise<{ enabled: boolean }> =>
@@ -68,6 +70,13 @@ export const setKillSwitch = (enabled: boolean): Promise<{ enabled: boolean }> =
 
 export const fetchRoutineRuns = (limit = 30): Promise<RoutineRun[]> =>
   fetch(`${BASE}/routines/runs?limit=${limit}`).then(json)
+
+// File d'automatisations : ré-exécution + rollback (#216)
+export const rerunRoutineRun = (runId: number): Promise<{ result: string }> =>
+  fetch(`${BASE}/routines/runs/${runId}/rerun`, { method: 'POST' }).then(json)
+
+export const rollbackRoutineRun = (runId: number): Promise<{ result: string }> =>
+  fetch(`${BASE}/routines/runs/${runId}/rollback`, { method: 'POST' }).then(json)
 
 // ── Constructeur no-code (#205) ──────────────────────────────────────────────
 

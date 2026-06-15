@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Zap, Play, Trash2, Plus, X, Clock, Radio, ShieldAlert, History } from 'lucide-react'
+import { Zap, Play, Trash2, Plus, X, Clock, Radio, ShieldAlert, History, RotateCcw, Undo2 } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ModuleHeader } from '@/components/layout'
 import {
   useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine,
   useKillSwitch, useSetKillSwitch, useRoutineRuns, useBuilderOptions,
-  useRecipes, useRunRecipe,
+  useRecipes, useRunRecipe, useRerunRun, useRollbackRun,
 } from '@/lib/queries/routines'
 import type { Routine, RoutineAction } from '@/lib/routines'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -441,12 +441,31 @@ function RecipesSection() {
 /** Journal d'audit des déclenchements (#217). */
 function AuditLog() {
   const { data: runs } = useRoutineRuns(20)
+  const rerun = useRerunRun()
+  const rollback = useRollbackRun()
   if (!runs?.length) return null
   const STATUS: Record<string, { label: string; cls: string }> = {
     ok: { label: 'OK', cls: 'bg-[var(--success-muted)] text-[var(--success-foreground)]' },
     blocked: { label: 'Bloqué', cls: 'bg-[var(--warning-muted)] text-[var(--warning-foreground)]' },
     error: { label: 'Erreur', cls: 'bg-[var(--destructive-muted)] text-[var(--destructive-foreground)]' },
   }
+  const reversibleCount = (run: { created_ids?: string }): number => {
+    try {
+      return (JSON.parse(run.created_ids || '{}').notifications ?? []).length
+    } catch {
+      return 0
+    }
+  }
+  const onRerun = (id: number) =>
+    rerun.mutate(id, {
+      onSuccess: (r) => toast.success(r.result || 'Routine ré-exécutée'),
+      onError: () => toast.error('Échec de la ré-exécution'),
+    })
+  const onRollback = (id: number) =>
+    rollback.mutate(id, {
+      onSuccess: (r) => toast.success(r.result || 'Annulé'),
+      onError: () => toast.error('Échec du rollback'),
+    })
   return (
     <div className="mt-8">
       <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
@@ -464,6 +483,31 @@ function AuditLog() {
                 {run.routine_name}
                 <span className="ml-2 text-xs text-[var(--muted-foreground)]">{run.detail}</span>
               </span>
+              {run.rolled_back && (
+                <span className="shrink-0 rounded-[var(--radius-full)] bg-[var(--muted)] px-2 py-0.5 text-[11px] text-[var(--muted-foreground)]">
+                  annulé
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => onRerun(run.id)}
+                disabled={rerun.isPending}
+                title="Ré-exécuter cette routine"
+                className="shrink-0 rounded-[var(--radius)] p-1 text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)] disabled:opacity-50"
+              >
+                <RotateCcw size={14} />
+              </button>
+              {!run.rolled_back && reversibleCount(run) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onRollback(run.id)}
+                  disabled={rollback.isPending}
+                  title="Annuler (supprime les notifications créées)"
+                  className="shrink-0 rounded-[var(--radius)] p-1 text-[var(--muted-foreground)] hover:bg-[var(--destructive-muted)] hover:text-[var(--destructive-foreground)] disabled:opacity-50"
+                >
+                  <Undo2 size={14} />
+                </button>
+              )}
               <time className="shrink-0 text-xs text-[var(--muted-foreground)] tabular-nums">
                 {new Date(run.ran_at).toLocaleString('fr-CA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
               </time>
