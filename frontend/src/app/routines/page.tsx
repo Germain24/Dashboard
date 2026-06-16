@@ -9,7 +9,7 @@ import {
   useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine,
   useKillSwitch, useSetKillSwitch, useRoutineRuns, useBuilderOptions,
   useRecipes, useRunRecipe, useRerunRun, useRollbackRun, useAutomationSuggestions, useApplyDeepWork,
-  useCorrelations, useWeeklyInsights,
+  useCorrelations, useWeeklyInsights, useCausalites,
 } from '@/lib/queries/routines'
 import type { Routine, RoutineAction, AutomationSuggestion } from '@/lib/routines'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -371,6 +371,8 @@ function RoutinesContent() {
 
       <CorrelationsSection />
 
+      <CausalitesSection />
+
       <SuggestionsSection />
 
       <AuditLog />
@@ -539,6 +541,36 @@ function CorrelationsSection() {
             </li>
           )
         })}
+      </ul>
+    </div>
+  )
+}
+
+/** Pistes de causalité / liens décalés (#224). */
+function CausalitesSection() {
+  const { data } = useCausalites()
+  const links = data?.links ?? []
+  if (!links.length) return null
+  return (
+    <div className="mt-8">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
+        <Activity size={13} /> Pistes (un jour influence-t-il le lendemain ? — à explorer, pas prouvé)
+      </h2>
+      <ul className="space-y-2">
+        {links.map((l) => (
+          <li
+            key={`${l.cause}-${l.effet}`}
+            className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-[var(--border)] bg-[var(--accent)]/20 px-4 py-2.5 text-sm"
+          >
+            <span className="min-w-0 flex-1 text-[var(--foreground)]">
+              {l.cause} <span className="text-[var(--muted-foreground)]">→ (J+{l.lag})</span> {l.effet}
+              <span className="ml-2 text-xs text-[var(--muted-foreground)]">n={l.n}</span>
+            </span>
+            <span className={`shrink-0 tabular-nums text-xs font-medium ${l.r >= 0 ? 'text-[var(--success-foreground)]' : 'text-[var(--warning-foreground)]'}`}>
+              {l.r > 0 ? '+' : ''}{l.r.toFixed(2)}
+            </span>
+          </li>
+        ))}
       </ul>
     </div>
   )

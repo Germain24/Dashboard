@@ -101,6 +101,12 @@ export type WeeklyInsights = { week_start: string; reussites: string[]; vigilanc
 export const fetchWeeklyInsights = (): Promise<WeeklyInsights> =>
   fetch(`${BASE}/insights`).then(json)
 
+// Pistes de causalité / liens décalés (#224)
+export type CausalLink = { cause: string; effet: string; lag: number; r: number; n: number; piste: string }
+
+export const fetchCausalites = (): Promise<{ links: CausalLink[]; count: number }> =>
+  fetch(`${BASE}/causalites`).then(json)
+
 // File d'automatisations : ré-exécution + rollback (#216)
 export const rerunRoutineRun = (runId: number): Promise<{ result: string }> =>
   fetch(`${BASE}/routines/runs/${runId}/rerun`, { method: 'POST' }).then(json)

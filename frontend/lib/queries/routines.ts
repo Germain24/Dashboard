@@ -5,6 +5,7 @@ import {
   applyDeepWork,
   fetchAutomationSuggestions,
   fetchBuilderOptions,
+  fetchCausalites,
   fetchCorrelations,
   fetchWeeklyInsights,
   fetchKillSwitch,
@@ -93,6 +94,9 @@ export const useRollbackRun = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.runs() }),
   })
 }
+
+export const useCausalites = () =>
+  useQuery({ queryKey: ['routines', 'causalites'], queryFn: fetchCausalites })
 
 export const useWeeklyInsights = () =>
   useQuery({ queryKey: ['routines', 'insights'], queryFn: fetchWeeklyInsights })

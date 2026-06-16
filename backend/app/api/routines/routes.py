@@ -434,3 +434,13 @@ def get_weekly_insights(session: Session = Depends(get_session)):
     """Réussites / vigilance / tendances de la semaine vs la précédente."""
     from app.services.automatisations.insights import build_weekly_insights
     return build_weekly_insights(session)
+
+
+# ─── Pistes de causalité / liens décalés (#224) ───────────────────────────────
+
+@router.get("/causalites")
+def get_causalites(days: int = 90, lag: int = 1, session: Session = Depends(get_session)):
+    """Liens décalés A(J) -> B(J+lag) — pistes, pas des preuves."""
+    from app.services.automatisations.causalites import compute_causalites
+    links = compute_causalites(session, days=days, lag=lag)
+    return {"days": days, "lag": lag, "links": links, "count": len(links)}
