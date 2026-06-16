@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Activity, Calendar, ChevronRight, Heart, Smile, Zap } from 'lucide-react'
+import { Activity, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { useActivateTemplate, useSetVacationMode, useSnapshots, useTemplates, useVacationMode, useWellbeing } from '@/lib/queries/snapshot'
+import { ModuleHeader } from '@/components/layout'
+import { useActivateTemplate, useSetVacationMode, useSnapshot, useSnapshots, useTemplates, useVacationMode, useWellbeing } from '@/lib/queries/snapshot'
 import type { SnapshotData } from '@/lib/snapshot'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -110,7 +111,7 @@ function TemplatesSection() {
 
   return (
     <div>
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)] mb-3">
+      <h2 className="text-xs font-semibold text-[var(--muted-foreground)] mb-3">
         Modèles de routines
       </h2>
       <div className="space-y-2">
@@ -166,6 +167,39 @@ function VacationToggle() {
   )
 }
 
+// ─── Time machine : rejoue l'état d'une date passée (#230) ────────────────────
+
+function TimeMachine() {
+  const today = new Date().toISOString().slice(0, 10)
+  const [date, setDate] = useState(today)
+  const { data: snap, isLoading } = useSnapshot(date)
+  const shift = (days: number) => {
+    const d = new Date(date + 'T12:00:00')
+    d.setDate(d.getDate() + days)
+    const iso = d.toISOString().slice(0, 10)
+    if (iso <= today) setDate(iso)
+  }
+  return (
+    <div>
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
+        <Calendar size={13} /> Time machine — rejoue une journée passée
+      </h2>
+      <div className="mb-2 flex items-center gap-2">
+        <button onClick={() => shift(-1)} aria-label="Jour précédent" className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"><ChevronLeft size={15} /></button>
+        <input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm" />
+        <button onClick={() => shift(1)} disabled={date >= today} aria-label="Jour suivant" className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-40"><ChevronRight size={15} /></button>
+      </div>
+      {isLoading ? (
+        <Skeleton className="h-16 rounded-xl" />
+      ) : snap ? (
+        <SnapshotCard snap={snap} />
+      ) : (
+        <p className="text-sm text-[var(--muted-foreground)]">Aucune donnée pour cette date.</p>
+      )}
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 function SnapshotContent() {
@@ -175,12 +209,13 @@ function SnapshotContent() {
   return (
     <div className="space-y-6">
       <WellbeingWidget />
+      <TimeMachine />
       <VacationToggle />
       <TemplatesSection />
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
+          <h2 className="text-xs font-semibold text-[var(--muted-foreground)]">
             Historique
           </h2>
           <div className="flex gap-1">
@@ -224,13 +259,7 @@ function SnapshotContent() {
 export default function SnapshotPage() {
   return (
     <div className="space-y-0 animate-fade-in">
-      <div className="px-6 py-5 border-b border-[var(--border)]">
-        <div className="flex items-center gap-2 mb-1">
-          <Activity size={20} className="text-[var(--muted-foreground)]" />
-          <h1 className="text-xl font-semibold tracking-tight">Journal de vie</h1>
-        </div>
-        <p className="text-sm text-[var(--muted-foreground)]">Snapshot quotidien multi-modules + score bien-être</p>
-      </div>
+      <ModuleHeader title="Journal de vie" subtitle="Snapshot quotidien multi-modules + score bien-être" />
       <div className="p-6 animate-fade-in-up">
         <ErrorBoundary label="Journal de vie">
           <SnapshotContent />
