@@ -9,7 +9,7 @@ import {
   useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine,
   useKillSwitch, useSetKillSwitch, useRoutineRuns, useBuilderOptions,
   useRecipes, useRunRecipe, useRerunRun, useRollbackRun, useAutomationSuggestions, useApplyDeepWork,
-  useCorrelations,
+  useCorrelations, useWeeklyInsights,
 } from '@/lib/queries/routines'
 import type { Routine, RoutineAction, AutomationSuggestion } from '@/lib/routines'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -367,6 +367,8 @@ function RoutinesContent() {
 
       <DeepWorkCard />
 
+      <WeeklyInsightsSection />
+
       <CorrelationsSection />
 
       <SuggestionsSection />
@@ -462,6 +464,39 @@ function RecipesSection() {
                 className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] py-1.5 text-xs font-medium hover:bg-[var(--accent)]">
                 <Play size={13} /> Lancer
               </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Insights hebdomadaires (#223). */
+function WeeklyInsightsSection() {
+  const { data } = useWeeklyInsights()
+  if (!data) return null
+  const cols: [string, string[], string][] = [
+    ['Réussites', data.reussites, 'text-[var(--success-foreground)]'],
+    ['Vigilance', data.vigilance, 'text-[var(--warning-foreground)]'],
+    ['Tendances', data.tendances, 'text-[var(--muted-foreground)]'],
+  ]
+  if (cols.every(([, items]) => items.length === 0)) return null
+  return (
+    <div className="mt-8">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
+        <Activity size={13} /> Insights de la semaine
+      </h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {cols.map(([title, items, cls]) => (
+          <div key={title} className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-3">
+            <p className={`mb-1.5 text-xs font-semibold ${cls}`}>{title}</p>
+            {items.length === 0 ? (
+              <p className="text-xs text-[var(--muted-foreground)]">—</p>
+            ) : (
+              <ul className="space-y-1">
+                {items.map((m, i) => <li key={i} className="text-xs text-[var(--foreground)]">{m}</li>)}
+              </ul>
             )}
           </div>
         ))}

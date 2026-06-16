@@ -95,6 +95,12 @@ export type Correlation = { a: string; b: string; r: number; n: number; interpre
 export const fetchCorrelations = (): Promise<{ days: number; correlations: Correlation[]; count: number }> =>
   fetch(`${BASE}/correlations`).then(json)
 
+// Insights hebdomadaires (#223)
+export type WeeklyInsights = { week_start: string; reussites: string[]; vigilance: string[]; tendances: string[] }
+
+export const fetchWeeklyInsights = (): Promise<WeeklyInsights> =>
+  fetch(`${BASE}/insights`).then(json)
+
 // File d'automatisations : ré-exécution + rollback (#216)
 export const rerunRoutineRun = (runId: number): Promise<{ result: string }> =>
   fetch(`${BASE}/routines/runs/${runId}/rerun`, { method: 'POST' }).then(json)

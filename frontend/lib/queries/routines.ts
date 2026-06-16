@@ -6,6 +6,7 @@ import {
   fetchAutomationSuggestions,
   fetchBuilderOptions,
   fetchCorrelations,
+  fetchWeeklyInsights,
   fetchKillSwitch,
   fetchRecipes,
   fetchRoutineRuns,
@@ -92,6 +93,9 @@ export const useRollbackRun = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: routinesKeys.runs() }),
   })
 }
+
+export const useWeeklyInsights = () =>
+  useQuery({ queryKey: ['routines', 'insights'], queryFn: fetchWeeklyInsights })
 
 export const useCorrelations = () =>
   useQuery({ queryKey: ['routines', 'correlations'], queryFn: fetchCorrelations })

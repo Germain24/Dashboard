@@ -425,3 +425,12 @@ def get_correlations(days: int = 60, session: Session = Depends(get_session)):
     from app.services.automatisations.correlations import compute_correlations
     correlations = compute_correlations(session, days=days)
     return {"days": days, "correlations": correlations, "count": len(correlations)}
+
+
+# ─── Insights hebdomadaires (#223) ────────────────────────────────────────────
+
+@router.get("/insights")
+def get_weekly_insights(session: Session = Depends(get_session)):
+    """Réussites / vigilance / tendances de la semaine vs la précédente."""
+    from app.services.automatisations.insights import build_weekly_insights
+    return build_weekly_insights(session)
