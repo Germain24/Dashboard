@@ -22,7 +22,7 @@ export function NutritionQualityWidget() {
         <span className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(q.score) }}>
           {q.score}
         </span>
-        <span className="text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">/ 100</span>
+        <span className="text-[10px] text-[var(--muted-foreground)]">/ 100</span>
       </div>
       <div className="min-w-0 space-y-1">
         <h3 className="text-sm font-semibold">🥗 Qualité nutritionnelle · 7 j</h3>

@@ -16,11 +16,11 @@ export function StatCard({ label, value, sub, trend, color = 'default' }: StatCa
   const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : ''
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 card-hover space-y-1">
-      <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">{label}</p>
-      <p className={`text-2xl font-bold font-mono ${colors[color]}`}>
+    <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] backdrop-blur-[var(--glass-blur)] backdrop-saturate-[1.4] shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow)] p-5 card-hover space-y-1">
+      <p className="text-[13px] text-[var(--muted-foreground)]">{label}</p>
+      <p className={`font-display text-[1.75rem] leading-tight tabular-nums ${colors[color]}`}>
         {value}
-        {trendIcon && <span className="text-sm ml-1 opacity-70">{trendIcon}</span>}
+        {trendIcon && <span className="ml-1.5 text-base opacity-60">{trendIcon}</span>}
       </p>
       {sub && <p className="text-xs text-[var(--muted-foreground)]">{sub}</p>}
     </div>

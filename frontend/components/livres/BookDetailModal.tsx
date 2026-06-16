@@ -30,6 +30,7 @@ export default function BookDetailModal({
   onDeleted: () => void
 }) {
   const [statut, setStatut] = useState<Statut>(book.statut)
+  const [langue, setLangue] = useState(book.langue ?? '')
   const [newNote, setNewNote] = useState('')
   const [newQuote, setNewQuote] = useState('')
   const [pageFin, setPageFin] = useState('')
@@ -56,6 +57,15 @@ export default function BookDetailModal({
     updateMutation.mutate({ id: book.id, patch }, {
       onSuccess: onChanged,
       onError: () => toast.error('Statut non sauvegardé.'),
+    })
+  }
+
+  const saveLangue = () => {
+    const v = langue.trim()
+    if (v === (book.langue ?? '')) return
+    updateMutation.mutate({ id: book.id, patch: { langue: v } }, {
+      onSuccess: onChanged,
+      onError: () => toast.error('Langue non sauvegardée.'),
     })
   }
 
@@ -152,6 +162,20 @@ export default function BookDetailModal({
             </p>
           </div>
         )}
+
+        {/* Langue (filtre sur l'onglet Livres) */}
+        <div className="mb-4 flex items-center gap-2">
+          <label htmlFor="book-langue" className="text-xs font-medium text-[var(--muted-foreground)]">Langue</label>
+          <input
+            id="book-langue"
+            value={langue}
+            onChange={(e) => setLangue(e.target.value)}
+            onBlur={saveLangue}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveLangue() }}
+            placeholder="ex. Français, Anglais…"
+            className={`${inputCls} flex-1`}
+          />
+        </div>
 
         {/* Logger une session de lecture */}
         <div className="mb-4">

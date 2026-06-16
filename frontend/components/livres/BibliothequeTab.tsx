@@ -39,6 +39,7 @@ function Stars({ note, onSet }: { note: number | null; onSet?: (n: number) => vo
 
 export default function BibliothequeTab() {
   const [filtre, setFiltre] = useState<Statut | 'tous'>('tous')
+  const [langue, setLangue] = useState<string>('toutes')
   const [sort, setSort] = useState<'recent' | 'note'>('recent')
   const [selected, setSelected] = useState<Book | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -62,7 +63,16 @@ export default function BibliothequeTab() {
     ALL_STATUTS.map((s) => [s, livres.filter((l) => l.statut === s).length]),
   ) as Record<Statut, number>
 
-  const livresFiltres = filtre === 'tous' ? livres : livres.filter((l) => l.statut === filtre)
+  // Langues présentes dans la bibliothèque (pour alimenter le filtre).
+  const languesDispo = Array.from(
+    new Set(livres.map((l) => l.langue).filter((x): x is string => Boolean(x))),
+  ).sort((a, b) => a.localeCompare(b, 'fr'))
+
+  const livresFiltres = livres.filter(
+    (l) =>
+      (filtre === 'tous' || l.statut === filtre) &&
+      (langue === 'toutes' || l.langue === langue),
+  )
 
   return (
     <div className="max-w-xl space-y-6">
@@ -80,7 +90,7 @@ export default function BibliothequeTab() {
               }`}
             >
               <Icon size={18} className="mx-auto mb-1" style={{ color: cfg.color }} />
-              <p className="text-2xl font-bold font-mono">{counts[s]}</p>
+              <p className="font-display text-[1.75rem] leading-tight tabular-nums">{counts[s]}</p>
               <p className="text-[11px] text-[var(--muted-foreground)]">{cfg.label}</p>
             </button>
           )
@@ -94,6 +104,21 @@ export default function BibliothequeTab() {
             <button onClick={() => setFiltre('tous')} className="text-xs text-[var(--ring)] hover:underline">
               ✕ {STATUT_CONFIG[filtre].label}
             </button>
+          )}
+          {languesDispo.length > 1 && (
+            <label className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
+              Langue
+              <select
+                value={langue}
+                onChange={(e) => setLangue(e.target.value)}
+                className="rounded-md border border-[var(--border)] bg-[var(--background)] px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+              >
+                <option value="toutes">Toutes</option>
+                {languesDispo.map((l) => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
+            </label>
           )}
           <label className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
             Tri
@@ -145,10 +170,17 @@ export default function BibliothequeTab() {
             const current = livre.page_courante ?? 0
             const pct = total > 0 ? Math.round((Math.min(current, total) / total) * 100) : 0
             return (
-              <button
+              // div role=button (et non <button>) : la rangée contient les
+              // étoiles cliquables, et un <button> imbriqué est du HTML invalide.
+              <div
                 key={livre.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelected(livre)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-left card-hover animate-fade-in-up"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(livre) }
+                }}
+                className="w-full cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-left card-hover animate-fade-in-up"
               >
                 <div className="flex items-start gap-3">
                   {livre.couverture_url ? (
@@ -173,12 +205,15 @@ export default function BibliothequeTab() {
                       {livre.genre && (
                         <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">{livre.genre}</span>
                       )}
+                      {livre.langue && (
+                        <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">{livre.langue}</span>
+                      )}
                       {total > 0 && <span className="text-xs text-[var(--muted-foreground)]">{total} p.</span>}
                     </div>
-                    {livre.statut === 'en_cours' && total > 0 && (
+                    {total > 0 && (current > 0 || livre.statut === 'en_cours') && livre.statut !== 'lu' && (
                       <div className="mt-2">
                         <div className="mb-1 flex justify-between text-[10px] text-[var(--muted-foreground)]">
-                          <span>Page {current}</span><span>{pct}%</span>
+                          <span>Page {current} / {total}</span><span>{pct}%</span>
                         </div>
                         <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
                           <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: cfg.color }} />
@@ -187,7 +222,7 @@ export default function BibliothequeTab() {
                     )}
                   </div>
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>
@@ -235,7 +270,7 @@ function AddBookDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () 
     createMutation.mutate(
       {
         titre: r.titre, auteur: r.auteur, pages: r.pages, isbn: r.isbn,
-        couverture_url: r.couverture_url, statut: 'a_lire',
+        langue: r.langue, couverture_url: r.couverture_url, statut: 'a_lire',
       },
       {
         onSuccess: () => {
@@ -297,7 +332,7 @@ function AddBookDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () 
               )}
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{r.titre}</p>
-                <p className="truncate text-xs text-[var(--muted-foreground)]">{r.auteur || '—'}{r.annee ? ` · ${r.annee}` : ''}{r.pages ? ` · ${r.pages} p.` : ''}</p>
+                <p className="truncate text-xs text-[var(--muted-foreground)]">{r.auteur || '—'}{r.annee ? ` · ${r.annee}` : ''}{r.pages ? ` · ${r.pages} p.` : ''}{r.langue ? ` · ${r.langue}` : ''}</p>
               </div>
             </button>
           ))}

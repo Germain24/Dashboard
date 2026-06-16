@@ -59,11 +59,13 @@ export function TodayPanel() {
 
   const todayQ = useAgendaToday();
   const markDoneMutation = useMarkTaskDone();
-  const state: State = todayQ.isLoading
-    ? { status: "loading" }
+  // « ready » seulement quand data existe : isLoading peut être faux sans
+  // données (requête en pause / premier rendu), ce qui crashait Ready.
+  const state: State = todayQ.data
+    ? { status: "ready", data: todayQ.data }
     : todayQ.isError
       ? { status: "error" }
-      : { status: "ready", data: todayQ.data as AgendaJour };
+      : { status: "loading" };
 
   useEffect(() => {
     if (todayQ.data) setTasks(todayQ.data.taches_urgentes);

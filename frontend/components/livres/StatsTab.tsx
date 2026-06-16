@@ -67,11 +67,11 @@ export default function StatsTab() {
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-center">
           <BookMarked size={18} className="mx-auto mb-1 text-[var(--ring)]" />
-          <p className="text-2xl font-bold font-mono">{stats.livres_lus}</p>
+          <p className="font-display text-[1.75rem] leading-tight tabular-nums">{stats.livres_lus}</p>
           <p className="text-xs text-[var(--muted-foreground)]">livres lus</p>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-center">
-          <p className="text-2xl font-bold font-mono">{stats.pages_lues.toLocaleString('fr-CA')}</p>
+          <p className="font-display text-[1.75rem] leading-tight tabular-nums">{stats.pages_lues.toLocaleString('fr-CA')}</p>
           <p className="text-xs text-[var(--muted-foreground)]">pages lues</p>
         </div>
       </div>

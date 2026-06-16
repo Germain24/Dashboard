@@ -28,9 +28,9 @@ export function Greeting() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">{greeting}, Germain</h1>
+      <h1 className="text-3xl font-normal tracking-tight">{greeting}, Germain</h1>
       {/* Réserve la hauteur de ligne avant montage pour éviter tout saut. */}
-      <p className="mt-1 text-sm text-[var(--muted-foreground)] first-letter:uppercase">
+      <p className="mt-1.5 font-display italic text-sm text-[var(--muted-foreground)] first-letter:uppercase">
         {date ?? " "}
       </p>
     </div>

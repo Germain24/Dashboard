@@ -10,6 +10,7 @@ export type Book = {
   pages: number | null
   statut: Statut
   genre: string
+  langue: string
   format: string
   note: number | null
   page_courante: number | null
@@ -24,6 +25,7 @@ export type SearchResult = {
   pages: number | null
   isbn: string | null
   annee: number | null
+  langue: string
   couverture_url: string | null
 }
 

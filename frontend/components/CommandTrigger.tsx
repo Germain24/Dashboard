@@ -26,7 +26,7 @@ export function CommandTrigger() {
       onClick={() => window.dispatchEvent(new CustomEvent("mc:command-palette"))}
       aria-label="Rechercher et naviguer"
       aria-keyshortcuts="Meta+K Control+K"
-      className="flex w-full items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--muted-foreground)] transition-colors hover:border-[color-mix(in_srgb,var(--ring)_40%,transparent)] hover:text-[var(--foreground)]"
+      className="flex w-full items-center gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--field)] px-3 py-2 text-sm text-[var(--muted-foreground)] transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--ring)_40%,transparent)] hover:text-[var(--foreground)]"
     >
       <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span className="flex-1 text-left">Rechercher…</span>

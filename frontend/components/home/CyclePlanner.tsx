@@ -211,7 +211,7 @@ export function CyclePlanner() {
 
               {groupByDay(plan.blocs).map(({ date, items }) => (
                 <div key={date} className="mb-3 last:mb-0">
-                  <h3 className="mb-1 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] first-letter:uppercase">
+                  <h3 className="mb-1 text-xs font-medium text-[var(--muted-foreground)] first-letter:uppercase">
                     {dayLabel(date)}
                   </h3>
                   <ul className="space-y-1">

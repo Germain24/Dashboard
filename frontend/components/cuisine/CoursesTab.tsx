@@ -100,7 +100,7 @@ export default function CoursesTab() {
             .sort()
             .map((rayon) => (
               <div key={rayon}>
-                <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+                <h3 className="mb-1.5 text-xs font-medium text-[var(--muted-foreground)]">
                   {rayon}
                 </h3>
                 <div className="overflow-hidden rounded-lg border border-[var(--border)]">

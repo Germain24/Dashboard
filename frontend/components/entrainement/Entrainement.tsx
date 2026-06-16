@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Dumbbell, ClipboardList, BarChart2, Activity, CalendarDays } from "lucide-react";
 import { todayKey } from "@/lib/entrainement";
 import { useExercices, useIntensityToday, useProgram, useSessions } from "@/lib/queries/entrainement";
+import { ModuleHeader } from "@/components/layout";
 import { AujourdhuiTab } from "./AujourdhuiTab";
 import { ProgrammeTab } from "./ProgrammeTab";
 import { ProgressionTab } from "./ProgressionTab";
@@ -57,37 +58,23 @@ export function Entrainement() {
 
   return (
     <div className="space-y-0 animate-fade-in">
-      <div className="px-6 py-5 border-b border-[var(--border)]">
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Entraînement</h1>
-            <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Séances &amp; progression</p>
-          </div>
-          {todayJour && (
-            <span className="text-xs rounded-md bg-[var(--muted)] px-2.5 py-1 text-[var(--muted-foreground)]">
+      <ModuleHeader
+        title="Entraînement"
+        subtitle="Séances & progression"
+        tabs={TABS.map((t) => ({ id: t.id, label: t.label, icon: t.Icon }))}
+        active={tab}
+        onChange={(id) => setTab(id as Tab)}
+        actions={
+          todayJour ? (
+            <span className="text-xs rounded-[var(--radius-full)] bg-[var(--muted)] px-2.5 py-1 text-[var(--muted-foreground)]">
               Aujourd&apos;hui : <strong>{todayJour.label}</strong>
               {intensity && (
                 <span className="ml-2 opacity-70">· intensité {intensity.intensity}</span>
               )}
             </span>
-          )}
-        </div>
-        <div className="flex gap-1 flex-wrap">
-          {TABS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                tab === id
-                  ? "text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]"
-                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
-              }`}
-            >
-              <Icon size={15} />{label}
-            </button>
-          ))}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       <div key={tab} className="p-6 animate-fade-in-up">
         {tab === "aujourdhui" && (

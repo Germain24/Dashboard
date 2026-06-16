@@ -2,8 +2,12 @@
 
 /* ═══════════════════════════════════════════════════════════
    Mission Control — Design System
-   Mood : Heritage Editorial — « Paper & Ink », Old Money / City Boy.
-   Crème + encre marine, accents bordeaux & vert anglais, serif Libre Caslon.
+   Mood : « Liquid Glass » — clair, profond, cinétique, façon Apple.
+   Papier crème + encre marine, accents laiton & vert anglais.
+   Tout le chrome est en verre clair : translucide, blur profond,
+   arête lumineuse, posé sur des lavis ambiants qui dérivent
+   lentement. Navigation immersive : le Deck (scroll vertical =
+   catégories, horizontal = modules) remplace la sidebar.
    Clair = papier ; Sombre = marine minuit + laiton.
    ═══════════════════════════════════════════════════════════ */
 
@@ -12,17 +16,30 @@
   --background: #faf9f5;
   --background-subtle: #f4f4f0;
 
+  /* ── Lavis ambiants (profondeur derrière le verre) ─────── */
+  --wash-1: rgb(4 20 44 / 0.07);
+  --wash-2: rgb(197 160 89 / 0.10);
+  --wash-3: rgb(83 98 82 / 0.06);
+
   /* ── Foreground (encre) ────────────────────────────────── */
   --foreground: #1b1c1a;
 
   /* ── Surfaces neutres (couches tonales) ────────────────── */
   --muted: #efeeea;
   --muted-foreground: #44474d;
-  --border: #c5c6ce;
+  --border: #d9d9df;
 
-  /* ── Cartes (blanc pur, soulevé du papier crème) ───────── */
-  --card: #ffffff;
+  /* ── Cartes (verre clair, soulevé du papier) ───────────── */
+  --card: rgb(255 255 255 / 0.72);
   --card-foreground: #1b1c1a;
+
+  /* ── Matière verre (liquid glass) ──────────────────────── */
+  --glass: rgb(255 255 255 / 0.5);
+  --glass-strong: rgb(255 255 255 / 0.72);
+  --glass-border: rgb(27 28 26 / 0.08);
+  --glass-highlight: rgb(255 255 255 / 0.7);
+  --glass-blur: 24px;
+  --field: rgb(255 255 255 / 0.5);
 
   /* ── Fonts (auto-hébergées via next/font, cf. layout.tsx) ── */
   --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -33,15 +50,15 @@
   --primary-foreground: #ffffff;
 
   /* ── Hover / surfaces secondaires ─────────────────────── */
-  --accent: #efeeea;
+  --accent: rgb(27 28 26 / 0.05);
   --accent-foreground: #1b1c1a;
 
-  /* ── Sidebar (couche papier légèrement distincte) ──────── */
-  --sidebar: #f4f4f0;
+  /* ── Sidebar (verre, le fond ambiant transparaît) ──────── */
+  --sidebar: transparent;
 
   /* ── Accent interactif (marine : focus, nav active, liens) ─ */
   --ring: #04142c;
-  /* Texte/icône d'un item de nav actif, sur le lavis 12 %. */
+  /* Texte/icône d'un item de nav actif, sur le lavis 10 %. */
   --nav-active-fg: #04142c;
   /* Bordeaux éditorial (états actifs, surlignages, puces) */
   --tertiary: #501312;
@@ -65,22 +82,30 @@
   --info-muted: #d6e3ff;
   --info-foreground: #0b1b34;
 
-  /* ── Rayons de bordure (soft but structured) ───────────── */
-  --radius-sm: 2px;
-  --radius: 4px;
-  --radius-lg: 8px;
+  /* ── Rayons de bordure (géométrie apaisée) ─────────────── */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
   --radius-full: 9999px;
 
   /* ── Ombres (lithograph : net, flou large, faible opacité) ─ */
-  --shadow-sm: 0 1px 2px 0 rgb(26 41 66 / 0.04);
-  --shadow: 0 2px 8px 0 rgb(26 41 66 / 0.06);
-  --shadow-md: 0 4px 16px -2px rgb(26 41 66 / 0.08);
-  --shadow-lg: 0 4px 20px 0 rgb(26 41 66 / 0.10);
+  --shadow-sm: 0 1px 2px 0 rgb(26 41 66 / 0.05);
+  --shadow: 0 2px 10px 0 rgb(26 41 66 / 0.05), 0 1px 2px 0 rgb(26 41 66 / 0.04);
+  --shadow-md: 0 6px 24px -4px rgb(26 41 66 / 0.09);
+  --shadow-lg: 0 12px 40px -8px rgb(26 41 66 / 0.16);
 
-  /* ── Transitions ───────────────────────────────────────── */
-  --transition-fast: 100ms ease;
-  --transition: 150ms ease;
-  --transition-slow: 250ms ease;
+  /* ── Mouvement ─────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out-quint */
+  /* Ressort doux (léger dépassement) pour les transforms — le feel Apple. */
+  --spring: linear(
+    0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%,
+    1.017, 1.077 20.4%, 1.121, 1.149 24.3%, 1.159, 1.163 27%, 1.154, 1.129 32.8%,
+    1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%,
+    0.997 69.8%, 1.003 76.9%, 1
+  );
+  --transition-fast: 100ms var(--ease-out);
+  --transition: 180ms var(--ease-out);
+  --transition-slow: 280ms var(--ease-out);
 
   /* ── Z-index ───────────────────────────────────────────── */
   --z-sidebar: 20;
@@ -100,20 +125,30 @@
     --background-subtle: #111a2a;
     --foreground: #f2f1ed;
 
-    --muted: #18222f;
-    --muted-foreground: #9aa3b0;
-    --border: #243042;
+    --wash-1: rgb(197 160 89 / 0.09);
+    --wash-2: rgb(56 71 98 / 0.30);
+    --wash-3: rgb(80 19 18 / 0.14);
 
-    --card: #111a2a;
+    --muted: rgb(242 241 237 / 0.06);
+    --muted-foreground: #9aa3b0;
+    --border: rgb(242 241 237 / 0.12);
+
+    --card: rgb(23 33 51 / 0.55);
     --card-foreground: #f2f1ed;
+
+    --glass: rgb(13 20 33 / 0.45);
+    --glass-strong: rgb(20 30 48 / 0.72);
+    --glass-border: rgb(242 241 237 / 0.12);
+    --glass-highlight: rgb(242 241 237 / 0.12);
+    --field: rgb(242 241 237 / 0.05);
 
     --primary: #c8d6f0;
     --primary-foreground: #0b1b34;
 
-    --accent: #18222f;
+    --accent: rgb(242 241 237 / 0.07);
     --accent-foreground: #f2f1ed;
 
-    --sidebar: #0e1622;
+    --sidebar: transparent;
 
     --ring: #C5A059;
     --nav-active-fg: #d8be8a;
@@ -137,10 +172,10 @@
     --info-muted: #1a2942;
     --info-foreground: #d6e3ff;
 
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+    --shadow: 0 2px 10px 0 rgb(0 0 0 / 0.35);
+    --shadow-md: 0 6px 24px -4px rgb(0 0 0 / 0.45);
+    --shadow-lg: 0 16px 48px -8px rgb(0 0 0 / 0.55);
   }
 }
 
@@ -156,20 +191,30 @@
   --background-subtle: #111a2a;
   --foreground: #f2f1ed;
 
-  --muted: #18222f;
-  --muted-foreground: #9aa3b0;
-  --border: #243042;
+  --wash-1: rgb(197 160 89 / 0.09);
+  --wash-2: rgb(56 71 98 / 0.30);
+  --wash-3: rgb(80 19 18 / 0.14);
 
-  --card: #111a2a;
+  --muted: rgb(242 241 237 / 0.06);
+  --muted-foreground: #9aa3b0;
+  --border: rgb(242 241 237 / 0.12);
+
+  --card: rgb(23 33 51 / 0.55);
   --card-foreground: #f2f1ed;
+
+  --glass: rgb(13 20 33 / 0.45);
+  --glass-strong: rgb(20 30 48 / 0.72);
+  --glass-border: rgb(242 241 237 / 0.12);
+  --glass-highlight: rgb(242 241 237 / 0.12);
+  --field: rgb(242 241 237 / 0.05);
 
   --primary: #c8d6f0;
   --primary-foreground: #0b1b34;
 
-  --accent: #18222f;
+  --accent: rgb(242 241 237 / 0.07);
   --accent-foreground: #f2f1ed;
 
-  --sidebar: #0e1622;
+  --sidebar: transparent;
 
   --ring: #C5A059;
   --nav-active-fg: #d8be8a;
@@ -193,10 +238,10 @@
   --info-muted: #1a2942;
   --info-foreground: #d6e3ff;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --shadow: 0 2px 10px 0 rgb(0 0 0 / 0.35);
+  --shadow-md: 0 6px 24px -4px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 16px 48px -8px rgb(0 0 0 / 0.55);
 }
 
 @theme inline {
@@ -216,7 +261,7 @@
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
   --color-info: var(--info);
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
 }
 
 body {
@@ -225,15 +270,62 @@ body {
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.6;
+  /* Pas de flash gris/bleu Android au tap. */
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Titres en serif éditorial (Savile Row). Les labels de section (h2/h3) et l'UI
-   restent en sans pour la lisibilité des données denses. `.font-display` permet
-   d'étendre le serif à un élément précis (ex. le wordmark). */
+/* Lavis ambiants : trois nappes radiales douces (marine, laiton, vert) fixées
+   derrière tout le contenu, qui dérivent très lentement. Elles donnent au
+   verre quelque chose à réfracter — sans elles, le translucide est invisible.
+   inset négatif : la dérive ne découvre jamais de bord. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -12%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 720px at 85% -8%, var(--wash-1), transparent 62%),
+    radial-gradient(940px 640px at -4% 100%, var(--wash-2), transparent 58%),
+    radial-gradient(760px 540px at 55% 48%, var(--wash-3), transparent 62%);
+  animation: washDrift 70s ease-in-out infinite alternate;
+}
+@keyframes washDrift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-2.5%, 2%, 0) scale(1.08); }
+}
+
+/* Titres en serif éditorial (Libre Caslon) — la voix de l'almanach, conservée
+   dans le monde liquid glass. `.font-display` étend le serif à un élément
+   précis (wordmark, grande valeur). L'UI dense reste en sans. */
 h1,
 .font-display {
   font-family: var(--font-serif);
   letter-spacing: -0.01em;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+/* ── Matière verre (liquid glass) ──────────────────────────
+   .glass-panel : chrome (dock, en-têtes collants, drawers).
+   .glass-modal : surfaces flottantes (dialogues, palette) — plus opaques.
+   Arête lumineuse = inset 1px en haut + fin rim sur tout le tour. */
+.glass-panel {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
+}
+.glass-modal {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(36px) saturate(1.8);
+  backdrop-filter: blur(36px) saturate(1.8);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--glass-highlight) 40%, transparent),
+    var(--shadow-lg);
 }
 
 /* ── Focus visible global ──────────────────────────────────── */
@@ -257,11 +349,11 @@ html {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: color-mix(in srgb, var(--muted-foreground) 28%, transparent);
   border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
 }
 
 /* ── Sélection de texte ────────────────────────────────────── */
@@ -272,7 +364,7 @@ html {
 
 /* ── Animations ────────────────────────────────────────────── */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeIn {
@@ -288,21 +380,23 @@ html {
   100% { background-position: 200% 0; }
 }
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.97) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
-.animate-fade-in-up { animation: fadeInUp 0.3s ease forwards; }
-.animate-fade-in    { animation: fadeIn 0.25s ease forwards; }
+.animate-fade-in-up { animation: fadeInUp 0.45s var(--ease-out) forwards; }
+.animate-fade-in    { animation: fadeIn 0.3s var(--ease-out) forwards; }
 
-/* Transition d'entrée de page (template.tsx, remonté à chaque navigation) */
-.page-transition { animation: fadeIn 0.22s ease forwards; }
-.animate-slide-left { animation: slideInLeft 0.25s ease forwards; }
-.animate-scale-in   { animation: scaleIn 0.2s ease forwards; }
+/* Transition d'entrée de page (template.tsx, remonté à chaque navigation).
+   Opacité seule : un transform persistant créerait un bloc conteneur et
+   casserait les `position: fixed` des enfants (rail de points du Deck). */
+.page-transition { animation: fadeIn 0.3s var(--ease-out) forwards; }
+.animate-slide-left { animation: slideInLeft 0.3s var(--ease-out) forwards; }
+.animate-scale-in   { animation: scaleIn 0.28s var(--ease-out) forwards; }
 
 /* Stagger children */
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
@@ -317,7 +411,7 @@ html {
   background: linear-gradient(
     90deg,
     var(--muted) 25%,
-    var(--border) 50%,
+    color-mix(in srgb, var(--muted-foreground) 14%, transparent) 50%,
     var(--muted) 75%
   );
   background-size: 200% 100%;
@@ -343,27 +437,30 @@ html {
 
 /* ── Interactions globales ─────────────────────────────────── */
 .card-hover {
-  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
+  transition: box-shadow 220ms var(--ease-out), transform 220ms var(--ease-out),
+    border-color 220ms var(--ease-out);
 }
 .card-hover:hover {
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
-  border-color: var(--ring);
+  border-color: color-mix(in srgb, var(--ring) 35%, transparent);
 }
 
 .interactive {
-  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out),
+    opacity 180ms var(--ease-out);
   cursor: pointer;
 }
 
 /* Item de navigation actif (« vous êtes ici »).
-   Trois indices cumulés : lavis bleu (fond plein, présent vs transparent —
-   indice non chromatique perceptible en daltonisme), teinte bleue du texte et
-   de l'icône (l'icône hérite de currentColor), et aria-current côté markup.
+   Trois indices cumulés : lavis plein (fond présent vs transparent — indice
+   non chromatique perceptible en daltonisme), teinte marine/laiton du texte
+   et de l'icône (l'icône hérite de currentColor), et aria-current côté markup.
    --nav-active-fg est assombri en clair pour rester ≥ 4.5:1 sur le lavis. */
 .nav-active {
-  background-color: color-mix(in srgb, var(--ring) 12%, transparent);
+  background-color: color-mix(in srgb, var(--ring) 10%, transparent);
   color: var(--nav-active-fg);
+  box-shadow: inset 0 1px 0 0 var(--glass-highlight);
 }
 
 /* Focus ring global */
@@ -371,4 +468,83 @@ html {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+}
+
+/* ── Le Deck — navigation immersive de l'accueil ───────────
+   Scroll vertical = catégories (sections plein écran, snap).
+   Scroll horizontal = modules de la catégorie (rangée snap).
+   Cinématique : chaque section « pop » en entrant dans le
+   viewport (scroll-driven animation, dégradation propre). */
+.deck {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+}
+.deck-section {
+  height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+.deck-row {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  padding: 24px max(24px, calc((100vw - 1280px) / 2 + 24px));
+  scroll-padding-inline: max(24px, calc((100vw - 1280px) / 2 + 24px));
+}
+.deck-row > * {
+  scroll-snap-align: start;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Pop des sections au fil du scroll (Chrome/Edge ; sinon statique). */
+@supports (animation-timeline: view()) {
+  .deck-section > .deck-pop {
+    animation: deckPop linear both;
+    animation-timeline: view();
+    animation-range: cover 0% cover 100%;
+  }
+}
+@keyframes deckPop {
+  0%        { opacity: 0.3; transform: scale(0.93) translateY(28px); }
+  42%, 58%  { opacity: 1;   transform: scale(1) translateY(0); }
+  100%      { opacity: 0.3; transform: scale(0.93) translateY(-28px); }
+}
+
+/* Indice « scroll vers le bas » : flèche qui respire. */
+@keyframes hintFloat {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50%      { transform: translateY(6px); opacity: 1; }
+}
+.deck-hint {
+  animation: hintFloat 2.4s ease-in-out infinite;
+}
+
+/* Transforms à ressort (hover de cartes, dots, pastilles). */
+.springy {
+  transition: transform 480ms var(--spring), box-shadow 320ms var(--ease-out),
+    border-color 320ms var(--ease-out), background-color 320ms var(--ease-out);
+}
+
+/* ── Tiroir latéral (menu principal, depuis le dock) ───────
+   « Porte lourde bien huilée » : démarre vite, atterrit doux. */
+.drawer-enter {
+  transition: transform 350ms var(--ease-out), opacity 350ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck { scroll-snap-type: y proximity; }
+  .deck-section > .deck-pop { animation: none; }
 }

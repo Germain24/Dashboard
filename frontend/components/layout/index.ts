@@ -1,3 +1,8 @@
 export { Sidebar } from './Sidebar'
+export { Dock } from './Dock'
+export { Deck } from './Deck'
+export { MainShell } from './MainShell'
+export { ModuleHeader } from './ModuleHeader'
+export type { ModuleTab } from './ModuleHeader'
 export { default as PageLayout } from './PageLayout'
 export { NotificationsWidget } from './NotificationsWidget'

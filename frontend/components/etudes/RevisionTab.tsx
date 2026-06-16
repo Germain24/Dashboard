@@ -194,7 +194,7 @@ export function RevisionTab() {
       {/* Liste des fiches */}
       {cards.length > 0 && (
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+          <h3 className="text-xs font-semibold text-[var(--muted-foreground)]">
             Toutes les fiches
           </h3>
           {cards.map((c) => (

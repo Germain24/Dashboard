@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Download, Upload, Database, FileSpreadsheet, AlertTriangle } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ModuleHeader } from '@/components/layout'
 import { downloadExport, downloadTableCsv, type ImportReport } from '@/lib/data'
 import { useImportBackup, useSeedDemo, useTables } from '@/lib/queries/donnees'
 
@@ -75,10 +76,7 @@ export default function DonneesPage() {
 
   return (
     <div className="space-y-0 animate-fade-in">
-      <div className="px-6 py-5 border-b border-[var(--border)]">
-        <h1 className="text-xl font-semibold tracking-tight">Données</h1>
-        <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Export, import, backup & données de démo</p>
-      </div>
+      <ModuleHeader title="Données" subtitle="Export, import, backup & données de démo" />
 
       <ErrorBoundary label="Données">
       <div className="max-w-2xl space-y-4 p-6">

@@ -27,7 +27,8 @@ type Command = NavCommand | DataResult | ActionCommand;
 const NAV_COMMANDS: NavCommand[] = [
   { kind: "nav", id: "home", label: "Accueil", href: "/", hint: "Tableau de bord" },
   { kind: "nav", id: "parametres", label: "Paramètres", href: "/parametres", hint: "Intégrations & préférences" },
-  ...MODULES.filter(m => m.ready).map((m) => ({
+  // parametres a déjà son entrée statique ci-dessus : l'exclure évite une clé dupliquée.
+  ...MODULES.filter(m => m.ready && m.slug !== "parametres").map((m) => ({
     kind: "nav" as const,
     id: m.slug,
     label: m.label,
@@ -229,15 +230,15 @@ export function CommandPalette() {
   const navCount = results.filter((r) => r.kind === "nav").length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[15vh]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 backdrop-blur-[6px] pt-[15vh] animate-fade-in">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Palette de commandes"
-        className="w-full max-w-lg overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-lg)]"
+        className="glass-modal w-full max-w-lg overflow-hidden rounded-[var(--radius-lg)] animate-scale-in"
       >
-        <div className="flex items-center border-b border-[var(--border)]">
+        <div className="flex items-center border-b border-[var(--glass-border)]">
           <input
             ref={inputRef}
             value={query}
@@ -271,12 +272,12 @@ export function CommandPalette() {
               return (
                 <li key={c.id}>
                   {isFirstData && (
-                    <div className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                    <div className="px-4 pt-2 pb-1 font-display italic text-xs text-[var(--muted-foreground)]">
                       Résultats
                     </div>
                   )}
                   {i === 0 && isAction && (
-                    <div className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                    <div className="px-4 pt-2 pb-1 font-display italic text-xs text-[var(--muted-foreground)]">
                       Actions rapides
                     </div>
                   )}
@@ -308,7 +309,7 @@ export function CommandPalette() {
           )}
         </ul>
 
-        <div className="border-t border-[var(--border)] px-4 py-2 text-[10px] text-[var(--muted-foreground)]">
+        <div className="border-t border-[var(--glass-border)] px-4 py-2 text-[11px] text-[var(--muted-foreground)]">
           ↑↓ naviguer · Entrée ouvrir · Échap fermer · ⌘/Ctrl+K basculer
           {!isActionMode && <span className="ml-3 opacity-60">· <kbd className="font-mono">&gt;</kbd> actions rapides</span>}
         </div>

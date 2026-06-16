@@ -287,10 +287,10 @@ export function SuiviTab() {
                 key={stat.label}
                 className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up"
               >
-                <p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider font-medium mb-1">
+                <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">
                   {stat.label}
                 </p>
-                <p className={`text-xl font-bold font-mono ${stat.color}`}>{stat.value}</p>
+                <p className={`font-display text-xl tabular-nums ${stat.color}`}>{stat.value}</p>
               </div>
             ))}
           </>

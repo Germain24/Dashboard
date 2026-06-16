@@ -71,7 +71,7 @@ export default function EcheancesTab() {
               const Icon = cfg.icon
               return (
                 <div key={status}>
-                  <h3 className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest mb-2 ${cfg.color}`}>
+                  <h3 className={`flex items-center gap-1.5 text-xs font-semibold mb-2 ${cfg.color}`}>
                     <Icon size={13} /> {title}
                   </h3>
                   <div className="space-y-2">

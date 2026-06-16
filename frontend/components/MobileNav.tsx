@@ -50,12 +50,9 @@ export function MobileNav() {
 
   return (
     <>
-      <header className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur-sm px-4 h-12">
+      <header className="glass-panel md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-[var(--glass-border)] px-4 h-12">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--foreground)] text-[var(--background)] text-[9px] font-bold shrink-0">
-            MC
-          </span>
-          <span className="font-display text-base font-semibold tracking-tight">Mission Control</span>
+          <span className="font-display text-base tracking-tight">Mission Control</span>
         </Link>
         <button
           onClick={() => setOpen(true)}
@@ -90,13 +87,13 @@ export function MobileNav() {
 
         <aside
           className={cn(
-            "relative z-10 w-72 bg-[var(--muted)] flex flex-col px-3 py-5 overflow-y-auto",
-            "transition-transform duration-150 ease-out",
+            "glass-modal relative z-10 w-72 flex flex-col px-3 py-5 overflow-y-auto rounded-r-[var(--radius-lg)]",
+            "transition-transform duration-200 ease-[var(--ease-out)]",
             open ? "translate-x-0" : "-translate-x-full",
           )}
         >
           <div className="flex items-center justify-between px-3 mb-4">
-            <span className="font-display text-base font-semibold tracking-tight">Mission Control</span>
+            <span className="font-display text-base tracking-tight">Mission Control</span>
             <button
               ref={closeRef}
               onClick={() => setOpen(false)}
@@ -133,7 +130,7 @@ export function MobileNav() {
                   type="button"
                   onClick={() => toggleGroup(group.group)}
                   aria-expanded={expanded}
-                  className="mt-3 flex w-full items-center justify-between gap-2 rounded-[var(--radius)] px-3 py-1.5 text-[10px] font-medium uppercase tracking-widest text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+                  className="mt-3 flex w-full items-center justify-between gap-2 rounded-[var(--radius)] px-3 py-1.5 font-display italic text-[13px] text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
                 >
                   <span className="flex items-center gap-1.5">
                     {group.group}

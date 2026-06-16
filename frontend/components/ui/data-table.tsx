@@ -88,7 +88,7 @@ export function DataTable<T extends Record<string, unknown>>({
           value={query}
           onChange={(e) => { setQuery(e.target.value); setPage(0); }}
           placeholder="Rechercher…"
-          className="w-full max-w-xs px-2.5 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--background)] focus:outline-none focus:ring-1 focus:ring-[var(--ring)]"
+          className="w-full max-w-xs px-3 py-1.5 text-sm rounded-[var(--radius)] border border-[var(--border)] bg-[var(--field)] transition-[border-color,box-shadow] duration-200 focus:outline-none focus:border-[var(--ring)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ring)_12%,transparent)]"
         />
       )}
 

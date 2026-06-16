@@ -29,17 +29,17 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
       role="dialog"
       aria-modal
     >
-      {/* Backdrop */}
+      {/* Backdrop : voile flouté, le contenu reste deviné derrière le verre */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/30 backdrop-blur-[6px] animate-fade-in"
         onClick={onClose}
         aria-hidden
       />
-      {/* Panel */}
+      {/* Panel : verre épais */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-[var(--radius-lg)] border border-[var(--border)]",
-          "bg-[var(--background)] shadow-lg",
+          "glass-modal relative z-10 w-full max-w-lg rounded-[var(--radius-lg)]",
+          "animate-scale-in",
           // On mobile: bottom sheet; sm+: centered modal
           "max-h-[90dvh] overflow-y-auto",
           className,
@@ -57,7 +57,7 @@ export function DialogHeader({ children, onClose, className }: {
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-start justify-between gap-2 p-4 pb-2", className)}>
+    <div className={cn("flex items-start justify-between gap-2 p-5 pb-2", className)}>
       <div className="flex-1">{children}</div>
       {onClose && (
         <button
@@ -77,7 +77,7 @@ export function DialogTitle({ children, className }: {
   className?: string;
 }) {
   return (
-    <h2 className={cn("text-base font-semibold text-[var(--foreground)]", className)}>
+    <h2 className={cn("font-display text-lg text-[var(--foreground)]", className)}>
       {children}
     </h2>
   );
@@ -87,7 +87,7 @@ export function DialogBody({ children, className }: {
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={cn("px-4 pb-2", className)}>{children}</div>;
+  return <div className={cn("px-5 pb-2", className)}>{children}</div>;
 }
 
 export function DialogFooter({ children, className }: {
@@ -97,7 +97,7 @@ export function DialogFooter({ children, className }: {
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center justify-end gap-2 border-t border-[var(--border)] p-4 pt-3",
+        "flex flex-wrap items-center justify-end gap-2 border-t border-[var(--glass-border)] p-5 pt-3",
         className,
       )}
     >

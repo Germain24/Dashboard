@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, LayoutDashboard, CircleHelp, ChevronRight } from 'lucide-react'
+import { Home, CircleHelp, ChevronRight } from 'lucide-react'
 import { MODULE_GROUPS } from '@/lib/modules'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -36,14 +36,13 @@ export function Sidebar() {
     href === '/' ? pathname === '/' : pathname?.startsWith(href)
 
   return (
-    <aside className="hidden md:flex md:w-56 lg:w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--sidebar)] px-3 py-5">
-      {/* Logo / Titre */}
+    <aside className="glass-panel hidden md:flex md:w-56 lg:w-60 shrink-0 flex-col border-r border-[var(--glass-border)] px-3 py-5">
+      {/* Wordmark : serif seul, sans icône — la voix de l'almanach. */}
       <Link
         href="/"
-        className="flex items-center gap-2.5 px-3 py-2 mb-3 rounded-md transition-colors hover:bg-[var(--muted)]"
+        className="px-3 py-2 mb-3 rounded-[var(--radius)] transition-colors hover:bg-[var(--accent)]"
       >
-        <LayoutDashboard className="h-5 w-5 shrink-0 text-[var(--foreground)]" aria-hidden="true" />
-        <span className="font-display text-base font-semibold tracking-tight text-[var(--foreground)]">
+        <span className="font-display text-[17px] text-[var(--foreground)]">
           Mission Control
         </span>
       </Link>
@@ -56,7 +55,7 @@ export function Sidebar() {
       {/* Accueil */}
       <NavLink href="/" label="Accueil" icon={Home} active={!!isActive('/')} />
 
-      <div className="my-3 h-px bg-[var(--border)]" aria-hidden="true" />
+      <div className="my-3 h-px bg-[var(--glass-border)]" aria-hidden="true" />
 
       {/* Navigation groupée repliable — dérivée de lib/modules.ts (source unique) */}
       <nav className="flex flex-col gap-1 flex-1 overflow-y-auto" aria-label="Modules">
@@ -69,7 +68,7 @@ export function Sidebar() {
                 type="button"
                 onClick={() => toggle(group.group)}
                 aria-expanded={expanded}
-                className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)] select-none"
+                className="flex w-full items-center justify-between gap-2 rounded-[var(--radius)] px-3 py-1.5 font-display italic text-[13px] text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)] select-none"
               >
                 <span className="flex items-center gap-1.5">
                   {group.group}
@@ -101,7 +100,7 @@ export function Sidebar() {
       </nav>
 
       {/* Pied : notifications + aide · densité + thème */}
-      <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 px-1">
+      <div className="mt-3 flex items-center justify-between border-t border-[var(--glass-border)] pt-3 px-1">
         <div className="flex items-center gap-1">
           <NotificationsWidget />
           <button
@@ -140,10 +139,10 @@ function NavLink({
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+        'flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors duration-200',
         active
           ? 'nav-active'
-          : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]',
+          : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]',
       )}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />

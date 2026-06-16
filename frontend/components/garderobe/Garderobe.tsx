@@ -17,6 +17,7 @@ import {
   useValiderTenue,
   useVetements,
 } from "@/lib/queries/garderobe";
+import { ModuleHeader } from "@/components/layout";
 import { SlotCard } from "./SlotCard";
 import { WeatherBanner } from "./WeatherBanner";
 import { ThermalScore } from "./ThermalScore";
@@ -166,46 +167,27 @@ export function Garderobe() {
 
   return (
     <div className="space-y-0 animate-fade-in">
-      <div className="px-6 py-5 border-b border-[var(--border)]">
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Garde-robe</h1>
-            <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Tenues &amp; météo</p>
-          </div>
-          <span className="text-xs rounded-md bg-[var(--muted)] px-2.5 py-1 text-[var(--muted-foreground)]">
+      <ModuleHeader
+        title="Garde-robe"
+        subtitle="Tenues & météo"
+        tabs={[
+          { id: "tenue", label: "Tenue du Jour", icon: Shirt },
+          ...TABS.map((t) => ({ id: t.id, label: t.label, icon: t.Icon })),
+        ]}
+        active={tab}
+        onChange={(id) => setTab(id as Tab)}
+        actions={
+          <span className="text-xs rounded-[var(--radius-full)] bg-[var(--muted)] px-2.5 py-1 text-[var(--muted-foreground)]">
             {wardrobe.length} pièces
           </span>
-        </div>
+        }
+      />
 
-        {weather && <WeatherBanner weather={weather} meanTemp={suggestion?.mean_temp ?? weather.mean_window_temp} />}
-
-        <div className="flex gap-1 mt-4">
-          {/* Tenue du jour — tab spéciale sans icône dans le tableau */}
-          <button
-            onClick={() => setTab("tenue")}
-            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-              tab === "tenue"
-                ? "text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]"
-                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
-            }`}
-          >
-            <Shirt size={15} />Tenue du Jour
-          </button>
-          {TABS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                tab === id
-                  ? "text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]"
-                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
-              }`}
-            >
-              <Icon size={15} />{label}
-            </button>
-          ))}
+      {weather && (
+        <div className="px-6 pt-6">
+          <WeatherBanner weather={weather} meanTemp={suggestion?.mean_temp ?? weather.mean_window_temp} />
         </div>
-      </div>
+      )}
 
       <div key={tab} className="p-6 animate-fade-in-up">
         {tab === "tenue" && (

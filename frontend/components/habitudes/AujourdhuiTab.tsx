@@ -47,7 +47,7 @@ export default function AujourdhuiTab() {
               <p className="text-sm font-semibold">Progression du jour</p>
               <p className="text-xs text-[var(--muted-foreground)]">{checked} / {total} habitudes</p>
             </div>
-            <span className="text-2xl font-bold font-mono" style={{ color: pct === 100 ? 'var(--success)' : 'var(--ring)' }}>
+            <span className="font-display text-[1.75rem] leading-tight tabular-nums" style={{ color: pct === 100 ? 'var(--success)' : 'var(--ring)' }}>
               {pct}%
             </span>
           </div>

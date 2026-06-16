@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Settings, CheckCircle2, XCircle, Save } from 'lucide-react'
+import { CheckCircle2, XCircle, Save } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ModuleHeader } from '@/components/layout'
 
 const BASE = '/api/settings'
 
@@ -73,13 +74,7 @@ export default function ParametresPage() {
 
   return (
     <div className="space-y-0 animate-fade-in">
-      <div className="px-6 py-5 border-b border-[var(--border)]">
-        <div className="flex items-center gap-2 mb-1">
-          <Settings size={20} className="text-[var(--muted-foreground)]" />
-          <h1 className="text-xl font-semibold tracking-tight">Paramètres</h1>
-        </div>
-        <p className="text-sm text-[var(--muted-foreground)]">Intégrations & préférences</p>
-      </div>
+      <ModuleHeader title="Paramètres" subtitle="Intégrations & préférences" />
 
       <div className="p-6 max-w-lg space-y-8 animate-fade-in-up">
         {/* Intégrations */}

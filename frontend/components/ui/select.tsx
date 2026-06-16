@@ -25,8 +25,10 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           className={cn(
             "h-8 w-full appearance-none rounded-[var(--radius)] border border-[var(--border)]",
-            "bg-[var(--background)] px-3 py-1 text-sm text-[var(--foreground)]",
-            "transition-colors focus:border-[var(--ring)] focus:outline-none",
+            "bg-[var(--field)] px-3 py-1 text-sm text-[var(--foreground)]",
+            "transition-[border-color,box-shadow] duration-200 ease-[var(--ease-out)]",
+            "focus:border-[var(--ring)] focus:outline-none",
+            "focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ring)_12%,transparent)]",
             "disabled:cursor-not-allowed disabled:opacity-50",
             "cursor-pointer",
             error && "border-[var(--destructive)]",

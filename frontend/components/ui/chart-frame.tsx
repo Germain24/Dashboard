@@ -39,7 +39,9 @@ export function ChartFrame({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-4",
+        "rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-5",
+        "backdrop-blur-[var(--glass-blur)] backdrop-saturate-[1.4]",
+        "shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow)]",
         className,
       )}
     >

@@ -30,7 +30,7 @@ export function SlotCard({ slot, item, candidates, onChange }: Props) {
 
   return (
     <div className="flex flex-col gap-1 min-w-0">
-      <div className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)] truncate">
+      <div className="text-[10px] text-[var(--muted-foreground)] truncate">
         {slot.emoji} {slot.id} <span className={tagColor}>{tagLabel}</span>
       </div>
       <div className="flex items-stretch gap-1 min-w-0">

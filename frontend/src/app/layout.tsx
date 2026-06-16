@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Public_Sans, Libre_Caslon_Text } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layout";
+import { Dock, MainShell } from "@/components/layout";
 
 // Polices auto-hébergées via next/font (Heritage Editorial).
 // Corps et UI : Public Sans (clarté institutionnelle) → font-sans.
@@ -72,13 +72,16 @@ export default function RootLayout({
           {/* Navigation mobile (fixed header + hamburger drawer) */}
           <MobileNav />
 
-          {/* Layout desktop : sidebar gauche + contenu */}
+          {/* Dock flottant en verre (remplace la sidebar desktop). */}
+          <Dock />
+
+          {/* Contenu : l'accueil est le Deck plein écran ; les pages module
+              défilent normalement avec une garde basse pour le Dock. */}
           <div className="flex min-h-screen">
-            <Sidebar />
-            <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">
+            <MainShell>
               <Breadcrumbs />
               {children}
-            </main>
+            </MainShell>
           </div>
         </QueryProvider>
       </body>

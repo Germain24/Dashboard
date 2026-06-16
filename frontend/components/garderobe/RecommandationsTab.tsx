@@ -12,7 +12,7 @@ export function RecommandationsTab({ recs }: { recs: Recommendation[] }) {
         <div key={i} className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
           <div className="flex items-center gap-2 mb-1">
             <div className="text-sm font-semibold">{r.nom}</div>
-            <span className="ml-auto text-[10px] uppercase tracking-wider rounded bg-[var(--muted)] px-2 py-0.5 text-[var(--muted-foreground)]">
+            <span className="ml-auto text-[10px] rounded bg-[var(--muted)] px-2 py-0.5 text-[var(--muted-foreground)]">
               {r.type}
             </span>
             <span className="text-xs font-mono">{r.potentiel}/100</span>

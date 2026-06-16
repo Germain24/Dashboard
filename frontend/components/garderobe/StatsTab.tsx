@@ -98,7 +98,7 @@ function WearChip({ v, showCount }: { v: Vetement; showCount?: boolean }) {
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-3">
-      <div className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">{label}</div>
+      <div className="text-[11px] text-[var(--muted-foreground)]">{label}</div>
       <div className="text-lg font-semibold tabular-nums">{value}</div>
       {hint && <div className="text-[10px] text-[var(--muted-foreground)]">{hint}</div>}
     </div>

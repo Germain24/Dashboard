@@ -4,6 +4,7 @@ import { Sparkles } from "lucide-react";
 import type { SkincareProduct, SkincareToday } from "@/lib/skincare";
 import { useSkincareToday, useToRepurchase } from "@/lib/queries/skincare";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModuleHeader } from "@/components/layout";
 import { Freshness } from "@/components/Freshness";
 
 export function Skincare() {
@@ -52,17 +53,11 @@ export function Skincare() {
 
   return (
     <div className="space-y-0 animate-fade-in">
-      <div className="px-6 py-5 border-b border-[var(--border)]">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 shrink-0" />
-          <h1 className="text-xl font-semibold tracking-tight">Skincare</h1>
-        </div>
-        <div className="mt-0.5 flex items-center gap-2">
-          <p className="text-sm text-[var(--muted-foreground)]">Routines &amp; produits</p>
-          <span className="text-[var(--muted-foreground)]">·</span>
-          <Freshness updatedAt={updatedAt} />
-        </div>
-      </div>
+      <ModuleHeader
+        title="Skincare"
+        subtitle="Routines & produits"
+        actions={<Freshness updatedAt={updatedAt} />}
+      />
 
       {(today?.AM?.length ?? 0) === 0 && (today?.PM?.length ?? 0) === 0 ? (
         <div className="p-6 animate-fade-in-up">

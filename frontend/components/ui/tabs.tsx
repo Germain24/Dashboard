@@ -44,7 +44,14 @@ function Tabs({ value, onValueChange, children, className }: TabsProps) {
 function TabsList({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <nav
-      className={cn("flex gap-0.5 border-b border-[var(--border)] overflow-x-auto", className)}
+      className={cn(
+        // Contrôle segmenté en verre : les onglets vivent dans un rail
+        // translucide, l'actif est une pastille soulevée.
+        "flex w-fit max-w-full gap-1 overflow-x-auto rounded-[var(--radius-full)]",
+        "border border-[var(--glass-border)] bg-[var(--field)] p-1",
+        "backdrop-blur-[var(--glass-blur)] backdrop-saturate-[1.4]",
+        className,
+      )}
       role="tablist"
     >
       {children}
@@ -90,11 +97,12 @@ function TabsTrigger({ value, children, className }: TabsTriggerProps) {
       onClick={() => ctx.onChange(value)}
       onKeyDown={handleKeyDown}
       className={cn(
-        "shrink-0 px-3 py-2 text-sm -mb-px border-b-2 transition-colors duration-150",
-        "focus-visible:outline-2 focus-visible:outline-[var(--ring)] focus-visible:outline-offset-1",
+        "shrink-0 rounded-[var(--radius-full)] px-3.5 py-1.5 text-sm",
+        "transition-[background-color,color,box-shadow] duration-200 ease-[var(--ease-out)]",
+        "focus-visible:outline-2 focus-visible:outline-[var(--ring)] focus-visible:outline-offset-1 focus-visible:rounded-[var(--radius-full)]",
         active
-          ? "border-[var(--ring)] text-[var(--foreground)] font-medium"
-          : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--border)]",
+          ? "bg-[var(--glass-strong)] text-[var(--foreground)] font-medium shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow-sm)]"
+          : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
         className,
       )}
     >

@@ -17,7 +17,7 @@ export function ThermalScore({
   return (
     <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 flex items-center gap-6">
       <div className="text-center">
-        <div className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
+        <div className="text-[10px] text-[var(--muted-foreground)]">
           Score thermique
         </div>
         <div className="text-xl font-bold" style={{ color: colorVar }}>
@@ -30,7 +30,7 @@ export function ThermalScore({
         {useBody ? " · Body actif" : ""}
       </div>
       <div className="ml-auto text-center">
-        <div className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
+        <div className="text-[10px] text-[var(--muted-foreground)]">
           Style
         </div>
         <div className="text-xl font-bold">{styleScore.toFixed(0)}%</div>

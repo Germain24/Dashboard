@@ -54,7 +54,7 @@ export function BuffettActionsPanel({
 
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4 space-y-4">
-      <p className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">Actions</p>
+      <p className="text-xs font-semibold text-[var(--muted-foreground)]">Actions</p>
 
       {/* Bouton 1 */}
       <div className="flex items-start gap-3">

@@ -25,9 +25,11 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           className={cn(
             "w-full rounded-[var(--radius)] border border-[var(--border)]",
-            "bg-transparent px-3 py-2 text-sm text-[var(--foreground)]",
+            "bg-[var(--field)] px-3 py-2 text-sm text-[var(--foreground)]",
             "placeholder:text-[var(--muted-foreground)]",
-            "transition-colors focus:border-[var(--ring)] focus:outline-none",
+            "transition-[border-color,box-shadow] duration-200 ease-[var(--ease-out)]",
+            "focus:border-[var(--ring)] focus:outline-none",
+            "focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ring)_12%,transparent)]",
             "disabled:cursor-not-allowed disabled:opacity-50 resize-y min-h-[80px]",
             error && "border-[var(--destructive)]",
             className,
