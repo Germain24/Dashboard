@@ -107,6 +107,13 @@ export type CausalLink = { cause: string; effet: string; lag: number; r: number;
 export const fetchCausalites = (): Promise<{ links: CausalLink[]; count: number }> =>
   fetch(`${BASE}/causalites`).then(json)
 
+// Alertes de seuils (#235)
+export type SeuilAlerte = { metric: string; op: string; seuil: number; enabled: boolean }
+export type AlertesConfig = { alertes: SeuilAlerte[]; metriques: string[]; declenchees: { metric: string; message: string }[] }
+export const fetchAlertes = (): Promise<AlertesConfig> => fetch(`${BASE}/alertes`).then(json)
+export const putAlertes = (alertes: SeuilAlerte[]): Promise<{ alertes: SeuilAlerte[] }> =>
+  fetch(`${BASE}/alertes`, { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(alertes) }).then(json)
+
 // Bilan mensuel (#234)
 export type MonthlyReport = {
   annee: number; mois: number; periode: string; jours_couverts: number;

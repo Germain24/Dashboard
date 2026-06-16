@@ -509,6 +509,43 @@ def get_monthly_report(
     return compute_monthly_report(session, year=y, month=m)
 
 
+# ─── Alertes de seuils configurables (#235) ───────────────────────────────────
+
+class SeuilAlerte(BaseModel):
+    metric: str
+    op: str
+    seuil: float
+    enabled: bool = True
+
+
+@router.get("/alertes")
+def get_alertes(session: Session = Depends(get_session)):
+    """Config des alertes + métriques disponibles + alertes actuellement franchies."""
+    from app.services.automatisations.alertes import (
+        available_metrics, check_alerts, get_alerts,
+    )
+    return {
+        "alertes": get_alerts(),
+        "metriques": available_metrics(),
+        "declenchees": check_alerts(session, notify=False),
+    }
+
+
+@router.put("/alertes")
+def put_alertes(alertes: list[SeuilAlerte]):
+    """Remplace la liste des alertes configurées."""
+    from app.services.automatisations.alertes import set_alerts
+    return {"alertes": set_alerts([a.model_dump() for a in alertes])}
+
+
+@router.post("/alertes/check")
+def check_alertes(session: Session = Depends(get_session)):
+    """Évalue les seuils et notifie ceux qui se déclenchent."""
+    from app.services.automatisations.alertes import check_alerts
+    triggered = check_alerts(session, notify=True)
+    return {"declenchees": triggered, "count": len(triggered)}
+
+
 # ─── Pistes de causalité / liens décalés (#224) ───────────────────────────────
 
 @router.get("/causalites")

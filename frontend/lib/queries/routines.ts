@@ -7,6 +7,9 @@ import {
   fetchBuilderOptions,
   createLifeGoal,
   deleteLifeGoal,
+  fetchAlertes,
+  putAlertes,
+  type SeuilAlerte,
   fetchCausalites,
   fetchCorrelations,
   fetchForecasts,
@@ -134,6 +137,16 @@ export const useRecommendations = () =>
 
 export const useMonthlyReport = (year: number, month: number) =>
   useQuery({ queryKey: ['routines', 'bilan', year, month], queryFn: () => fetchMonthlyReport(year, month) })
+
+export const useAlertes = () =>
+  useQuery({ queryKey: ['routines', 'alertes'], queryFn: fetchAlertes })
+export const useSaveAlertes = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (alertes: SeuilAlerte[]) => putAlertes(alertes),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['routines', 'alertes'] }),
+  })
+}
 
 export const useForecasts = () =>
   useQuery({ queryKey: ['routines', 'forecasts'], queryFn: fetchForecasts })

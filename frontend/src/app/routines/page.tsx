@@ -9,7 +9,7 @@ import {
   useAddRoutine, useDeleteRoutine, useRoutines, useRunRoutine, useUpdateRoutine,
   useKillSwitch, useSetKillSwitch, useRoutineRuns, useBuilderOptions,
   useRecipes, useRunRecipe, useRerunRun, useRollbackRun, useAutomationSuggestions, useApplyDeepWork,
-  useCorrelations, useWeeklyInsights, useCausalites,
+  useCorrelations, useWeeklyInsights, useCausalites, useAlertes, useSaveAlertes,
 } from '@/lib/queries/routines'
 import type { Routine, RoutineAction, AutomationSuggestion } from '@/lib/routines'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -367,6 +367,8 @@ function RoutinesContent() {
 
       <DeepWorkCard />
 
+      <AlertesSection />
+
       <WeeklyInsightsSection />
 
       <CorrelationsSection />
@@ -572,6 +574,58 @@ function CausalitesSection() {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+/** Alertes de seuils configurables (#235). */
+function AlertesSection() {
+  const { data } = useAlertes()
+  const save = useSaveAlertes()
+  const [metric, setMetric] = useState('')
+  const [op, setOp] = useState('>')
+  const [seuil, setSeuil] = useState('')
+  if (!data) return null
+  const alertes = data.alertes
+  const metrics = data.metriques
+
+  const add = () => {
+    const m = metric || metrics[0]
+    if (!m || seuil === '') return
+    save.mutate([...alertes, { metric: m, op, seuil: Number(seuil), enabled: true }])
+    setSeuil('')
+  }
+  const remove = (i: number) => save.mutate(alertes.filter((_, j) => j !== i))
+  const toggle = (i: number) => save.mutate(alertes.map((a, j) => (j === i ? { ...a, enabled: !a.enabled } : a)))
+
+  return (
+    <div className="mt-8">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
+        <ShieldAlert size={13} /> Alertes de seuils
+      </h2>
+      {data.declenchees.length > 0 && (
+        <ul className="mb-2 space-y-1 rounded-[var(--radius-lg)] border border-[var(--warning-muted)] bg-[var(--warning-muted)]/30 p-2">
+          {data.declenchees.map((d, i) => <li key={i} className="text-xs text-[var(--warning-foreground)]">⚠ {d.message}</li>)}
+        </ul>
+      )}
+      <ul className="mb-2 space-y-1">
+        {alertes.map((a, i) => (
+          <li key={i} className="flex items-center gap-2 text-sm">
+            <button onClick={() => toggle(i)} className={`text-xs ${a.enabled ? 'text-[var(--foreground)]' : 'text-[var(--muted-foreground)] line-through'}`}>{a.metric} {a.op} {a.seuil}</button>
+            <button onClick={() => remove(i)} aria-label="Retirer" className="p-0.5 text-[var(--muted-foreground)] hover:text-[var(--destructive)]"><X size={13} /></button>
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap items-center gap-2">
+        <select value={metric || metrics[0]} onChange={(e) => setMetric(e.target.value)} className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm">
+          {metrics.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <select value={op} onChange={(e) => setOp(e.target.value)} className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm">
+          {['>', '<', '>=', '<='].map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <input type="number" value={seuil} onChange={(e) => setSeuil(e.target.value)} placeholder="seuil" className="w-24 rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm tabular-nums" />
+        <button onClick={add} disabled={save.isPending} className="flex items-center gap-1 rounded-lg bg-[var(--ring)] px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"><Plus size={13} /> Ajouter</button>
+      </div>
     </div>
   )
 }
