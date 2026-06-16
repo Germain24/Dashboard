@@ -107,6 +107,19 @@ export type CausalLink = { cause: string; effet: string; lag: number; r: number;
 export const fetchCausalites = (): Promise<{ links: CausalLink[]; count: number }> =>
   fetch(`${BASE}/causalites`).then(json)
 
+// Objectifs de vie inter-modules (#226)
+export type LifeGoalMetric = { metric: string; label: string }
+export type LifeGoalSub = { label: string; metric: string; baseline: number; cible: number; courant: number | null; pct: number | null; atteint: boolean }
+export type LifeGoal = { id: number; titre: string; echeance: string | null; objectifs: LifeGoalSub[]; pct_global: number | null }
+export type LifeGoalCreate = { titre: string; echeance?: string | null; objectifs: { label: string; metric: string; baseline: number; cible: number }[] }
+
+export const fetchLifeGoals = (): Promise<LifeGoal[]> => fetch(`${BASE}/objectifs-vie`).then(json)
+export const fetchLifeGoalMetrics = (): Promise<LifeGoalMetric[]> => fetch(`${BASE}/objectifs-vie/metriques`).then(json)
+export const createLifeGoal = (body: LifeGoalCreate): Promise<LifeGoal> =>
+  fetch(`${BASE}/objectifs-vie`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) }).then(json)
+export const deleteLifeGoal = (id: number): Promise<void> =>
+  fetch(`${BASE}/objectifs-vie/${id}`, { method: 'DELETE' }).then(() => undefined)
+
 // File d'automatisations : ré-exécution + rollback (#216)
 export const rerunRoutineRun = (runId: number): Promise<{ result: string }> =>
   fetch(`${BASE}/routines/runs/${runId}/rerun`, { method: 'POST' }).then(json)

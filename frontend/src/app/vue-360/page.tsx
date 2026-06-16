@@ -5,6 +5,7 @@ import { ModuleHeader } from '@/components/layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useWellbeing, useSnapshots } from '@/lib/queries/snapshot'
 import { useWeeklyInsights, useCorrelations } from '@/lib/queries/routines'
+import { ObjectifsVie } from '@/components/ObjectifsVie'
 
 /** Tableau de bord « Vue 360 » (#225) : synthèse de toute ta vie sur un écran. */
 function Vue360Content() {
@@ -53,6 +54,9 @@ function Vue360Content() {
           </div>
         </section>
       )}
+
+      {/* Objectifs de vie inter-modules (#226) */}
+      <ObjectifsVie />
 
       {/* Insights de la semaine (#223) */}
       <section className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-5">

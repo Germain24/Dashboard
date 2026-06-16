@@ -444,3 +444,53 @@ def get_causalites(days: int = 90, lag: int = 1, session: Session = Depends(get_
     from app.services.automatisations.causalites import compute_causalites
     links = compute_causalites(session, days=days, lag=lag)
     return {"days": days, "lag": lag, "links": links, "count": len(links)}
+
+
+# ─── Objectifs de vie inter-modules (#226) ────────────────────────────────────
+
+class SousObjectif(BaseModel):
+    label: str
+    metric: str
+    baseline: float
+    cible: float
+
+
+class LifeGoalIn(BaseModel):
+    titre: str
+    echeance: str | None = None
+    objectifs: list[SousObjectif] = []
+
+
+@router.get("/objectifs-vie/metriques")
+def get_life_goal_metrics():
+    """Métriques disponibles pour composer un sous-objectif."""
+    from app.services.automatisations.objectifs_vie import SUPPORTED_METRICS
+    return [{"metric": k, "label": v} for k, v in SUPPORTED_METRICS.items()]
+
+
+@router.get("/objectifs-vie")
+def list_life_goals(session: Session = Depends(get_session)):
+    """Objectifs de vie + progression unifiée (valeurs courantes résolues une fois)."""
+    from app.services.automatisations.objectifs_vie import (
+        goal_with_progress, list_goals, resolve_metrics,
+    )
+    valeurs = resolve_metrics(session)
+    return [goal_with_progress(session, g, valeurs=valeurs) for g in list_goals(session)]
+
+
+@router.post("/objectifs-vie", status_code=201)
+def create_life_goal(body: LifeGoalIn, session: Session = Depends(get_session)):
+    from app.services.automatisations.objectifs_vie import create_goal, goal_with_progress
+    echeance = dt.date.fromisoformat(body.echeance) if body.echeance else None
+    goal = create_goal(
+        session, titre=body.titre, echeance=echeance,
+        objectifs=[o.model_dump() for o in body.objectifs],
+    )
+    return goal_with_progress(session, goal)
+
+
+@router.delete("/objectifs-vie/{goal_id}", status_code=204)
+def delete_life_goal(goal_id: int, session: Session = Depends(get_session)):
+    from app.services.automatisations.objectifs_vie import delete_goal
+    if not delete_goal(session, goal_id):
+        raise HTTPException(404)

@@ -5,8 +5,12 @@ import {
   applyDeepWork,
   fetchAutomationSuggestions,
   fetchBuilderOptions,
+  createLifeGoal,
+  deleteLifeGoal,
   fetchCausalites,
   fetchCorrelations,
+  fetchLifeGoalMetrics,
+  fetchLifeGoals,
   fetchWeeklyInsights,
   fetchKillSwitch,
   fetchRecipes,
@@ -97,6 +101,26 @@ export const useRollbackRun = () => {
 
 export const useCausalites = () =>
   useQuery({ queryKey: ['routines', 'causalites'], queryFn: fetchCausalites })
+
+// Objectifs de vie (#226)
+export const useLifeGoals = () =>
+  useQuery({ queryKey: ['routines', 'life-goals'], queryFn: fetchLifeGoals })
+export const useLifeGoalMetrics = () =>
+  useQuery({ queryKey: ['routines', 'life-goals', 'metrics'], queryFn: fetchLifeGoalMetrics, staleTime: Infinity })
+export const useCreateLifeGoal = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: createLifeGoal,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['routines', 'life-goals'] }),
+  })
+}
+export const useDeleteLifeGoal = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteLifeGoal(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['routines', 'life-goals'] }),
+  })
+}
 
 export const useWeeklyInsights = () =>
   useQuery({ queryKey: ['routines', 'insights'], queryFn: fetchWeeklyInsights })
