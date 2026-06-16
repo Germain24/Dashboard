@@ -1,5 +1,6 @@
 """Module Films & Séries — watchlist + progression (#534)."""
 import datetime as dt
+from app.core.timeutil import utcnow
 
 from sqlmodel import Field, SQLModel
 
@@ -20,7 +21,7 @@ class WatchItem(SQLModel, table=True):
     nb_episodes_total: int | None = None  # séries
     synopsis: str = ""
     date_vue: dt.date | None = None
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class SerieProgress(SQLModel, table=True):

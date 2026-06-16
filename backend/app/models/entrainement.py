@@ -1,6 +1,7 @@
 """Modèles Entraînement (sport, prise de muscle) — CONV 7."""
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Optional
 
 from sqlalchemy import JSON, Column
@@ -18,7 +19,7 @@ class Exercice(SQLModel, table=True):
     unilateral: bool = False
     source: str = "seed"
     note: Optional[str] = None
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class Programme(SQLModel, table=True):
@@ -28,8 +29,8 @@ class Programme(SQLModel, table=True):
     nom: str = Field(default="PPL/UL")
     description: Optional[str] = None
     actif: bool = Field(default=True, index=True)
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
-    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
+    updated_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class ProgrammeJour(SQLModel, table=True):
@@ -78,4 +79,4 @@ class CourseCardio(SQLModel, table=True):
     duree_sec: int
     note: Optional[str] = None
     source: str = "manual"
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
@@ -66,7 +67,7 @@ def update_goal(payload: NutritionGoalUpdate, session: Session = Depends(get_ses
     data = payload.model_dump(exclude_unset=True)
     for k, v in data.items():
         setattr(goal, k, v)
-    goal.updated_at = dt.datetime.utcnow()
+    goal.updated_at = utcnow()
     session.add(goal)
     session.commit()
     session.refresh(goal)

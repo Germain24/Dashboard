@@ -1,5 +1,6 @@
 """Sous-routeur Finance : portefeuille, snapshots, positions, historique."""
 from __future__ import annotations
+from app.core.timeutil import utcnow
 
 from typing import Optional
 
@@ -82,7 +83,7 @@ def patch_settings(body: dict, session: Session = Depends(get_session)):
     for k in ("taux_plus_value_pct", "taux_dividende_pct", "devise_affichage"):
         if k in body and body[k] is not None:
             setattr(s, k, body[k])
-    s.updated_at = _dt.datetime.utcnow()
+    s.updated_at = _utcnow()
     session.add(s)
     session.commit()
     session.refresh(s)
@@ -180,7 +181,7 @@ def positions_create(body: PositionCreate, session: Session = Depends(get_sessio
         existing.quantite = body.quantite
         existing.pmu = body.pmu
         existing.devise = body.devise
-        existing.updated_at = _dt.datetime.utcnow()
+        existing.updated_at = _utcnow()
         session.add(existing)
         session.commit()
         session.refresh(existing)
@@ -191,7 +192,7 @@ def positions_create(body: PositionCreate, session: Session = Depends(get_sessio
         quantite=body.quantite,
         pmu=body.pmu,
         devise=body.devise,
-        updated_at=_dt.datetime.utcnow(),
+        updated_at=_utcnow(),
     )
     session.add(pos)
     session.commit()
@@ -212,7 +213,7 @@ def positions_update(pos_id: int, body: PositionCreate, session: Session = Depen
     pos.pmu = body.pmu
     pos.devise = body.devise
     pos.broker = body.broker or pos.broker
-    pos.updated_at = _dt.datetime.utcnow()
+    pos.updated_at = _utcnow()
     session.add(pos)
     session.commit()
     session.refresh(pos)

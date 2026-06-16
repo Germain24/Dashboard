@@ -29,6 +29,10 @@ from app.api.routines import router as routines_router
 from app.api.search import router as search_router
 from app.api.settings import router as settings_router
 from app.api.skincare import router as skincare_router
+from app.api.travail import router as travail_router
+from app.api.objectifs import router as objectifs_router
+from app.api.gaming import router as gaming_router
+from app.api.langues import router as langues_router
 
 api_router = APIRouter()
 api_router.include_router(health_router, tags=["health"])
@@ -53,3 +57,7 @@ api_router.include_router(data_router, prefix="/data")
 api_router.include_router(settings_router)
 api_router.include_router(search_router)
 api_router.include_router(routines_router, prefix="/automatisations", tags=["automatisations"])
+api_router.include_router(travail_router, prefix="/travail")
+api_router.include_router(objectifs_router, prefix="/objectifs")
+api_router.include_router(gaming_router, prefix="/gaming")
+api_router.include_router(langues_router, prefix="/langues")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 import logging
 from typing import Optional
 
@@ -23,7 +24,11 @@ def get_active_program(session: Session) -> Optional[Programme]:
         select(Programme).where(Programme.actif == True).order_by(Programme.id.desc())  # noqa: E712
     ).all()
     if len(rows) > 1:
-        logger.warning("Plusieurs Programmes actifs (%d) — on prend le plus récent", len(rows))
+        for old in rows[1:]:
+            old.actif = False
+            session.add(old)
+        session.commit()
+        logger.info("Plusieurs Programmes actifs (%d) — anciens desactives", len(rows))
     return rows[0] if rows else None
 
 
@@ -110,7 +115,7 @@ def update_program(
         prog.nom = nom
     if description is not None:
         prog.description = description
-    prog.updated_at = dt.datetime.utcnow()
+    prog.updated_at = utcnow()
     session.add(prog)
     session.commit()
     session.refresh(prog)

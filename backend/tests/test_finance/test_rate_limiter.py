@@ -52,8 +52,19 @@ def test_paused_until_set_when_cap_reached_and_cleared_on_reserve():
     sleep_time = rl._try_reserve(now=1000.5)
     assert sleep_time is not None and sleep_time > 0
     assert rl.paused_until is not None
-    # Reprise estimée ≈ (plus ancien jeton + 3600).
-    assert abs(rl.paused_until - (1000.0 + 3600.0 + 0.1)) < 1.0
+    # L'attente théorique (~3600 s) est bornée à max_pause_seconds (120 s par
+    # défaut) : on re-tentera plutôt que d'attendre une heure d'un coup.
+    assert sleep_time <= rl.max_pause_seconds
+    assert abs(rl.paused_until - (1000.5 + rl.max_pause_seconds)) < 1.0
+
+
+def test_pause_is_capped_at_max():
+    """La pause ne dépasse jamais max_pause_seconds, même quota grand ouvert."""
+    rl = RateLimiter(max_requests_per_hour=4, requests_per_ticker=4, max_pause_seconds=60.0)
+    rl._try_reserve(now=5000.0)            # remplit le plafond
+    sleep_time = rl._try_reserve(now=5000.1)  # plein -> pause
+    assert sleep_time is not None
+    assert sleep_time <= 60.0
 
 
 def test_active_limiter_registry_exposes_pause():

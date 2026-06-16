@@ -13,6 +13,7 @@ class BookCreate(BaseModel):
     pages: int | None = None
     statut: str = "a_lire"
     genre: str = ""
+    langue: str = ""
     format: str = "papier"
 
 

@@ -42,6 +42,13 @@ def test_parse_search_handles_missing_fields():
     assert res[0]["auteur"] == ""
     assert res[0]["isbn"] is None
     assert res[0]["couverture_url"] is None
+    assert res[0]["langue"] == ""  # langue absente -> vide
+
+
+def test_parse_search_maps_language_code():
+    raw = {"docs": [{"title": "Norwegian Wood", "language": ["jpn", "eng"]}]}
+    # Premier code traduit en libellé lisible.
+    assert parse_search_response(raw)[0]["langue"] == "Japonais"
 
 
 def test_parse_search_respects_limit():

@@ -6,6 +6,7 @@ Tri par urgence : (priorité ASC, deadline ASC nulls-last).
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Any, Optional
 
 from sqlmodel import Session, select
@@ -53,7 +54,7 @@ def update_task(
         return None
     for k, v in data.items():
         setattr(tache, k, v)
-    tache.updated_at = dt.datetime.utcnow()
+    tache.updated_at = utcnow()
     session.add(tache)
     session.commit()
     session.refresh(tache)

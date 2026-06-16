@@ -15,6 +15,7 @@ yfinance retombe sur son comportement par défaut (pas de régression).
 
 from __future__ import annotations
 
+import random
 import threading
 
 _lock = threading.Lock()
@@ -25,6 +26,33 @@ _init_done = False
 IMPERSONATE = "chrome"
 
 
+def _proxy_pool() -> list[str]:
+    """Proxys configurés (settings.yf_proxies, .env: YF_PROXIES), nettoyés."""
+    try:
+        from app.core.config import settings
+
+        raw = settings.yf_proxies or ""
+    except Exception:
+        raw = ""
+    return [p.strip() for p in raw.split(",") if p.strip()]
+
+
+def _new_session():
+    """Crée une session curl_cffi impersonée, derrière un proxy au hasard si
+    configuré (rotation d'IP). None si curl_cffi est indisponible."""
+    try:
+        from curl_cffi import requests as cffi_requests
+
+        kwargs = {"impersonate": IMPERSONATE}
+        pool = _proxy_pool()
+        if pool:
+            proxy = random.choice(pool)
+            kwargs["proxies"] = {"http": proxy, "https": proxy}
+        return cffi_requests.Session(**kwargs)
+    except Exception:
+        return None
+
+
 def yf_session():
     """Retourne une session curl_cffi impersonée (singleton), ou None si indispo."""
     global _session, _init_done
@@ -33,14 +61,18 @@ def yf_session():
     with _lock:
         if _init_done:
             return _session
-        try:
-            from curl_cffi import requests as cffi_requests
-
-            _session = cffi_requests.Session(impersonate=IMPERSONATE)
-        except Exception:
-            _session = None
+        _session = _new_session()
         _init_done = True
     return _session
+
+
+def rotate_session():
+    """Force la prochaine `yf_session()` à recréer une session (nouvelle IP si un
+    pool de proxys est configuré). À appeler quand Yahoo bloque l'IP courante."""
+    global _session, _init_done
+    with _lock:
+        _session = None
+        _init_done = False
 
 
 def fast_last_price(ticker_obj) -> float:

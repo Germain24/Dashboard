@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 import json
 
 from sqlmodel import Session, select
@@ -59,7 +60,7 @@ def update_document(session: Session, doc_id: int, patch: dict) -> Document | No
     for k, v in patch.items():
         if hasattr(doc, k):
             setattr(doc, k, v)
-    doc.updated_at = dt.datetime.utcnow()
+    doc.updated_at = utcnow()
     session.add(doc)
     session.commit()
     session.refresh(doc)

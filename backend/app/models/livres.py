@@ -1,4 +1,5 @@
 import datetime as dt
+from app.core.timeutil import utcnow
 from sqlmodel import SQLModel, Field
 
 class Book(SQLModel, table=True):
@@ -12,11 +13,12 @@ class Book(SQLModel, table=True):
     genre: str = ""
     format: str = "papier"
     note: float | None = None
+    langue: str = ""
     page_courante: int | None = None
     date_debut: dt.date | None = None
     date_fin: dt.date | None = None
     couverture_url: str | None = None
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
 
 class BookNote(SQLModel, table=True):
     __tablename__ = "book_note"
@@ -41,4 +43,4 @@ class ReadingSession(SQLModel, table=True):
     duree_minutes: int
     page_debut: int | None = None
     page_fin: int | None = None
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)

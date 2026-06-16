@@ -1,6 +1,7 @@
 """Modèles Garde-robe — vêtements et historique de tenues."""
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Optional
 
 from sqlalchemy import JSON, Column
@@ -27,8 +28,8 @@ class Vetement(SQLModel, table=True):
     style: Optional[list] = Field(default=None, sa_column=Column(JSON))
     extra: Optional[dict] = Field(default=None, sa_column=Column(JSON))
 
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
-    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
+    updated_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class TenueHistory(SQLModel, table=True):

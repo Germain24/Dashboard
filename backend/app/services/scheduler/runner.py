@@ -1,11 +1,12 @@
 import datetime as dt
+from app.core.timeutil import utcnow
 from sqlmodel import Session
 from app.models.scheduler import JobRun, Notification
 
 def run_job(job_id: str, func):
     from app.core.db import engine
     with Session(engine) as session:
-        run = JobRun(job_id=job_id, started_at=dt.datetime.utcnow())
+        run = JobRun(job_id=job_id, started_at=utcnow())
         session.add(run)
         session.commit()
         session.refresh(run)
@@ -23,6 +24,6 @@ def run_job(job_id: str, func):
                                  message=str(e), level="error")
             session.add(notif)
         finally:
-            run.finished_at = dt.datetime.utcnow()
+            run.finished_at = utcnow()
             session.add(run)
             session.commit()

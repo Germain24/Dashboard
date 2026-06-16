@@ -7,6 +7,7 @@ virtuellement à la requête (non persistées par occurrence).
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Any, Optional
 
 from sqlalchemy import exc as sa_exc
@@ -108,7 +109,7 @@ def update_recurrence_rule(
         return None
     for k, v in data.items():
         setattr(rule, k, v)
-    rule.updated_at = dt.datetime.utcnow()
+    rule.updated_at = utcnow()
     session.add(rule)
     session.commit()
     session.refresh(rule)

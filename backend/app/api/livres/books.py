@@ -1,5 +1,6 @@
 """Sous-routeur Livres : bibliothèque (CRUD, recherche, estimation) (#510)."""
 from __future__ import annotations
+from app.core.timeutil import utcnow
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
@@ -73,7 +74,7 @@ def sync_from_json(session: Session = Depends(get_session)):
     except Exception as e:
         raise HTTPException(400, detail=f"JSON invalide : {e}")
 
-    UPDATABLE = ["auteur", "isbn", "pages", "genre", "couverture_url"]
+    UPDATABLE = ["auteur", "isbn", "pages", "genre", "langue", "couverture_url"]
     existing = {b.titre: b for b in session.exec(select(books_svc.Book)).all()}
     added = updated = 0
     for data in livres:
@@ -95,9 +96,10 @@ def sync_from_json(session: Session = Depends(get_session)):
                 isbn=data.get("isbn"),
                 pages=data.get("pages"),
                 genre=data.get("genre", ""),
+                langue=data.get("langue", ""),
                 statut=data.get("statut", "a_lire"),
                 couverture_url=data.get("couverture_url"),
-                created_at=dt.datetime.utcnow(),
+                created_at=utcnow(),
             ))
             added += 1
     session.commit()

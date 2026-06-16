@@ -9,6 +9,7 @@ Tables :
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Any, Optional
 
 from sqlalchemy import JSON, Column
@@ -39,7 +40,7 @@ class RegleRecurrence(SQLModel, table=True):
     categorie: Optional[str] = None   # cours / travail / sport / rdv / autre
     couleur: Optional[str] = None     # "#3B82F6"
     until: Optional[dt.date] = None   # fin de la règle (None = indéfini)
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
     updated_at: Optional[dt.datetime] = None
 
 
@@ -91,5 +92,5 @@ class Tache(SQLModel, table=True):
     categorie: Optional[str] = None           # etudes / courses / perso / ...
     source: Optional[str] = None              # "manuel" / "etudes" / ...
     source_id: Optional[int] = None           # id dans la table source
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
     updated_at: Optional[dt.datetime] = None

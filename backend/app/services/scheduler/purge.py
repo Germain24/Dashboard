@@ -7,6 +7,7 @@ La logique de seuil est pure (testable) ; `purge_old` applique sur la DB.
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 
 from sqlmodel import Session, select
 
@@ -31,7 +32,7 @@ def purge_old(
     Les notifications non lues sont conservées (l'utilisateur ne les a pas vues).
     Retourne le nombre d'éléments supprimés par table.
     """
-    now = now or dt.datetime.utcnow()
+    now = now or utcnow()
     jr_days = settings.jobrun_retention_days if jobrun_days is None else jobrun_days
     nt_days = settings.notification_retention_days if notif_days is None else notif_days
 

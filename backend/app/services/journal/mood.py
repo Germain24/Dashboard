@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 
 from sqlmodel import Session, select
 
@@ -25,7 +26,7 @@ def upsert_entry(session: Session, date: dt.date, humeur: int, energie: int,
         entry.energie = energie
         entry.tags = list(tags)
         entry.note = note
-        entry.updated_at = dt.datetime.utcnow()
+        entry.updated_at = utcnow()
     session.add(entry)
     session.commit()
     session.refresh(entry)

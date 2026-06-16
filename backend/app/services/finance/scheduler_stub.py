@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 import threading
 from datetime import datetime
+from app.core.timeutil import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,7 @@ def job_monthly_buffett(csv_path: str | None = None) -> None:
             ).first()
             if existing:
                 existing.statut = "en_cours"
-                existing.updated_at = datetime.utcnow()
+                existing.updated_at = utcnow()
                 session.add(existing)
                 session.commit()
                 session.refresh(existing)
@@ -173,7 +174,7 @@ def job_monthly_buffett(csv_path: str | None = None) -> None:
                     if run and run.statut == "en_cours":
                         run.statut = "interrompu"
                         run.erreur = str(exc)
-                        run.updated_at = datetime.utcnow()
+                        run.updated_at = utcnow()
                         s.add(run)
                         s.commit()
             except Exception:

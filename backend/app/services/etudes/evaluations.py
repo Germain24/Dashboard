@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 import logging
 from typing import Any, Optional
 
@@ -58,7 +59,7 @@ def update_evaluation(
         return None
     for k, v in data.items():
         setattr(ev, k, v)
-    ev.updated_at = dt.datetime.utcnow()
+    ev.updated_at = utcnow()
     session.add(ev)
     session.commit()
     session.refresh(ev)

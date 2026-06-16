@@ -8,6 +8,7 @@ Notes :
 """
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Optional
 
 from sqlalchemy import JSON, Column
@@ -65,5 +66,5 @@ class NutritionGoal(SQLModel, table=True):
     sport_days: list = Field(default_factory=lambda: [0, 1, 2, 4, 5], sa_column=Column(JSON))
     actif: bool = Field(default=True, index=True)
     note: Optional[str] = None
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
-    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
+    updated_at: dt.datetime = Field(default_factory=utcnow)

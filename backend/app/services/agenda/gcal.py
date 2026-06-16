@@ -16,6 +16,7 @@ pures et testables sans réseau.
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 import time
 from typing import Any, Optional
 
@@ -85,7 +86,7 @@ def _parse_g_datetime(node: dict[str, Any]) -> Optional[dt.datetime]:
 
 def gcal_to_evenement(g: dict[str, Any]) -> dict[str, Any]:
     """Événement Google → dict compatible Evenement (source='gcal')."""
-    debut = _parse_g_datetime(g.get("start", {})) or dt.datetime.utcnow()
+    debut = _parse_g_datetime(g.get("start", {})) or utcnow()
     fin = _parse_g_datetime(g.get("end", {}))
     return {
         "titre": g.get("summary") or "Sans titre",

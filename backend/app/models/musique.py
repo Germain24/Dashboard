@@ -1,5 +1,6 @@
 """Module Musique — bibliothèque + appartenance multi-ambiances."""
 import datetime as dt
+from app.core.timeutil import utcnow
 
 from sqlmodel import Field, SQLModel
 
@@ -15,7 +16,7 @@ class MusicTrack(SQLModel, table=True):
     duree_sec: int | None = None
     cover: str | None = None      # chemin relatif de la pochette
     classified: bool = False      # déjà passé par Ollama
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class TrackAmbiance(SQLModel, table=True):

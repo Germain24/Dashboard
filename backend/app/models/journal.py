@@ -1,5 +1,6 @@
 """Module Journal / Humeur (#476) — suivi d'humeur quotidien, sans IA."""
 import datetime as dt
+from app.core.timeutil import utcnow
 
 from sqlmodel import Column, Field, JSON, SQLModel
 
@@ -12,5 +13,5 @@ class MoodEntry(SQLModel, table=True):
     energie: int         # 1-5
     tags: list = Field(default_factory=list, sa_column=Column(JSON))
     note: str = ""
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
-    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
+    updated_at: dt.datetime = Field(default_factory=utcnow)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -121,7 +122,7 @@ def valider(
                 f"vetement '{vet_id}' (slot {slot_id}) introuvable",
             )
         v.portes = (v.portes or 0) + 1
-        v.updated_at = dt.datetime.utcnow()
+        v.updated_at = utcnow()
         session.add(v)
         d = vetement_to_dict(v)
         updates.append(ValiderItemUpdate(
@@ -137,7 +138,7 @@ def valider(
 
     # Log history
     history = TenueHistory(
-        date=dt.datetime.utcnow(),
+        date=utcnow(),
         tenue=tenue_noms,
         ids=tenue_ids,
         note=payload.note,

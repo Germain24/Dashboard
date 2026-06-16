@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
+from app.core.timeutil import utcnow
 import io
 from typing import Any
 
@@ -48,7 +49,7 @@ def export_all(session: Session) -> dict:
         tables[name] = [_row_to_dict(r) for r in rows]
     return {
         "version": EXPORT_VERSION,
-        "exported_at": dt.datetime.utcnow().isoformat(),
+        "exported_at": utcnow().isoformat(),
         "tables": tables,
     }
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Any
 
 from sqlmodel import Session, select
@@ -19,7 +20,7 @@ def create_run(session: Session, n_total: int, params: dict) -> BuffettRun:
         n_tickers_analyzed=0,
         progress_pct=0.0,
         params_json=params,
-        updated_at=dt.datetime.utcnow(),
+        updated_at=utcnow(),
     )
     session.add(run)
     session.commit()
@@ -33,7 +34,7 @@ def update_run_progress(session: Session, run_id: int, n_done: int, n_total: int
     if run:
         run.n_tickers_analyzed = n_done
         run.progress_pct = round(n_done / n_total * 100, 1) if n_total else 0
-        run.updated_at = dt.datetime.utcnow()
+        run.updated_at = utcnow()
         if run.statut != "termine":
             run.statut = "en_cours"  # un run qui progresse est bien actif (annule un "interrompu")
         session.add(run)
@@ -50,7 +51,7 @@ def finalize_run(
         run.duree_sec = duree_sec
         run.progress_pct = 100.0 if statut == "termine" else run.progress_pct
         run.erreur = erreur
-        run.updated_at = dt.datetime.utcnow()
+        run.updated_at = utcnow()
         session.add(run)
         session.commit()
 
@@ -86,7 +87,7 @@ def upsert_result(session: Session, run_id: int, ticker: str, score: float, metr
         "volume": float(metrics.get("Volume") or 0),
         "chance_moat": round(score, 2),
         "achat": bool(metrics.get("Achat", False)),
-        "updated_at": dt.datetime.utcnow(),
+        "updated_at": utcnow(),
     }
     if existing:
         for k, v in values.items():

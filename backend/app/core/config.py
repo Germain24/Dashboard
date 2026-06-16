@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     cors_methods: str = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
     cors_headers: str = "Content-Type,Authorization,X-Requested-With"
+    # En dev, le port du frontend Next peut glisser (3000 occupé -> 3001, 3002…).
+    # On autorise donc tout localhost/127.0.0.1 sur n'importe quel port, ce qui
+    # évite les preflight CORS 400 quand le port change. Mettre "" pour désactiver
+    # (prod : l'origine reste contrôlée par cors_origins).
+    cors_origin_regex: str = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
 
     # --- Google Calendar (Agenda #83, OAuth) ---
     # Identifiants OAuth « installed app ». Obtenus via la console Google Cloud,
@@ -97,6 +102,14 @@ class Settings(BaseSettings):
     # Plafond de requêtes yfinance par heure (anti-ban) + requêtes par ticker.
     buffett_max_requests_per_hour: int = 2000
     buffett_requests_per_ticker: int = 4
+    # Pause max (s) quand le quota horaire yfinance est atteint : bornée pour
+    # re-tenter vite plutôt que d'attendre la fenêtre théorique (~1 h).
+    buffett_rate_limit_max_pause_sec: float = 120.0
+    # Rotation d'IP : liste de proxys séparés par des virgules (ex.
+    # "http://user:pass@host:port,http://host2:port"). La session yfinance en
+    # choisit un au hasard à chaque (ré)ouverture — utile quand Yahoo bloque
+    # l'IP. Vide = connexion directe (défaut). Pilotable via .env (YF_PROXIES).
+    yf_proxies: str = ""
     # Finance — alertes
     finance_rebalance_alert_pct: float = 5.0    # écart de poids déclenchant l'alerte
     finance_snapshot_drop_alert_pct: float = 5.0  # chute quotidienne alertée

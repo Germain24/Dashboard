@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Optional
 
 from sqlmodel import Session, select
@@ -143,7 +144,7 @@ def rebuild_positions_from_transactions(session: Session) -> list[Position]:
             broker=broker,
             quantite=vals["quantite"],
             pmu=pmu,
-            updated_at=dt.datetime.utcnow(),
+            updated_at=utcnow(),
         )
         session.add(pos)
         new_positions.append(pos)

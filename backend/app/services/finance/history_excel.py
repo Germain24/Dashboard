@@ -73,12 +73,37 @@ def _to_float(v) -> Optional[float]:
         return None
 
 
+def _repair_excel_if_needed(path: str) -> None:
+    """Rebuilds xlsx in-place, dropping corrupt zip entries (e.g. bad-CRC theme)."""
+    import io
+    import zipfile as zf
+    try:
+        with zf.ZipFile(path, "r") as z:
+            first_bad = z.testzip()
+        if first_bad is None:
+            return
+        buf = io.BytesIO()
+        with zf.ZipFile(path, "r") as src, zf.ZipFile(buf, "w", zf.ZIP_DEFLATED) as dst:
+            for item in src.infolist():
+                try:
+                    dst.writestr(item, src.read(item.filename))
+                except Exception:
+                    pass
+        buf.seek(0)
+        with open(path, "wb") as f:
+            f.write(buf.read())
+        print(f"[history_excel] xlsx repare (entree corrompue: {first_bad})")
+    except Exception as e:
+        print(f"[history_excel] reparation: {e}")
+
+
 def read_history_rows() -> list[tuple[dt.date, float, float]]:
     """Lit (date, valeur, investit) depuis l'Excel. Tolérant sur les noms de
     colonnes, les formats de nombres, et dédoublonne par date (dernière gagne)."""
     path = find_history_file()
     if not path:
         return []
+    _repair_excel_if_needed(path)
     try:
         import pandas as pd
         df = pd.read_excel(path)

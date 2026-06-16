@@ -32,6 +32,8 @@ class Config:
     SCORE_THRESHOLD: float = settings.buffett_score_threshold
     MAX_REQUESTS_PER_HOUR: int = settings.buffett_max_requests_per_hour
     REQUESTS_PER_TICKER: int = settings.buffett_requests_per_ticker
+    # Pause max (s) quand le quota horaire est atteint (borne anti-attente longue).
+    RATE_LIMIT_MAX_PAUSE_SEC: float = settings.buffett_rate_limit_max_pause_sec
 
     # Filtres valorisation
     PER_MAX: float = settings.buffett_per_max

@@ -1,4 +1,5 @@
 import datetime as dt
+from app.core.timeutil import utcnow
 from sqlmodel import SQLModel, Field
 
 class Notification(SQLModel, table=True):
@@ -9,7 +10,7 @@ class Notification(SQLModel, table=True):
     titre: str
     message: str = ""
     lu: bool = False
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
 
 class JobRun(SQLModel, table=True):
     __tablename__ = "job_run"

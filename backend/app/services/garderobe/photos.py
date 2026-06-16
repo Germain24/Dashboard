@@ -12,6 +12,7 @@ n'a pas encore de couleur, on l'utilise comme couleur par défaut.
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 import re
 from pathlib import Path
 from typing import Optional
@@ -69,7 +70,7 @@ def save_vetement_photo(
         if not v.couleur:
             v.couleur = couleur_dominante
     v.extra = extra
-    v.updated_at = dt.datetime.utcnow()
+    v.updated_at = utcnow()
     session.add(v)
     session.commit()
     session.refresh(v)

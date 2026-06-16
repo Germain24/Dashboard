@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -94,7 +95,7 @@ def update_vetement(
     if not v:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"vetement '{vetement_id}' introuvable")
     data = payload.model_dump(exclude_unset=True)
-    data["updated_at"] = dt.datetime.utcnow()
+    data["updated_at"] = utcnow()
     v = repo.update(v, data)
     return vetement_to_read(v)
 

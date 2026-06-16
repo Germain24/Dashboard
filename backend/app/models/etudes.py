@@ -10,6 +10,7 @@ Trois modèles :
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Optional
 
 from sqlmodel import Field, SQLModel
@@ -29,10 +30,10 @@ class Cours(SQLModel, table=True):
     actif: bool = Field(default=True)               # cours en cours ou terminé
     note: Optional[str] = None                      # commentaire libre
     created_at: dt.datetime = Field(
-        default_factory=dt.datetime.utcnow
+        default_factory=utcnow
     )
     updated_at: dt.datetime = Field(
-        default_factory=dt.datetime.utcnow
+        default_factory=utcnow
     )
 
 
@@ -48,10 +49,10 @@ class Evaluation(SQLModel, table=True):
     note_max: Optional[float] = Field(default=100)  # /100 par défaut
     note: Optional[str] = None                      # commentaire
     created_at: dt.datetime = Field(
-        default_factory=dt.datetime.utcnow
+        default_factory=utcnow
     )
     updated_at: dt.datetime = Field(
-        default_factory=dt.datetime.utcnow
+        default_factory=utcnow
     )
 
 
@@ -65,5 +66,5 @@ class SessionEtude(SQLModel, table=True):
     sujet: Optional[str] = None                     # ce sur quoi on a travaillé
     note: Optional[str] = None                      # ressenti / bilan
     created_at: dt.datetime = Field(
-        default_factory=dt.datetime.utcnow
+        default_factory=utcnow
     )

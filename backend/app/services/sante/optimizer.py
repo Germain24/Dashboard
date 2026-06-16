@@ -71,6 +71,26 @@ _WEIGHTS: dict[str, float] = {
     "AG satures": 500.0,
 }
 
+# Poids par défaut des nutriments non listés ci-dessus = TOUS les micronutriments
+# (Mg, Fer, Zinc, Ca, K, Iode, Sélénium, Phosphore, vitamines…) + Fibres + Oméga-3.
+# Historiquement à 1.0, ils pesaient 100 à 1000× moins que les macros : l'optimiseur
+# atteignait le plancher calorique au moindre coût (riz/pâtes) en ignorant les micros.
+# Relevé à 25 pour qu'il poursuive réellement les cibles micro tout en laissant les
+# macros (100-1000) et le coût rester dominants. Les contraintes dures (calories,
+# protéines, budget) restent prioritaires.
+MICRO_WEIGHT = 25.0
+
+# ── Objectif « couverture équilibrée » (no nutrient left behind) ──────────────
+# Les MACROS (calories/prot/lip/gluc) se visent des DEUX côtés (erreur²). Les
+# nutriments de COUVERTURE (fibres + tous les micros) ne sont pénalisés que sur
+# le MANQUE, élevé à une puissance haute : le coût marginal de secourir un
+# nutriment proche de 0 % écrase celui de peaufiner un nutriment déjà correct,
+# donc l'optimiseur cesse de sacrifier un micro pour économiser ailleurs.
+CORE_MACRO_COLS: set[str] = {"Energie", "Proteines", "Lipides", "Glucides"}
+COVERAGE_WEIGHT = 60.0   # A/B 2026-06-15 : meilleur compromis couverture/budget
+COVERAGE_POWER = 4
+USE_COVERAGE = True
+
 # Nutriments "max" — clés CSV
 _MAX_CSV_COLS: set[str] = {NUTRIENT_KEY_TO_CSV[k] for k in TRACKED_MAX_NUTRIENTS}
 
@@ -118,7 +138,7 @@ def optimize_nutrition(
         if key not in targets:
             continue
         val = float(targets[key])
-        w = _WEIGHTS.get(csv_col, 1.0)
+        w = _WEIGHTS.get(csv_col, MICRO_WEIGHT)
         nutrient_targets.append((csv_col, val, w))
 
     # Pré-calcul des arrays (perf : on évite df[col].values dans la closure)
@@ -153,8 +173,14 @@ def optimize_nutrition(
                 if current > target_val:
                     error += weight * 5.0 * (rel_error ** 2)
                 # sous le max : pas de pénalité
-            else:
+            elif csv_col in CORE_MACRO_COLS or not USE_COVERAGE:
                 error += weight * (rel_error ** 2)
+            else:
+                # Couverture : seul le MANQUE compte, à puissance élevée.
+                shortfall = -rel_error if rel_error < 0.0 else 0.0
+                error += COVERAGE_WEIGHT * (shortfall ** COVERAGE_POWER)
+                if rel_error > 1.0:  # > 200 % : léger anti-gaspillage
+                    error += 5.0 * ((rel_error - 1.0) ** 2)
 
         # Pénalité poids total > 5 % du poids corporel
         total_grams = float(np.sum(x)) * 100.0
@@ -228,8 +254,11 @@ def optimize_nutrition(
         rng = np.random.default_rng(seed)
         for i in range(num_foods):
             lo, hi = bounds[i]
-            x0[i] = x0[i] * rng.uniform(0.3, 1.7) + rng.uniform(0.0, 0.2)
-            x0[i] = max(lo, min(x0[i], hi))
+            # Jitter MULTIPLICATIF uniquement. Un ancien terme additif (+0,2 unité
+            # = +20 g) injectait du poids dans CHAQUE aliment : sur un grand
+            # catalogue, des dizaines démarraient juste sous MinQty et le snap les
+            # remontait à MinQty -> plans sur-approvisionnés (60+ aliments à 30 g).
+            x0[i] = max(lo, min(x0[i] * rng.uniform(0.3, 1.7), hi))
 
     res = minimize(
         objective, x0,
@@ -239,16 +268,16 @@ def optimize_nutrition(
         options={"ftol": 1e-8, "maxiter": 1000},
     )
 
-    # Fallback : si SLSQP échoue (rare maintenant que les minimums ne sont
-    # plus dures), on relâche les contraintes et retente avec juste la
-    # pénalité quadratique de l'objectif.
+    # Fallback : si SLSQP échoue, on relâche les MINIMUMS (calories, protéines)
+    # mais on GARDE le budget — un plan best-effort ne doit jamais exploser le
+    # budget (l'ancien fallback relâchait tout -> plans à 46 CAD pour 18 de budget).
     fallback_warning: Optional[str] = None
     if not res.success:
         res_soft = minimize(
             objective, x0,
             method="SLSQP",
             bounds=bounds,
-            constraints=[],
+            constraints=[constraints[0]],  # budget seulement
             options={"ftol": 1e-8, "maxiter": 1000},
         )
         if res_soft.success:

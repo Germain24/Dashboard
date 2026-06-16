@@ -1,4 +1,5 @@
 import datetime as dt
+from app.core.timeutil import utcnow
 from sqlmodel import SQLModel, Field
 from sqlalchemy import UniqueConstraint, Column, JSON
 
@@ -17,7 +18,7 @@ class BudgetRule(SQLModel, table=True):
     pattern: str
     category_id: int = Field(foreign_key="budget_category.id")
     priorite: int = 0
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class BudgetTransaction(SQLModel, table=True):
@@ -32,7 +33,7 @@ class BudgetTransaction(SQLModel, table=True):
     devise: str = "CAD"
     auto: bool = False
     tags: list = Field(default_factory=list, sa_column=Column(JSON))
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class BudgetEnvelope(SQLModel, table=True):

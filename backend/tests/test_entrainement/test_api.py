@@ -6,6 +6,7 @@ DB SQLite isolée par test, client FastAPI avec override de get_session.
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 
 import pytest
 from fastapi.testclient import TestClient
@@ -153,7 +154,7 @@ def test_progression_endpoint(client):
     ex = client.get("/entrainement/exercises").json()
     sq_id = next(e["id"] for e in ex if "Squat barre" == e["nom"])
     # Log une séance avec une bonne série
-    today = dt.datetime.utcnow().isoformat()
+    today = utcnow().isoformat()
     client.post(
         "/entrainement/sessions",
         json={

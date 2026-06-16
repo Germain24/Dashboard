@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Any, Optional
 
 from sqlmodel import Session, select
@@ -43,7 +44,7 @@ def update_cours(
         return None
     for k, v in data.items():
         setattr(cours, k, v)
-    cours.updated_at = dt.datetime.utcnow()
+    cours.updated_at = utcnow()
     session.add(cours)
     session.commit()
     session.refresh(cours)

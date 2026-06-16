@@ -5,6 +5,24 @@ OPEN_LIBRARY_SEARCH_URL = "https://openlibrary.org/search.json"
 COVERS_URL = "https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
 COVERS_ID_URL = "https://covers.openlibrary.org/b/id/{cover_i}-L.jpg"
 
+# Codes langue Open Library (ISO 639-2) -> libellés français.
+LANG_LABELS = {
+    "eng": "Anglais", "fre": "Français", "fra": "Français", "jpn": "Japonais",
+    "spa": "Espagnol", "ger": "Allemand", "deu": "Allemand", "ita": "Italien",
+    "por": "Portugais", "rus": "Russe", "chi": "Chinois", "zho": "Chinois",
+    "kor": "Coréen", "ara": "Arabe", "dut": "Néerlandais", "nld": "Néerlandais",
+    "lat": "Latin", "gre": "Grec", "heb": "Hébreu", "pol": "Polonais",
+    "swe": "Suédois", "tur": "Turc",
+}
+
+
+def langue_label(codes) -> str:
+    """Premier code langue Open Library traduit en libellé lisible (sinon "")."""
+    if not codes:
+        return ""
+    code = (codes[0] or "").lower()
+    return LANG_LABELS.get(code, code.capitalize())
+
 def parse_open_library_response(data: dict, isbn: str) -> dict | None:
     key = f"ISBN:{isbn}"
     if key not in data:
@@ -30,6 +48,7 @@ def parse_search_response(data: dict, limit: int = 10) -> list[dict]:
             "pages": doc.get("number_of_pages_median"),
             "isbn": isbns[0] if isbns else None,
             "annee": doc.get("first_publish_year"),
+            "langue": langue_label(doc.get("language")),
             "couverture_url": COVERS_ID_URL.format(cover_i=cover_i) if cover_i else None,
         })
     return out
@@ -42,7 +61,7 @@ def search_books(query: str, limit: int = 10) -> list[dict]:
     try:
         resp = httpx.get(
             OPEN_LIBRARY_SEARCH_URL,
-            params={"q": query, "limit": limit, "fields": "title,author_name,number_of_pages_median,isbn,first_publish_year,cover_i"},
+            params={"q": query, "limit": limit, "fields": "title,author_name,number_of_pages_median,isbn,first_publish_year,language,cover_i"},
             timeout=5.0,
         )
         resp.raise_for_status()

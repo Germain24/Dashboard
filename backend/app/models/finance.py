@@ -1,6 +1,7 @@
 """Modèles Finance — CONV 4 : BuffettRun, BuffettRunResult, snapshots, positions, transactions."""
 
 import datetime as dt
+from app.core.timeutil import utcnow
 from typing import Optional
 
 from sqlalchemy import JSON, Column
@@ -25,8 +26,8 @@ class BuffettRun(SQLModel, table=True):
     duree_sec: Optional[float] = None
     resume: Optional[str] = None
     erreur: Optional[str] = None
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
-    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
+    updated_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class BuffettRunResult(SQLModel, table=True):
@@ -68,7 +69,7 @@ class BuffettRunResult(SQLModel, table=True):
     ibkr: Optional[float] = None
 
     secteurs_extra: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    updated_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class SnapshotPortefeuille(SQLModel, table=True):
@@ -97,7 +98,7 @@ class Transaction(SQLModel, table=True):
     devise: str = "EUR"
     frais: float = 0.0
     note: Optional[str] = None
-    created_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class Position(SQLModel, table=True):
@@ -111,7 +112,7 @@ class Position(SQLModel, table=True):
     quantite: float
     pmu: Optional[float] = None  # prix moyen unitaire
     devise: str = "EUR"
-    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    updated_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class FinanceSettings(SQLModel, table=True):
@@ -121,4 +122,4 @@ class FinanceSettings(SQLModel, table=True):
     taux_plus_value_pct: float = 25.0
     taux_dividende_pct: float = 15.0
     devise_affichage: str = "EUR"
-    updated_at: dt.datetime = Field(default_factory=dt.datetime.utcnow)
+    updated_at: dt.datetime = Field(default_factory=utcnow)

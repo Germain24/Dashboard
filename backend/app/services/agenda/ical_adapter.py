@@ -12,6 +12,7 @@ V2 futur : EXDATE, VTIMEZONE, sync bidirectionnel Google.
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 import logging
 from typing import Any
 
@@ -28,7 +29,7 @@ def _to_datetime(val: Any, tzinfo=None) -> dt.datetime:
         return val.replace(tzinfo=None)
     if isinstance(val, dt.date):
         return dt.datetime(val.year, val.month, val.day, 0, 0)
-    return dt.datetime.utcnow()
+    return utcnow()
 
 
 def parse_ics(content: bytes) -> list[dict[str, Any]]:
@@ -63,7 +64,7 @@ def parse_ics(content: bytes) -> list[dict[str, Any]]:
 
         dtstart = comp.get("DTSTART")
         dtend = comp.get("DTEND")
-        debut = _to_datetime(dtstart.dt) if dtstart else dt.datetime.utcnow()
+        debut = _to_datetime(dtstart.dt) if dtstart else utcnow()
         fin = _to_datetime(dtend.dt) if dtend else debut + dt.timedelta(hours=1)
 
         rrule_raw = comp.get("RRULE")
@@ -125,7 +126,7 @@ def serialize_ics(events: list[dict[str, Any]], *, prodid: str = "-//Mission Con
     Chaque event : dict avec `titre`, `debut` (datetime), `fin` (datetime|None),
     et optionnellement `lieu`, `description`, `id`/`source_id`.
     """
-    now = dt.datetime.utcnow()
+    now = utcnow()
     lines: list[str] = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",

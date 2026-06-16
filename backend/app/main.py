@@ -103,6 +103,8 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
+        # Autorise localhost sur n'importe quel port en dev (port Next variable).
+        allow_origin_regex=settings.cors_origin_regex or None,
         allow_credentials=True,
         allow_methods=settings.cors_methods_list,
         allow_headers=settings.cors_headers_list,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
@@ -29,7 +30,7 @@ def _seed_price(ticker, price):
 
 def test_detail_held_title(session):
     session.add(Position(ticker="AAPL", broker="t212", quantite=10, pmu=100.0, devise="USD",
-                         updated_at=dt.datetime.utcnow()))
+                         updated_at=utcnow()))
     session.add(BuffettRunResult(ticker="AAPL", nom="Apple", secteur="Tech", per=21.0, chance_moat=88.0))
     session.commit()
     _seed_price("AAPL", 190.0)

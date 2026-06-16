@@ -7,8 +7,12 @@ import datetime as dt
 from app.services.agenda import gcal
 
 
-def test_is_configured_false_by_default():
-    # En test, aucun identifiant Google n'est fourni.
+def test_is_configured_false_by_default(monkeypatch):
+    # Hermétique : on force l'absence d'identifiants Google, sinon le test
+    # dépend du .env réel du poste (où l'intégration peut être active).
+    monkeypatch.setattr(gcal.settings, "google_client_id", "", raising=False)
+    monkeypatch.setattr(gcal.settings, "google_client_secret", "", raising=False)
+    monkeypatch.setattr(gcal.settings, "google_refresh_token", "", raising=False)
     assert gcal.is_configured() is False
 
 
