@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, BarChart3, RefreshCw, Star, LayoutGrid, CreditCard, Target } from "lucide-react";
+import { TrendingUp, BarChart3, RefreshCw, Star, LayoutGrid, CreditCard, Target, Landmark } from "lucide-react";
+import { ModuleHeader } from "@/components/layout";
 import { PortefeuilleTab } from "./PortefeuilleTab";
 import { SuiviTab } from "./SuiviTab";
 import { CompositionTab } from "./CompositionTab";
 import { BuffettTab } from "./BuffettTab";
 import { RebalancingTab } from "./RebalancingTab";
 import { TransactionsTab } from "./TransactionsTab";
+import { PatrimoineTab } from "./PatrimoineTab";
 import { useObjectifPatrimoine, useSetObjectifPatrimoine } from "@/lib/queries/finance";
 
 function ObjectifWidget() {
@@ -82,7 +84,7 @@ function ObjectifWidget() {
   );
 }
 
-type Tab = "suivi" | "portefeuille" | "composition" | "rebalancing" | "buffett" | "transactions";
+type Tab = "suivi" | "portefeuille" | "composition" | "rebalancing" | "buffett" | "transactions" | "patrimoine";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "suivi",        label: "Suivi",        icon: TrendingUp },
@@ -91,6 +93,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "rebalancing",  label: "Rebalancing",   icon: RefreshCw },
   { id: "buffett",      label: "Buffett",       icon: Star },
   { id: "transactions", label: "Transactions",  icon: CreditCard },
+  { id: "patrimoine",   label: "Patrimoine",    icon: Landmark },
 ];
 
 export function Finance() {
@@ -98,36 +101,16 @@ export function Finance() {
 
   return (
     <div className="space-y-0 animate-fade-in">
-      {/* Header */}
-      <div className="px-6 py-5 border-b border-[var(--border)]">
-        <div className="mb-4">
-          <h1 className="text-xl font-semibold tracking-tight">Finance</h1>
-          <p className="text-sm text-[var(--muted-foreground)] mt-0.5">Portefeuille long terme</p>
-        </div>
-        <div className="mb-4">
-          <ObjectifWidget />
-        </div>
+      <ModuleHeader
+        title="Finance"
+        subtitle="Portefeuille long terme"
+        tabs={TABS.map((t) => ({ id: t.id, label: t.label, icon: t.icon }))}
+        active={active}
+        onChange={(id) => setActive(id as Tab)}
+      />
 
-        {/* Tabs — style Linear */}
-        <div className="flex gap-1 flex-wrap">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActive(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                  active === tab.id
-                    ? "text-[var(--ring)] bg-[color-mix(in_srgb,var(--ring)_10%,transparent)]"
-                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]"
-                }`}
-              >
-                <Icon size={15} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+      <div className="px-6 pt-6">
+        <ObjectifWidget />
       </div>
 
       {/* Content — re-mounts on tab change for fade-in-up */}
@@ -138,6 +121,7 @@ export function Finance() {
         {active === "rebalancing"  && <RebalancingTab />}
         {active === "buffett"      && <BuffettTab />}
         {active === "transactions" && <TransactionsTab />}
+        {active === "patrimoine"   && <PatrimoineTab />}
       </div>
     </div>
   );

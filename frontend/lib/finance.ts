@@ -11,6 +11,34 @@ export interface SnapshotOut {
   investit: number;
 }
 
+// Patrimoine net (actifs manuels RealT… + passifs emprunt)
+export interface PatrimoineItem {
+  id: number;
+  type: "actif" | "passif";
+  label: string;
+  categorie: string;
+  valeur: number;
+  taux_pct: number | null;
+  mensualite: number | null;
+  devise: string;
+}
+export interface PatrimoineItemCreate {
+  type: "actif" | "passif";
+  label: string;
+  valeur: number;
+  categorie?: string;
+  taux_pct?: number | null;
+  mensualite?: number | null;
+  devise?: string;
+}
+export interface NetWorth {
+  portefeuille: number;
+  actifs_manuels: number;
+  passifs: number;
+  net: number;
+  items: PatrimoineItem[];
+}
+
 export interface HistoryPoint {
   date: string;
   valeur: number;
@@ -327,4 +355,11 @@ export const financeApi = {
     }>("/objectif-patrimoine"),
   setObjectifPatrimoine: (objectif_eur: number) =>
     post<{ objectif_eur: number }>("/objectif-patrimoine", { objectif_eur }),
+
+  // Patrimoine net (RealT, emprunts…)
+  patrimoine: () => get<NetWorth>("/patrimoine"),
+  patrimoineCreate: (item: PatrimoineItemCreate) => post<PatrimoineItem>("/patrimoine", item),
+  patrimoineUpdate: (id: number, patch_: Partial<PatrimoineItemCreate>) =>
+    patch<PatrimoineItem>(`/patrimoine/${id}`, patch_),
+  patrimoineDelete: (id: number) => del(`/patrimoine/${id}`),
 };
