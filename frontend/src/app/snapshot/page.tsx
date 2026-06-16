@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Activity, Calendar, ChevronLeft, ChevronRight, Zap } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ModuleHeader } from '@/components/layout'
-import { useActivateTemplate, useEnergyBudget, useSetVacationMode, useSnapshot, useSnapshots, useTemplates, useVacationMode, useWellbeing } from '@/lib/queries/snapshot'
+import { useActivateTemplate, useEnergyBudget, useHeatmap, useSetVacationMode, useSnapshot, useSnapshots, useTemplates, useVacationMode, useWellbeing } from '@/lib/queries/snapshot'
 import type { SnapshotData } from '@/lib/snapshot'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -223,6 +223,58 @@ function TimeMachine() {
   )
 }
 
+// ─── Heatmap annuelle multi-métriques (#233) ─────────────────────────────────
+
+function AnnualHeatmap() {
+  const [metric, setMetric] = useState('Humeur')
+  const { data } = useHeatmap(metric)
+  const byDate = new Map((data?.cells ?? []).map((c) => [c.date, c.value]))
+  const min = data?.min ?? 0
+  const max = data?.max ?? 0
+  // 53 semaines alignées au lundi
+  const today = new Date()
+  const end = new Date(today); end.setDate(end.getDate() + (7 - ((end.getDay() + 6) % 7)) - 1) // dimanche courant
+  const start = new Date(end); start.setDate(start.getDate() - 53 * 7 + 1)
+  const weeks: Date[][] = []
+  const cur = new Date(start)
+  while (cur <= end) {
+    const week: Date[] = []
+    for (let i = 0; i < 7; i++) { week.push(new Date(cur)); cur.setDate(cur.getDate() + 1) }
+    weeks.push(week)
+  }
+  const level = (iso: string): number => {
+    if (!byDate.has(iso)) return 0
+    if (max === min) return 3
+    const n = (byDate.get(iso)! - min) / (max - min)
+    return 1 + Math.min(3, Math.floor(n * 4))
+  }
+  const bg = (lv: number) => lv === 0 ? 'var(--muted)' : `color-mix(in srgb, var(--ring) ${lv * 25}%, transparent)`
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]"><Activity size={13} /> Heatmap annuelle</h2>
+        <select value={metric} onChange={(e) => setMetric(e.target.value)} className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs">
+          {(data?.available ?? [metric]).map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
+      <div className="overflow-x-auto no-scrollbar">
+        <div className="flex gap-[3px]">
+          {weeks.map((week, wi) => (
+            <div key={wi} className="flex flex-col gap-[3px]">
+              {week.map((d) => {
+                const iso = d.toISOString().slice(0, 10)
+                const future = d > today
+                return <div key={iso} title={`${iso}${byDate.has(iso) ? ` : ${byDate.get(iso)}` : ''}`} className="h-2.5 w-2.5 rounded-[2px]" style={{ background: future ? 'transparent' : bg(level(iso)) }} />
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 function SnapshotContent() {
@@ -276,6 +328,8 @@ function SnapshotContent() {
           </div>
         )}
       </div>
+
+      <AnnualHeatmap />
     </div>
   )
 }

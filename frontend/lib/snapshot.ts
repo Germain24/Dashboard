@@ -53,6 +53,16 @@ export type EnergyBudget = {
 export const fetchEnergyBudget = (): Promise<EnergyBudget> =>
   fetch(`${BASE}/energy`).then(json);
 
+export type HeatmapData = {
+  metric: string;
+  available: string[];
+  cells: { date: string; value: number }[];
+  min: number;
+  max: number;
+};
+export const fetchHeatmap = (metric: string): Promise<HeatmapData> =>
+  fetch(`${BASE}/heatmap?metric=${encodeURIComponent(metric)}`).then(json);
+
 export const fetchWellbeing = (date?: string): Promise<WellbeingScore> => {
   const qs = date ? `?date=${date}` : ''
   return fetch(`${BASE}/wellbeing${qs}`).then(json)

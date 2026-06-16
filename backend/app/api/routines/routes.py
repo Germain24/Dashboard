@@ -483,6 +483,15 @@ def get_energy_budget(date: str | None = None, session: Session = Depends(get_se
     return daily_energy_budget(session, date=d)
 
 
+# ─── Heatmap annuelle (#233) ──────────────────────────────────────────────────
+
+@router.get("/heatmap")
+def get_heatmap(metric: str = "Humeur", days: int = 365, session: Session = Depends(get_session)):
+    """Valeur quotidienne d'une métrique sur ~1 an (rendu contributions)."""
+    from app.services.automatisations.heatmap import compute_heatmap
+    return compute_heatmap(session, metric=metric, days=days)
+
+
 # ─── Pistes de causalité / liens décalés (#224) ───────────────────────────────
 
 @router.get("/causalites")

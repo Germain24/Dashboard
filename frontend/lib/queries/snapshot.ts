@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   activateTemplate,
   fetchEnergyBudget,
+  fetchHeatmap,
   fetchSnapshot,
   fetchSnapshots,
   fetchTemplates,
@@ -30,6 +31,9 @@ export const useWellbeing = (date?: string) =>
 
 export const useEnergyBudget = () =>
   useQuery({ queryKey: ['snapshot', 'energy'], queryFn: fetchEnergyBudget })
+
+export const useHeatmap = (metric: string) =>
+  useQuery({ queryKey: ['snapshot', 'heatmap', metric], queryFn: () => fetchHeatmap(metric) })
 
 export const useTemplates = () =>
   useQuery({ queryKey: snapshotKeys.templates(), queryFn: fetchTemplates })
