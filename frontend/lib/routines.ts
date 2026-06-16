@@ -107,6 +107,15 @@ export type CausalLink = { cause: string; effet: string; lag: number; r: number;
 export const fetchCausalites = (): Promise<{ links: CausalLink[]; count: number }> =>
   fetch(`${BASE}/causalites`).then(json)
 
+// Bilan mensuel (#234)
+export type MonthlyReport = {
+  annee: number; mois: number; periode: string; jours_couverts: number;
+  metriques: Record<string, number>;
+  poids: { debut: number; fin: number; delta: number } | null;
+}
+export const fetchMonthlyReport = (year: number, month: number): Promise<MonthlyReport> =>
+  fetch(`${BASE}/bilan?year=${year}&month=${month}`).then(json)
+
 // Détection de surcharge (#231)
 export type OverloadDay = { date: string; load_min: number; load_h: number; n_events: number; suggestion: string }
 export const fetchSurcharge = (): Promise<{ week_start: string; jours: OverloadDay[]; count: number }> =>

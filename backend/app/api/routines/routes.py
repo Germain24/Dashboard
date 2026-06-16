@@ -492,6 +492,23 @@ def get_heatmap(metric: str = "Humeur", days: int = 365, session: Session = Depe
     return compute_heatmap(session, metric=metric, days=days)
 
 
+# ─── Bilan mensuel « de vie » (#234) ──────────────────────────────────────────
+
+@router.get("/bilan")
+def get_monthly_report(
+    year: int | None = None, month: int | None = None,
+    session: Session = Depends(get_session),
+):
+    """Bilan synthétique d'un mois (imprimable en PDF côté navigateur)."""
+    today = dt.date.today()
+    y = year or today.year
+    m = month or today.month
+    if not (1 <= m <= 12):
+        raise HTTPException(400, detail="Mois invalide (1-12)")
+    from app.services.automatisations.report import compute_monthly_report
+    return compute_monthly_report(session, year=y, month=m)
+
+
 # ─── Pistes de causalité / liens décalés (#224) ───────────────────────────────
 
 @router.get("/causalites")

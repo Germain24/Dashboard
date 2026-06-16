@@ -12,6 +12,7 @@ import {
   fetchForecasts,
   fetchLifeGoalMetrics,
   fetchLifeGoals,
+  fetchMonthlyReport,
   fetchRecommendations,
   fetchSurcharge,
   fetchWeeklyInsights,
@@ -130,6 +131,9 @@ export const useWeeklyInsights = () =>
 
 export const useRecommendations = () =>
   useQuery({ queryKey: ['routines', 'recommendations'], queryFn: fetchRecommendations })
+
+export const useMonthlyReport = (year: number, month: number) =>
+  useQuery({ queryKey: ['routines', 'bilan', year, month], queryFn: () => fetchMonthlyReport(year, month) })
 
 export const useForecasts = () =>
   useQuery({ queryKey: ['routines', 'forecasts'], queryFn: fetchForecasts })
