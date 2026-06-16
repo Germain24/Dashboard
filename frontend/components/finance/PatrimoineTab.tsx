@@ -36,10 +36,9 @@ export function PatrimoineTab() {
   return (
     <div className="space-y-6">
       {/* Synthèse patrimoine net */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-3">
         <Stat label="Patrimoine net" value={fmt(data.net)} strong />
-        <Stat label="Portefeuille" value={fmt(data.portefeuille)} />
-        <Stat label="Actifs manuels" value={fmt(data.actifs_manuels)} />
+        <Stat label="Actifs" value={fmt(data.actifs_manuels)} />
         <Stat label="Passifs" value={fmt(data.passifs)} negative />
       </div>
 

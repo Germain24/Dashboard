@@ -97,14 +97,17 @@ def delete_item(session: Session, item_id: int) -> bool:
 
 def net_worth_summary(
     session: Session, *, cad_eur: float | None = None,
+    inclure_portefeuille: bool = False,
 ) -> dict[str, Any]:
     """Vue patrimoine net complète, tout en EUR.
 
-    Le portefeuille (CAD) est converti en EUR pour rester cohérent avec les
-    actifs/passifs saisis en EUR. `cad_eur` permet d'injecter le taux (tests).
+    Par défaut le patrimoine net = actifs manuels − passifs (l'utilisateur saisit
+    lui-même ses comptes-titres). `inclure_portefeuille=True` ajoute en plus le
+    portefeuille actions auto (snapshot CAD→EUR) — à n'activer que s'il n'est PAS
+    déjà saisi en actif manuel (sinon double comptage). `cad_eur` injecte le taux.
     """
     rate = cad_eur if cad_eur is not None else _cad_to_eur(session)
     items = list_items(session)
-    portef_eur = portfolio_value(session) * rate
+    portef_eur = portfolio_value(session) * rate if inclure_portefeuille else 0.0
     summary = compute_net_worth(portef_eur, items)
     return {**summary, "taux_cad_eur": round(rate, 4), "items": [i.model_dump() for i in items]}
