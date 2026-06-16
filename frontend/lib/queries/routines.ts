@@ -13,6 +13,7 @@ import {
   fetchLifeGoalMetrics,
   fetchLifeGoals,
   fetchRecommendations,
+  fetchSurcharge,
   fetchWeeklyInsights,
   fetchKillSwitch,
   fetchRecipes,
@@ -132,6 +133,9 @@ export const useRecommendations = () =>
 
 export const useForecasts = () =>
   useQuery({ queryKey: ['routines', 'forecasts'], queryFn: fetchForecasts })
+
+export const useSurcharge = () =>
+  useQuery({ queryKey: ['routines', 'surcharge'], queryFn: fetchSurcharge })
 
 export const useCorrelations = () =>
   useQuery({ queryKey: ['routines', 'correlations'], queryFn: fetchCorrelations })

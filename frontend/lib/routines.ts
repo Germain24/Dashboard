@@ -107,6 +107,11 @@ export type CausalLink = { cause: string; effet: string; lag: number; r: number;
 export const fetchCausalites = (): Promise<{ links: CausalLink[]; count: number }> =>
   fetch(`${BASE}/causalites`).then(json)
 
+// Détection de surcharge (#231)
+export type OverloadDay = { date: string; load_min: number; load_h: number; n_events: number; suggestion: string }
+export const fetchSurcharge = (): Promise<{ week_start: string; jours: OverloadDay[]; count: number }> =>
+  fetch(`${BASE}/surcharge`).then(json)
+
 // Prédiction de tendances (#228)
 export type Forecast = { metric: string; slope_per_day: number; courant: number; horizon_days: number; prevision: number; variation: number; direction: string; n: number }
 export const fetchForecasts = (): Promise<{ horizon_days: number; forecasts: Forecast[]; count: number }> =>

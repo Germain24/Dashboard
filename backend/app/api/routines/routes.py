@@ -456,6 +456,20 @@ def get_forecasts(horizon_days: int = 30, session: Session = Depends(get_session
     return {"horizon_days": horizon_days, "forecasts": forecasts, "count": len(forecasts)}
 
 
+# ─── Détection de surcharge (#231) ────────────────────────────────────────────
+
+@router.get("/surcharge")
+def get_surcharge(week_start: str | None = None, session: Session = Depends(get_session)):
+    """Journées surchargées de la semaine + suggestion d'allègement."""
+    try:
+        ws = dt.date.fromisoformat(week_start) if week_start else _current_monday()
+    except ValueError:
+        raise HTTPException(400, detail="Date invalide (YYYY-MM-DD)")
+    from app.services.automatisations.overload import detect_overload
+    jours = detect_overload(session, ws)
+    return {"week_start": ws.isoformat(), "jours": jours, "count": len(jours)}
+
+
 # ─── Pistes de causalité / liens décalés (#224) ───────────────────────────────
 
 @router.get("/causalites")

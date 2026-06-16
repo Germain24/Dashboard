@@ -4,7 +4,7 @@ import { Activity, HeartPulse, TrendingUp, Lightbulb } from 'lucide-react'
 import { ModuleHeader } from '@/components/layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useWellbeing, useSnapshots } from '@/lib/queries/snapshot'
-import { useWeeklyInsights, useCorrelations, useRecommendations, useForecasts } from '@/lib/queries/routines'
+import { useWeeklyInsights, useCorrelations, useRecommendations, useForecasts, useSurcharge } from '@/lib/queries/routines'
 import { ObjectifsVie } from '@/components/ObjectifsVie'
 
 /** Tableau de bord « Vue 360 » (#225) : synthèse de toute ta vie sur un écran. */
@@ -55,6 +55,9 @@ function Vue360Content() {
         </section>
       )}
 
+      {/* Surcharge (#231) */}
+      <SurchargeSection />
+
       {/* Recommandations priorisées (#227) */}
       <RecommendationsSection />
 
@@ -98,6 +101,29 @@ function Vue360Content() {
         </section>
       )}
     </div>
+  )
+}
+
+/** Détection de surcharge (#231). */
+function SurchargeSection() {
+  const { data } = useSurcharge()
+  const jours = data?.jours ?? []
+  if (!jours.length) return null
+  const fmtDate = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('fr-CA', { weekday: 'long', day: '2-digit', month: '2-digit' })
+  return (
+    <section className="rounded-[var(--radius-lg)] border border-[var(--warning-muted)] bg-[var(--warning-muted)]/30 p-5">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--warning-foreground)]">
+        <Activity size={13} /> Journées surchargées cette semaine
+      </h2>
+      <ul className="space-y-1.5">
+        {jours.map((j) => (
+          <li key={j.date} className="text-sm">
+            <span className="font-medium capitalize text-[var(--foreground)]">{fmtDate(j.date)}</span>
+            <span className="ml-2 text-xs text-[var(--muted-foreground)]">{j.load_h} h · {j.n_events} évén. — {j.suggestion}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
