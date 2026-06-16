@@ -1,10 +1,10 @@
 'use client'
 
-import { Activity, HeartPulse, TrendingUp } from 'lucide-react'
+import { Activity, HeartPulse, TrendingUp, Lightbulb } from 'lucide-react'
 import { ModuleHeader } from '@/components/layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useWellbeing, useSnapshots } from '@/lib/queries/snapshot'
-import { useWeeklyInsights, useCorrelations } from '@/lib/queries/routines'
+import { useWeeklyInsights, useCorrelations, useRecommendations } from '@/lib/queries/routines'
 import { ObjectifsVie } from '@/components/ObjectifsVie'
 
 /** Tableau de bord « Vue 360 » (#225) : synthèse de toute ta vie sur un écran. */
@@ -55,6 +55,9 @@ function Vue360Content() {
         </section>
       )}
 
+      {/* Recommandations priorisées (#227) */}
+      <RecommendationsSection />
+
       {/* Objectifs de vie inter-modules (#226) */}
       <ObjectifsVie />
 
@@ -92,6 +95,31 @@ function Vue360Content() {
         </section>
       )}
     </div>
+  )
+}
+
+/** Recommandations priorisées par impact (#227). */
+function RecommendationsSection() {
+  const { data } = useRecommendations()
+  const recs = data?.recommendations ?? []
+  if (!recs.length) return null
+  return (
+    <section className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-5">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
+        <Lightbulb size={13} /> Recommandations (les plus utiles d&apos;abord)
+      </h2>
+      <ul className="space-y-2">
+        {recs.map((r, i) => (
+          <li key={i} className="flex items-center gap-3 text-sm">
+            <span className="flex h-7 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] bg-[var(--accent)] text-xs font-semibold tabular-nums text-[var(--foreground)]" title="impact estimé">{r.impact}</span>
+            <span className="min-w-0 flex-1">
+              <span className="text-[var(--foreground)]">{r.titre}</span>
+              <span className="ml-2 text-xs text-[var(--muted-foreground)]">{r.raison}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

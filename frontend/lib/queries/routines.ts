@@ -11,6 +11,7 @@ import {
   fetchCorrelations,
   fetchLifeGoalMetrics,
   fetchLifeGoals,
+  fetchRecommendations,
   fetchWeeklyInsights,
   fetchKillSwitch,
   fetchRecipes,
@@ -124,6 +125,9 @@ export const useDeleteLifeGoal = () => {
 
 export const useWeeklyInsights = () =>
   useQuery({ queryKey: ['routines', 'insights'], queryFn: fetchWeeklyInsights })
+
+export const useRecommendations = () =>
+  useQuery({ queryKey: ['routines', 'recommendations'], queryFn: fetchRecommendations })
 
 export const useCorrelations = () =>
   useQuery({ queryKey: ['routines', 'correlations'], queryFn: fetchCorrelations })

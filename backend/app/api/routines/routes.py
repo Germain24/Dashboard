@@ -436,6 +436,16 @@ def get_weekly_insights(session: Session = Depends(get_session)):
     return build_weekly_insights(session)
 
 
+# ─── Recommandations priorisées par impact (#227) ─────────────────────────────
+
+@router.get("/recommendations")
+def get_recommendations(session: Session = Depends(get_session)):
+    """Actions recommandées, les plus utiles (impact estimé) en premier."""
+    from app.services.automatisations.recommendations import compute_recommendations
+    recs = compute_recommendations(session)
+    return {"recommendations": recs, "count": len(recs)}
+
+
 # ─── Pistes de causalité / liens décalés (#224) ───────────────────────────────
 
 @router.get("/causalites")

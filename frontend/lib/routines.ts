@@ -107,6 +107,11 @@ export type CausalLink = { cause: string; effet: string; lag: number; r: number;
 export const fetchCausalites = (): Promise<{ links: CausalLink[]; count: number }> =>
   fetch(`${BASE}/causalites`).then(json)
 
+// Recommandations priorisées (#227)
+export type Recommendation = { titre: string; module: string; impact: number; raison: string }
+export const fetchRecommendations = (): Promise<{ recommendations: Recommendation[]; count: number }> =>
+  fetch(`${BASE}/recommendations`).then(json)
+
 // Objectifs de vie inter-modules (#226)
 export type LifeGoalMetric = { metric: string; label: string }
 export type LifeGoalSub = { label: string; metric: string; baseline: number; cible: number; courant: number | null; pct: number | null; atteint: boolean }
