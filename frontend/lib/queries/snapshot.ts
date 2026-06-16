@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   activateTemplate,
+  fetchEnergyBudget,
   fetchSnapshot,
   fetchSnapshots,
   fetchTemplates,
@@ -26,6 +27,9 @@ export const useSnapshot = (date: string) =>
 
 export const useWellbeing = (date?: string) =>
   useQuery({ queryKey: snapshotKeys.wellbeing(date), queryFn: () => fetchWellbeing(date) })
+
+export const useEnergyBudget = () =>
+  useQuery({ queryKey: ['snapshot', 'energy'], queryFn: fetchEnergyBudget })
 
 export const useTemplates = () =>
   useQuery({ queryKey: snapshotKeys.templates(), queryFn: fetchTemplates })

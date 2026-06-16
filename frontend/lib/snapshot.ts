@@ -34,13 +34,24 @@ export type RoutineTemplate = {
 }
 
 const json = (r: Response) => r.json()
-const jsonHeaders = { 'Content-Type': 'application/json' }
 
 export const fetchSnapshots = (days = 30): Promise<Snapshot[]> =>
   fetch(`${BASE}/snapshot?days=${days}`).then(json)
 
 export const fetchSnapshot = (date: string): Promise<Snapshot> =>
   fetch(`${BASE}/snapshot/${date}`).then(json)
+
+export type EnergyBudget = {
+  date: string;
+  energie_ressentie: number | null;
+  n_activites: number;
+  capacite: number;
+  cout_prevu: number;
+  restant: number;
+  statut: "ok" | "serré" | "dépassé";
+};
+export const fetchEnergyBudget = (): Promise<EnergyBudget> =>
+  fetch(`${BASE}/energy`).then(json);
 
 export const fetchWellbeing = (date?: string): Promise<WellbeingScore> => {
   const qs = date ? `?date=${date}` : ''

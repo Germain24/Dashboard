@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Activity, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Activity, Calendar, ChevronLeft, ChevronRight, Zap } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ModuleHeader } from '@/components/layout'
-import { useActivateTemplate, useSetVacationMode, useSnapshot, useSnapshots, useTemplates, useVacationMode, useWellbeing } from '@/lib/queries/snapshot'
+import { useActivateTemplate, useEnergyBudget, useSetVacationMode, useSnapshot, useSnapshots, useTemplates, useVacationMode, useWellbeing } from '@/lib/queries/snapshot'
 import type { SnapshotData } from '@/lib/snapshot'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -167,6 +167,29 @@ function VacationToggle() {
   )
 }
 
+// ─── Budget d'énergie du jour (#232) ──────────────────────────────────────────
+
+function EnergyBudget() {
+  const { data } = useEnergyBudget()
+  if (!data) return null
+  const pct = data.capacite > 0 ? Math.max(0, Math.min(100, (data.restant / data.capacite) * 100)) : 0
+  const color = data.statut === 'dépassé' ? 'var(--warning-foreground)' : data.statut === 'serré' ? '#f59e0b' : 'var(--ring)'
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+      <div className="mb-1.5 flex items-center justify-between">
+        <h2 className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]"><Zap size={13} /> Budget d&apos;énergie du jour</h2>
+        <span className="text-sm font-semibold tabular-nums" style={{ color }}>{data.restant} / {data.capacite}</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+        Coût prévu {data.cout_prevu} ({data.n_activites} activités){data.statut === 'dépassé' ? ' — journée trop chargée, allège.' : data.statut === 'serré' ? ' — peu de marge.' : ''}
+      </p>
+    </div>
+  )
+}
+
 // ─── Time machine : rejoue l'état d'une date passée (#230) ────────────────────
 
 function TimeMachine() {
@@ -209,6 +232,7 @@ function SnapshotContent() {
   return (
     <div className="space-y-6">
       <WellbeingWidget />
+      <EnergyBudget />
       <TimeMachine />
       <VacationToggle />
       <TemplatesSection />

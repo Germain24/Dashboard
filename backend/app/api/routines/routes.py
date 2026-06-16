@@ -470,6 +470,19 @@ def get_surcharge(week_start: str | None = None, session: Session = Depends(get_
     return {"week_start": ws.isoformat(), "jours": jours, "count": len(jours)}
 
 
+# ─── Budget d'énergie personnelle (#232) ──────────────────────────────────────
+
+@router.get("/energy")
+def get_energy_budget(date: str | None = None, session: Session = Depends(get_session)):
+    """Capacité d'énergie du jour − coût des activités planifiées."""
+    try:
+        d = dt.date.fromisoformat(date) if date else dt.date.today()
+    except ValueError:
+        raise HTTPException(400, detail="Date invalide (YYYY-MM-DD)")
+    from app.services.automatisations.energy import daily_energy_budget
+    return daily_energy_budget(session, date=d)
+
+
 # ─── Pistes de causalité / liens décalés (#224) ───────────────────────────────
 
 @router.get("/causalites")
