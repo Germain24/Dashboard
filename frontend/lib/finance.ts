@@ -17,11 +17,13 @@ export interface PatrimoineItem {
   type: "actif" | "passif";
   label: string;
   categorie: string;
-  valeur: number;
+  valeur: number;        // valeur dans la devise native
+  valeur_eur?: number;   // convertie en EUR (calculée côté serveur)
   taux_pct: number | null;
   mensualite: number | null;
   devise: string;
 }
+export const PATRIMOINE_DEVISES = ["EUR", "USD", "CAD", "GBP", "CHF"] as const;
 export interface PatrimoineItemCreate {
   type: "actif" | "passif";
   label: string;

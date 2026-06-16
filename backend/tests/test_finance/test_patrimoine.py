@@ -16,8 +16,34 @@ from app.services.finance.patrimoine import (
     delete_item,
     list_items,
     net_worth_summary,
+    to_eur,
     update_item,
 )
+
+
+def test_to_eur_noop_for_eur():
+    assert to_eur(100, "EUR") == 100
+    assert to_eur(100, None) == 100
+
+
+def test_net_worth_converts_local_currencies(session, monkeypatch):
+    # FX simulé : 1 USD = 0.9 EUR, 1 CAD = 0.7 EUR
+    rates = {("USD", "EUR"): 0.9, ("CAD", "EUR"): 0.7}
+    monkeypatch.setattr(
+        "app.services.finance.fx.convert",
+        lambda amount, base, quote: round(amount * rates[(base, quote)], 2),
+    )
+    create_item(session, type="actif", label="RealT", valeur=1000, categorie="RealT", devise="USD")
+    create_item(session, type="actif", label="Desjardins", valeur=2000, categorie="cash", devise="CAD")
+    create_item(session, type="actif", label="BanquePop", valeur=500, categorie="cash", devise="EUR")
+    create_item(session, type="passif", label="Prêt", valeur=10000, categorie="emprunt", devise="EUR")
+    out = net_worth_summary(session)
+    # actifs EUR = 900 + 1400 + 500 = 2800 ; passifs = 10000
+    assert out["actifs_manuels"] == 2800
+    assert out["passifs"] == 10000
+    assert out["net"] == 2800 - 10000
+    realt = next(i for i in out["items"] if i["label"] == "RealT")
+    assert realt["valeur_eur"] == 900  # 1000 USD × 0.9
 
 
 @pytest.fixture()

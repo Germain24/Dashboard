@@ -7,12 +7,26 @@ avoirs/dettes saisis à la main pour donner un patrimoine net.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 from sqlmodel import Session, select
 
 from app.models.finance import SnapshotPortefeuille
 from app.models.patrimoine import PatrimoineItem
+
+
+def to_eur(amount: float, devise: str | None) -> float:
+    """Convertit `amount` (dans `devise`) en EUR. Repli sur la valeur brute si
+    le taux n'est pas disponible (best-effort)."""
+    if not devise or devise.upper() == "EUR":
+        return round(float(amount), 2)
+    try:
+        from app.services.finance.fx import convert
+        eur = convert(float(amount), devise.upper(), "EUR")
+        return eur if eur else round(float(amount), 2)
+    except Exception:
+        return round(float(amount), 2)
 
 
 def compute_net_worth(portfolio_value: float, items: list[Any]) -> dict[str, float]:
@@ -106,8 +120,23 @@ def net_worth_summary(
     portefeuille actions auto (snapshot CAD→EUR) — à n'activer que s'il n'est PAS
     déjà saisi en actif manuel (sinon double comptage). `cad_eur` injecte le taux.
     """
-    rate = cad_eur if cad_eur is not None else _cad_to_eur(session)
     items = list_items(session)
-    portef_eur = portfolio_value(session) * rate if inclure_portefeuille else 0.0
-    summary = compute_net_worth(portef_eur, items)
-    return {**summary, "taux_cad_eur": round(rate, 4), "items": [i.model_dump() for i in items]}
+    # Chaque ligne est convertie de sa devise vers l'EUR (saisie en monnaie locale).
+    converted = []
+    dumped = []
+    for i in items:
+        v_eur = to_eur(i.valeur, i.devise)
+        converted.append(SimpleNamespace(type=i.type, valeur=v_eur))
+        d = i.model_dump()
+        d["valeur_eur"] = v_eur
+        dumped.append(d)
+
+    if inclure_portefeuille:
+        rate = cad_eur if cad_eur is not None else _cad_to_eur(session)
+        portef_eur = portfolio_value(session) * rate
+    else:
+        rate = cad_eur if cad_eur is not None else 0.0
+        portef_eur = 0.0
+
+    summary = compute_net_worth(portef_eur, converted)
+    return {**summary, "taux_cad_eur": round(rate, 4), "items": dumped}
