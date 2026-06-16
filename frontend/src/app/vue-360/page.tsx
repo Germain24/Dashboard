@@ -4,7 +4,7 @@ import { Activity, HeartPulse, TrendingUp, Lightbulb } from 'lucide-react'
 import { ModuleHeader } from '@/components/layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useWellbeing, useSnapshots } from '@/lib/queries/snapshot'
-import { useWeeklyInsights, useCorrelations, useRecommendations } from '@/lib/queries/routines'
+import { useWeeklyInsights, useCorrelations, useRecommendations, useForecasts } from '@/lib/queries/routines'
 import { ObjectifsVie } from '@/components/ObjectifsVie'
 
 /** Tableau de bord « Vue 360 » (#225) : synthèse de toute ta vie sur un écran. */
@@ -58,6 +58,9 @@ function Vue360Content() {
       {/* Recommandations priorisées (#227) */}
       <RecommendationsSection />
 
+      {/* Projections de tendances (#228) */}
+      <ForecastsSection />
+
       {/* Objectifs de vie inter-modules (#226) */}
       <ObjectifsVie />
 
@@ -95,6 +98,35 @@ function Vue360Content() {
         </section>
       )}
     </div>
+  )
+}
+
+/** Projections de tendances par régression (#228). */
+function ForecastsSection() {
+  const { data } = useForecasts()
+  const forecasts = data?.forecasts ?? []
+  if (!forecasts.length) return null
+  return (
+    <section className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-5">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--muted-foreground)]">
+        <TrendingUp size={13} /> Projections à {data?.horizon_days ?? 30} jours (tendance linéaire)
+      </h2>
+      <ul className="space-y-1.5">
+        {forecasts.map((f) => {
+          const up = f.variation > 0
+          return (
+            <li key={f.metric} className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate text-[var(--foreground)]">
+                {f.metric} <span className="text-xs text-[var(--muted-foreground)]">{f.courant} → {f.prevision}</span>
+              </span>
+              <span className={`shrink-0 tabular-nums text-xs font-medium ${f.direction === 'stable' ? 'text-[var(--muted-foreground)]' : up ? 'text-[var(--success-foreground)]' : 'text-[var(--warning-foreground)]'}`}>
+                {f.variation > 0 ? '+' : ''}{f.variation}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 

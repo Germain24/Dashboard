@@ -107,6 +107,11 @@ export type CausalLink = { cause: string; effet: string; lag: number; r: number;
 export const fetchCausalites = (): Promise<{ links: CausalLink[]; count: number }> =>
   fetch(`${BASE}/causalites`).then(json)
 
+// Prédiction de tendances (#228)
+export type Forecast = { metric: string; slope_per_day: number; courant: number; horizon_days: number; prevision: number; variation: number; direction: string; n: number }
+export const fetchForecasts = (): Promise<{ horizon_days: number; forecasts: Forecast[]; count: number }> =>
+  fetch(`${BASE}/forecasts`).then(json)
+
 // Recommandations priorisées (#227)
 export type Recommendation = { titre: string; module: string; impact: number; raison: string }
 export const fetchRecommendations = (): Promise<{ recommendations: Recommendation[]; count: number }> =>

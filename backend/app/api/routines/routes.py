@@ -446,6 +446,16 @@ def get_recommendations(session: Session = Depends(get_session)):
     return {"recommendations": recs, "count": len(recs)}
 
 
+# ─── Prédiction de tendances (#228) ───────────────────────────────────────────
+
+@router.get("/forecasts")
+def get_forecasts(horizon_days: int = 30, session: Session = Depends(get_session)):
+    """Projections par métrique (régression linéaire sur l'historique récent)."""
+    from app.services.automatisations.forecast import compute_forecasts
+    forecasts = compute_forecasts(session, horizon_days=horizon_days)
+    return {"horizon_days": horizon_days, "forecasts": forecasts, "count": len(forecasts)}
+
+
 # ─── Pistes de causalité / liens décalés (#224) ───────────────────────────────
 
 @router.get("/causalites")
