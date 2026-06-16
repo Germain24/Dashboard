@@ -28,11 +28,24 @@ def compute_net_worth(portfolio_value: float, items: list[Any]) -> dict[str, flo
 
 
 def portfolio_value(session: Session) -> float:
-    """Valeur du portefeuille actions = dernier snapshot (0 si aucun)."""
+    """Valeur brute du portefeuille = dernier snapshot (en CAD, 0 si aucun)."""
     snap = session.exec(
         select(SnapshotPortefeuille).order_by(SnapshotPortefeuille.date.desc())
     ).first()
     return float(snap.valeur) if snap else 0.0
+
+
+def _cad_to_eur(session: Session) -> float:
+    """Taux CAD→EUR best-effort (le portefeuille est libellé en CAD). Repli 0.68."""
+    try:
+        from app.services.finance.fx import get_rate
+        cad_usd = get_rate("CAD", "USD")
+        eur_usd = get_rate("EUR", "USD")
+        if cad_usd and eur_usd:
+            return cad_usd / eur_usd
+    except Exception:
+        pass
+    return 0.68
 
 
 # ─── CRUD ─────────────────────────────────────────────────────────────────────
@@ -82,8 +95,16 @@ def delete_item(session: Session, item_id: int) -> bool:
     return True
 
 
-def net_worth_summary(session: Session) -> dict[str, Any]:
-    """Vue patrimoine net complète : totaux + détail des items."""
+def net_worth_summary(
+    session: Session, *, cad_eur: float | None = None,
+) -> dict[str, Any]:
+    """Vue patrimoine net complète, tout en EUR.
+
+    Le portefeuille (CAD) est converti en EUR pour rester cohérent avec les
+    actifs/passifs saisis en EUR. `cad_eur` permet d'injecter le taux (tests).
+    """
+    rate = cad_eur if cad_eur is not None else _cad_to_eur(session)
     items = list_items(session)
-    summary = compute_net_worth(portfolio_value(session), items)
-    return {**summary, "items": [i.model_dump() for i in items]}
+    portef_eur = portfolio_value(session) * rate
+    summary = compute_net_worth(portef_eur, items)
+    return {**summary, "taux_cad_eur": round(rate, 4), "items": [i.model_dump() for i in items]}

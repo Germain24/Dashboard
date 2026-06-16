@@ -76,7 +76,18 @@ def test_net_worth_summary_uses_latest_portfolio_snapshot(session):
     session.commit()
     create_item(session, type="actif", label="RealT", valeur=2000, categorie="RealT")
     create_item(session, type="passif", label="Prêt", valeur=12000, categorie="emprunt étudiant")
-    out = net_worth_summary(session)
-    assert out["portefeuille"] == 11000          # dernier snapshot
+    out = net_worth_summary(session, cad_eur=1.0)  # taux injecté -> déterministe
+    assert out["portefeuille"] == 11000          # dernier snapshot (×1.0)
     assert out["net"] == 11000 + 2000 - 12000
     assert len(out["items"]) == 2
+
+
+def test_net_worth_converts_portfolio_cad_to_eur():
+    e = create_engine("sqlite:///:memory:")
+    SQLModel.metadata.create_all(e)
+    with Session(e) as session:
+        session.add(SnapshotPortefeuille(date=dt.date(2026, 6, 10), valeur=10000, investit=8000))
+        session.commit()
+        out = net_worth_summary(session, cad_eur=0.7)
+        assert out["portefeuille"] == 7000  # 10000 CAD × 0.7
+        assert out["taux_cad_eur"] == 0.7
