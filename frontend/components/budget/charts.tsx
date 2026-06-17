@@ -6,6 +6,13 @@ import type { CategorySpend, MonthTrend } from '@/lib/budget'
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
 
+/** "2026-01" → "janv. 26" (mois court + année sur 2 chiffres). */
+const monthLabel = (mois: string) => {
+  const [y, m] = mois.split('-').map(Number)
+  if (!y || !m) return mois
+  return new Date(y, m - 1, 1).toLocaleDateString('fr-CA', { month: 'short', year: '2-digit' })
+}
+
 export function Donut({ data }: { data: CategorySpend[] }) {
   const total = data.reduce((s, d) => s + d.montant, 0)
   if (total <= 0) {
@@ -83,8 +90,8 @@ export function TrendChart({ data }: { data: MonthTrend[] }) {
       </div>
       <div className="mt-1 flex gap-3">
         {data.map((d) => (
-          <span key={d.mois} className="flex-1 text-center text-[10px] tabular-nums text-[var(--muted-foreground)]">
-            {d.mois.slice(5)}
+          <span key={d.mois} className="flex-1 text-center text-[10px] text-[var(--muted-foreground)]">
+            {monthLabel(d.mois)}
           </span>
         ))}
       </div>

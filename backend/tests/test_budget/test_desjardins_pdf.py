@@ -114,6 +114,22 @@ def test_eop_excludes_mastercard_payments():
     assert out[0][1] == 500.0   # 1460 - 960, solde après le paiement carte exclu
 
 
+def test_eop_wrapped_payment_does_not_leak_into_neighbor():
+    # Le paiement carte (libellé long) déborde : son montant/solde sont sur la
+    # ligne suivante. Il doit être exclu SANS fausser le delta de l'opération
+    # suivante (l'assurance doit valoir -38.80, pas -174.66).
+    text = (
+        "au 31 janvier 2026\nEOP\n"
+        "                Solde reporte                       1000.00\n"
+        "   5 JANPWW     Paiement facture - AccesD Internet / Remises Mastercard\n"
+        "                Desjardins                          135.86       864.14\n"
+        "   8 JANRA      Assurance / DESJARDINS ASS. GENERALES   38.80       825.34\n"
+    )
+    out = parse_desjardins_eop(text)
+    assert [d[2] for d in out] == ["Assurance / DESJARDINS ASS. GENERALES"]
+    assert out[0][1] == -38.80   # 825.34 - 864.14, le paiement carte est bien consommé
+
+
 def test_unwrap_passthrough_real_pdf():
     assert _unwrap_pdf(b"%PDF-1.3\nstuff\n%%EOF") == b"%PDF-1.3\nstuff\n%%EOF"
     assert _unwrap_pdf(b"\xac\xed\x00\x05junk%PDF-1.3 body %%EOFtrailer")[:5] == b"%PDF-"

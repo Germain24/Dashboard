@@ -125,11 +125,20 @@ def parse_desjardins_eop(text: str) -> list[tuple[dt.date, float, str]]:
     year = int(ym.group(1))
     prev = _eop_num(msr.group(1))
 
-    out: list[tuple[dt.date, float, str]] = []
+    # Les libellés longs (« … / Remises Mastercard ») débordent : leurs montants
+    # et leur solde sont reportés sur la ligne suivante. On fusionne chaque ligne
+    # datée avec ses continuations TANT QU'ELLE N'A PAS ENCORE de montant, pour
+    # lire le solde de CHAQUE opération (indispensable au calcul par delta).
+    rows: list[str] = []
     for line in text.splitlines():
-        m = _EOP_LINE.match(line)
-        if not m:
-            continue
+        if _EOP_LINE.match(line):
+            rows.append(line)
+        elif rows and line.strip() and "Solde report" not in line and not _EOP_AMT.search(rows[-1]):
+            rows[-1] += " " + line.strip()
+
+    out: list[tuple[dt.date, float, str]] = []
+    for row in rows:
+        m = _EOP_LINE.match(row)
         amts = _EOP_AMT.findall(m.group(4))
         mon = _EOP_MONTHS.get(re.sub(r"[^A-Z]", "", m.group(2).upper()))
         if not amts or not mon:
