@@ -54,6 +54,9 @@ def delete_transaction(id: int, session: Session = Depends(get_session)):
 @router.post("/import")
 async def import_releve(file: UploadFile = File(...), compte: str = "principal",
                         session: Session = Depends(get_session)):
-    """Importe un relevé CSV (Desjardins/RBC/générique) ou OFX/QFX (#256)."""
-    content = (await file.read()).decode("utf-8", errors="replace")
-    return import_svc.import_transactions(session, content, compte)
+    """Importe un relevé : PDF Mastercard Desjardins, CSV ou OFX/QFX (#256)."""
+    raw = await file.read()
+    if raw[:5] == b"%PDF-":
+        from app.services.budget.desjardins_pdf import import_desjardins_pdf
+        return import_desjardins_pdf(session, raw, compte)
+    return import_svc.import_transactions(session, raw.decode("utf-8", errors="replace"), compte)

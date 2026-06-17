@@ -33,6 +33,8 @@ dependencies = [
     # Robot / IA — chat agent Claude (CONV N)
     "anthropic>=0.40.0",
     "mutagen>=1.47.0",
+    # Import de relevés bancaires PDF (Desjardins, #256)
+    "pypdf>=5.0.0",
 ]
 
 [dependency-groups]
