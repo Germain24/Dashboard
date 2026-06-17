@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from app.core.config import settings
+from app.services.finance.buffett.bond_yields import STATIC_BOND_YIELDS
 
 
 class Config:
@@ -40,17 +41,9 @@ class Config:
     PEG_MAX: float = settings.buffett_peg_max
     TAUX_DEFAUT: float = settings.buffett_taux_defaut
 
-    TAUX_OBLIGATAIRES: dict = {
-        "United States": 0.042, "France": 0.029, "Germany": 0.024,
-        "United Kingdom": 0.040, "Switzerland": 0.007, "Canada": 0.035,
-        "Japan": 0.008, "China": 0.023, "India": 0.067,
-        "South Korea": 0.030, "Australia": 0.043, "Hong Kong": 0.038,
-        "Taiwan": 0.015, "Brazil": 0.135, "Mexico": 0.095,
-        "Sweden": 0.020, "Netherlands": 0.027, "Belgium": 0.030,
-        "Denmark": 0.025, "Norway": 0.035, "Israel": 0.045,
-        "Singapore": 0.030, "South Africa": 0.095, "Indonesia": 0.068,
-        "Turkey": 0.280,
-    }
+    # Valeurs de repli ; rafraîchies en direct au lancement du run (cf.
+    # bond_yields.get_bond_yields appelé dans runner.run_buffett_analysis).
+    TAUX_OBLIGATAIRES: dict = dict(STATIC_BOND_YIELDS)
 
     # Optimiseur
     SHARPE_TARGET_PERCENT: float = settings.buffett_sharpe_target_percent
@@ -79,7 +72,7 @@ class Config:
         if not os.path.exists(cls.PARAMS_FILE):
             return
         try:
-            with open(cls.PARAMS_FILE, "r", encoding="utf-8") as f:
+            with open(cls.PARAMS_FILE, encoding="utf-8") as f:
                 params = json.load(f)
             for k, v in params.items():
                 if hasattr(cls, k):

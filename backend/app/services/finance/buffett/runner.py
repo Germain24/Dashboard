@@ -37,6 +37,16 @@ from .rate_limiter import RateLimiter
 from .scoring import analyze_financials
 
 
+def _refresh_bond_yields() -> None:
+    """Rafraîchit Config.TAUX_OBLIGATAIRES en direct (cache quotidien, repli
+    sur les valeurs courantes/statiques si le réseau échoue). Best-effort."""
+    try:
+        from .bond_yields import get_bond_yields
+        Config.TAUX_OBLIGATAIRES = get_bond_yields(defaults=Config.TAUX_OBLIGATAIRES)
+    except Exception as e:
+        print(f"[runner] taux obligataires non rafraîchis ({e}) — repli statique")
+
+
 def load_tickers(csv_path: str = Config.TICKERS_CSV) -> list[str]:
     """Lit la liste des tickers depuis tickers.csv."""
     if not Path(csv_path).exists():
@@ -293,6 +303,7 @@ def run_buffett_analysis(
     """
     Config.load_params()
     Config.ensure_dirs()
+    _refresh_bond_yields()
     tickers = load_tickers(csv_path)
     if not tickers:
         return {"error": "Aucun ticker dans tickers.csv"}
@@ -508,6 +519,7 @@ def analyze_single_ticker(
     """
     Config.load_params()
     Config.ensure_dirs()
+    _refresh_bond_yields()
     if cache is None:
         cache = CacheManager()
     rate_limiter = RateLimiter(max_requests_per_hour=Config.MAX_REQUESTS_PER_HOUR)

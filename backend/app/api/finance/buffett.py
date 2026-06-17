@@ -249,6 +249,33 @@ def buffett_breakdown(ticker: str):
     }
 
 
+@router.get("/buffett/taux-obligataires")
+def buffett_bond_yields():
+    """Taux obligataires utilisés par le critère d'achat (rafraîchis en direct).
+
+    Confirme que les taux ne sont plus statiques : les pays dans `live` sont
+    récupérés à la journée (cache), les autres utilisent le repli statique.
+    """
+    from app.services.finance.buffett.bond_yields import (
+        STATIC_BOND_YIELDS,
+        TICKER_BY_COUNTRY,
+        get_bond_yields,
+    )
+
+    taux = get_bond_yields(defaults=dict(STATIC_BOND_YIELDS))
+    live = {
+        pays: taux[pays]
+        for pays in TICKER_BY_COUNTRY
+        if pays in taux and taux[pays] != STATIC_BOND_YIELDS.get(pays)
+    }
+    return {
+        "taux": taux,
+        "live": live,                       # pays effectivement rafraîchis aujourd'hui
+        "sources": TICKER_BY_COUNTRY,       # pays -> ticker Yahoo
+        "repli": STATIC_BOND_YIELDS,
+    }
+
+
 @router.get("/backtest")
 def backtest_allocation(periode: str = "2y", session: Session = Depends(get_session)):
     """Backtest buy-and-hold de l'allocation cible du dernier run Buffett terminé.
