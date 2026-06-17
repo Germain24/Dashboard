@@ -67,6 +67,38 @@ def extract_metrics(
     return {k: v for k, v in out.items() if v}
 
 
+def load_snapshot_series(
+    session: Session,
+    *,
+    days: int | None = None,
+    since: dt.date | None = None,
+    until: dt.date | None = None,
+) -> list[tuple[dt.date, dict[str, Any]]]:
+    """Charge et parse les DailySnapshot d'une fenêtre temporelle.
+
+    Renvoie ``[(date, data)]`` en ignorant les lignes au JSON invalide.
+    ``days`` => fenêtre depuis ``aujourd'hui - days`` ; ``since``/``until``
+    posent des bornes explicites (incluses). Les filtres fournis se cumulent.
+
+    Loader unique partagé par tous les services d'automatisation (corrélations,
+    causalités, prévisions, insights, heatmap, bilan, alertes).
+    """
+    if days is not None and since is None:
+        since = dt.date.today() - dt.timedelta(days=days)
+    stmt = select(DailySnapshot)
+    if since is not None:
+        stmt = stmt.where(DailySnapshot.date >= since)
+    if until is not None:
+        stmt = stmt.where(DailySnapshot.date <= until)
+    out: list[tuple[dt.date, dict[str, Any]]] = []
+    for row in session.exec(stmt).all():
+        try:
+            out.append((row.date, json.loads(row.data)))
+        except (ValueError, TypeError):
+            continue
+    return out
+
+
 def correlate_series(
     series: dict[str, dict[dt.date, float]],
     *,
@@ -101,17 +133,7 @@ def compute_correlations(
     session: Session, *, days: int = 60, min_pairs: int = 7, min_abs_r: float = 0.3,
 ) -> list[dict[str, Any]]:
     """Charge les snapshots récents, en extrait les métriques et les corrèle."""
-    cutoff = dt.date.today() - dt.timedelta(days=days)
-    rows = session.exec(
-        select(DailySnapshot).where(DailySnapshot.date >= cutoff)
-    ).all()
-    snapshots: list[tuple[dt.date, dict]] = []
-    for row in rows:
-        try:
-            snapshots.append((row.date, json.loads(row.data)))
-        except (ValueError, TypeError):
-            continue
-    metrics = extract_metrics(snapshots)
+    metrics = extract_metrics(load_snapshot_series(session, days=days))
     correlations = correlate_series(metrics, min_pairs=min_pairs, min_abs_r=min_abs_r)
     for c in correlations:
         c["interpretation"] = _interpret(c["r"])

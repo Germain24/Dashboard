@@ -8,13 +8,11 @@ pur ; compute_heatmap charge la base.
 from __future__ import annotations
 
 import datetime as dt
-import json
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from app.models.snapshot import DailySnapshot
-from app.services.automatisations.correlations import extract_metrics
+from app.services.automatisations.correlations import extract_metrics, load_snapshot_series
 
 
 def build_heatmap(
@@ -37,12 +35,4 @@ def build_heatmap(
 def compute_heatmap(
     session: Session, *, metric: str = "Humeur", days: int = 365,
 ) -> dict[str, Any]:
-    cutoff = dt.date.today() - dt.timedelta(days=days)
-    rows = session.exec(select(DailySnapshot).where(DailySnapshot.date >= cutoff)).all()
-    snaps: list[tuple[dt.date, dict]] = []
-    for row in rows:
-        try:
-            snaps.append((row.date, json.loads(row.data)))
-        except (ValueError, TypeError):
-            continue
-    return build_heatmap(snaps, metric)
+    return build_heatmap(load_snapshot_series(session, days=days), metric)

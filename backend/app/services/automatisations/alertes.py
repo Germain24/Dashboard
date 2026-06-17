@@ -8,15 +8,16 @@ dans les préférences (pas de modèle/migration). evaluate_alerts est pur.
 
 from __future__ import annotations
 
-import datetime as dt
-import json
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from app.models.snapshot import DailySnapshot
 from app.models.scheduler import Notification
-from app.services.automatisations.correlations import METRIC_PATHS, extract_metrics
+from app.services.automatisations.correlations import (
+    METRIC_PATHS,
+    extract_metrics,
+    load_snapshot_series,
+)
 from app.services.settings import get_preferences, set_preferences
 
 _PREF_KEY = "metric_alerts"
@@ -52,15 +53,7 @@ def evaluate_alerts(
 
 def current_metric_values(session: Session, *, days: int = 21) -> dict[str, float]:
     """Dernière valeur connue de chaque métrique sur la fenêtre récente."""
-    cutoff = dt.date.today() - dt.timedelta(days=days)
-    rows = session.exec(select(DailySnapshot).where(DailySnapshot.date >= cutoff)).all()
-    snaps: list[tuple[dt.date, dict]] = []
-    for row in rows:
-        try:
-            snaps.append((row.date, json.loads(row.data)))
-        except (ValueError, TypeError):
-            continue
-    metrics = extract_metrics(snaps)
+    metrics = extract_metrics(load_snapshot_series(session, days=days))
     return {label: series[max(series)] for label, series in metrics.items() if series}
 
 

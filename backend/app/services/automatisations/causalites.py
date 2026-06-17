@@ -11,13 +11,15 @@ Réutilise pearson et extract_metrics (#221).
 from __future__ import annotations
 
 import datetime as dt
-import json
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from app.models.snapshot import DailySnapshot
-from app.services.automatisations.correlations import extract_metrics, pearson
+from app.services.automatisations.correlations import (
+    extract_metrics,
+    load_snapshot_series,
+    pearson,
+)
 
 
 def detect_lagged_links(
@@ -63,13 +65,5 @@ def compute_causalites(
     min_pairs: int = 7, min_abs_r: float = 0.4,
 ) -> list[dict[str, Any]]:
     """Charge les snapshots récents et en déduit des pistes de liens décalés."""
-    cutoff = dt.date.today() - dt.timedelta(days=days)
-    rows = session.exec(select(DailySnapshot).where(DailySnapshot.date >= cutoff)).all()
-    snapshots: list[tuple[dt.date, dict]] = []
-    for row in rows:
-        try:
-            snapshots.append((row.date, json.loads(row.data)))
-        except (ValueError, TypeError):
-            continue
-    series = extract_metrics(snapshots)
+    series = extract_metrics(load_snapshot_series(session, days=days))
     return detect_lagged_links(series, lag=lag, min_pairs=min_pairs, min_abs_r=min_abs_r)

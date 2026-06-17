@@ -8,13 +8,11 @@ Heuristique explicable ; pas de jugement sur les métriques neutres (poids…).
 from __future__ import annotations
 
 import datetime as dt
-import json
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from app.models.snapshot import DailySnapshot
-from app.services.automatisations.correlations import extract_metrics
+from app.services.automatisations.correlations import extract_metrics, load_snapshot_series
 
 # label -> (agrégation "mean"|"sum", direction favorable "up"|"down"|None)
 WEEK_METRICS: dict[str, tuple[str, str | None]] = {
@@ -90,16 +88,7 @@ def build_weekly_insights(
     this_week = {week_start + dt.timedelta(days=i) for i in range(7)}
     last_week = {prev_start + dt.timedelta(days=i) for i in range(7)}
 
-    rows = session.exec(
-        select(DailySnapshot).where(DailySnapshot.date >= prev_start)
-    ).all()
-    snapshots: list[tuple[dt.date, dict]] = []
-    for row in rows:
-        try:
-            snapshots.append((row.date, json.loads(row.data)))
-        except (ValueError, TypeError):
-            continue
-    series = extract_metrics(snapshots)
+    series = extract_metrics(load_snapshot_series(session, since=prev_start))
 
     current = aggregate_period(series, this_week)
     previous = aggregate_period(series, last_week)

@@ -10,13 +10,11 @@ linear_regression / forecast_series sont purs ; compute_forecasts charge la base
 from __future__ import annotations
 
 import datetime as dt
-import json
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from app.models.snapshot import DailySnapshot
-from app.services.automatisations.correlations import extract_metrics
+from app.services.automatisations.correlations import extract_metrics, load_snapshot_series
 
 
 def linear_regression(xs: list[float], ys: list[float]) -> tuple[float, float] | None:
@@ -65,15 +63,7 @@ def compute_forecasts(
     session: Session, *, days: int = 90, horizon_days: int = 30, min_points: int = 5,
 ) -> list[dict[str, Any]]:
     """Prévisions par métrique (depuis les snapshots récents)."""
-    cutoff = dt.date.today() - dt.timedelta(days=days)
-    rows = session.exec(select(DailySnapshot).where(DailySnapshot.date >= cutoff)).all()
-    snaps: list[tuple[dt.date, dict]] = []
-    for row in rows:
-        try:
-            snaps.append((row.date, json.loads(row.data)))
-        except (ValueError, TypeError):
-            continue
-    metrics = extract_metrics(snaps)
+    metrics = extract_metrics(load_snapshot_series(session, days=days))
     out: list[dict[str, Any]] = []
     for label, series in metrics.items():
         if len(series) < min_points:

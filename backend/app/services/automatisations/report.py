@@ -10,13 +10,11 @@ from __future__ import annotations
 
 import calendar
 import datetime as dt
-import json
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from app.models.snapshot import DailySnapshot
-from app.services.automatisations.correlations import extract_metrics
+from app.services.automatisations.correlations import extract_metrics, load_snapshot_series
 
 _MOIS_FR = ["", "janvier", "février", "mars", "avril", "mai", "juin",
             "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
@@ -62,15 +60,5 @@ def compute_monthly_report(session: Session, *, year: int, month: int) -> dict[s
     last_day = calendar.monthrange(year, month)[1]
     start = dt.date(year, month, 1)
     end = dt.date(year, month, last_day)
-    rows = session.exec(
-        select(DailySnapshot)
-        .where(DailySnapshot.date >= start)
-        .where(DailySnapshot.date <= end)
-    ).all()
-    snaps: list[tuple[dt.date, dict]] = []
-    for row in rows:
-        try:
-            snaps.append((row.date, json.loads(row.data)))
-        except (ValueError, TypeError):
-            continue
+    snaps = load_snapshot_series(session, since=start, until=end)
     return build_monthly_report(snaps, year=year, month=month)
