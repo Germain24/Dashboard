@@ -257,21 +257,21 @@ def buffett_bond_yields():
     récupérés à la journée (cache), les autres utilisent le repli statique.
     """
     from app.services.finance.buffett.bond_yields import (
+        SERIES_BY_COUNTRY,
         STATIC_BOND_YIELDS,
-        TICKER_BY_COUNTRY,
         get_bond_yields,
     )
 
     taux = get_bond_yields(defaults=dict(STATIC_BOND_YIELDS))
     live = {
         pays: taux[pays]
-        for pays in TICKER_BY_COUNTRY
+        for pays in SERIES_BY_COUNTRY
         if pays in taux and taux[pays] != STATIC_BOND_YIELDS.get(pays)
     }
     return {
         "taux": taux,
-        "live": live,                       # pays effectivement rafraîchis aujourd'hui
-        "sources": TICKER_BY_COUNTRY,       # pays -> ticker Yahoo
+        "live": live,                       # pays (G7) effectivement rafraîchis aujourd'hui
+        "sources": SERIES_BY_COUNTRY,       # pays -> série FRED
         "repli": STATIC_BOND_YIELDS,
     }
 
