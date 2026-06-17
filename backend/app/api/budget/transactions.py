@@ -56,7 +56,9 @@ async def import_releve(file: UploadFile = File(...), compte: str = "principal",
                         session: Session = Depends(get_session)):
     """Importe un relevé : PDF Mastercard Desjardins, CSV ou OFX/QFX (#256)."""
     raw = await file.read()
-    if raw[:5] == b"%PDF-":
-        from app.services.budget.desjardins_pdf import import_desjardins_pdf
-        return import_desjardins_pdf(session, raw, compte)
+    from app.services.budget.desjardins_pdf import import_desjardins_pdf, looks_like_pdf
+    if looks_like_pdf(raw):
+        # PDF (carte ou compte chèque), éventuellement emballé : compte auto-détecté
+        # sauf si l'utilisateur a fixé un compte explicite (≠ défaut "principal").
+        return import_desjardins_pdf(session, raw, None if compte == "principal" else compte)
     return import_svc.import_transactions(session, raw.decode("utf-8", errors="replace"), compte)

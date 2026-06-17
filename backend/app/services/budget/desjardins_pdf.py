@@ -1,4 +1,12 @@
-"""Import des relevés Mastercard Desjardins en PDF (#256).
+"""Import des relevés Desjardins en PDF — carte Mastercard ET compte chèque (#256).
+
+Deux formats détectés automatiquement, après déballage éventuel d'une enveloppe
+Java sérialisée (`_unwrap_pdf`) :
+- Carte Mastercard : pypdf concatène les transactions, on les délimite sur leur
+  préfixe de date (cf. `parse_desjardins_mastercard`).
+- Compte chèque (EOP) : tableau extrait en mode layout, montant signé déduit de
+  la variation de solde (cf. `parse_desjardins_eop`) ; revenus (Paie…) inclus,
+  transferts internes et paiements de la carte exclus.
 
 pypdf concatène toutes les transactions sur une même ligne, sans espace dans la
 date (« 24122412PATISSERIE… QC 2,00 % 15,40 »). On délimite donc chaque
@@ -76,25 +84,125 @@ def parse_desjardins_mastercard(text: str) -> list[tuple[dt.date, float, str]]:
     return out
 
 
-def extract_pdf_text(data: bytes) -> str:
-    """Texte concaténé de toutes les pages d'un PDF (via pypdf)."""
+# ─── Relevé de compte chèque (EOP) ───────────────────────────────────────────
+# Format différent : tableau Date | Code | Description | Frais | Retrait | Dépôt |
+# Solde. pypdf en mode "layout" aligne les colonnes ; le DERNIER nombre de chaque
+# ligne est le solde courant → le montant signé = solde − solde_précédent (dépôt
+# positif, retrait négatif), ce qui se réconcilie tout seul. Les virements internes
+# (épargne/placement) sont exclus (ni revenu ni dépense).
+
+_EOP_MONTHS = {
+    "JAN": 1, "FEV": 2, "FV": 2, "MAR": 3, "AVR": 4, "MAI": 5, "JUN": 6, "JUIN": 6,
+    "JUL": 7, "JUIL": 7, "AOU": 8, "AO": 8, "SEP": 9, "OCT": 10, "NOV": 11, "DEC": 12, "DC": 12,
+}
+_EOP_AMT = re.compile(r"\d[\d \xa0]*\.\d{2}")
+_EOP_LINE = re.compile(r"^\s*(\d{1,2})\s+(\S{3})([A-Z]{2,4})\s+(.+)$")
+# À exclure du suivi : transferts internes chèque ↔ épargne/placement, et
+# paiements de la carte Mastercard (déjà représentés par les achats détaillés du
+# relevé carte → éviter le double comptage).
+_EOP_SKIP = re.compile(
+    r"Virement.*Acc.*\bET\b|Virement automatique au compte|Remises?\s*Mastercard",
+    re.IGNORECASE,
+)
+
+
+def _eop_num(s: str) -> float:
+    return float(s.replace(" ", "").replace("\xa0", ""))
+
+
+def parse_desjardins_eop(text: str) -> list[tuple[dt.date, float, str]]:
+    """Extrait les opérations d'un relevé de compte chèque Desjardins (EOP).
+
+    `text` doit être extrait en mode layout. Renvoie `[(date, montant, libellé)]`
+    avec montant signé (dépôt > 0, retrait < 0) déduit de la variation de solde.
+    Les transferts internes (vers épargne/placement) sont exclus.
+    """
+    text = re.split(r"COMPTE D'EPARGNE", text)[0]  # ignore la section épargne
+    ym = re.search(r"(20\d{2})", text)
+    msr = re.search(r"Solde report\S*\s+([\d \xa0]+\.\d{2})", text)
+    if not ym or not msr:
+        return []
+    year = int(ym.group(1))
+    prev = _eop_num(msr.group(1))
+
+    out: list[tuple[dt.date, float, str]] = []
+    for line in text.splitlines():
+        m = _EOP_LINE.match(line)
+        if not m:
+            continue
+        amts = _EOP_AMT.findall(m.group(4))
+        mon = _EOP_MONTHS.get(re.sub(r"[^A-Z]", "", m.group(2).upper()))
+        if not amts or not mon:
+            continue
+        solde = _eop_num(amts[-1])
+        montant = round(solde - prev, 2)
+        prev = solde  # le solde évolue même pour les lignes exclues
+        rest = m.group(4)
+        marchand = re.sub(r"\s+", " ", rest[: rest.find(amts[0])]).strip()
+        if not marchand or _EOP_SKIP.search(marchand):
+            continue
+        try:
+            d = dt.date(year, mon, int(m.group(1)))
+        except ValueError:
+            continue
+        out.append((d, montant, marchand))
+    return out
+
+
+def _unwrap_pdf(data: bytes) -> bytes | None:
+    """Renvoie les octets PDF de `data`.
+
+    Certains relevés sont stockés dans une enveloppe Java sérialisée (en-tête
+    `\\xac\\xed`) contenant le PDF comme byte[]. On extrait alors `%PDF-…%%EOF`.
+    Renvoie None si aucun PDF n'est trouvé.
+    """
+    if data[:5] == b"%PDF-":
+        return data
+    start = data.find(b"%PDF-")
+    end = data.rfind(b"%%EOF")
+    if start != -1 and end != -1:
+        return data[start: end + 5]
+    return None
+
+
+def looks_like_pdf(data: bytes) -> bool:
+    """True si `data` est un PDF (éventuellement emballé dans une enveloppe)."""
+    return _unwrap_pdf(data) is not None
+
+
+def extract_pdf_text(data: bytes, *, layout: bool = False) -> str:
+    """Texte concaténé de toutes les pages d'un PDF (via pypdf, mode layout opt.)."""
     import io
 
     from pypdf import PdfReader
 
     reader = PdfReader(io.BytesIO(data))
-    return "\n".join(page.extract_text() or "" for page in reader.pages)
+    mode = "layout" if layout else "plain"
+    return "\n".join(page.extract_text(extraction_mode=mode) or "" for page in reader.pages)
 
 
 def import_desjardins_pdf(
-    session: Session, data: bytes, compte: str = "desjardins-mc",
+    session: Session, data: bytes, compte: str | None = None,
 ) -> dict[str, Any]:
-    """Importe un relevé Mastercard Desjardins (PDF) dans le budget.
+    """Importe un relevé Desjardins (PDF) : carte Mastercard OU compte chèque (EOP).
 
-    Idempotent best-effort : une transaction identique (date, montant, marchand)
-    déjà présente sur ce compte est ignorée (réimport sans doublon).
+    Détecte le format, déballe l'enveloppe Java si besoin, et alimente le budget
+    (catégorisation #115). Idempotent : une transaction identique (date, montant,
+    marchand) déjà présente sur le compte est ignorée (réimport sans doublon).
     """
-    parsed = parse_desjardins_mastercard(extract_pdf_text(data))
+    pdf = _unwrap_pdf(data)
+    if pdf is None:
+        return {"imported": 0, "skipped": 0, "categorised": 0, "parsed": 0, "format": "inconnu"}
+    plain = extract_pdf_text(pdf)
+    # "TRANSACTIONS COURANTES" est propre au relevé carte ; le mot "MASTERCARD"
+    # apparaît aussi sur le compte chèque (lignes de paiement de la carte).
+    if "TRANSACTIONS COURANTES" in plain.upper():
+        parsed = parse_desjardins_mastercard(plain)
+        fmt = "desjardins-mc"
+    else:
+        parsed = parse_desjardins_eop(extract_pdf_text(pdf, layout=True))
+        fmt = "desjardins-eop"
+    compte = compte or fmt
     existing = {
         (t.date, round(t.montant, 2), t.marchand)
         for t in session.exec(
@@ -114,5 +222,5 @@ def import_desjardins_pdf(
             categorised += 1
     return {
         "imported": imported, "skipped": skipped, "categorised": categorised,
-        "parsed": len(parsed), "format": "desjardins-pdf",
+        "parsed": len(parsed), "format": fmt, "compte": compte,
     }
