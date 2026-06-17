@@ -109,8 +109,68 @@ def _looks_like_ofx(content: str) -> bool:
     return head.startswith("OFXHEADER") or "<OFX>" in head
 
 
+# ─── Export CSV AccèsD Desjardins (compte débit) ─────────────────────────────
+# 14 colonnes sans en-tête : 0 caisse, 1 folio, 2 type, 3 date (AAAA/MM/JJ),
+# 4 séquence, 5 description, 7 retrait (dépense), 8 dépôt (revenu), 13 solde.
+# Transferts internes (entre comptes) et paiements de la carte exclus.
+_ACCESD_SKIP = re.compile(
+    r"Virement\s*-\s*Acc\S*\s*Internet\s*/\s*(a|à|de)\s*(EOP|ET\s*1)"
+    r"|Virement automatique au compte"
+    r"|Remises?\s*Mastercard",
+    re.IGNORECASE,
+)
+_ACCESD_DATE = re.compile(r"\d{4}/\d{2}/\d{2}$")
+
+
+def _looks_like_accesd(content: str) -> bool:
+    for row in csv.reader(io.StringIO(content)):
+        if not any(c.strip() for c in row):
+            continue
+        return len(row) >= 14 and bool(_ACCESD_DATE.match(row[3].strip()))
+    return False
+
+
+def parse_desjardins_accesd(content: str) -> list[tuple[dt.date, float, str]]:
+    """Parse un export CSV AccèsD (compte débit). Dépôt → montant > 0, retrait →
+    montant < 0. Exclut transferts internes et paiements de la carte."""
+    out: list[tuple[dt.date, float, str]] = []
+    for row in csv.reader(io.StringIO(content)):
+        if len(row) < 14:
+            continue
+        try:
+            date = dt.datetime.strptime(row[3].strip(), "%Y/%m/%d").date()
+        except ValueError:
+            continue
+        desc = re.sub(r"\s+", " ", row[5]).strip()
+        retrait, depot = row[7].strip(), row[8].strip()
+        if depot:
+            montant = float(depot.replace(",", ""))
+        elif retrait:
+            montant = -float(retrait.replace(",", ""))
+        else:
+            continue
+        if not desc or _ACCESD_SKIP.search(desc):
+            continue
+        out.append((date, round(montant, 2), desc))
+    return out
+
+
+def import_accesd(session: Session, content: str, compte: str = "desjardins-debit") -> dict:
+    """Importe un export CSV AccèsD dans le budget (catégorisation #115)."""
+    imported, categorised = 0, 0
+    for date, montant, marchand in parse_desjardins_accesd(content):
+        t = create_transaction(session, date=date, montant=montant, marchand=marchand, compte=compte)
+        imported += 1
+        if t.category_id is not None:
+            categorised += 1
+    return {"imported": imported, "errors": 0, "categorised": categorised, "format": "desjardins-debit"}
+
+
 def import_transactions(session: Session, content: str, compte: str = "principal") -> dict:
-    """Point d'entrée unique : détecte OFX/QFX, sinon délègue au parseur CSV."""
+    """Point d'entrée unique : détecte OFX/QFX et CSV AccèsD, sinon CSV générique."""
     if _looks_like_ofx(content):
         return import_ofx(session, content, compte)
+    if _looks_like_accesd(content):
+        compte = "desjardins-debit" if compte == "principal" else compte
+        return import_accesd(session, content, compte)
     return import_csv(session, content, compte)

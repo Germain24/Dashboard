@@ -5,12 +5,23 @@ from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.models.budget import BudgetCategory, BudgetRule, BudgetTransaction
 from app.services.budget.imports import (
+    _looks_like_accesd,
     _parse_desjardins,
     _parse_generic,
     import_csv,
     import_ofx,
     import_transactions,
+    parse_desjardins_accesd,
     parse_ofx,
+)
+
+# Export CSV AccèsD Desjardins (14 colonnes, sans en-tête) : col 7 = retrait
+# (dépense), col 8 = dépôt (revenu), col 13 = solde.
+_ACCESD = (
+    '"Caisse","165906","EOP","2025/10/02",00001,"Achat /ALFID SERVICES","",655.00,"","","","","",1063.32\n'
+    '"Caisse","165906","EOP","2025/10/09",00003,"Paie /Le Petit Dep","","",47.43,"","","","",1072.12\n'
+    '"Caisse","165906","EOP","2025/10/05",00005,"Virement - AccesD Internet /a ET 1","",100.00,"","","","","",900.00\n'
+    '"Caisse","165906","EOP","2025/10/06",00006,"Paiement facture - AccesD Internet /Remises Mastercard Desjardins","",135.86,"","","","","",764.14\n'
 )
 
 
@@ -114,6 +125,27 @@ def test_import_ofx_auto_categorises_via_rules(session):
     assert all(t.compte == "desjardins" for t in txs)
     metro = next(t for t in txs if "METRO" in t.marchand)
     assert metro.category_id == cat.id
+
+
+def test_parse_accesd_signs_and_exclusions():
+    out = parse_desjardins_accesd(_ACCESD)
+    assert (dt.date(2025, 10, 2), -655.00, "Achat /ALFID SERVICES") in out      # retrait → dépense
+    assert (dt.date(2025, 10, 9), 47.43, "Paie /Le Petit Dep") in out           # dépôt → revenu
+    libelles = [d[2] for d in out]
+    assert not any("ET 1" in m for m in libelles)            # transfert interne exclu
+    assert not any("Remises Mastercard" in m for m in libelles)  # paiement carte exclu
+    assert len(out) == 2
+
+
+def test_looks_like_accesd_detects_format():
+    assert _looks_like_accesd(_ACCESD) is True
+    assert _looks_like_accesd("date,marchand,montant\n2026-01-01,X,-1\n") is False
+
+
+def test_import_transactions_dispatches_accesd(session):
+    res = import_transactions(session, _ACCESD)
+    assert res["format"] == "desjardins-debit"
+    assert res["imported"] == 2
 
 
 def test_import_transactions_dispatches_ofx_vs_csv(session):
