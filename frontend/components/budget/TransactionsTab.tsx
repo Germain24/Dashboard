@@ -12,6 +12,8 @@ const formatCAD = (v: number) =>
 
 export default function TransactionsTab() {
   const [msg, setMsg] = useState<string | null>(null)
+  const [tagFilter, setTagFilter] = useState('')
+  const [catFilter, setCatFilter] = useState('')   // '' tous · 'none' sans catégorie · id
   const fileRef = useRef<HTMLInputElement>(null)
 
   const txsQ = useBudgetTransactions()
@@ -19,6 +21,15 @@ export default function TransactionsTab() {
   const txs: any[] = Array.isArray(txsQ.data) ? txsQ.data : []
   const categories: any[] = Array.isArray(categoriesQ.data) ? categoriesQ.data : []
   const loading = txsQ.isLoading || categoriesQ.isLoading
+
+  const allTags = Array.from(new Set(txs.flatMap((t: any) => t.tags ?? []))).sort()
+  const filtered = txs.filter((t: any) => {
+    if (tagFilter && !(t.tags ?? []).includes(tagFilter)) return false
+    if (catFilter === 'none' && t.category_id != null) return false
+    if (catFilter && catFilter !== 'none' && String(t.category_id) !== catFilter) return false
+    return true
+  })
+  const filteredDep = filtered.filter((t: any) => t.montant < 0).reduce((s: number, t: any) => s + -t.montant, 0)
   const tagsMutation = useSetTransactionTags()
   const importMutation = useImportCsv()
   const importing = importMutation.isPending
@@ -92,20 +103,46 @@ export default function TransactionsTab() {
 
       {/* Liste des transactions */}
       <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)]">
-        <div className="border-b border-[var(--border)] px-4 py-3">
-          <h2 className="text-sm font-semibold">Transactions</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
+          <h2 className="text-sm font-semibold">
+            Transactions
+            {(tagFilter || catFilter) && (
+              <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
+                {filtered.length} · {formatCAD(filteredDep)} de dépenses
+              </span>
+            )}
+          </h2>
+          <div className="flex items-center gap-2">
+            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="Filtrer par catégorie"
+              className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs">
+              <option value="">Toutes catégories</option>
+              <option value="none">Sans catégorie</option>
+              {categories.map((c: any) => <option key={c.id} value={String(c.id)}>{c.nom}</option>)}
+            </select>
+            <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} aria-label="Filtrer par tag"
+              className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs">
+              <option value="">Tous les tags</option>
+              {allTags.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            {(tagFilter || catFilter) && (
+              <button type="button" onClick={() => { setTagFilter(''); setCatFilter('') }}
+                className="text-xs text-[var(--muted-foreground)] underline hover:text-[var(--foreground)]">Réinitialiser</button>
+            )}
+          </div>
         </div>
         {loading ? (
           <div className="space-y-2 p-4">
             {[0, 1, 2, 3].map((i) => <div key={i} className="h-10 rounded skeleton-shimmer" />)}
           </div>
-        ) : txs.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <p className="p-6 text-center text-sm text-[var(--muted-foreground)]">
-            Aucune transaction. Importe un relevé CSV ou OFX pour commencer.
+            {txs.length === 0
+              ? 'Aucune transaction. Importe un relevé CSV ou OFX pour commencer.'
+              : 'Aucune transaction pour ce filtre.'}
           </p>
         ) : (
           <div className="divide-y divide-[var(--border)]">
-            {txs.map((tx: any) => {
+            {filtered.map((tx: any) => {
               const revenu = tx.montant > 0
               return (
                 <div key={tx.id} className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[var(--muted)]">

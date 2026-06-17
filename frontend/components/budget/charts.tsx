@@ -58,10 +58,22 @@ export function Donut({ data }: { data: CategorySpend[] }) {
 
 /** Part (%) de chaque catégorie de dépenses au fil du temps (fenêtre glissante
  *  de 30 j). Colonnes empilées à 100 % : chaque colonne = un point dans le temps. */
+const SHARE_PALETTE = [
+  '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4',
+  '#ec4899', '#84cc16', '#14b8a6', '#f97316', '#a855f7', '#eab308',
+]
+
 export function CategoryShareChart({ data }: { data: CategoryShare }) {
   const { categories, points } = data
   if (!categories.length || !points.length) {
     return <p className="text-sm text-[var(--muted-foreground)]">Pas encore assez de dépenses pour la tendance.</p>
+  }
+  // Les catégories partagent toutes la même couleur en base : on attribue une
+  // couleur distincte par index (gris réservé au « Sans catégorie »).
+  const colorOf = new Map<string, string>()
+  let pi = 0
+  for (const c of categories) {
+    colorOf.set(c.nom, c.couleur === '#9aa3b0' ? '#9aa3b0' : SHARE_PALETTE[pi++ % SHARE_PALETTE.length])
   }
   const labelEvery = Math.ceil(points.length / 6)  // ~6 repères temporels
   return (
@@ -76,7 +88,7 @@ export function CategoryShareChart({ data }: { data: CategoryShare }) {
               {categories.map((c) => {
                 const pct = p.shares[c.nom] ?? 0
                 return pct > 0 ? (
-                  <div key={c.nom} style={{ height: `${pct}%`, background: c.couleur }}
+                  <div key={c.nom} style={{ height: `${pct}%`, background: colorOf.get(c.nom) }}
                     title={`${monthLabel(p.date)} · ${c.nom} : ${pct}%`} />
                 ) : null
               })}
@@ -94,7 +106,7 @@ export function CategoryShareChart({ data }: { data: CategoryShare }) {
       <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
         {categories.map((c) => (
           <li key={c.nom} className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.couleur }} />
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: colorOf.get(c.nom) }} />
             <span className="text-[var(--muted-foreground)]">{c.nom}</span>
           </li>
         ))}
