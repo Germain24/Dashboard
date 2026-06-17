@@ -10,8 +10,10 @@ import {
   fetchCategories,
   fetchDisposable,
   fetchEnvelopes,
+  fetchCategoryShare,
   fetchRecurring,
   fetchRecurringProjection,
+  fetchRollingSummary,
   fetchRules,
   fetchRuleSuggestions,
   learnRules,
@@ -37,6 +39,8 @@ export const budgetKeys = {
   cashflow: (from: string, to: string) => [...budgetKeys.all, "cashflow", from, to] as const,
   byCategory: (month: string) => [...budgetKeys.all, "by-category", month] as const,
   trend: (months: number) => [...budgetKeys.all, "trend", months] as const,
+  rollingSummary: (days: number) => [...budgetKeys.all, "rolling-summary", days] as const,
+  categoryShare: (days: number, window: number) => [...budgetKeys.all, "category-share", days, window] as const,
   recurring: () => [...budgetKeys.all, "recurring"] as const,
   recurringProjection: () => [...budgetKeys.all, "recurring-projection"] as const,
   savingsGoal: () => [...budgetKeys.all, "savings-goal"] as const,
@@ -70,6 +74,12 @@ export function useByCategory(month: string) {
 }
 export function useTrend(months = 6) {
   return useQuery({ queryKey: budgetKeys.trend(months), queryFn: () => fetchTrend(months) });
+}
+export function useRollingSummary(days = 30) {
+  return useQuery({ queryKey: budgetKeys.rollingSummary(days), queryFn: () => fetchRollingSummary(days) });
+}
+export function useCategoryShare(days = 180, window = 30) {
+  return useQuery({ queryKey: budgetKeys.categoryShare(days, window), queryFn: () => fetchCategoryShare(days, window) });
 }
 export function useRecurring() {
   return useQuery({ queryKey: budgetKeys.recurring(), queryFn: fetchRecurring });

@@ -88,6 +88,62 @@ def detect_recurring(
     return out
 
 
+def rolling_totals(txs, *, end: dt.date, days: int = 30) -> dict[str, Any]:
+    """Revenus / dépenses / solde sur la fenêtre glissante des `days` derniers
+    jours (incluse jusqu'à `end`). Pur. Dépenses en valeur absolue."""
+    start = end - dt.timedelta(days=days - 1)
+    rev = dep = 0.0
+    for t in txs:
+        if not (start <= t.date <= end):
+            continue
+        if t.montant > 0:
+            rev += t.montant
+        else:
+            dep += -t.montant
+    return {
+        "revenus": round(rev, 2), "depenses": round(dep, 2), "solde": round(rev - dep, 2),
+        "debut": start.isoformat(), "fin": end.isoformat(), "jours": days,
+    }
+
+
+def category_share_series(
+    txs, cat_meta: dict[Optional[int], dict], *,
+    end: dt.date, days: int = 180, step_days: int = 14, window: int = 30,
+) -> dict[str, Any]:
+    """Part (%) de chaque catégorie de dépenses au fil du temps, en fenêtre
+    glissante de `window` jours, échantillonnée tous les `step_days` sur `days`.
+
+    Pur. Renvoie `{categories: [{category_id, nom, couleur}], points: [{date,
+    shares: {nom: pct}}]}`, catégories triées par dépense totale décroissante.
+    """
+    n = days // step_days + 1
+    dates = sorted(end - dt.timedelta(days=step_days * i) for i in range(n))
+
+    def _meta(cid):
+        m = cat_meta.get(cid)
+        return (m["nom"], m["couleur"]) if m else ("Sans catégorie", UNCATEGORISED_COLOR)
+
+    expenses = [(t.date, _meta(t.category_id), -t.montant) for t in txs if t.montant < 0]
+    points: list[dict[str, Any]] = []
+    totals: dict[str, float] = {}
+    colors: dict[str, str] = {}
+    for d in dates:
+        w_start = d - dt.timedelta(days=window - 1)
+        by: dict[str, float] = {}
+        for td, (nom, couleur), amt in expenses:
+            if w_start <= td <= d:
+                by[nom] = by.get(nom, 0.0) + amt
+                colors[nom] = couleur
+                totals[nom] = totals.get(nom, 0.0) + amt
+        tot = sum(by.values())
+        shares = {nom: round(amt / tot * 100, 1) for nom, amt in by.items()} if tot > 0 else {}
+        points.append({"date": d.isoformat(), "shares": shares})
+
+    ordered = sorted(totals, key=lambda nom: -totals[nom])
+    categories = [{"nom": nom, "couleur": colors[nom]} for nom in ordered]
+    return {"categories": categories, "points": points}
+
+
 # ── Wrappers DB ───────────────────────────────────────────────────────
 
 def spending_by_category(session, mois: str) -> list[dict[str, Any]]:
@@ -100,6 +156,28 @@ def spending_by_category(session, mois: str) -> list[dict[str, Any]]:
     txs = tx_svc.get_transactions(session, from_date=start, to_date=end)
     cats = {c.id: {"nom": c.nom, "couleur": c.couleur} for c in cat_svc.get_categories(session)}
     return aggregate_expenses_by_category(txs, cats)
+
+
+def rolling_summary(session, *, days: int = 30, today: Optional[dt.date] = None) -> dict[str, Any]:
+    """Revenus/dépenses/solde sur les `days` derniers jours glissants (#window)."""
+    from app.services.budget import transactions as tx_svc
+    end = today or dt.date.today()
+    txs = tx_svc.get_transactions(session, from_date=end - dt.timedelta(days=days - 1), to_date=end)
+    return rolling_totals(txs, end=end, days=days)
+
+
+def category_share_timeseries(
+    session, *, days: int = 180, window: int = 30, step_days: int = 14,
+    today: Optional[dt.date] = None,
+) -> dict[str, Any]:
+    """Part (%) des catégories de dépenses au fil du temps (fenêtre glissante)."""
+    from app.services.budget import categories as cat_svc
+    from app.services.budget import transactions as tx_svc
+    end = today or dt.date.today()
+    start = end - dt.timedelta(days=days + window)
+    txs = tx_svc.get_transactions(session, from_date=start, to_date=end)
+    cats = {c.id: {"nom": c.nom, "couleur": c.couleur} for c in cat_svc.get_categories(session)}
+    return category_share_series(txs, cats, end=end, days=days, window=window, step_days=step_days)
 
 
 def build_annual_csv(txs, cat_names: dict[Optional[int], str]) -> str:

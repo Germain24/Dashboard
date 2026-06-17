@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
 import {
-  useBudgetCategories, useBudgetComparison, useBudgetSummary, useByCategory, useEnvelopes,
+  useBudgetCategories, useByCategory, useEnvelopes,
   useRecurring, useRecurringProjection, useSavingsGoal, useSetSavingsGoal, useTrend,
+  useRollingSummary, useCategoryShare,
 } from '@/lib/queries/budget'
-import type { Comparison } from '@/lib/budget'
-import { Donut, TrendChart } from './charts'
+import { CategoryShareChart, TrendChart } from './charts'
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
@@ -19,8 +19,8 @@ export default function MoisTab() {
   const [goalInput, setGoalInput] = useState('')
   const month = new Date().toISOString().slice(0, 7)
 
-  const summaryQ = useBudgetSummary(month)
-  const comparisonQ = useBudgetComparison(month)
+  const rollingQ = useRollingSummary(30)
+  const catShareQ = useCategoryShare(180, 30)
   const envelopesQ = useEnvelopes(month)
   const categoriesQ = useBudgetCategories()
   const byCatQ = useByCategory(month)
@@ -30,7 +30,8 @@ export default function MoisTab() {
   const savingsQ = useSavingsGoal()
   const setGoalMutation = useSetSavingsGoal()
 
-  const summary = summaryQ.data && !summaryQ.data.detail ? summaryQ.data : null
+  const rolling = rollingQ.data ?? { revenus: 0, depenses: 0, solde: 0, debut: '', fin: '', jours: 30 }
+  const catShare = catShareQ.data ?? { categories: [], points: [] }
   const envelopes: any[] = Array.isArray(envelopesQ.data) ? envelopesQ.data : []
   const categories: any[] = Array.isArray(categoriesQ.data) ? categoriesQ.data : []
   const byCat = byCatQ.data ?? []
@@ -38,7 +39,7 @@ export default function MoisTab() {
   const recurring = recurringQ.data ?? []
   const savings = savingsQ.data ?? null
   const loading =
-    summaryQ.isLoading || envelopesQ.isLoading || categoriesQ.isLoading ||
+    rollingQ.isLoading || catShareQ.isLoading || envelopesQ.isLoading || categoriesQ.isLoading ||
     byCatQ.isLoading || trendQ.isLoading || recurringQ.isLoading || savingsQ.isLoading
 
   const saveGoal = () => {
@@ -62,15 +63,12 @@ export default function MoisTab() {
     )
   }
 
-  const s = summary ?? { revenus: 0, depenses: 0, solde: 0 }
-  const depensesPct = s.revenus > 0 ? Math.round((Math.abs(s.depenses) / s.revenus) * 100) : 0
-
-  // Reste à vivre (#117) : ce qu'il reste après dépenses, et le budget/jour restant.
-  const now = new Date()
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-  const daysLeft = Math.max(1, daysInMonth - now.getDate() + 1)
-  const reste = s.solde
-  const perDay = reste > 0 ? reste / daysLeft : 0
+  // Synthèse sur les 30 derniers jours glissants (plutôt que le mois calendaire).
+  const depensesPct = rolling.revenus > 0 ? Math.round((rolling.depenses / rolling.revenus) * 100) : 0
+  const reste = rolling.solde
+  const fmtJour = (iso: string) =>
+    iso ? new Date(iso + 'T12:00:00').toLocaleDateString('fr-CA', { day: '2-digit', month: 'short' }) : ''
+  const fenetre = rolling.debut ? `du ${fmtJour(rolling.debut)} au ${fmtJour(rolling.fin)}` : '30 derniers jours'
 
   // Lien Cuisine (#120) : dépenses « courses » du mois (catégories alimentaires).
   const GROCERY = ['épicerie', 'epicerie', 'courses', 'alimentation', 'cuisine', 'supermarch', 'grocery']
@@ -112,20 +110,14 @@ export default function MoisTab() {
       {/* Reste à vivre (#117) */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
         <div>
-          <p className="mb-1 text-xs font-medium text-[var(--muted-foreground)]">Reste à vivre</p>
+          <p className="mb-1 text-xs font-medium text-[var(--muted-foreground)]">Solde — 30 derniers jours</p>
           <p className={`font-display text-3xl tabular-nums ${reste >= 0 ? 'text-[var(--foreground)]' : 'text-[var(--destructive)]'}`}>
             {formatCAD(reste)}
           </p>
         </div>
         <div className="text-right text-sm text-[var(--muted-foreground)]">
-          {reste > 0 ? (
-            <>
-              <p className="font-mono text-[var(--foreground)]">{formatCAD(perDay)}<span className="text-xs"> / jour</span></p>
-              <p className="text-xs">sur {daysLeft} jour{daysLeft > 1 ? 's' : ''} restant{daysLeft > 1 ? 's' : ''}</p>
-            </>
-          ) : (
-            <p className="text-xs">Budget du mois dépassé</p>
-          )}
+          <p className="text-xs">{fenetre}</p>
+          <p className="text-xs">{reste >= 0 ? 'tu épargnes sur la période' : 'dépenses supérieures aux revenus'}</p>
         </div>
       </div>
 
@@ -165,33 +157,30 @@ export default function MoisTab() {
         </div>
       )}
 
-      {/* Stats cards */}
+      {/* Stats cards — 30 derniers jours glissants */}
       <div className="grid grid-cols-3 gap-4 stagger">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
-          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Revenus</p>
-          <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--success)]">{formatCAD(s.revenus)}</p>
-          <Delta cmp={comparisonQ.data?.revenus} favorableWhen="up" />
+          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Revenus <span className="opacity-60">· 30 j</span></p>
+          <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--success)]">{formatCAD(rolling.revenus)}</p>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
-          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Dépenses</p>
-          <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--destructive)]">{formatCAD(Math.abs(s.depenses))}</p>
-          <Delta cmp={comparisonQ.data?.depenses} favorableWhen="down" />
-          {s.revenus > 0 && <p className="text-xs text-[var(--muted-foreground)] mt-1">{depensesPct}% des revenus</p>}
+          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Dépenses <span className="opacity-60">· 30 j</span></p>
+          <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--destructive)]">{formatCAD(rolling.depenses)}</p>
+          {rolling.revenus > 0 && <p className="text-xs text-[var(--muted-foreground)] mt-1">{depensesPct}% des revenus</p>}
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
-          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Solde</p>
-          <p className={`font-display text-[1.75rem] leading-tight tabular-nums ${s.solde >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>
-            {formatCAD(s.solde)}
+          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Solde <span className="opacity-60">· 30 j</span></p>
+          <p className={`font-display text-[1.75rem] leading-tight tabular-nums ${rolling.solde >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>
+            {formatCAD(rolling.solde)}
           </p>
-          <Delta cmp={comparisonQ.data?.solde} favorableWhen="up" />
         </div>
       </div>
 
-      {/* Dépenses par catégorie (camembert) + tendance mensuelle (#113) */}
+      {/* Répartition des dépenses dans le temps (30 j glissant) + tendance mensuelle (#113) */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
-          <h2 className="text-sm font-semibold mb-3">Dépenses par catégorie</h2>
-          <Donut data={byCat} />
+          <h2 className="text-sm font-semibold mb-3">Répartition des dépenses <span className="font-normal text-[var(--muted-foreground)]">· 30 j glissant</span></h2>
+          <CategoryShareChart data={catShare} />
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
           <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
@@ -314,22 +303,5 @@ export default function MoisTab() {
         </div>
       )}
     </div>
-  )
-}
-
-/** Variation vs mois précédent (#229). Couleur selon que la variation est
- *  favorable (revenus/solde : hausse = bien ; dépenses : baisse = bien). */
-function Delta({ cmp, favorableWhen }: { cmp?: Comparison; favorableWhen: 'up' | 'down' }) {
-  if (!cmp || cmp.direction === 'flat') return null
-  const favorable = cmp.direction === favorableWhen
-  const arrow = cmp.direction === 'up' ? '↑' : '↓'
-  const pct = cmp.delta_pct == null ? null : Math.abs(cmp.delta_pct)
-  return (
-    <p
-      className={`mt-1 text-xs tabular-nums ${favorable ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}
-      title={`${formatCAD(cmp.previous)} le mois précédent`}
-    >
-      {arrow} {pct == null ? '—' : `${pct.toFixed(0)}%`} vs mois préc.
-    </p>
   )
 }

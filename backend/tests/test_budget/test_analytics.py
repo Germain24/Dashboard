@@ -8,8 +8,10 @@ from types import SimpleNamespace
 from app.services.budget.analytics import (
     aggregate_expenses_by_category,
     build_annual_csv,
+    category_share_series,
     detect_recurring,
     month_keys,
+    rolling_totals,
 )
 
 
@@ -60,6 +62,37 @@ def test_build_annual_csv():
     # trié par date : Salaire (jan) avant METRO (mars)
     assert lines[1].startswith("2026-01-01,Salaire,")
     assert "2026-03-02,METRO,,-45.32,Épicerie" in lines[2]
+
+
+def test_rolling_totals_last_30_days():
+    end = dt.date(2026, 6, 30)
+    txs = [
+        _txd(2000.0, "Paie", dt.date(2026, 6, 10)),       # dans la fenêtre
+        _txd(-50.0, "IGA", dt.date(2026, 6, 15)),          # dans la fenêtre
+        _txd(-999.0, "Vieux", dt.date(2026, 4, 1)),        # hors fenêtre (>30j)
+    ]
+    out = rolling_totals(txs, end=end, days=30)
+    assert out["revenus"] == 2000.0
+    assert out["depenses"] == 50.0
+    assert out["solde"] == 1950.0
+    assert out["debut"] == "2026-06-01" and out["fin"] == "2026-06-30"
+
+
+def test_category_share_series_rolling_window():
+    meta = {1: {"nom": "Épicerie", "couleur": "#0a0"}, 2: {"nom": "Restaurants", "couleur": "#a00"}}
+    end = dt.date(2026, 6, 30)
+    txs = [
+        _txd(-75.0, "IGA", dt.date(2026, 6, 20), 1),
+        _txd(-25.0, "McDo", dt.date(2026, 6, 21), 2),
+        _txd(2000.0, "Paie", dt.date(2026, 6, 22), None),   # revenu ignoré
+    ]
+    res = category_share_series(txs, meta, end=end, days=14, step_days=14, window=30)
+    last = res["points"][-1]
+    assert last["date"] == "2026-06-30"
+    assert last["shares"]["Épicerie"] == 75.0
+    assert last["shares"]["Restaurants"] == 25.0
+    # catégories ordonnées par dépense décroissante
+    assert [c["nom"] for c in res["categories"]] == ["Épicerie", "Restaurants"]
 
 
 def test_detect_recurring_monthly_subscription():

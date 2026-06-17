@@ -57,6 +57,23 @@ export async function fetchTrend(months = 6): Promise<MonthTrend[]> {
   return Array.isArray(d) ? d : []
 }
 
+// Fenêtre glissante (30 derniers jours) — revenus/dépenses/solde
+export type RollingSummary = {
+  revenus: number; depenses: number; solde: number; debut: string; fin: string; jours: number
+}
+export async function fetchRollingSummary(days = 30): Promise<RollingSummary> {
+  return (await fetch(`${BASE}/rolling-summary?days=${days}`)).json()
+}
+
+// Part (%) des catégories de dépenses au fil du temps (fenêtre glissante)
+export type CategoryShare = {
+  categories: { nom: string; couleur: string }[]
+  points: { date: string; shares: Record<string, number> }[]
+}
+export async function fetchCategoryShare(days = 180, window = 30): Promise<CategoryShare> {
+  return (await fetch(`${BASE}/category-share?days=${days}&window=${window}`)).json()
+}
+
 export type Recurring = {
   marchand: string; montant_moyen: number; occurrences: number
   periodicite: string; derniere_date: string; category_id: number | null

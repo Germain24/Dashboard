@@ -56,6 +56,18 @@ def trend(months: int = 6, session: Session = Depends(get_session)):
     return analytics_svc.spending_trend(session, months)
 
 
+@router.get("/rolling-summary")
+def rolling_summary(days: int = 30, session: Session = Depends(get_session)):
+    """Revenus/dépenses/solde sur les N derniers jours glissants."""
+    return analytics_svc.rolling_summary(session, days=days)
+
+
+@router.get("/category-share")
+def category_share(days: int = 180, window: int = 30, session: Session = Depends(get_session)):
+    """Part (%) des catégories de dépenses au fil du temps (fenêtre glissante)."""
+    return analytics_svc.category_share_timeseries(session, days=days, window=window)
+
+
 @router.get("/recurring")
 def recurring(session: Session = Depends(get_session)):
     """Dépenses récurrentes (abonnements) détectées : même marchand, montant stable, cadence mensuelle (#116)."""

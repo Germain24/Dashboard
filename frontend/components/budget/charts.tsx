@@ -1,7 +1,7 @@
 'use client'
 /** Graphes du module Budget (extraits de MoisTab.tsx, #519) : camembert + tendance. */
 
-import type { CategorySpend, MonthTrend } from '@/lib/budget'
+import type { CategorySpend, CategoryShare, MonthTrend } from '@/lib/budget'
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
@@ -49,6 +49,53 @@ export function Donut({ data }: { data: CategorySpend[] }) {
             <span className="flex-1 truncate">{d.nom}</span>
             <span className="tabular-nums text-[var(--muted-foreground)]">{d.pct}%</span>
             <span className="w-20 text-right tabular-nums">{formatCAD(d.montant)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** Part (%) de chaque catégorie de dépenses au fil du temps (fenêtre glissante
+ *  de 30 j). Colonnes empilées à 100 % : chaque colonne = un point dans le temps. */
+export function CategoryShareChart({ data }: { data: CategoryShare }) {
+  const { categories, points } = data
+  if (!categories.length || !points.length) {
+    return <p className="text-sm text-[var(--muted-foreground)]">Pas encore assez de dépenses pour la tendance.</p>
+  }
+  const labelEvery = Math.ceil(points.length / 6)  // ~6 repères temporels
+  return (
+    <div>
+      <div className="flex h-44 items-end gap-px">
+        {points.map((p) => {
+          const total = categories.reduce((s, c) => s + (p.shares[c.nom] ?? 0), 0)
+          return (
+            <div key={p.date} className="flex h-full flex-1 flex-col-reverse overflow-hidden rounded-sm"
+              title={`${monthLabel(p.date)} — 30 j glissants`}>
+              {total === 0 && <div className="h-full bg-[var(--muted)]" />}
+              {categories.map((c) => {
+                const pct = p.shares[c.nom] ?? 0
+                return pct > 0 ? (
+                  <div key={c.nom} style={{ height: `${pct}%`, background: c.couleur }}
+                    title={`${monthLabel(p.date)} · ${c.nom} : ${pct}%`} />
+                ) : null
+              })}
+            </div>
+          )
+        })}
+      </div>
+      <div className="mt-1 flex gap-px">
+        {points.map((p, i) => (
+          <span key={p.date} className="flex-1 text-center text-[10px] text-[var(--muted-foreground)]">
+            {i % labelEvery === 0 ? monthLabel(p.date) : ''}
+          </span>
+        ))}
+      </div>
+      <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+        {categories.map((c) => (
+          <li key={c.nom} className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.couleur }} />
+            <span className="text-[var(--muted-foreground)]">{c.nom}</span>
           </li>
         ))}
       </ul>
