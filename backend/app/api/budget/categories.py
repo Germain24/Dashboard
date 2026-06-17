@@ -46,6 +46,18 @@ def apply_rules(session: Session = Depends(get_session)):
     return {"updated": rules_svc.reapply_all_rules(session)}
 
 
+@router.get("/rules/suggestions")
+def suggest_rules(min_occurrences: int = 3, session: Session = Depends(get_session)):
+    """Règles apprises de l'historique catégorisé à la main, sans rien créer (#258)."""
+    return rules_svc.learn_rules(session, min_occurrences=min_occurrences, apply=False)
+
+
+@router.post("/rules/learn")
+def learn_rules(min_occurrences: int = 3, session: Session = Depends(get_session)):
+    """Crée les règles apprises puis recatégorise les transactions (#258)."""
+    return rules_svc.learn_rules(session, min_occurrences=min_occurrences, apply=True)
+
+
 @router.get("/envelopes")
 def list_envelopes(month: str, session: Session = Depends(get_session)):
     return env_svc.get_envelope_status(session, month)

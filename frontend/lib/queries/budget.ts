@@ -13,6 +13,8 @@ import {
   fetchRecurring,
   fetchRecurringProjection,
   fetchRules,
+  fetchRuleSuggestions,
+  learnRules,
   fetchSavingsGoal,
   fetchSummary,
   fetchSummaryComparison,
@@ -39,6 +41,7 @@ export const budgetKeys = {
   recurringProjection: () => [...budgetKeys.all, "recurring-projection"] as const,
   savingsGoal: () => [...budgetKeys.all, "savings-goal"] as const,
   rules: () => [...budgetKeys.all, "rules"] as const,
+  ruleSuggestions: () => [...budgetKeys.all, "rule-suggestions"] as const,
 };
 
 export function useBudgetTransactions(params?: { from?: string; to?: string; category_id?: number }) {
@@ -107,4 +110,11 @@ export function useImportCsv() {
 export function useApplyRules() {
   const invalidate = useInvalidateAll();
   return useMutation({ mutationFn: () => applyRules(), onSuccess: invalidate });
+}
+export function useRuleSuggestions() {
+  return useQuery({ queryKey: budgetKeys.ruleSuggestions(), queryFn: fetchRuleSuggestions });
+}
+export function useLearnRules() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: () => learnRules(), onSuccess: invalidate });
 }

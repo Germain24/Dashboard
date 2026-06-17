@@ -1,9 +1,10 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { ArrowDownLeft, ArrowUpRight, Upload, Download } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Upload, Download, Wand2 } from 'lucide-react'
 import {
   useBudgetCategories, useBudgetTransactions, useImportCsv, useSetTransactionTags,
+  useRuleSuggestions, useLearnRules,
 } from '@/lib/queries/budget'
 
 const formatCAD = (v: number) =>
@@ -86,6 +87,9 @@ export default function TransactionsTab() {
         </div>
       </div>
 
+      {/* Règles apprises de l'historique (#258) */}
+      <LearnedRulesSection />
+
       {/* Liste des transactions */}
       <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)]">
         <div className="border-b border-[var(--border)] px-4 py-3">
@@ -140,6 +144,57 @@ export default function TransactionsTab() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/** Règles apprises de l'historique catégorisé à la main (#258, sans ML). */
+function LearnedRulesSection() {
+  const { data } = useRuleSuggestions()
+  const learn = useLearnRules()
+  const [done, setDone] = useState<string | null>(null)
+  const suggestions = data?.suggestions ?? []
+  if (suggestions.length === 0) return null
+
+  const onLearn = () => {
+    setDone(null)
+    learn.mutate(undefined, {
+      onSuccess: (r) =>
+        setDone(`${r.created} règle(s) créée(s), ${r.recategorised} transaction(s) recatégorisée(s).`),
+      onError: () => setDone('Apprentissage échoué.'),
+    })
+  }
+
+  return (
+    <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+            <Wand2 size={14} aria-hidden="true" /> Règles suggérées
+          </h2>
+          <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+            Apprises de tes catégorisations manuelles répétées — applicables aux futurs imports.
+          </p>
+          {done && <p className="mt-1 text-xs text-[var(--success)]">{done}</p>}
+        </div>
+        <button
+          type="button"
+          onClick={onLearn}
+          disabled={learn.isPending}
+          className="inline-flex items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-50"
+        >
+          <Wand2 size={14} aria-hidden="true" />
+          {learn.isPending ? 'Apprentissage…' : `Créer ${suggestions.length} règle(s)`}
+        </button>
+      </div>
+      <ul className="mt-3 flex flex-wrap gap-2">
+        {suggestions.map((s) => (
+          <li key={s.pattern} className="rounded-[var(--radius-sm)] bg-[var(--muted)] px-2 py-1 text-xs text-[var(--muted-foreground)]">
+            <span className="font-mono font-medium text-[var(--foreground)]">{s.pattern}</span> → {s.category_nom}
+            <span className="ml-1 opacity-70">({s.occurrences}×)</span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

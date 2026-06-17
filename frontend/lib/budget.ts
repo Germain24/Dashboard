@@ -110,3 +110,24 @@ export async function fetchRules() {
 export async function applyRules() {
   return (await fetch(`${BASE}/rules/apply`, { method: 'POST' })).json()
 }
+
+// Règles apprenables depuis l'historique catégorisé à la main (#258)
+export interface LearnedRule {
+  pattern: string
+  category_id: number
+  category_nom: string
+  occurrences: number
+}
+export interface LearnRulesResult {
+  suggestions: LearnedRule[]
+  created: number
+  recategorised: number
+}
+
+export async function fetchRuleSuggestions(): Promise<LearnRulesResult> {
+  return (await fetch(`${BASE}/rules/suggestions`)).json()
+}
+
+export async function learnRules(): Promise<LearnRulesResult> {
+  return (await fetch(`${BASE}/rules/learn`, { method: 'POST' })).json()
+}
