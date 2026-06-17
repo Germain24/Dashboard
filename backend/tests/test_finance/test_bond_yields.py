@@ -75,10 +75,16 @@ def test_get_bond_yields_refreshes_full_g7():
     assert out["Switzerland"] == 0.007   # hors G7 → repli statique conservé
 
 
-def test_g7_countries_have_static_fallback():
+def test_fetched_countries_have_static_fallback():
     # Tout pays fetché doit avoir un repli statique (sinon trou si réseau KO).
     for pays in by.SERIES_BY_COUNTRY:
         assert pays in by.STATIC_BOND_YIELDS
+
+
+def test_series_cover_g7_plus_more():
+    g7 = {"United States", "Canada", "France", "Germany", "Italy", "Japan", "United Kingdom"}
+    assert g7 <= set(by.SERIES_BY_COUNTRY)
+    assert len(by.SERIES_BY_COUNTRY) >= 18   # G7 + OCDE supplémentaires
 
 
 def test_get_bond_yields_falls_back_when_fetch_fails():

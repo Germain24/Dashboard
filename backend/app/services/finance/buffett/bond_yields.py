@@ -2,12 +2,12 @@
 
 Le critère d'achat Buffett compare le prix à un plafond `EPS / (0,02 + taux)`,
 où `taux` est le rendement obligataire du pays. Historiquement ces taux étaient
-des constantes figées ; ce module les rafraîchit pour le **G7** via l'API
-publique **FRED** (CSV sans clé), avec **repli sur les valeurs statiques** quand
-le réseau échoue (offline-friendly).
+des constantes figées ; ce module les rafraîchit pour **tous les pays exposés
+par FRED** (API publique, CSV sans clé), avec **repli sur les valeurs statiques**
+quand le réseau échoue (offline-friendly).
 
-Yahoo n'expose proprement que le 10 ans US (^TNX) ; FRED couvre tout le G7 via
-les séries `IRLTLT01..M156N` (rendements souverains 10 ans, source OCDE) et
+Yahoo n'expose proprement que le 10 ans US (^TNX) ; FRED couvre ~18 pays via les
+séries `IRLTLT01<ISO>M156N` (rendements souverains 10 ans, source OCDE) et
 `DGS10` pour les États-Unis.
 
 `merge_yields` / `_normalize_yield` / `_parse_fred_csv` sont purs (testables) ;
@@ -33,9 +33,11 @@ STATIC_BOND_YIELDS: dict[str, float] = {
     "Turkey": 0.280,
 }
 
-# Pays du G7 -> série FRED du rendement 10 ans (cotée en %). DGS10 = US (quotidien) ;
-# IRLTLT01..M156N = rendements souverains 10 ans OCDE (mensuels). Extensible :
-# ajouter d'autres pays/séries FRED ici. Les pays absents gardent leur repli.
+# Pays -> série FRED du rendement 10 ans (cotée en %). DGS10 = US (quotidien) ;
+# IRLTLT01<ISO>M156N = rendements souverains 10 ans OCDE (mensuels). Liste validée
+# en interrogeant FRED : on ne garde que les séries qui répondent réellement.
+# Les pays sans série FRED (Chine, Inde, Hong Kong, Taïwan, Brésil, Singapour,
+# Indonésie, Turquie…) gardent leur repli statique. Extensible.
 SERIES_BY_COUNTRY: dict[str, str] = {
     "United States": "DGS10",
     "Canada": "IRLTLT01CAM156N",
@@ -44,6 +46,17 @@ SERIES_BY_COUNTRY: dict[str, str] = {
     "Italy": "IRLTLT01ITM156N",
     "Japan": "IRLTLT01JPM156N",
     "United Kingdom": "IRLTLT01GBM156N",
+    "Switzerland": "IRLTLT01CHM156N",
+    "South Korea": "IRLTLT01KRM156N",
+    "Australia": "IRLTLT01AUM156N",
+    "Mexico": "IRLTLT01MXM156N",
+    "Sweden": "IRLTLT01SEM156N",
+    "Netherlands": "IRLTLT01NLM156N",
+    "Belgium": "IRLTLT01BEM156N",
+    "Denmark": "IRLTLT01DKM156N",
+    "Norway": "IRLTLT01NOM156N",
+    "Israel": "IRLTLT01ILM156N",
+    "South Africa": "IRLTLT01ZAM156N",
 }
 
 _FRED_CSV_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}"
