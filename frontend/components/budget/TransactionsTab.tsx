@@ -12,8 +12,11 @@ const formatCAD = (v: number) =>
 
 export default function TransactionsTab() {
   const [msg, setMsg] = useState<string | null>(null)
-  const [tagFilter, setTagFilter] = useState('')
+  const [tagFilter, setTagFilter] = useState('')   // '' tous · '__none__' sans tag · tag
   const [catFilter, setCatFilter] = useState('')   // '' tous · 'none' sans catégorie · id
+  const [bankFilter, setBankFilter] = useState('') // '' toutes · nom de banque
+  const [typeFilter, setTypeFilter] = useState('') // '' tous · 'credit' · 'debit'
+  const [sortBy, setSortBy] = useState('date-desc')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const txsQ = useBudgetTransactions()
@@ -22,13 +25,33 @@ export default function TransactionsTab() {
   const categories: any[] = Array.isArray(categoriesQ.data) ? categoriesQ.data : []
   const loading = txsQ.isLoading || categoriesQ.isLoading
 
+  const bankOf = (t: any) => (t.compte ?? '').split('-')[0] || ''
+  const typeOf = (t: any) => (t.compte ?? '').split('-')[1] || ''
   const allTags = Array.from(new Set(txs.flatMap((t: any) => t.tags ?? []))).sort()
+  const banks = Array.from(new Set(txs.map(bankOf).filter(Boolean))).sort()
+  const types = Array.from(new Set(txs.map(typeOf).filter(Boolean))).sort()
+  const TYPE_LABEL: Record<string, string> = { credit: 'Crédit', debit: 'Débit' }
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
   const filtered = txs.filter((t: any) => {
-    if (tagFilter && !(t.tags ?? []).includes(tagFilter)) return false
+    const tags = t.tags ?? []
+    if (tagFilter === '__none__' && tags.length > 0) return false
+    if (tagFilter && tagFilter !== '__none__' && !tags.includes(tagFilter)) return false
     if (catFilter === 'none' && t.category_id != null) return false
     if (catFilter && catFilter !== 'none' && String(t.category_id) !== catFilter) return false
+    if (bankFilter && bankOf(t) !== bankFilter) return false
+    if (typeFilter && typeOf(t) !== typeFilter) return false
     return true
   })
+  const SORTERS: Record<string, (a: any, b: any) => number> = {
+    'date-desc': (a, b) => (b.date ?? '').localeCompare(a.date ?? ''),
+    'date-asc': (a, b) => (a.date ?? '').localeCompare(b.date ?? ''),
+    'amount-desc': (a, b) => Math.abs(b.montant) - Math.abs(a.montant),
+    'amount-asc': (a, b) => Math.abs(a.montant) - Math.abs(b.montant),
+    'alpha': (a, b) => (a.marchand ?? '').localeCompare(b.marchand ?? ''),
+  }
+  const visible = [...filtered].sort(SORTERS[sortBy] ?? SORTERS['date-desc'])
+  const anyFilter = !!(tagFilter || catFilter || bankFilter || typeFilter)
   const filteredDep = filtered.filter((t: any) => t.montant < 0).reduce((s: number, t: any) => s + -t.montant, 0)
   const tagsMutation = useSetTransactionTags()
   const importMutation = useImportCsv()
@@ -106,13 +129,25 @@ export default function TransactionsTab() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
           <h2 className="text-sm font-semibold">
             Transactions
-            {(tagFilter || catFilter) && (
-              <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
-                {filtered.length} · {formatCAD(filteredDep)} de dépenses
-              </span>
-            )}
+            <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
+              {visible.length}{anyFilter && <> · {formatCAD(filteredDep)} de dépenses</>}
+            </span>
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {banks.length > 1 && (
+              <select value={bankFilter} onChange={(e) => setBankFilter(e.target.value)} aria-label="Filtrer par banque"
+                className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs">
+                <option value="">Toutes banques</option>
+                {banks.map((b) => <option key={b} value={b}>{cap(b)}</option>)}
+              </select>
+            )}
+            {types.length > 1 && (
+              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label="Filtrer par carte"
+                className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs">
+                <option value="">Crédit + débit</option>
+                {types.map((t) => <option key={t} value={t}>{TYPE_LABEL[t] ?? cap(t)}</option>)}
+              </select>
+            )}
             <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="Filtrer par catégorie"
               className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs">
               <option value="">Toutes catégories</option>
@@ -122,10 +157,19 @@ export default function TransactionsTab() {
             <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} aria-label="Filtrer par tag"
               className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs">
               <option value="">Tous les tags</option>
+              <option value="__none__">Sans tag</option>
               {allTags.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-            {(tagFilter || catFilter) && (
-              <button type="button" onClick={() => { setTagFilter(''); setCatFilter('') }}
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Trier"
+              className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs">
+              <option value="date-desc">Date ↓ (récent)</option>
+              <option value="date-asc">Date ↑ (ancien)</option>
+              <option value="amount-desc">Montant ↓</option>
+              <option value="amount-asc">Montant ↑</option>
+              <option value="alpha">A → Z</option>
+            </select>
+            {anyFilter && (
+              <button type="button" onClick={() => { setTagFilter(''); setCatFilter(''); setBankFilter(''); setTypeFilter('') }}
                 className="text-xs text-[var(--muted-foreground)] underline hover:text-[var(--foreground)]">Réinitialiser</button>
             )}
           </div>
@@ -134,7 +178,7 @@ export default function TransactionsTab() {
           <div className="space-y-2 p-4">
             {[0, 1, 2, 3].map((i) => <div key={i} className="h-10 rounded skeleton-shimmer" />)}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : visible.length === 0 ? (
           <p className="p-6 text-center text-sm text-[var(--muted-foreground)]">
             {txs.length === 0
               ? 'Aucune transaction. Importe un relevé CSV ou OFX pour commencer.'
@@ -142,7 +186,7 @@ export default function TransactionsTab() {
           </p>
         ) : (
           <div className="divide-y divide-[var(--border)]">
-            {filtered.map((tx: any) => {
+            {visible.map((tx: any) => {
               const revenu = tx.montant > 0
               return (
                 <div key={tx.id} className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[var(--muted)]">
@@ -157,7 +201,10 @@ export default function TransactionsTab() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{tx.marchand || tx.description || '—'}</p>
-                    <p className="text-xs text-[var(--muted-foreground)]">{catName(tx.category_id)} · {tx.date}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      {catName(tx.category_id)} · {tx.date}
+                      {typeOf(tx) && <span className="ml-1.5 rounded bg-[var(--muted)] px-1 py-0.5 text-[10px]">{TYPE_LABEL[typeOf(tx)] ?? cap(typeOf(tx))}</span>}
+                    </p>
                     <div className="mt-1 flex flex-wrap items-center gap-1">
                       {(tx.tags ?? []).map((tag: string) => (
                         <span key={tag} className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--muted)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">
