@@ -52,7 +52,8 @@ def delete_transaction(id: int, session: Session = Depends(get_session)):
 
 
 @router.post("/import")
-async def import_csv(file: UploadFile = File(...), compte: str = "principal",
-                     session: Session = Depends(get_session)):
+async def import_releve(file: UploadFile = File(...), compte: str = "principal",
+                        session: Session = Depends(get_session)):
+    """Importe un relevé CSV (Desjardins/RBC/générique) ou OFX/QFX (#256)."""
     content = (await file.read()).decode("utf-8", errors="replace")
-    return import_svc.import_csv(session, content, compte)
+    return import_svc.import_transactions(session, content, compte)

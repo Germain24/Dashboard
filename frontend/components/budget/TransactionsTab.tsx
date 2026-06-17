@@ -61,11 +61,11 @@ export default function TransactionsTab() {
         <div>
           <h2 className="text-sm font-semibold">Importer un relevé</h2>
           <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
-            CSV Desjardins, RBC ou générique — catégorisation auto via tes règles.
+            CSV (Desjardins, RBC, générique) ou OFX/QFX — catégorisation auto via tes règles.
           </p>
           {msg && <p className="mt-1 text-xs text-[var(--success)]">{msg}</p>}
         </div>
-        <input ref={fileRef} id="csv-import" type="file" accept=".csv,text/csv" onChange={onFile} className="hidden" />
+        <input ref={fileRef} id="csv-import" type="file" accept=".csv,text/csv,.ofx,.qfx" onChange={onFile} className="hidden" />
         <div className="flex items-center gap-2">
           <a
             href={`/api/budget/export/annual?year=${new Date().getFullYear()}`}
@@ -81,7 +81,7 @@ export default function TransactionsTab() {
             className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-[var(--primary-foreground)] hover:opacity-90"
           >
             <Upload size={14} aria-hidden="true" />
-            {importing ? 'Import…' : 'Importer CSV'}
+            {importing ? 'Import…' : 'Importer un relevé'}
           </label>
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function TransactionsTab() {
           </div>
         ) : txs.length === 0 ? (
           <p className="p-6 text-center text-sm text-[var(--muted-foreground)]">
-            Aucune transaction. Importe un relevé CSV pour commencer.
+            Aucune transaction. Importe un relevé CSV ou OFX pour commencer.
           </p>
         ) : (
           <div className="divide-y divide-[var(--border)]">

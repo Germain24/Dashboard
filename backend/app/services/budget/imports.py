@@ -1,7 +1,10 @@
 import csv
-import io
 import datetime as dt
+import io
+import re
+
 from sqlmodel import Session
+
 from app.services.budget.transactions import create_transaction
 
 
@@ -54,3 +57,60 @@ def import_csv(session: Session, content: str, compte: str = "principal") -> dic
         else:
             errors += 1
     return {"imported": imported, "errors": errors, "categorised": categorised, "format": fmt}
+
+
+# ─── OFX / QFX (relevés bancaires, #256) ─────────────────────────────────────
+
+_OFX_TRN_RE = re.compile(r"<STMTTRN>(.*?)</STMTTRN>", re.IGNORECASE | re.DOTALL)
+
+
+def _ofx_field(block: str, tag: str) -> str | None:
+    """Extrait la valeur d'un élément OFX (SGML : pas de balise fermante)."""
+    m = re.search(rf"<{tag}>([^<\r\n]*)", block, re.IGNORECASE)
+    return m.group(1).strip() if m else None
+
+
+def parse_ofx(content: str) -> list[tuple[dt.date, float, str]]:
+    """Parse les <STMTTRN> d'un relevé OFX/QFX (1.x SGML ou 2.x XML).
+
+    Sans dépendance : on isole chaque transaction puis on lit DTPOSTED
+    (AAAAMMJJ, éventuellement suivi de l'heure/fuseau), TRNAMT et NAME (à
+    défaut MEMO). Les transactions incomplètes ou mal formées sont ignorées.
+    """
+    out: list[tuple[dt.date, float, str]] = []
+    for block in _OFX_TRN_RE.findall(content):
+        raw_date = _ofx_field(block, "DTPOSTED")
+        raw_amt = _ofx_field(block, "TRNAMT")
+        marchand = _ofx_field(block, "NAME") or _ofx_field(block, "MEMO") or ""
+        if not raw_date or raw_amt is None:
+            continue
+        try:
+            date = dt.datetime.strptime(raw_date[:8], "%Y%m%d").date()
+            montant = float(raw_amt.replace(",", "."))
+        except (ValueError, IndexError):
+            continue
+        out.append((date, montant, marchand))
+    return out
+
+
+def import_ofx(session: Session, content: str, compte: str = "principal") -> dict:
+    """Importe un relevé OFX/QFX en transactions (catégorisation auto via #115)."""
+    imported, categorised = 0, 0
+    for date, montant, marchand in parse_ofx(content):
+        t = create_transaction(session, date=date, montant=montant, marchand=marchand, compte=compte)
+        imported += 1
+        if t.category_id is not None:
+            categorised += 1
+    return {"imported": imported, "errors": 0, "categorised": categorised, "format": "ofx"}
+
+
+def _looks_like_ofx(content: str) -> bool:
+    head = content.lstrip()[:512].upper()
+    return head.startswith("OFXHEADER") or "<OFX>" in head
+
+
+def import_transactions(session: Session, content: str, compte: str = "principal") -> dict:
+    """Point d'entrée unique : détecte OFX/QFX, sinon délègue au parseur CSV."""
+    if _looks_like_ofx(content):
+        return import_ofx(session, content, compte)
+    return import_csv(session, content, compte)
