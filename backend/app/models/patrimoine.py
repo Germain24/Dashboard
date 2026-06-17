@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import datetime as dt
 
+from sqlmodel import Field, SQLModel
+
 from app.core.timeutil import utcnow
-from sqlmodel import SQLModel, Field
 
 
 class PatrimoineItem(SQLModel, table=True):
@@ -24,4 +25,19 @@ class PatrimoineItem(SQLModel, table=True):
     mensualite: float | None = None   # passif : mensualité
     devise: str = "EUR"
     updated_at: dt.datetime = Field(default_factory=utcnow)
+    created_at: dt.datetime = Field(default_factory=utcnow)
+
+
+class PatrimoineSnapshot(SQLModel, table=True):
+    """Photo quotidienne du patrimoine net (#257), pour le suivi dans le temps.
+
+    Valeurs déjà converties en EUR. Une ligne par date (upsert idempotent).
+    """
+    __tablename__ = "patrimoine_snapshot"
+    id: int | None = Field(default=None, primary_key=True)
+    date: dt.date = Field(index=True, unique=True)
+    net: float = 0.0
+    actifs: float = 0.0
+    passifs: float = 0.0
+    portefeuille: float = 0.0
     created_at: dt.datetime = Field(default_factory=utcnow)

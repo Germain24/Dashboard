@@ -7,13 +7,14 @@ avoirs/dettes saisis à la main pour donner un patrimoine net.
 
 from __future__ import annotations
 
+import datetime as dt
 from types import SimpleNamespace
 from typing import Any
 
 from sqlmodel import Session, select
 
 from app.models.finance import SnapshotPortefeuille
-from app.models.patrimoine import PatrimoineItem
+from app.models.patrimoine import PatrimoineItem, PatrimoineSnapshot
 
 
 def to_eur(amount: float, devise: str | None) -> float:
@@ -140,3 +141,45 @@ def net_worth_summary(
 
     summary = compute_net_worth(portef_eur, converted)
     return {**summary, "taux_cad_eur": round(rate, 4), "items": dumped}
+
+
+# ─── Historisation dans le temps (#257) ─────────────────────────────────────
+
+def record_net_worth_snapshot(
+    session: Session, *, today: dt.date | None = None,
+) -> PatrimoineSnapshot:
+    """Enregistre (ou met à jour) la photo du patrimoine net du jour, en EUR.
+
+    Idempotent : une seule ligne par date — un nouvel appel le même jour
+    rafraîchit les valeurs au lieu de créer un doublon.
+    """
+    today = today or dt.date.today()
+    summary = net_worth_summary(session)
+    snap = session.exec(
+        select(PatrimoineSnapshot).where(PatrimoineSnapshot.date == today)
+    ).first() or PatrimoineSnapshot(date=today)
+    snap.net = summary["net"]
+    snap.actifs = summary["actifs_manuels"]
+    snap.passifs = summary["passifs"]
+    snap.portefeuille = summary["portefeuille"]
+    session.add(snap)
+    session.commit()
+    session.refresh(snap)
+    return snap
+
+
+def net_worth_history(session: Session, *, days: int = 365) -> list[dict[str, Any]]:
+    """Série chronologique du patrimoine net sur la fenêtre récente (croissant)."""
+    cutoff = dt.date.today() - dt.timedelta(days=days)
+    rows = session.exec(
+        select(PatrimoineSnapshot)
+        .where(PatrimoineSnapshot.date >= cutoff)
+        .order_by(PatrimoineSnapshot.date)
+    ).all()
+    return [
+        {
+            "date": r.date.isoformat(), "net": r.net, "actifs": r.actifs,
+            "passifs": r.passifs, "portefeuille": r.portefeuille,
+        }
+        for r in rows
+    ]

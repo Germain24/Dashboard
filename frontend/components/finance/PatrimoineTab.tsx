@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, Plus } from "lucide-react";
-import { financeApi, PATRIMOINE_DEVISES, type PatrimoineItem, type PatrimoineItemCreate } from "@/lib/finance";
+import { financeApi, PATRIMOINE_DEVISES, type NetWorthPoint, type PatrimoineItem, type PatrimoineItemCreate } from "@/lib/finance";
 
 const eur = (n: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -50,6 +50,9 @@ export function PatrimoineTab() {
         <Stat label="Passifs" value={eur(data.passifs)} negative />
       </div>
 
+      <NetWorthChart />
+
+
       <div className="grid gap-4 sm:grid-cols-2">
         <ItemList title="Actifs (comptes, RealT, crypto…)" items={actifs} onUpdate={(id, patch) => update.mutate({ id, patch })} onDelete={(id) => remove.mutate(id)} />
         <ItemList title="Passifs (emprunts…)" items={passifs} onUpdate={(id, patch) => update.mutate({ id, patch })} onDelete={(id) => remove.mutate(id)} negative />
@@ -73,6 +76,59 @@ export function PatrimoineTab() {
           </button>
         </div>
         <p className="mt-2 text-xs text-[var(--muted-foreground)]">Saisis chaque compte dans sa devise locale — le total net est converti en €.</p>
+      </div>
+    </div>
+  );
+}
+
+const fmtDay = (iso: string) =>
+  new Date(iso + "T12:00:00").toLocaleDateString("fr-CA", { day: "2-digit", month: "short" });
+
+/** Courbe d'évolution du patrimoine net dans le temps (#257). */
+function NetWorthChart() {
+  const { data } = useQuery({
+    queryKey: [...KEY, "history"],
+    queryFn: () => financeApi.patrimoineHistory(365),
+  });
+  const points: NetWorthPoint[] = data?.points ?? [];
+
+  if (points.length < 2) {
+    return (
+      <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution du patrimoine net</p>
+        <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+          Le suivi se construit au fil des jours — reviens demain pour voir la courbe.
+        </p>
+      </div>
+    );
+  }
+
+  const nets = points.map((p) => p.net);
+  const min = Math.min(...nets);
+  const max = Math.max(...nets);
+  const span = max - min || 1;
+  const W = 100, H = 32;
+  const coords = points
+    .map((p, i) => `${((i / (points.length - 1)) * W).toFixed(2)},${(H - ((p.net - min) / span) * H).toFixed(2)}`)
+    .join(" ");
+  const first = points[0];
+  const delta = points[points.length - 1].net - first.net;
+  const up = delta >= 0;
+
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution du patrimoine net</p>
+        <span className={`shrink-0 text-xs tabular-nums ${up ? "text-[var(--success-foreground)]" : "text-[var(--warning-foreground)]"}`}>
+          {up ? "+" : ""}{eur(delta)} depuis le {fmtDay(first.date)}
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-24 w-full" role="img" aria-label="Courbe du patrimoine net">
+        <polyline points={coords} fill="none" stroke="var(--ring)" strokeWidth={0.8} vectorEffect="non-scaling-stroke" />
+      </svg>
+      <div className="mt-1 flex justify-between text-[10px] tabular-nums text-[var(--muted-foreground)]">
+        <span>min {eur(min)}</span>
+        <span>max {eur(max)}</span>
       </div>
     </div>
   );

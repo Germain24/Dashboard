@@ -33,8 +33,23 @@ class PatrimoineItemPatch(BaseModel):
 
 @router.get("/patrimoine")
 def get_patrimoine(session: Session = Depends(get_session)):
-    """Patrimoine net = portefeuille + actifs manuels − passifs, avec le détail."""
-    return svc.net_worth_summary(session)
+    """Patrimoine net = actifs manuels − passifs (par défaut), avec le détail.
+
+    Enregistre au passage la photo du jour (idempotente) pour alimenter le
+    suivi dans le temps (#257) — utile même sans planificateur actif.
+    """
+    summary = svc.net_worth_summary(session)
+    try:
+        svc.record_net_worth_snapshot(session)
+    except Exception:
+        pass  # best-effort : ne jamais casser la lecture
+    return summary
+
+
+@router.get("/patrimoine/history")
+def get_patrimoine_history(days: int = 365, session: Session = Depends(get_session)):
+    """Série chronologique du patrimoine net (#257)."""
+    return {"days": days, "points": svc.net_worth_history(session, days=days)}
 
 
 @router.post("/patrimoine", status_code=201)

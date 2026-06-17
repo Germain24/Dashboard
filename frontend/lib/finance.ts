@@ -40,6 +40,17 @@ export interface NetWorth {
   net: number;
   items: PatrimoineItem[];
 }
+export interface NetWorthPoint {
+  date: string;
+  net: number;
+  actifs: number;
+  passifs: number;
+  portefeuille: number;
+}
+export interface NetWorthHistory {
+  days: number;
+  points: NetWorthPoint[];
+}
 
 export interface HistoryPoint {
   date: string;
@@ -360,6 +371,7 @@ export const financeApi = {
 
   // Patrimoine net (RealT, emprunts…)
   patrimoine: () => get<NetWorth>("/patrimoine"),
+  patrimoineHistory: (days = 365) => get<NetWorthHistory>(`/patrimoine/history?days=${days}`),
   patrimoineCreate: (item: PatrimoineItemCreate) => post<PatrimoineItem>("/patrimoine", item),
   patrimoineUpdate: (id: number, patch_: Partial<PatrimoineItemCreate>) =>
     patch<PatrimoineItem>(`/patrimoine/${id}`, patch_),

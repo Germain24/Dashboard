@@ -8,14 +8,16 @@ from types import SimpleNamespace
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
-from app.models.patrimoine import PatrimoineItem  # noqa: F401 (enregistre la table)
+from app.models.patrimoine import PatrimoineItem, PatrimoineSnapshot  # noqa: F401 (enregistre les tables)
 from app.models.finance import SnapshotPortefeuille
 from app.services.finance.patrimoine import (
     compute_net_worth,
     create_item,
     delete_item,
     list_items,
+    net_worth_history,
     net_worth_summary,
+    record_net_worth_snapshot,
     to_eur,
     update_item,
 )
@@ -129,3 +131,34 @@ def test_net_worth_converts_portfolio_cad_to_eur():
         out = net_worth_summary(session, cad_eur=0.7, inclure_portefeuille=True)
         assert out["portefeuille"] == 7000  # 10000 CAD × 0.7
         assert out["taux_cad_eur"] == 0.7
+
+
+# ── Historisation dans le temps (#257) ──────────────────────────────────────
+
+def test_record_snapshot_is_idempotent_per_day(session):
+    create_item(session, type="actif", label="RealT", valeur=2000, categorie="RealT")
+    create_item(session, type="passif", label="Prêt", valeur=1200, categorie="emprunt")
+    today = dt.date(2026, 6, 17)
+    snap1 = record_net_worth_snapshot(session, today=today)
+    assert snap1.actifs == 2000 and snap1.passifs == 1200
+    assert snap1.net == 2000 - 1200
+    # Même jour après modif : met à jour la même ligne, pas de doublon.
+    update_item(session, list_items(session)[0].id, {"valeur": 2500})
+    snap2 = record_net_worth_snapshot(session, today=today)
+    assert snap2.id == snap1.id
+    assert snap2.net == 2500 - 1200
+    assert len(net_worth_history(session)) == 1
+
+
+def test_net_worth_history_window_and_order(session):
+    create_item(session, type="actif", label="X", valeur=100)
+    today = dt.date.today()
+    record_net_worth_snapshot(session, today=today - dt.timedelta(days=400))
+    record_net_worth_snapshot(session, today=today - dt.timedelta(days=10))
+    record_net_worth_snapshot(session, today=today)
+    hist = net_worth_history(session, days=365)
+    dates = [h["date"] for h in hist]
+    assert dates == sorted(dates)             # ordre chronologique croissant
+    assert today.isoformat() in dates
+    assert len(hist) == 2                     # le point à −400 j est hors fenêtre
+    assert set(hist[0]) == {"date", "net", "actifs", "passifs", "portefeuille"}

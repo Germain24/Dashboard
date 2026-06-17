@@ -405,7 +405,7 @@ V. ASSISTANT IA PROACTIF & AGENTS (236-255)   >>> SECTION ABANDONNÉE ✗ (2026-
 W. FINANCES PERSONNELLES AVANCÉES (256-270)
 --------------------------------------------------------------------------------
 256. [L](***) Agrégation bancaire (open banking / import OFX/CSV multi-comptes) avec catégorisation auto.   ← FINIS ✓ (2026-06-17) (import CSV multi-comptes + catégorisation auto via règles existaient déjà ; ajout du support OFX/QFX : parse_ofx (sans dépendance, <STMTTRN> SGML 1.x/XML 2.x — DTPOSTED/TRNAMT/NAME→MEMO) + import_ofx (même pipeline de catégorisation #115) + dispatcher import_transactions (sniff OFXHEADER/<OFX> sinon CSV) câblé sur POST /budget/import ; UI TransactionsTab accepte .ofx/.qfx ; open banking en ligne hors périmètre offline ; 6 tests TDD)
-257. [M](***) Vue patrimoine net consolidée (comptes, placements, immobilier, dettes) dans le temps.
+257. [M](***) Vue patrimoine net consolidée (comptes, placements, immobilier, dettes) dans le temps.   ← FINIS ✓ (2026-06-17) (la vue consolidée (PatrimoineItem + net_worth_summary) existait depuis cette session ; ajout du « dans le temps » : modèle PatrimoineSnapshot (1 ligne/jour, EUR) + migration q257 ; record_net_worth_snapshot (upsert idempotent par date) + net_worth_history(days) ; capture auto via le job snapshot quotidien + à l'ouverture de la page (GET idempotent) ; GET /finance/patrimoine/history ; UI : courbe SVG NetWorthChart (sans dépendance) + delta depuis le 1er point dans PatrimoineTab ; 2 tests TDD)
 258. [M](**) Catégorisation automatique des transactions par ML + règles apprenables.
 259. [M](**) Prévision de trésorerie (cash-flow) sur 1-12 mois avec scénarios.
 260. [M](**) Détection d'abonnements récurrents et alertes hausses/doublons.
