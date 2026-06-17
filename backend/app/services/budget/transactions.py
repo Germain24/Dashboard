@@ -83,6 +83,8 @@ def get_monthly_comparison(session: Session, mois: str) -> dict:
         "mois": mois,
         "mois_precedent": prev,
         "revenus": period_over_period(cur_s["revenus"], prev_s["revenus"]),
-        "depenses": period_over_period(cur_s["depenses"], prev_s["depenses"]),
+        # Les dépenses sont stockées en négatif ; on compare leur montant absolu
+        # pour que « moins dépenser » donne bien direction="down" (favorable).
+        "depenses": period_over_period(abs(cur_s["depenses"]), abs(prev_s["depenses"])),
         "solde": period_over_period(cur_s["solde"], prev_s["solde"]),
     }

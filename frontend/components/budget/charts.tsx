@@ -67,7 +67,7 @@ export function TrendChart({ data }: { data: MonthTrend[] }) {
       <div className="relative h-32">
         <div className="flex h-full items-end gap-3">
           {data.map((d) => (
-            <div key={d.mois} className="flex flex-1 items-end justify-center gap-0.5">
+            <div key={d.mois} className="flex h-full flex-1 items-end justify-center gap-0.5">
               <div className="w-3 rounded-t bg-[var(--success)]" style={{ height: `${(d.revenus / max) * 100}%` }}
                 title={`Revenus ${formatCAD(d.revenus)}`} />
               <div className="w-3 rounded-t bg-[var(--destructive)]" style={{ height: `${(d.depenses / max) * 100}%` }}

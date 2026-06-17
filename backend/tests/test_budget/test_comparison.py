@@ -35,11 +35,13 @@ def test_comparison_computes_deltas(session):
 
     comp = get_monthly_comparison(session, "2026-06")
     assert comp["mois_precedent"] == "2026-05"
-    # Dépenses : -80 vs -100 -> delta +20, hausse de 20 % (sur |précédent|).
+    # Dépenses comparées en valeur absolue : 80 vs 100 -> delta -20, BAISSE de
+    # 20 % (favorable). direction="down" et non "up" (le montant brut est négatif).
     dep = comp["depenses"]
-    assert dep["current"] == -80.0
-    assert dep["previous"] == -100.0
-    assert dep["delta"] == 20.0
-    assert dep["direction"] == "up"
+    assert dep["current"] == 80.0
+    assert dep["previous"] == 100.0
+    assert dep["delta"] == -20.0
+    assert dep["direction"] == "down"
+    assert round(dep["delta_pct"], 1) == -20.0
     # Revenus : 2000 ce mois vs 0 le mois dernier -> pct indéfini.
     assert comp["revenus"]["delta_pct"] is None
