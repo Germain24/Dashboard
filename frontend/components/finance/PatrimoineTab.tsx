@@ -12,7 +12,7 @@ const KEY = ["finance", "patrimoine"] as const;
 
 export function PatrimoineTab() {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: KEY, queryFn: financeApi.patrimoine });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: KEY, queryFn: financeApi.patrimoine });
   const invalidate = () => qc.invalidateQueries({ queryKey: KEY });
   const create = useMutation({ mutationFn: (b: PatrimoineItemCreate) => financeApi.patrimoineCreate(b), onSuccess: invalidate });
   const update = useMutation({ mutationFn: ({ id, patch }: { id: number; patch: Partial<PatrimoineItemCreate> }) => financeApi.patrimoineUpdate(id, patch), onSuccess: invalidate });
@@ -24,6 +24,13 @@ export function PatrimoineTab() {
   const [devise, setDevise] = useState("EUR");
   const [categorie, setCategorie] = useState("");
 
+  if (isError)
+    return (
+      <div className="text-sm text-[var(--warning-foreground)]">
+        Impossible de charger le patrimoine.{" "}
+        <button onClick={() => void refetch()} className="underline hover:text-[var(--foreground)]">Réessayer</button>
+      </div>
+    );
   if (isLoading || !data) return <p className="text-sm text-[var(--muted-foreground)]">Chargement…</p>;
 
   const submit = () => {
@@ -81,8 +88,16 @@ function Stat({ label, value, strong, negative }: { label: string; value: string
 }
 
 function ItemRow({ it, onUpdate, onDelete }: { it: PatrimoineItem; onUpdate: (id: number, patch: Partial<PatrimoineItemCreate>) => void; onDelete: (id: number) => void }) {
+  // L'état local est réinitialisé via la `key` du composant (= valeur serveur),
+  // ce qui resynchronise l'input après un refetch sans setState-dans-effet.
   const [val, setVal] = useState(String(it.valeur));
-  const commit = () => { const n = Number(val); if (!Number.isNaN(n) && n !== it.valeur) onUpdate(it.id, { valeur: n }); };
+  const commit = () => {
+    const trimmed = val.trim();
+    if (trimmed === "") { setVal(String(it.valeur)); return; }  // champ vidé → on annule (pas de 0 silencieux)
+    const n = Number(trimmed);
+    if (Number.isNaN(n)) { setVal(String(it.valeur)); return; }
+    if (n !== it.valeur) onUpdate(it.id, { valeur: n });
+  };
   return (
     <li className="flex items-center gap-2 px-3 py-2 text-sm">
       <span className="min-w-0 flex-1 truncate text-[var(--foreground)]">{it.label}{it.categorie && <span className="ml-1.5 text-xs text-[var(--muted-foreground)]">· {it.categorie}</span>}</span>
@@ -116,7 +131,7 @@ function ItemList({ title, items, onUpdate, onDelete, negative }: { title: strin
         <p className="text-xs text-[var(--muted-foreground)]">—</p>
       ) : (
         <ul className="divide-y divide-[var(--glass-border)] rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)]">
-          {items.map((it) => <ItemRow key={it.id} it={it} onUpdate={onUpdate} onDelete={onDelete} />)}
+          {items.map((it) => <ItemRow key={`${it.id}:${it.valeur}:${it.devise}`} it={it} onUpdate={onUpdate} onDelete={onDelete} />)}
         </ul>
       )}
     </div>
