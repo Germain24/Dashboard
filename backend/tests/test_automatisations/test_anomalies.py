@@ -104,3 +104,18 @@ class TestRunAnomalyDetection:
         run_anomaly_detection(mem_session)
         notifs = list(mem_session.exec(select(Notification)).all())
         assert notifs == []
+
+    def test_notify_false_detects_without_persisting(self, mem_session):
+        # Régression : la détection en lecture seule (GET) ne doit rien écrire.
+        import datetime as dt
+        from app.models.sante import MesureSante
+        today = dt.date.today()
+        poids_values = [70.0, 70.1, 70.0, 70.2, 72.5, 72.8, 73.0]
+        for i, poids in enumerate(poids_values):
+            date = today - dt.timedelta(days=len(poids_values) - 1 - i)
+            mem_session.add(MesureSante(date=date, poids=poids))
+        mem_session.commit()
+        anomalies = run_anomaly_detection(mem_session, today=today, notify=False)
+        assert anomalies  # l'anomalie est bien détectée
+        notifs = list(mem_session.exec(select(Notification)).all())
+        assert notifs == []  # mais aucune notification n'est persistée

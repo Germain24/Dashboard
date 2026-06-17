@@ -60,6 +60,18 @@ def test_get_recent_snapshots(session):
     assert len(snaps) == 3
 
 
+def test_snapshot_stores_calories_cible_when_weight_known(session):
+    """Régression : le snapshot doit exposer calories_cible (dérivée du poids)
+    pour que le sous-score nutrition du bien-être soit actif (#222)."""
+    from app.models.sante import MesureSante
+    today = dt.date(2026, 6, 11)
+    session.add(MesureSante(date=today, poids=75.0))
+    session.commit()
+    data = build_daily_snapshot(session, today)
+    assert "calories_cible" in data["sante"]
+    assert data["sante"]["calories_cible"] > 0
+
+
 # ─── Wellbeing Score ───────────────────────────────────────────────────────────
 
 def test_wellbeing_full_data():
@@ -78,6 +90,14 @@ def test_wellbeing_no_data():
     result = compute_wellbeing_score({})
     assert 0 <= result["score"] <= 100
     assert isinstance(result["label"], str)
+
+
+def test_wellbeing_zero_calories_not_treated_as_missing():
+    """Régression : un jour à 0 kcal (jeûne) est une vraie donnée — il doit
+    scorer une couverture très basse (5/25), pas le neutre (12/25)."""
+    data = {"sante": {"calories": 0, "calories_cible": 2000}}
+    result = compute_wellbeing_score(data)
+    assert result["components"]["nutrition"] == 5
 
 
 def test_wellbeing_labels():

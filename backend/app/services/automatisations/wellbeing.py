@@ -6,7 +6,6 @@ nutrition (25 pts) + entraînement (20 pts).
 
 from __future__ import annotations
 
-import datetime as dt
 from typing import Any
 
 
@@ -36,7 +35,7 @@ def compute_wellbeing_score(snapshot_data: dict[str, Any]) -> dict[str, Any]:
     sante = snapshot_data.get("sante", {})
     calories_consommees = sante.get("calories")
     calories_cible = sante.get("calories_cible")
-    if calories_consommees and calories_cible and calories_cible > 0:
+    if calories_consommees is not None and calories_cible and calories_cible > 0:
         ratio = calories_consommees / calories_cible
         if 0.90 <= ratio <= 1.10:
             components["nutrition"] = 25  # dans la cible ±10%

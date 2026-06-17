@@ -147,46 +147,61 @@ def _get_weekly_expense_series(session: Session, today: dt.date, weeks: int = 6)
 def run_anomaly_detection(
     session: Session,
     today: Optional[dt.date] = None,
+    *,
+    notify: bool = True,
 ) -> list[dict]:
-    """Lance la détection sur les 3 axes et crée des Notifications pour les anomalies."""
+    """Lance la détection sur les 3 axes.
+
+    Avec ``notify=True`` (défaut, usage scheduler/jobs) crée des Notifications
+    persistantes. Avec ``notify=False`` la détection est en lecture seule : aucun
+    ``session.add``/``commit`` — à utiliser depuis les endpoints GET pour éviter
+    de dupliquer des notifications à chaque chargement.
+    """
     today = today or dt.date.today()
     anomalies: list[dict] = []
+    wrote = False
 
     weight_series = _get_weight_series(session, today)
     w_anomaly = detect_weight_anomaly(weight_series)
     if w_anomaly:
-        delta = w_anomaly["delta"]
-        direction = "hausse" if delta > 0 else "baisse"
-        session.add(Notification(
-            source="anomaly_weight",
-            level="warning",
-            titre="Variation de poids inhabituelle",
-            message=f"{direction} de {abs(delta):.1f} kg sur 3 jours (moy. ref {w_anomaly['baseline_mean']:.1f}kg)",
-        ))
+        if notify:
+            delta = w_anomaly["delta"]
+            direction = "hausse" if delta > 0 else "baisse"
+            session.add(Notification(
+                source="anomaly_weight",
+                level="warning",
+                titre="Variation de poids inhabituelle",
+                message=f"{direction} de {abs(delta):.1f} kg sur 3 jours (moy. ref {w_anomaly['baseline_mean']:.1f}kg)",
+            ))
+            wrote = True
         anomalies.append(w_anomaly)
 
     sleep_series = _get_sleep_series(session, today)
     s_anomaly = detect_sleep_anomaly(sleep_series)
     if s_anomaly:
-        session.add(Notification(
-            source="anomaly_sleep",
-            level="warning",
-            titre="Deficit de sommeil detecte",
-            message=f"Moyenne {s_anomaly['moyenne']}h/nuit sur {s_anomaly['jours_en_deficit']} jours (cible >= 6h)",
-        ))
+        if notify:
+            session.add(Notification(
+                source="anomaly_sleep",
+                level="warning",
+                titre="Deficit de sommeil detecte",
+                message=f"Moyenne {s_anomaly['moyenne']}h/nuit sur {s_anomaly['jours_en_deficit']} jours (cible >= 6h)",
+            ))
+            wrote = True
         anomalies.append(s_anomaly)
 
     expense_series = _get_weekly_expense_series(session, today)
     e_anomaly = detect_expense_anomaly(expense_series)
     if e_anomaly:
-        session.add(Notification(
-            source="anomaly_expenses",
-            level="warning",
-            titre="Depenses inhabituelles",
-            message=f"Cette semaine : {e_anomaly['valeur']:.0f}$ vs moy. {e_anomaly['moyenne']:.0f}$ (x{e_anomaly['ratio']:.1f})",
-        ))
+        if notify:
+            session.add(Notification(
+                source="anomaly_expenses",
+                level="warning",
+                titre="Depenses inhabituelles",
+                message=f"Cette semaine : {e_anomaly['valeur']:.0f}$ vs moy. {e_anomaly['moyenne']:.0f}$ (x{e_anomaly['ratio']:.1f})",
+            ))
+            wrote = True
         anomalies.append(e_anomaly)
 
-    if anomalies:
+    if wrote:
         session.commit()
     return anomalies

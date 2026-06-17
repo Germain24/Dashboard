@@ -55,6 +55,14 @@ def build_daily_snapshot(session: Session, date: dt.date | None = None) -> dict:
             sante_data: dict = {}
             if mesure.poids:
                 sante_data["poids"] = float(mesure.poids)
+                # Cible calorique du jour (même calcul que l'optimiseur nutrition),
+                # nécessaire au sous-score nutrition du bien-être (#222).
+                try:
+                    from app.services.sante.targets import calculate_daily_targets
+                    base, _ = calculate_daily_targets(float(mesure.poids), date)
+                    sante_data["calories_cible"] = round(base["Calories"])
+                except Exception:
+                    pass
             if mesure.extra:
                 extra = json.loads(mesure.extra) if isinstance(mesure.extra, str) else mesure.extra
                 if "calories" in extra:

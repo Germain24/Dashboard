@@ -58,8 +58,9 @@ def compute_recommendations(session: Session, *, min_impact: float = 0) -> list[
     """Charge les signaux (bien-être, insights, anomalies) et les classe."""
     components: dict[str, float] = {}
     try:
+        from app.services.automatisations.snapshot import build_daily_snapshot
         from app.services.automatisations.wellbeing import compute_wellbeing_score
-        wb = compute_wellbeing_score(session)
+        wb = compute_wellbeing_score(build_daily_snapshot(session))
         components = dict(wb.get("components") or {})
     except Exception:
         pass
@@ -74,7 +75,7 @@ def compute_recommendations(session: Session, *, min_impact: float = 0) -> list[
     anomalies: list[str] = []
     try:
         from app.services.automatisations.anomalies import run_anomaly_detection
-        for a in run_anomaly_detection(session) or []:
+        for a in run_anomaly_detection(session, notify=False) or []:
             anomalies.append(a.get("message") if isinstance(a, dict) else str(a))
     except Exception:
         pass
