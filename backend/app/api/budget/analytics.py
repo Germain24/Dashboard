@@ -65,7 +65,8 @@ def rolling_summary(days: int = 30, session: Session = Depends(get_session)):
 @router.get("/category-share")
 def category_share(days: int = 180, window: int = 30, session: Session = Depends(get_session)):
     """Part (%) des catégories de dépenses au fil du temps (fenêtre glissante)."""
-    return analytics_svc.category_share_timeseries(session, days=days, window=window)
+    step = max(14, days // 26)   # ~26 points max, quel que soit le zoom
+    return analytics_svc.category_share_timeseries(session, days=days, window=window, step_days=step)
 
 
 @router.get("/recurring")

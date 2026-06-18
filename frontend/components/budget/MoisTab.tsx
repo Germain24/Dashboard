@@ -19,12 +19,13 @@ export default function MoisTab() {
   const [goalInput, setGoalInput] = useState('')
   const month = new Date().toISOString().slice(0, 7)
 
+  const [periodMonths, setPeriodMonths] = useState(12)   // zoom temporel des graphes
   const rollingQ = useRollingSummary(30)
-  const catShareQ = useCategoryShare(180, 30)
+  const catShareQ = useCategoryShare(periodMonths * 31, 30)
   const envelopesQ = useEnvelopes(month)
   const categoriesQ = useBudgetCategories()
   const byCatQ = useByCategory(month)
-  const trendQ = useTrend(6)
+  const trendQ = useTrend(periodMonths)
   const recurringQ = useRecurring()
   const projectionQ = useRecurringProjection()
   const savingsQ = useSavingsGoal()
@@ -176,6 +177,19 @@ export default function MoisTab() {
         </div>
       </div>
 
+      {/* Zoom temporel des graphes */}
+      <div className="flex items-center justify-end gap-1.5 text-xs">
+        <span className="text-[var(--muted-foreground)]">Période :</span>
+        {([['6 mois', 6], ['1 an', 12], ['2 ans', 24], ['Tout', 120]] as const).map(([label, m]) => (
+          <button key={m} type="button" onClick={() => setPeriodMonths(m)}
+            className={`rounded-full px-2.5 py-1 ${periodMonths === m
+              ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+              : 'border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Répartition des dépenses dans le temps (30 j glissant) + tendance mensuelle (#113) */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
@@ -185,7 +199,7 @@ export default function MoisTab() {
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
           <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
             <div className="flex items-baseline gap-2">
-              <h2 className="text-sm font-semibold">Tendance (6 mois)</h2>
+              <h2 className="text-sm font-semibold">Tendance mensuelle</h2>
               {momPct !== null && (
                 <span
                   className="text-xs font-medium"

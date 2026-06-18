@@ -139,6 +139,11 @@ def category_share_series(
         shares = {nom: round(amt / tot * 100, 1) for nom, amt in by.items()} if tot > 0 else {}
         points.append({"date": d.isoformat(), "shares": shares})
 
+    # Retire les points de tête sans aucune dépense (avant le début des données),
+    # pour que « dézoomer au maximum » n'affiche pas une longue zone vide.
+    while len(points) > 1 and not points[0]["shares"]:
+        points.pop(0)
+
     ordered = sorted(totals, key=lambda nom: -totals[nom])
     categories = [{"nom": nom, "couleur": colors[nom]} for nom in ordered]
     return {"categories": categories, "points": points}
@@ -254,7 +259,11 @@ def spending_trend(session, months: int = 6, *, today: Optional[dt.date] = None)
                 agg[key]["revenus"] += t.montant
             else:
                 agg[key]["depenses"] += -t.montant
-    return [
+    out = [
         {"mois": k, "revenus": round(agg[k]["revenus"], 2), "depenses": round(agg[k]["depenses"], 2)}
         for k in keys
     ]
+    # Retire les mois de tête vides (avant le début des données) pour le dézoom.
+    while len(out) > 1 and out[0]["revenus"] == 0 and out[0]["depenses"] == 0:
+        out.pop(0)
+    return out
