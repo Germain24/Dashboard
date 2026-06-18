@@ -116,7 +116,8 @@ def _looks_like_ofx(content: str) -> bool:
 _ACCESD_SKIP = re.compile(
     r"Virement\s*-\s*Acc\S*\s*Internet\s*/\s*(a|à|de)\s*(EOP|ET\s*1)"
     r"|Virement automatique au compte"
-    r"|Remises?\s*Mastercard",
+    r"|Remises?\s*Mastercard"
+    r"|Virement Interac.*Germain\s*De\s*Sou",   # virements vers/depuis soi-même
     re.IGNORECASE,
 )
 _ACCESD_DATE = re.compile(r"\d{4}/\d{2}/\d{2}$")
