@@ -13,6 +13,15 @@ from sqlmodel import Session, SQLModel, create_engine
 import app.models  # noqa: F401  — enregistre toutes les tables sur SQLModel.metadata
 
 
+@pytest.fixture(autouse=True)
+def _disable_adonis_scrape(monkeypatch):
+    """Garde-fou : la re-tarification Adonis peut lancer un scraper navigateur
+    (subprocess) au lancement de l'optimisation nutrition. Aucun test ne doit
+    déclencher navigateur/réseau → on la désactive partout. Le code de prod
+    reste actif par défaut (variable absente → activé)."""
+    monkeypatch.setenv("ADONIS_PRODUCE_PRICING", "0")
+
+
 @pytest.fixture
 def mem_engine():
     """Engine SQLite en mémoire avec toutes les tables créées."""
