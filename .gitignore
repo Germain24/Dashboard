@@ -36,10 +36,15 @@ client_secret_*.json
 *.credentials.json
 
 # --- Données / DB ---
-data/*.db
-data/*.db-journal
-data/*.db-shm
-data/*.db-wal
+# Bases SQLite (et sidecars WAL/SHM/journal) où qu'elles soient : elles
+# contiennent les données personnelles saisies dans l'app (finance, fiscalité,
+# santé…). Le dépôt est public — ne JAMAIS les versionner.
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
 # imports/ tracked via .gitkeep, contents ignored
 data/imports/*
 !data/imports/.gitkeep
@@ -47,6 +52,9 @@ data/imports/*
 backend/data/financials_by_company/
 data/backups/
 backend/data/cache_status.json
+# Soldes de comptes mémorisés à l'import (relevés) — données bancaires, jamais versionnées.
+data/account_balances.json
+backend/data/account_balances.json
 
 # --- OS ---
 .DS_Store
