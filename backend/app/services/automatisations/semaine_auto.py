@@ -19,6 +19,22 @@ from app.services.agenda.slots import free_slots
 
 # ─── Sport ────────────────────────────────────────────────────────────────────
 
+def _pick_sport_slot(slots: list[dict[str, Any]], duree_min: int) -> dt.datetime | None:
+    """Choisit le début du sport parmi les créneaux libres.
+
+    Préférence : matin (< 12 h), sinon après-midi (12-18 h), sinon soir, puis le
+    plus tôt dans la tranche. Retourne None si aucun créneau ne tient `duree_min`.
+    """
+    def band(h: int) -> int:
+        return 0 if h < 12 else 1 if h < 18 else 2
+
+    fit = [s for s in slots if s["duree_min"] >= duree_min]
+    if not fit:
+        return None
+    fit.sort(key=lambda s: (band(s["debut"].hour), s["debut"]))
+    return fit[0]["debut"]
+
+
 def suggest_sport_events(
     session: Session,
     week_start: dt.date,
@@ -26,7 +42,12 @@ def suggest_sport_events(
     duree_min: int = 60,
 ) -> list[dict[str, Any]]:
     """Propose un événement sport pour chaque jour ayant des exercices planifiés
-    dans le programme actif d'entraînement."""
+    dans le programme actif d'entraînement.
+
+    Le sport est placé sur un CRÉNEAU LIBRE (matin de préférence, sinon
+    après-midi/soir si la matinée est occupée — ex. travail), au lieu d'une heure
+    fixe. Repli sur `start_hour` si aucun créneau libre n'est trouvé.
+    """
     try:
         from app.services.entrainement.programs import get_active_program, list_program_days
     except ImportError:
@@ -46,7 +67,17 @@ def suggest_sport_events(
     suggestions: list[dict] = []
     for offset, label in sport_days.items():
         day = week_start + dt.timedelta(days=offset)
-        debut = dt.datetime.combine(day, dt.time(start_hour, 0))
+        from_dt = dt.datetime.combine(day, dt.time(0, 0))
+        to_dt = dt.datetime.combine(day, dt.time(23, 59))
+        # On ignore les events auto_semaine existants (sport/études déjà posés) pour
+        # que le placement reste STABLE au re-lancement (sinon doublons).
+        occupied = [
+            (e.debut, e.fin or e.debut + dt.timedelta(hours=1))
+            for e in list_events_for_window(session, from_dt, to_dt)
+            if e.source != "auto_semaine"
+        ]
+        slots = free_slots(day, occupied, min_duration_min=duree_min)
+        debut = _pick_sport_slot(slots, duree_min) or dt.datetime.combine(day, dt.time(start_hour, 0))
         fin = debut + dt.timedelta(minutes=duree_min)
         suggestions.append({
             "titre": f"Sport — {label}",
