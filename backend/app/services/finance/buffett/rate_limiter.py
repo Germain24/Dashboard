@@ -27,9 +27,11 @@ def active_paused_until() -> float | None:
 class RateLimiter:
     """Limite les requêtes à MAX_REQUESTS_PER_HOUR via une fenêtre glissante d'1 h.
 
-    Conçu pour un pool de workers : la réservation des jetons est protégée par un
-    verrou, mais aucun `sleep` n'est tenu sous ce verrou — les threads avancent en
-    parallèle jusqu'au plafond horaire, puis attendent l'expiration des jetons.
+    Deux garde-fous : (1) une fenêtre glissante d'1 h qui plafonne le total, et
+    (2) un lissage `min_interval` qui espace les réservations pour répartir la
+    charge uniformément (2000/h ≈ 0,55 req/s) au lieu de saturer en rafale.
+    La réservation des jetons est protégée par un verrou, mais aucun `sleep`
+    n'est tenu sous ce verrou.
     """
 
     # Plafond d'attente quand le quota horaire est atteint. Plutôt qu'une pause
@@ -91,6 +93,15 @@ class RateLimiter:
         with self.lock:
             cutoff = now - 3600.0
             self.request_timestamps = [t for t in self.request_timestamps if t > cutoff]
+            # Lissage : on espace les réservations d'au moins min_interval pour
+            # répartir les requêtes uniformément sur l'heure (2000/h ≈ 0,55 req/s)
+            # plutôt que de saturer en rafale puis attendre. Borné à max_pause :
+            # on re-tentera (l'IP a pu changer entre-temps).
+            since_last = now - self.last_ticker_time
+            if self.last_ticker_time and since_last < self.min_interval:
+                wait = min(self.min_interval - since_last, self.max_pause_seconds)
+                self.paused_until = now + wait
+                return wait
             capacity = self.max_requests_per_hour - len(self.request_timestamps)
             if capacity >= self.requests_per_ticker:
                 self.request_timestamps.extend([now] * self.requests_per_ticker)

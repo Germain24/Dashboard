@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime as dt
 from typing import Any, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +179,12 @@ class BuffettResultOut(BaseModel):
     pays: Optional[str] = None
     allocation_pct: Optional[float] = None
     broker_cible: Optional[str] = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score(self) -> Optional[float]:
+        """Alias de `chance_moat` attendu par le front (colonne Score)."""
+        return self.chance_moat
 
 
 class BuffettRunDetailOut(BaseModel):

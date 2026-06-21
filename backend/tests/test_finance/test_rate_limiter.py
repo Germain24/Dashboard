@@ -9,26 +9,25 @@ from app.services.finance.buffett.rate_limiter import RateLimiter
 
 
 def test_reserves_tokens_per_ticker():
+    # On avance le temps de min_interval entre les deux tickers : l'espacement
+    # est respecté, donc les 8 jetons sont bien réservés.
     rl = RateLimiter(max_requests_per_hour=8, requests_per_ticker=4)
-    rl.wait_for_slot()
-    rl.wait_for_slot()
+    assert rl._try_reserve(now=0.0) is None
+    assert rl._try_reserve(now=rl.min_interval) is None
     assert len(rl.request_timestamps) == 8
 
 
-def test_concurrent_calls_do_not_serialize():
-    """Avec une capacité ample, N appels concurrents finissent quasi instantanément
-    (l'ancien code sérialisait à ~min_interval par ticker en tenant le verrou)."""
-    rl = RateLimiter(max_requests_per_hour=400, requests_per_ticker=4)
-    n = 20
-    start = time.time()
-    threads = [threading.Thread(target=rl.wait_for_slot) for _ in range(n)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    elapsed = time.time() - start
-    assert len(rl.request_timestamps) == n * 4  # tous les jetons réservés
-    assert elapsed < 1.0  # pas de sérialisation 7,2 s/ticker
+def test_smooths_requests_at_min_interval():
+    """Lissage à 2000 req/h : deux tickers consécutifs sont espacés d'au moins
+    min_interval (= 3600 / (2000/4) = 7,2 s) pour ne pas saturer en rafale."""
+    rl = RateLimiter(max_requests_per_hour=2000, requests_per_ticker=4)
+    assert abs(rl.min_interval - 7.2) < 0.01
+    assert rl._try_reserve(now=1000.0) is None  # 1er ticker : réservé
+    wait = rl._try_reserve(now=1000.0)          # immédiat -> doit attendre
+    assert wait is not None
+    assert abs(wait - rl.min_interval) < 0.5
+    # Après l'intervalle, le créneau se libère.
+    assert rl._try_reserve(now=1000.0 + rl.min_interval) is None
 
 
 def test_blocks_when_hourly_cap_reached():

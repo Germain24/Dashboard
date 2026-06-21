@@ -96,3 +96,55 @@ def test_aggregate_weights_sums_per_ticker():
 def test_aggregate_weights_empty():
     assert aggregate_weights([]) == {}
     assert aggregate_weights(None) == {}
+
+
+# ── Colonne Score du détail de run : le front lit `score`, pas `chance_moat` ──
+
+def test_buffett_result_out_exposes_score_from_chance_moat():
+    """L'API doit exposer `score` (= chance_moat) sinon la colonne Score du
+    détail de run reste vide ("—") côté front (qui lit r.score)."""
+    from app.api.schemas_finance import BuffettResultOut
+    from app.models.finance import BuffettRunResult
+
+    row = BuffettRunResult(id=1, run_id=1, ticker="AAPL", nom="Apple",
+                           chance_moat=87.5, secteur="Tech", allocation_pct=12.0)
+    out = BuffettResultOut.model_validate(row)
+    assert out.score == 87.5
+    assert out.model_dump()["score"] == 87.5
+
+
+# ── Suppression d'un ticker delisté même avec un cache local périmé (#) ────────
+
+def test_delisted_ticker_with_stale_local_data_is_deleted(monkeypatch):
+    """Un ticker dont yfinance ne renvoie plus rien doit être supprimé même
+    s'il a un fichier local périmé. Avant le fix, merge_data réinjectait les
+    vieilles données -> data non vide -> jamais supprimé (relances inutiles)."""
+    import threading
+
+    from app.services.finance.buffett import runner
+
+    nonempty = pd.DataFrame({"2019": [1.0]}, index=["Total Revenue"])
+    local = {"income": nonempty, "balance": nonempty,
+             "info": {"quoteType": "EQUITY", "longName": "Old Co"}}
+    fresh_empty = {"income": pd.DataFrame(), "balance": pd.DataFrame(),
+                   "cashflow": pd.DataFrame(), "info": {}}
+
+    class FakeCache:
+        def get_cached_result(self, t):
+            return None
+
+        def get_status(self, t, fp):
+            return "too_old"
+
+        def update(self, *a, **k):
+            pass
+
+    monkeypatch.setattr(runner, "load_local_data", lambda t: local)
+    monkeypatch.setattr(runner, "_fetch_with_retry", lambda t, rl, sf=None: fresh_empty)
+
+    results: dict = {}
+    deleted: set = set()
+    ok = runner._analyze_one("DEADXYZ", results, FakeCache(), object(),
+                             deleted, threading.Lock())
+    assert ok is False
+    assert "DEADXYZ" in deleted

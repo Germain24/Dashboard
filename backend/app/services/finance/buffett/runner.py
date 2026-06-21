@@ -235,10 +235,15 @@ def _analyze_one(
     # 4. Telecharger / fusionner. Si internet coupe -> attendre et retenter CE ticker.
     data = local_data
     yfinance_repondu = False
+    fresh_empty = False  # yfinance a repondu mais SANS aucune donnee financiere
     if status in ("download", "update", "too_old") or data is None:
         new_data = _fetch_with_retry(ticker, rate_limiter, stop_flag)
         if new_data is not None:
             yfinance_repondu = True
+            # La décision de suppression se prend sur la réponse FRAÎCHE : sinon
+            # merge_data réinjecte le vieux cache local et le ticker delisté n'est
+            # jamais supprimé (relances inutiles).
+            fresh_empty = _is_empty_financials(new_data)
             if data is not None and status in ("update", "too_old"):
                 data = merge_data(data, new_data)
             else:
@@ -262,8 +267,10 @@ def _analyze_one(
         return True
 
     # 6. Suppression UNIQUEMENT si yfinance a repondu avec des donnees VIDES
-    #    (action delistee / invalide). Jamais sur l'age, jamais sur une coupure reseau.
-    if yfinance_repondu and _is_empty_financials(data):
+    #    (action delistee / invalide). On se base sur la réponse fraîche
+    #    (`fresh_empty`), pas sur le cache local fusionné. Jamais sur l'age,
+    #    jamais sur une coupure reseau.
+    if yfinance_repondu and fresh_empty:
         try:
             if file_path.exists():
                 file_path.unlink()
