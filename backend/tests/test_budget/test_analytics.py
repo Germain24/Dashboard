@@ -7,12 +7,26 @@ from types import SimpleNamespace
 
 from app.services.budget.analytics import (
     aggregate_expenses_by_category,
+    aggregate_expenses_by_tag,
     build_annual_csv,
     category_share_series,
     detect_recurring,
     month_keys,
     rolling_totals,
 )
+
+
+def test_aggregate_expenses_by_tag():
+    txs = [
+        SimpleNamespace(montant=-10.0, tags=["resto"]),
+        SimpleNamespace(montant=-20.0, tags=["resto", "sortie"]),  # compte dans 2 tags
+        SimpleNamespace(montant=-5.0, tags=[]),                     # → "Sans tag"
+        SimpleNamespace(montant=100.0, tags=["paie"]),             # revenu ignoré
+    ]
+    out = aggregate_expenses_by_tag(txs)
+    d = {o["tag"]: o["montant"] for o in out}
+    assert d == {"resto": 30.0, "sortie": 20.0, "Sans tag": 5.0}
+    assert out[0]["tag"] == "resto"   # trié décroissant
 
 
 def _tx(montant, category_id):

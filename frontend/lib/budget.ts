@@ -45,10 +45,16 @@ export async function fetchCashflow(from: string, to: string) {
 }
 
 export type CategorySpend = { category_id: number | null; nom: string; couleur: string; montant: number; pct: number }
+export type TagSpend = { tag: string; montant: number; pct: number }
 export type MonthTrend = { mois: string; revenus: number; depenses: number }
 
 export async function fetchByCategory(month: string): Promise<CategorySpend[]> {
   const d = await (await fetch(`${BASE}/by-category?month=${month}`)).json()
+  return Array.isArray(d) ? d : []
+}
+
+export async function fetchByTag(days = 365): Promise<TagSpend[]> {
+  const d = await (await fetch(`${BASE}/by-tag?days=${days}`)).json()
   return Array.isArray(d) ? d : []
 }
 

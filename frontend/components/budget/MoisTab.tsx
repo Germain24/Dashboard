@@ -3,9 +3,9 @@ import { useState } from 'react'
 import {
   useBudgetCategories, useByCategory, useEnvelopes,
   useRecurring, useRecurringProjection, useSavingsGoal, useSetSavingsGoal, useTrend,
-  useRollingSummary, useCategoryShare,
+  useRollingSummary, useCategoryShare, useByTag,
 } from '@/lib/queries/budget'
-import { CategoryShareChart, TrendChart } from './charts'
+import { CategoryShareChart, TrendChart, Donut } from './charts'
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
@@ -22,6 +22,7 @@ export default function MoisTab() {
   const [periodMonths, setPeriodMonths] = useState(12)   // zoom temporel des graphes
   const rollingQ = useRollingSummary(30)
   const catShareQ = useCategoryShare(periodMonths * 31, 30)
+  const byTagQ = useByTag(periodMonths * 31)
   const envelopesQ = useEnvelopes(month)
   const categoriesQ = useBudgetCategories()
   const byCatQ = useByCategory(month)
@@ -33,6 +34,7 @@ export default function MoisTab() {
 
   const rolling = rollingQ.data ?? { revenus: 0, depenses: 0, solde: 0, debut: '', fin: '', jours: 30 }
   const catShare = catShareQ.data ?? { categories: [], points: [] }
+  const byTag = Array.isArray(byTagQ.data) ? byTagQ.data : []
   const envelopes: any[] = Array.isArray(envelopesQ.data) ? envelopesQ.data : []
   const categories: any[] = Array.isArray(categoriesQ.data) ? categoriesQ.data : []
   const byCat = byCatQ.data ?? []
@@ -218,6 +220,21 @@ export default function MoisTab() {
           </div>
           <TrendChart data={trend} />
         </div>
+      </div>
+
+      {/* Dépenses par tag — les tags se comportent comme des catégories ; se met
+          à jour dès qu'on (dé)tague une transaction. */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
+        <h2 className="text-sm font-semibold mb-3">Dépenses par tag <span className="font-normal text-[var(--muted-foreground)]">· période</span></h2>
+        {byTag.length ? (
+          <Donut data={byTag.map((t, i) => ({
+            category_id: i, nom: t.tag,
+            couleur: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+            montant: t.montant, pct: t.pct,
+          }))} />
+        ) : (
+          <p className="text-sm text-[var(--muted-foreground)]">Aucune dépense taguée sur la période — ajoute des tags dans Transactions.</p>
+        )}
       </div>
 
       {/* Liens inter-modules (#120) : Cuisine (coût des courses) + Finance (épargne) */}

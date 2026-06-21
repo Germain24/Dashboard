@@ -8,7 +8,7 @@ import TransactionsTab from '@/components/budget/TransactionsTab'
 import EnveloppesTab from '@/components/budget/EnveloppesTab'
 
 const TABS = [
-  { id: 'mois', label: 'Ce mois', icon: CalendarDays },
+  { id: 'mois', label: 'Historique', icon: CalendarDays },
   { id: 'transactions', label: 'Transactions', icon: List },
   { id: 'enveloppes', label: 'Enveloppes', icon: PieChart },
 ]

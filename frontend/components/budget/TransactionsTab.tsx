@@ -213,10 +213,23 @@ export default function TransactionsTab() {
                             className="hover:text-[var(--destructive)]">×</button>
                         </span>
                       ))}
-                      <button type="button" onClick={() => addTag(tx)}
+                      <select
+                        aria-label="Ajouter un tag"
+                        value=""
+                        onChange={(e) => {
+                          const v = e.target.value
+                          e.target.value = ''
+                          if (!v) return
+                          if (v === '__new__') { addTag(tx); return }
+                          tagsMutation.mutate({ id: tx.id, tags: [...(tx.tags ?? []), v] })
+                        }}
                         className="rounded-[var(--radius-sm)] border border-dashed border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)] hover:bg-[var(--muted)]">
-                        + tag
-                      </button>
+                        <option value="">+ tag</option>
+                        {allTags.filter((t) => !(tx.tags ?? []).includes(t)).map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                        <option value="__new__">Nouveau tag…</option>
+                      </select>
                     </div>
                   </div>
                   <span className={`font-mono text-sm font-semibold ${revenu ? 'text-[var(--success)]' : 'text-[var(--foreground)]'}`}>

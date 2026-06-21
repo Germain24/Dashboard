@@ -50,6 +50,12 @@ def by_category(month: str, session: Session = Depends(get_session)):
     return analytics_svc.spending_by_category(session, month)
 
 
+@router.get("/by-tag")
+def by_tag(days: int = 365, session: Session = Depends(get_session)):
+    """Dépenses par tag sur les N derniers jours glissants (répartition par tag)."""
+    return analytics_svc.spending_by_tag(session, days=days)
+
+
 @router.get("/trend")
 def trend(months: int = 6, session: Session = Depends(get_session)):
     """Tendance mensuelle revenus/dépenses sur les N derniers mois (#113)."""

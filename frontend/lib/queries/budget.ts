@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   applyRules,
   fetchByCategory,
+  fetchByTag,
   fetchCashflow,
   fetchCategories,
   fetchDisposable,
@@ -38,6 +39,7 @@ export const budgetKeys = {
   disposable: (month: string) => [...budgetKeys.all, "disposable", month] as const,
   cashflow: (from: string, to: string) => [...budgetKeys.all, "cashflow", from, to] as const,
   byCategory: (month: string) => [...budgetKeys.all, "by-category", month] as const,
+  byTag: (days: number) => [...budgetKeys.all, "by-tag", days] as const,
   trend: (months: number) => [...budgetKeys.all, "trend", months] as const,
   rollingSummary: (days: number) => [...budgetKeys.all, "rolling-summary", days] as const,
   categoryShare: (days: number, window: number) => [...budgetKeys.all, "category-share", days, window] as const,
@@ -71,6 +73,9 @@ export function useCashflow(from: string, to: string) {
 }
 export function useByCategory(month: string) {
   return useQuery({ queryKey: budgetKeys.byCategory(month), queryFn: () => fetchByCategory(month) });
+}
+export function useByTag(days = 365) {
+  return useQuery({ queryKey: budgetKeys.byTag(days), queryFn: () => fetchByTag(days) });
 }
 export function useTrend(months = 6) {
   return useQuery({ queryKey: budgetKeys.trend(months), queryFn: () => fetchTrend(months) });

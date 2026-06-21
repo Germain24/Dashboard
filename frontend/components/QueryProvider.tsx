@@ -10,7 +10,7 @@
  *   connu est réhydraté avant le refetch.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MutationCache,
   QueryCache,
@@ -53,10 +53,17 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       : undefined,
   );
 
-  // Côté serveur (SSR/prerender), pas de persistance localStorage, mais un
-  // provider reste indispensable : les composants du layout (cloche, etc.)
-  // appellent useQuery dès le premier rendu.
-  if (!persister) {
+  // Le persister réhydrate le cache localStorage côté client : si on l'activait
+  // dès le 1er rendu, le HTML client (avec données en cache) différerait du HTML
+  // serveur (sans cache) → erreur d'hydratation. On ne branche donc la
+  // persistance qu'APRÈS le montage : 1er rendu client == rendu serveur (cache
+  // vide), puis réhydratation. (#hydration)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Côté serveur (SSR/prerender) OU avant montage : provider simple, cache vide.
+  // Indispensable car les composants du layout appellent useQuery dès le 1er rendu.
+  if (!persister || !mounted) {
     return (
       <QueryClientProvider client={client}>
         {children}

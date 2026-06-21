@@ -43,7 +43,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr-CA" className={`${publicSans.variable} ${libreCaslon.variable}`}>
+    // suppressHydrationWarning : le script anti-flash applique data-theme /
+    // data-density sur <html> avant l'hydratation → écart serveur/client attendu
+    // et volontaire (sinon flash de thème). Ne supprime l'avertissement que pour
+    // les attributs de <html>, rien d'autre.
+    <html lang="fr-CA" className={`${publicSans.variable} ${libreCaslon.variable}`} suppressHydrationWarning>
       <head>
         {/* Anti-flash : applique le thème choisi avant le premier paint. */}
         <script

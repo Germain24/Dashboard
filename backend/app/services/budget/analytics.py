@@ -38,6 +38,36 @@ def aggregate_expenses_by_category(txs, cat_meta: dict[Optional[int], dict]) -> 
     return out
 
 
+def aggregate_expenses_by_tag(txs) -> list[dict[str, Any]]:
+    """Somme des dépenses (montant<0) par tag, triée desc. Pur.
+
+    Une transaction compte dans CHACUN de ses tags (les tags sont multiples) ;
+    celles sans tag sont regroupées sous « Sans tag »."""
+    by_tag: dict[str, float] = {}
+    for t in txs:
+        if t.montant >= 0:
+            continue
+        keys = (getattr(t, "tags", None) or []) or ["Sans tag"]
+        for k in keys:
+            by_tag[k] = by_tag.get(k, 0.0) + (-t.montant)
+    total = sum(by_tag.values())
+    out = [
+        {"tag": k, "montant": round(v, 2),
+         "pct": round(v / total * 100, 1) if total > 0 else 0.0}
+        for k, v in by_tag.items()
+    ]
+    out.sort(key=lambda x: x["montant"], reverse=True)
+    return out
+
+
+def spending_by_tag(session, *, days: int = 365, today: Optional[dt.date] = None) -> list[dict[str, Any]]:
+    """Dépenses par tag sur les `days` derniers jours glissants."""
+    from app.services.budget import transactions as tx_svc
+    end = today or dt.date.today()
+    txs = tx_svc.get_transactions(session, from_date=end - dt.timedelta(days=days - 1), to_date=end)
+    return aggregate_expenses_by_tag(txs)
+
+
 def month_keys(today: dt.date, months: int) -> list[str]:
     """Les `months` derniers mois (YYYY-MM), du plus ancien au plus récent (incluant le courant)."""
     keys: list[str] = []
