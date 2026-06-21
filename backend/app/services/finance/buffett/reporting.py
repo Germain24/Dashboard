@@ -11,6 +11,22 @@ from sqlmodel import Session, select
 from app.models.finance import BuffettRun, BuffettRunResult
 
 
+def delete_run(session: Session, run_id: int) -> bool:
+    """Supprime un run Buffett et tous ses résultats. False si introuvable.
+
+    Sert à retirer une analyse bloquée/interrompue (#) depuis l'UI."""
+    run = session.get(BuffettRun, run_id)
+    if run is None:
+        return False
+    for r in session.exec(
+        select(BuffettRunResult).where(BuffettRunResult.run_id == run_id)
+    ).all():
+        session.delete(r)
+    session.delete(run)
+    session.commit()
+    return True
+
+
 def create_run(session: Session, n_total: int, params: dict) -> BuffettRun:
     """Crée un run en statut 'running'."""
     run = BuffettRun(

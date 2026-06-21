@@ -64,6 +64,8 @@ export function PatrimoineTab() {
         <Stat label="Passifs" value={eur(data.passifs)} negative />
       </div>
 
+      <AccountBreakdownChart />
+
       <NetWorthChart />
 
 
@@ -102,6 +104,88 @@ export function PatrimoineTab() {
 
 const fmtDay = (iso: string) =>
   new Date(iso + "T12:00:00").toLocaleDateString("fr-CA", { day: "2-digit", month: "short" });
+
+const ACCOUNT_PALETTE = [
+  "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6",
+  "#06b6d4", "#ec4899", "#84cc16", "#14b8a6", "#f97316",
+];
+
+const fmtMonthYear = (iso: string) =>
+  new Date(iso + "T12:00:00").toLocaleDateString("fr-CA", { month: "short", year: "2-digit" });
+
+/** Aire empilée : valeur brute ventilée par compte, jour par jour (report du
+ *  dernier solde connu de chaque relevé). Une couleur par compte. */
+function AccountBreakdownChart() {
+  const { data } = useQuery({
+    queryKey: [...KEY, "breakdown"],
+    queryFn: () => financeApi.patrimoineBreakdownHistory(3650),
+  });
+  const dates = data?.dates ?? [];
+  const comptes = data?.comptes ?? [];
+  const series = data?.series ?? {};
+  const total = data?.total ?? [];
+  const color = (i: number) => ACCOUNT_PALETTE[i % ACCOUNT_PALETTE.length];
+
+  if (dates.length < 2 || comptes.length === 0) {
+    return (
+      <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution par compte</p>
+        <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+          Pas encore assez de relevés pour tracer la répartition de ta valeur brute dans le temps.
+        </p>
+      </div>
+    );
+  }
+  const n = dates.length;
+  const max = Math.max(1, ...total);
+  const W = 100, H = 100;
+  const X = (i: number) => ((i / (n - 1)) * W).toFixed(2);
+  const Y = (v: number) => (H - (v / max) * H).toFixed(2);
+
+  // Aires empilées : bande de chaque compte entre le cumul précédent et le sien.
+  let prev = new Array(n).fill(0);
+  const bands = comptes.map((c, ci) => {
+    const vals = series[c] ?? [];
+    const cum = prev.map((p, i) => p + (vals[i] ?? 0));
+    const top = cum.map((v, i) => `${X(i)},${Y(v)}`);
+    const bottom: string[] = [];
+    for (let i = n - 1; i >= 0; i--) bottom.push(`${X(i)},${Y(prev[i])}`);
+    const poly = [...top, ...bottom].join(" ");
+    prev = cum;
+    return { c, color: color(ci), poly };
+  });
+
+  const last = total[total.length - 1] ?? 0;
+  const labelIdx = [0, Math.floor(n / 4), Math.floor(n / 2), Math.floor((3 * n) / 4), n - 1];
+
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution par compte · valeur brute</p>
+        <span className="shrink-0 text-xs tabular-nums text-[var(--foreground)]">{eur(last)}</span>
+      </div>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-48 w-full"
+        role="img" aria-label="Évolution de la valeur par compte">
+        {bands.map((b) => (
+          <polygon key={b.c} points={b.poly} fill={b.color} fillOpacity={0.85} stroke="none">
+            <title>{b.c}</title>
+          </polygon>
+        ))}
+      </svg>
+      <div className="mt-1 flex justify-between text-[10px] tabular-nums text-[var(--muted-foreground)]">
+        {labelIdx.map((i) => <span key={i}>{fmtMonthYear(dates[i])}</span>)}
+      </div>
+      <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+        {comptes.map((c, ci) => (
+          <li key={c} className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color(ci) }} />
+            <span className="text-[var(--muted-foreground)]">{c}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 /** Courbe d'évolution du patrimoine net dans le temps (#257). */
 function NetWorthChart() {

@@ -50,13 +50,25 @@ def buffett_progress(session: Session = Depends(get_session)):
     # immediatement resumable pour debloquer le bouton "Reprendre".
     if not active:
         stuck = session.exec(
-            select(BuffettRun).where(BuffettRun.statut == "en_cours")
+            select(BuffettRun).where(
+                BuffettRun.statut.in_(["en_cours", "interrompu"])  # type: ignore[attr-defined]
+            )
         ).all()
+        changed = False
         for sr in stuck:
-            sr.statut = "interrompu"
-            sr.erreur = "Process interrompu (relancez pour reprendre)"
-            session.add(sr)
-        if stuck:
+            # Analyse complète (100 %) mais process fermé avant le marquage final :
+            # on la termine au lieu de boucler indéfiniment sur "Reprendre".
+            if (sr.n_tickers_total or 0) > 0 and (sr.n_tickers_analyzed or 0) >= sr.n_tickers_total:
+                sr.statut = "termine"
+                sr.erreur = None
+                session.add(sr)
+                changed = True
+            elif sr.statut == "en_cours":
+                sr.statut = "interrompu"
+                sr.erreur = "Process interrompu (relancez pour reprendre)"
+                session.add(sr)
+                changed = True
+        if changed:
             session.commit()
 
     run = session.exec(
@@ -93,6 +105,14 @@ def buffett_run_detail(run_id: int, session: Session = Depends(get_session)):
         .order_by(BuffettRunResult.allocation_pct.desc())
     ).all())
     return BuffettRunDetailOut(run=run, top_results=top, allocation_cible=alloc)
+
+
+@router.delete("/buffett/runs/{run_id}", status_code=204)
+def buffett_run_delete(run_id: int, session: Session = Depends(get_session)):
+    """Supprime un run Buffett (et ses résultats) — ex. analyse bloquée."""
+    from app.services.finance.buffett.reporting import delete_run
+    if not delete_run(session, run_id):
+        raise HTTPException(404, f"Run {run_id} introuvable")
 
 
 @router.get("/buffett/runs/{run_id}/export")
@@ -206,7 +226,7 @@ def buffett_run_export_csv(run_id: int, session: Session = Depends(get_session))
     ).all())
 
     buf = _io.StringIO()
-    writer = csv.writer(buf)
+    writer = csv.writer(buf, delimiter=';')
     writer.writerow([
         "Ticker", "Nom", "Secteur", "Pays", "Score MOAT", "Achat",
         "Allocation cible (%)", "Broker cible", "PER", "Prix",

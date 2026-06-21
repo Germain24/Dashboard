@@ -53,6 +53,13 @@ export interface NetWorthHistory {
   days: number;
   points: NetWorthPoint[];
 }
+export interface NetWorthBreakdown {
+  days: number;
+  dates: string[];
+  comptes: string[];
+  series: Record<string, number[]>;
+  total: number[];
+}
 
 export interface HistoryPoint {
   date: string;
@@ -303,6 +310,7 @@ export const financeApi = {
   // Buffett
   buffettRuns: () => get<BuffettRunOut[]>("/buffett/runs"),
   buffettRun: (id: number) => get<BuffettRunDetail>(`/buffett/runs/${id}`),
+  buffettDeleteRun: (id: number) => del(`/buffett/runs/${id}`),
   buffettLatest: () => get<BuffettRunOut | null>("/buffett/latest"),
   buffettProgress: () => get<BuffettProgress>("/buffett/progress"),
   backtest: (periode = "2y") =>
@@ -374,6 +382,8 @@ export const financeApi = {
   // Patrimoine net (RealT, emprunts…)
   patrimoine: () => get<NetWorth>("/patrimoine"),
   patrimoineHistory: (days = 365) => get<NetWorthHistory>(`/patrimoine/history?days=${days}`),
+  patrimoineBreakdownHistory: (days = 365) =>
+    get<NetWorthBreakdown>(`/patrimoine/breakdown-history?days=${days}`),
   patrimoineCreate: (item: PatrimoineItemCreate) => post<PatrimoineItem>("/patrimoine", item),
   patrimoineUpdate: (id: number, patch_: Partial<PatrimoineItemCreate>) =>
     patch<PatrimoineItem>(`/patrimoine/${id}`, patch_),

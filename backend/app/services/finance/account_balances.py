@@ -37,9 +37,14 @@ def set_balance(
     *,
     devise: str = "CAD",
     date: str | None = None,
+    source: str | None = None,
     path: Path | None = None,
 ) -> dict:
-    """Enregistre (upsert) le solde courant d'un compte. Renvoie l'entrée écrite."""
+    """Enregistre (upsert) le solde courant d'un compte. Renvoie l'entrée écrite.
+
+    `source` : nom du fichier d'origine (ex. relevé) — permet d'éviter de re-parser
+    un relevé déjà importé.
+    """
     p = path or _default_path()
     data = get_balances(path=p)
     entry = {
@@ -47,6 +52,8 @@ def set_balance(
         "devise": devise,
         "date": date or dt.date.today().isoformat(),
     }
+    if source is not None:
+        entry["source"] = source
     data[compte] = entry
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")

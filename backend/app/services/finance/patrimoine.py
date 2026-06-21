@@ -8,6 +8,7 @@ avoirs/dettes saisis à la main pour donner un patrimoine net.
 from __future__ import annotations
 
 import datetime as dt
+import re
 from types import SimpleNamespace
 from typing import Any
 
@@ -30,17 +31,26 @@ def to_eur(amount: float, devise: str | None) -> float:
         return round(float(amount), 2)
 
 
+def _norm_key(s: str | None) -> str:
+    """Normalise pour le rapprochement libellé↔compte : minuscules, alphanum.
+
+    Ainsi « Trading 212 » (libellé) == clé « trading212 », et « desjardins-eop »
+    == « Desjardins »."""
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
 def _load_auto_balances() -> dict[str, dict]:
     """Soldes connus, indexés par clé normalisée (préfixe du nom de compte).
 
-    "desjardins-eop"/"desjardins-debit" -> clé "desjardins". Best-effort : un
-    fichier absent/illisible n'empêche jamais le calcul du patrimoine.
+    "desjardins-eop"/"desjardins-debit" -> clé "desjardins" ; "trading212" ->
+    "trading212". Best-effort : un fichier absent/illisible n'empêche jamais le
+    calcul du patrimoine.
     """
     try:
         from app.services.finance.account_balances import get_balances
         out: dict[str, dict] = {}
         for compte, info in get_balances().items():
-            key = str(compte).lower().split("-")[0].strip()
+            key = _norm_key(str(compte).split("-")[0])
             if key:
                 out[key] = info
         return out
@@ -49,12 +59,12 @@ def _load_auto_balances() -> dict[str, dict]:
 
 
 def _match_auto_balance(label: str | None, balances: dict[str, dict]) -> dict | None:
-    """Trouve le solde auto correspondant à un libellé (ex. "Desjardins" -> desjardins)."""
+    """Trouve le solde auto correspondant à un libellé (ex. "Trading 212" -> trading212)."""
     if not balances or not label:
         return None
-    norm = label.lower()
+    norm = _norm_key(label)
     for key, info in balances.items():
-        if key in norm:
+        if key and key in norm:
             return info
     return None
 
@@ -207,6 +217,38 @@ def record_net_worth_snapshot(
     session.commit()
     session.refresh(snap)
     return snap
+
+
+def _match_history(label: str | None, hist: dict) -> bool:
+    """Vrai si un compte du chart d'historique (relevés) correspond au libellé."""
+    n = _norm_key(label)
+    return any(_norm_key(k) in n or n in _norm_key(k) for k in hist if _norm_key(k))
+
+
+def net_worth_breakdown_history(session: Session, *, days: int = 365) -> dict[str, Any]:
+    """Évolution de la valeur brute (actifs) ventilée PAR COMPTE, en EUR.
+
+    Histogramme empilé mensuel reconstruit depuis les RELEVÉS (valeur de clôture
+    de chaque mois, reportée entre relevés, 0 avant le 1er) — remonte aussi loin
+    que les relevés le permettent (Banque Populaire dès 2022, Trading212,
+    Desjardins). Les comptes sans relevé exploitable (RealT, Wise, Bourse Direct…)
+    utilisent leur valeur courante depuis leur date de création. `days` ignoré
+    (on part de la donnée la plus ancienne). Voir [[adonis...]]→account_history.
+    """
+    items = [i for i in list_items(session) if i.type == "actif"]
+    if not items:
+        return {"dates": [], "comptes": [], "series": {}, "total": []}
+    from app.services.finance.account_history import account_history_points, build_daily_series
+    try:
+        hist = account_history_points()
+    except Exception:
+        hist = {}
+    manual = [
+        (i.label, to_eur(i.valeur, i.devise), i.created_at.date())
+        for i in items
+        if not _match_history(i.label, hist)
+    ]
+    return build_daily_series(hist, manual)
 
 
 def net_worth_history(session: Session, *, days: int = 365) -> list[dict[str, Any]]:

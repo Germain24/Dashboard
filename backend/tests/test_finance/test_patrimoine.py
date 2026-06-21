@@ -69,6 +69,27 @@ def test_net_worth_overlays_auto_account_balance(session, monkeypatch):
     assert dj["valeur_eur"] == round(5763.43 * 0.7, 2)
 
 
+def test_breakdown_history_daily_backfill_for_manual_accounts(session):
+    # account_history_points est neutralisé en test (conftest) → comptes manuels :
+    # valeur courante depuis la création, 0 avant, JOUR par JOUR.
+    from app.models.patrimoine import PatrimoineItem
+    from app.services.finance.patrimoine import net_worth_breakdown_history
+
+    session.add(PatrimoineItem(type="actif", label="Wise", valeur=100.0, devise="EUR",
+                               created_at=dt.datetime(2024, 1, 10)))
+    session.add(PatrimoineItem(type="actif", label="RealT", valeur=50.0, devise="EUR",
+                               created_at=dt.datetime(2024, 3, 5)))
+    session.commit()
+    out = net_worth_breakdown_history(session)
+    assert out["comptes"] == ["Wise", "RealT"]            # ordre = création
+    assert out["dates"][0] == "2024-01-10"                # 1er jour = plus ancienne création
+    assert out["series"]["Wise"][0] == 100.0
+    assert out["series"]["RealT"][0] == 0.0               # 0 avant le 5 mars
+    mar = out["dates"].index("2024-03-05")
+    assert out["series"]["RealT"][mar] == 50.0
+    assert out["total"][mar] == 150.0
+
+
 def test_account_balances_roundtrip(tmp_path):
     from app.services.finance import account_balances as ab
     p = tmp_path / "bal.json"

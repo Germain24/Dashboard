@@ -38,6 +38,13 @@ def get_patrimoine(session: Session = Depends(get_session)):
     Enregistre au passage la photo du jour (idempotente) pour alimenter le
     suivi dans le temps (#257) — utile même sans planificateur actif.
     """
+    # Comptes-titres : auto-remplir la valeur depuis le dernier relevé déposé
+    # (Trading212 pour l'instant). Best-effort — ne jamais casser la lecture.
+    try:
+        from app.services.finance.trading212 import refresh_trading212_balance
+        refresh_trading212_balance()
+    except Exception:
+        pass
     summary = svc.net_worth_summary(session)
     try:
         svc.record_net_worth_snapshot(session)
@@ -50,6 +57,12 @@ def get_patrimoine(session: Session = Depends(get_session)):
 def get_patrimoine_history(days: int = 365, session: Session = Depends(get_session)):
     """Série chronologique du patrimoine net (#257)."""
     return {"days": days, "points": svc.net_worth_history(session, days=days)}
+
+
+@router.get("/patrimoine/breakdown-history")
+def get_patrimoine_breakdown_history(days: int = 365, session: Session = Depends(get_session)):
+    """Valeur brute ventilée par compte dans le temps (histogramme empilé)."""
+    return {"days": days, **svc.net_worth_breakdown_history(session, days=days)}
 
 
 @router.post("/patrimoine", status_code=201)

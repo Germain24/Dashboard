@@ -4,6 +4,7 @@
  *  vue détail et panneau d'actions extraits). */
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { Trash2 } from "lucide-react";
 import {
   financeApi, type BuffettRunOut, type BuffettRunDetail, type BuffettProgress,
 } from "@/lib/finance";
@@ -55,6 +56,17 @@ export function BuffettTab() {
   const openRun = async (id: number) => {
     try { setSelected(await financeApi.buffettRun(id)); }
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Erreur"); }
+  };
+
+  // Supprimer une analyse (ex. run bloqué/interrompu) + ses résultats.
+  const deleteRun = async (id: number) => {
+    if (!confirm("Supprimer cette analyse et ses résultats ?")) return;
+    try {
+      await financeApi.buffettDeleteRun(id);
+      if (selected?.run.id === id) setSelected(null);
+      setProgress(null);
+      await loadRuns();
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Erreur suppression"); }
   };
 
   // Run interrompu (programme ferme en cours d'analyse) -> reprise possible
@@ -166,19 +178,25 @@ export function BuffettTab() {
                   }`}
                   aria-hidden="true"
                 />
-                <button onClick={() => openRun(r.id)}
-                  className="w-full text-left rounded-[var(--radius-lg)] border border-[var(--border)]
-                    p-3 hover:bg-[var(--muted)] transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{r.run_date}</span>
-                    <StatusBadge s={r.statut} />
-                  </div>
-                  <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                    {r.n_tickers_analyzed ?? 0} tickers analysés
-                    {r.duree_sec ? ` · ${Math.round(r.duree_sec / 60)} min` : ""}
-                  </p>
-                  {r.resume && <p className="text-xs mt-1 text-[var(--foreground)]">{r.resume}</p>}
-                </button>
+                <div className="flex items-start gap-2">
+                  <button onClick={() => openRun(r.id)}
+                    className="flex-1 text-left rounded-[var(--radius-lg)] border border-[var(--border)]
+                      p-3 hover:bg-[var(--muted)] transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{r.run_date}</span>
+                      <StatusBadge s={r.statut} />
+                    </div>
+                    <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                      {r.n_tickers_analyzed ?? 0} tickers analysés
+                      {r.duree_sec ? ` · ${Math.round(r.duree_sec / 60)} min` : ""}
+                    </p>
+                    {r.resume && <p className="text-xs mt-1 text-[var(--foreground)]">{r.resume}</p>}
+                  </button>
+                  <button onClick={() => deleteRun(r.id)} aria-label="Supprimer l'analyse"
+                    className="mt-1 rounded-md p-2 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--destructive)] transition-colors">
+                    <Trash2 size={14} aria-hidden="true" />
+                  </button>
+                </div>
               </li>
             ))}
           </ol>

@@ -14,12 +14,19 @@ import app.models  # noqa: F401  — enregistre toutes les tables sur SQLModel.m
 
 
 @pytest.fixture(autouse=True)
-def _disable_adonis_scrape(monkeypatch):
-    """Garde-fou : la re-tarification Adonis peut lancer un scraper navigateur
-    (subprocess) au lancement de l'optimisation nutrition. Aucun test ne doit
-    déclencher navigateur/réseau → on la désactive partout. Le code de prod
-    reste actif par défaut (variable absente → activé)."""
+def _isolate_external_side_effects(monkeypatch, tmp_path):
+    """Garde-fous de test (aucun navigateur/réseau, aucun fichier réel) :
+    - re-tarification Adonis désactivée (sinon scraper navigateur en subprocess) ;
+    - fichier des soldes de comptes isolé en tmp (sinon net_worth_summary lit le
+      vrai data/account_balances.json et fausse les tests patrimoine).
+    Le code de prod reste actif par défaut."""
     monkeypatch.setenv("ADONIS_PRODUCE_PRICING", "0")
+    from app.services.finance import account_balances as _ab
+    monkeypatch.setattr(_ab, "_default_path", lambda: tmp_path / "account_balances.json")
+    # L'historique par compte scanne/parse les vrais relevés (PDF) → désactivé en
+    # test (sinon lecture de fichiers réels + lenteur).
+    from app.services.finance import account_history as _ah
+    monkeypatch.setattr(_ah, "account_history_points", lambda **k: {})
 
 
 @pytest.fixture
