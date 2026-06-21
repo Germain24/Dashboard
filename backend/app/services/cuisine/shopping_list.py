@@ -128,20 +128,45 @@ def _aggregate(session: Session, entries: list[MealPlanEntry]) -> list[dict]:
     return list(aggregated.values())
 
 
+def pantry_to_inventaire(pantry_items: list[dict]) -> dict[str, float]:
+    """Convertit le garde-manger en inventaire {ingredient: quantité} (sommé).
+
+    Le garde-manger = aliments « gratuits » déjà possédés → déduits des courses."""
+    inv: dict[str, float] = {}
+    for it in pantry_items:
+        nom = (it.get("ingredient") or "").strip()
+        if not nom:
+            continue
+        try:
+            q = float(it.get("quantite") or 0)
+        except (TypeError, ValueError):
+            q = 0.0
+        if q:
+            inv[nom] = inv.get(nom, 0.0) + q
+    return inv
+
+
 def compute_shopping(
     session: Session, semaine: str, jours: list[int] | None = None,
     csv_path: Optional[Path] = None,
 ) -> list[dict]:
     """Liste de courses calculée à la volée, avec déduction de l'inventaire.
 
-    Ajoute une ligne 'QuantiteDispo' dans aliments.csv pour que les aliments
-    déjà en stock soient automatiquement soustraits.
+    Déduit ce qu'on possède déjà : la ligne 'QuantiteDispo' d'aliments.csv ET le
+    garde-manger (data/cuisine_pantry.json) — un ingrédient présent au garde-manger
+    réduit (ou supprime) la quantité à acheter.
     """
     q = select(MealPlanEntry).where(MealPlanEntry.semaine == semaine)
     if jours is not None:
         q = q.where(MealPlanEntry.jour.in_(jours))  # type: ignore[attr-defined]
     items = _aggregate(session, list(session.exec(q).all()))
     inventaire = load_inventaire(csv_path)
+    try:
+        from app.services.cuisine import pantry as pantry_svc
+        for nom, qte in pantry_to_inventaire(pantry_svc.list_items()).items():
+            inventaire[nom] = inventaire.get(nom, 0.0) + qte
+    except Exception:
+        pass  # best-effort : le garde-manger ne casse jamais la liste
     return apply_inventaire(items, inventaire)
 
 

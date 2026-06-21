@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { PantryItem } from '@/lib/cuisine'
 import { useAddPantryItem, useDeletePantryItem, usePantry } from '@/lib/queries/cuisine'
+import { useSanteAliments } from '@/lib/queries/sante'
 
 const RAYONS = [
   'Fruits & légumes', 'Produits laitiers', 'Viandes & poissons', 'Épicerie sèche',
@@ -155,6 +156,12 @@ function AddPantryItemModal({ onClose, onAdded }: { onClose: () => void; onAdded
   const [rayon, setRayon] = useState('Autre')
   const addMutation = useAddPantryItem()
   const saving = addMutation.isPending
+  // Aliments du catalogue CIQUAL : choisir un nom connu permet de déduire
+  // automatiquement le stock de la liste de courses (noms qui correspondent).
+  const alimentsQ = useSanteAliments()
+  const alimentNames = (alimentsQ.data ?? [])
+    .map((a) => a.nom)
+    .sort((a, b) => a.localeCompare(b, 'fr'))
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -202,7 +209,13 @@ function AddPantryItemModal({ onClose, onAdded }: { onClose: () => void; onAdded
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">Ingrédient</span>
             <input value={ingredient} onChange={(e) => setIngredient(e.target.value)}
-              placeholder="Lait, Oeufs, Farine…" className={inputCls} />
+              list="pantry-aliments" placeholder="Choisir un aliment (CIQUAL)…" className={inputCls} />
+            <datalist id="pantry-aliments">
+              {alimentNames.map((n) => <option key={n} value={n} />)}
+            </datalist>
+            <span className="mt-1 block text-[10px] text-[var(--muted-foreground)]">
+              Choisis un aliment du catalogue pour qu'il soit déduit de ta liste de courses.
+            </span>
           </label>
 
           <div className="grid grid-cols-2 gap-3">
