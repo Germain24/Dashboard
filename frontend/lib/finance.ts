@@ -19,6 +19,8 @@ export interface PatrimoineItem {
   categorie: string;
   valeur: number;        // valeur dans la devise native
   valeur_eur?: number;   // convertie en EUR (calculée côté serveur)
+  valeur_source?: "auto"; // "auto" = solde importé (relevé), non saisi à la main
+  valeur_auto_date?: string | null; // date du solde auto (relevé)
   taux_pct: number | null;
   mensualite: number | null;
   devise: string;

@@ -6,6 +6,7 @@ import datetime as dt
 
 from app.services.budget.desjardins_pdf import (
     _unwrap_pdf,
+    latest_eop_balance,
     parse_desjardins_eop,
     parse_desjardins_mastercard,
 )
@@ -128,6 +129,15 @@ def test_eop_wrapped_payment_does_not_leak_into_neighbor():
     out = parse_desjardins_eop(text)
     assert [d[2] for d in out] == ["Assurance / DESJARDINS ASS. GENERALES"]
     assert out[0][1] == -38.80   # 825.34 - 864.14, le paiement carte est bien consommé
+
+
+def test_latest_eop_balance_is_last_solde():
+    # Le dernier solde du relevé (Interet sur EOP, 31 oct) = solde courant.
+    assert latest_eop_balance(_EOP_TEXT) == (dt.date(2025, 10, 31), 5763.43)
+
+
+def test_latest_eop_balance_none_without_dates():
+    assert latest_eop_balance("aucune ligne datée") is None
 
 
 def test_unwrap_passthrough_real_pdf():

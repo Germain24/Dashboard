@@ -48,6 +48,37 @@ def test_net_worth_converts_local_currencies(session, monkeypatch):
     assert realt["valeur_eur"] == 900  # 1000 USD × 0.9
 
 
+def test_net_worth_overlays_auto_account_balance(session, monkeypatch):
+    """Une ligne dont le libellé correspond à un compte connu prend
+    automatiquement le solde importé (Desjardins) au lieu de la saisie manuelle."""
+    rates = {("CAD", "EUR"): 0.7}
+    monkeypatch.setattr(
+        "app.services.finance.fx.convert",
+        lambda amount, base, quote: round(amount * rates[(base, quote)], 2),
+    )
+    monkeypatch.setattr(
+        "app.services.finance.account_balances.get_balances",
+        lambda: {"desjardins-eop": {"solde": 5763.43, "devise": "CAD", "date": "2025-10-31"}},
+    )
+    create_item(session, type="actif", label="Desjardins", valeur=10.0,
+                categorie="Compte en banque", devise="CAD")
+    out = net_worth_summary(session)
+    dj = next(i for i in out["items"] if i["label"] == "Desjardins")
+    assert dj["valeur"] == 5763.43          # solde auto, pas la saisie manuelle (10)
+    assert dj["valeur_source"] == "auto"
+    assert dj["valeur_eur"] == round(5763.43 * 0.7, 2)
+
+
+def test_account_balances_roundtrip(tmp_path):
+    from app.services.finance import account_balances as ab
+    p = tmp_path / "bal.json"
+    ab.set_balance("desjardins-eop", 1234.5, devise="CAD", date="2026-06-20", path=p)
+    data = ab.get_balances(path=p)
+    assert data["desjardins-eop"]["solde"] == 1234.5
+    assert data["desjardins-eop"]["devise"] == "CAD"
+    assert data["desjardins-eop"]["date"] == "2026-06-20"
+
+
 @pytest.fixture()
 def session():
     e = create_engine("sqlite:///:memory:")

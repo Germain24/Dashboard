@@ -158,6 +158,40 @@ def parse_desjardins_eop(text: str) -> list[tuple[dt.date, float, str]]:
     return out
 
 
+def latest_eop_balance(text: str) -> tuple[dt.date, float] | None:
+    """Solde courant d'un relevé compte chèque EOP + sa date.
+
+    Le dernier nombre de la DERNIÈRE ligne datée du compte chèque est le solde
+    courant (les lignes exclues, ex. virements internes, font évoluer le solde
+    mais comptent pour le solde final). Sert à auto-remplir la valeur du compte
+    Desjardins dans le patrimoine (plus besoin de la saisir à la main).
+    `text` doit être extrait en mode layout.
+    """
+    text = re.split(r"COMPTE D'EPARGNE", text)[0]  # ignore la section épargne
+    ym = re.search(r"(20\d{2})", text)
+    if not ym:
+        return None
+    year = int(ym.group(1))
+    rows: list[str] = []
+    for line in text.splitlines():
+        if _EOP_LINE.match(line):
+            rows.append(line)
+        elif rows and line.strip() and "Solde report" not in line and not _EOP_AMT.search(rows[-1]):
+            rows[-1] += " " + line.strip()
+    for row in reversed(rows):
+        m = _EOP_LINE.match(row)
+        amts = _EOP_AMT.findall(m.group(4))
+        mon = _EOP_MONTHS.get(re.sub(r"[^A-Z]", "", m.group(2).upper()))
+        if not amts or not mon:
+            continue
+        try:
+            d = dt.date(year, mon, int(m.group(1)))
+        except ValueError:
+            continue
+        return d, _eop_num(amts[-1])
+    return None
+
+
 def _unwrap_pdf(data: bytes) -> bytes | None:
     """Renvoie les octets PDF de `data`.
 
@@ -209,9 +243,19 @@ def import_desjardins_pdf(
         parsed = parse_desjardins_mastercard(plain)
         fmt = "desjardins-mc"
     else:
-        parsed = parse_desjardins_eop(extract_pdf_text(pdf, layout=True))
+        layout = extract_pdf_text(pdf, layout=True)
+        parsed = parse_desjardins_eop(layout)
         fmt = "desjardins-eop"
     compte = compte or fmt
+    # Compte chèque : mémorise le solde courant pour auto-remplir le patrimoine.
+    if fmt == "desjardins-eop":
+        bal = latest_eop_balance(layout)
+        if bal is not None:
+            try:
+                from app.services.finance.account_balances import set_balance
+                set_balance(compte, bal[1], devise="CAD", date=bal[0].isoformat())
+            except Exception:
+                pass  # best-effort : ne jamais casser l'import
     existing = {
         (t.date, round(t.montant, 2), t.marchand)
         for t in session.exec(

@@ -30,6 +30,35 @@ def to_eur(amount: float, devise: str | None) -> float:
         return round(float(amount), 2)
 
 
+def _load_auto_balances() -> dict[str, dict]:
+    """Soldes connus, indexés par clé normalisée (préfixe du nom de compte).
+
+    "desjardins-eop"/"desjardins-debit" -> clé "desjardins". Best-effort : un
+    fichier absent/illisible n'empêche jamais le calcul du patrimoine.
+    """
+    try:
+        from app.services.finance.account_balances import get_balances
+        out: dict[str, dict] = {}
+        for compte, info in get_balances().items():
+            key = str(compte).lower().split("-")[0].strip()
+            if key:
+                out[key] = info
+        return out
+    except Exception:
+        return {}
+
+
+def _match_auto_balance(label: str | None, balances: dict[str, dict]) -> dict | None:
+    """Trouve le solde auto correspondant à un libellé (ex. "Desjardins" -> desjardins)."""
+    if not balances or not label:
+        return None
+    norm = label.lower()
+    for key, info in balances.items():
+        if key in norm:
+            return info
+    return None
+
+
 def compute_net_worth(portfolio_value: float, items: list[Any]) -> dict[str, float]:
     """Patrimoine net = portefeuille + actifs manuels − passifs."""
     actifs = sum(i.valeur for i in items if i.type == "actif")
@@ -122,14 +151,26 @@ def net_worth_summary(
     déjà saisi en actif manuel (sinon double comptage). `cad_eur` injecte le taux.
     """
     items = list_items(session)
+    auto_balances = _load_auto_balances()
     # Chaque ligne est convertie de sa devise vers l'EUR (saisie en monnaie locale).
     converted = []
     dumped = []
     for i in items:
-        v_eur = to_eur(i.valeur, i.devise)
+        auto = _match_auto_balance(i.label, auto_balances)
+        if auto is not None:
+            # Solde importé (relevé) : prime sur la saisie manuelle.
+            valeur = round(float(auto["solde"]), 2)
+            devise = auto.get("devise") or i.devise
+        else:
+            valeur, devise = i.valeur, i.devise
+        v_eur = to_eur(valeur, devise)
         converted.append(SimpleNamespace(type=i.type, valeur=v_eur))
         d = i.model_dump()
         d["valeur_eur"] = v_eur
+        if auto is not None:
+            d["valeur"] = valeur
+            d["valeur_source"] = "auto"
+            d["valeur_auto_date"] = auto.get("date")
         dumped.append(d)
 
     if inclure_portefeuille:

@@ -10,6 +10,20 @@ const eur = (n: number) =>
 
 const KEY = ["finance", "patrimoine"] as const;
 
+const BANK_CAT = "Compte en banque";
+
+/** Regroupe les actifs par catégorie ; "Compte en banque" en tête, puis alpha. */
+function groupByCategorie(items: PatrimoineItem[]): [string, PatrimoineItem[]][] {
+  const groups = new Map<string, PatrimoineItem[]>();
+  for (const it of items) {
+    const k = it.categorie?.trim() || "Autres";
+    (groups.get(k) ?? groups.set(k, []).get(k)!).push(it);
+  }
+  return [...groups.entries()].sort((a, b) =>
+    a[0] === BANK_CAT ? -1 : b[0] === BANK_CAT ? 1 : a[0].localeCompare(b[0], "fr"),
+  );
+}
+
 export function PatrimoineTab() {
   const qc = useQueryClient();
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: KEY, queryFn: financeApi.patrimoine });
@@ -54,7 +68,12 @@ export function PatrimoineTab() {
 
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <ItemList title="Actifs (comptes, RealT, crypto…)" items={actifs} onUpdate={(id, patch) => update.mutate({ id, patch })} onDelete={(id) => remove.mutate(id)} />
+        <div className="space-y-4">
+          {groupByCategorie(actifs).map(([cat, its]) => (
+            <ItemList key={cat} title={cat} items={its} onUpdate={(id, patch) => update.mutate({ id, patch })} onDelete={(id) => remove.mutate(id)} />
+          ))}
+          {actifs.length === 0 && <ItemList title="Actifs (comptes, RealT, crypto…)" items={[]} onUpdate={() => {}} onDelete={() => {}} />}
+        </div>
         <ItemList title="Passifs (emprunts…)" items={passifs} onUpdate={(id, patch) => update.mutate({ id, patch })} onDelete={(id) => remove.mutate(id)} negative />
       </div>
 
@@ -154,16 +173,27 @@ function ItemRow({ it, onUpdate, onDelete }: { it: PatrimoineItem; onUpdate: (id
     if (Number.isNaN(n)) { setVal(String(it.valeur)); return; }
     if (n !== it.valeur) onUpdate(it.id, { valeur: n });
   };
+  const isAuto = it.valeur_source === "auto";
   return (
     <li className="flex items-center gap-2 px-3 py-2 text-sm">
       <span className="min-w-0 flex-1 truncate text-[var(--foreground)]">{it.label}{it.categorie && <span className="ml-1.5 text-xs text-[var(--muted-foreground)]">· {it.categorie}</span>}</span>
-      <input
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-        className="w-24 rounded border border-transparent bg-transparent px-1 py-0.5 text-right tabular-nums hover:border-[var(--border)] focus:border-[var(--ring)] focus:outline-none"
-      />
+      {isAuto ? (
+        <span
+          className="flex w-24 items-center justify-end gap-1 px-1 py-0.5 text-right tabular-nums"
+          title={`Solde importé${it.valeur_auto_date ? ` au ${it.valeur_auto_date}` : ""} — mis à jour à chaque import de relevé`}
+        >
+          {Number(it.valeur).toLocaleString("fr-FR")}
+          <span className="rounded bg-[var(--muted)] px-1 text-[10px] font-medium text-[var(--muted-foreground)]">auto</span>
+        </span>
+      ) : (
+        <input
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+          className="w-24 rounded border border-transparent bg-transparent px-1 py-0.5 text-right tabular-nums hover:border-[var(--border)] focus:border-[var(--ring)] focus:outline-none"
+        />
+      )}
       <select value={it.devise} onChange={(e) => onUpdate(it.id, { devise: e.target.value })} className="rounded bg-transparent text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
         {PATRIMOINE_DEVISES.map((d) => <option key={d} value={d}>{d}</option>)}
       </select>
