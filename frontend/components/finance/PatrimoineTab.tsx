@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, Plus } from "lucide-react";
-import { financeApi, PATRIMOINE_DEVISES, type NetWorthPoint, type PatrimoineItem, type PatrimoineItemCreate } from "@/lib/finance";
+import { financeApi, PATRIMOINE_DEVISES, type PatrimoineItem, type PatrimoineItemCreate } from "@/lib/finance";
 
 const eur = (n: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -102,9 +102,6 @@ export function PatrimoineTab() {
   );
 }
 
-const fmtDay = (iso: string) =>
-  new Date(iso + "T12:00:00").toLocaleDateString("fr-CA", { day: "2-digit", month: "short" });
-
 const ACCOUNT_PALETTE = [
   "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6",
   "#06b6d4", "#ec4899", "#84cc16", "#14b8a6", "#f97316",
@@ -190,43 +187,50 @@ function AccountBreakdownChart() {
 /** Courbe d'évolution du patrimoine net dans le temps (#257). */
 function NetWorthChart() {
   const { data } = useQuery({
-    queryKey: [...KEY, "history"],
-    queryFn: () => financeApi.patrimoineHistory(365),
+    queryKey: [...KEY, "breakdown"],
+    queryFn: () => financeApi.patrimoineBreakdownHistory(3650),
   });
-  const points: NetWorthPoint[] = data?.points ?? [];
+  const dates = data?.dates ?? [];
+  const comptes = data?.comptes ?? [];
+  const series = data?.series ?? {};
 
-  if (points.length < 2) {
+  // Patrimoine d'INVESTISSEMENT uniquement : Bourse Direct, Trading 212, RealT
+  // (on exclut les comptes bancaires : Desjardins, Banque Pop, Wise, Westpac).
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const INVEST = ["boursedirect", "trading", "realt"];
+  const investComptes = comptes.filter((c) => INVEST.some((k) => norm(c).includes(k)));
+  const nets = dates.map((_, i) => investComptes.reduce((s, c) => s + (series[c]?.[i] ?? 0), 0));
+
+  if (dates.length < 2 || investComptes.length === 0) {
     return (
       <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
-        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution du patrimoine net</p>
+        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution du patrimoine net · investissement</p>
         <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-          Le suivi se construit au fil des jours — reviens demain pour voir la courbe.
+          Ajoute des comptes d'investissement (Bourse Direct, Trading 212, RealT) pour voir la courbe.
         </p>
       </div>
     );
   }
 
-  const nets = points.map((p) => p.net);
   const min = Math.min(...nets);
   const max = Math.max(...nets);
   const span = max - min || 1;
   const W = 100, H = 32;
-  const coords = points
-    .map((p, i) => `${((i / (points.length - 1)) * W).toFixed(2)},${(H - ((p.net - min) / span) * H).toFixed(2)}`)
+  const coords = nets
+    .map((v, i) => `${((i / (dates.length - 1)) * W).toFixed(2)},${(H - ((v - min) / span) * H).toFixed(2)}`)
     .join(" ");
-  const first = points[0];
-  const delta = points[points.length - 1].net - first.net;
+  const delta = nets[nets.length - 1] - nets[0];
   const up = delta >= 0;
 
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
       <div className="mb-2 flex items-baseline justify-between gap-3">
-        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution du patrimoine net</p>
+        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution du patrimoine net · investissement</p>
         <span className={`shrink-0 text-xs tabular-nums ${up ? "text-[var(--success-foreground)]" : "text-[var(--warning-foreground)]"}`}>
-          {up ? "+" : ""}{eur(delta)} depuis le {fmtDay(first.date)}
+          {up ? "+" : ""}{eur(delta)} depuis {fmtMonthYear(dates[0])}
         </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-24 w-full" role="img" aria-label="Courbe du patrimoine net">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-24 w-full" role="img" aria-label="Courbe du patrimoine net d'investissement">
         <polyline points={coords} fill="none" stroke="var(--ring)" strokeWidth={0.8} vectorEffect="non-scaling-stroke" />
       </svg>
       <div className="mt-1 flex justify-between text-[10px] tabular-nums text-[var(--muted-foreground)]">
