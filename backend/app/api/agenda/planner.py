@@ -8,46 +8,16 @@ import datetime as dt
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import Session
 
 from app.api.agenda.common import SessionDep
-from app.services.agenda import create_event, delete_event, list_events_for_window
-from app.services.agenda.planner import TYPE_META, cycle_window, plan_cycle
+from app.services.agenda import auto_plan, list_events_for_window
+from app.services.agenda.planner import cycle_window
 from app.services.agenda.gcal import (
     create_event as gcal_create_event,
     is_configured as gcal_is_configured,
 )
 
 router = APIRouter()
-
-
-def _gather_planner_inputs(session: Session, run_date: dt.date):
-    """Construit les obstacles fixes (par jour) + les cours du cycle.
-
-    Les blocs `source="planner"` sont ignorés (idempotence) : un nouveau calcul
-    ne se planifie pas autour de ses propres blocs précédents.
-    """
-    from app.services.agenda import get_full_calendar
-
-    start, end = cycle_window(run_date)
-    from_dt = dt.datetime.combine(start, dt.time.min)
-    to_dt = dt.datetime.combine(end, dt.time.max)
-    cal = get_full_calendar(session, from_dt, to_dt)
-
-    fixed_by_day: dict[dt.date, list[tuple[dt.datetime, dt.datetime]]] = {}
-    courses: list[str] = []
-    seen: set[str] = set()
-    for it in cal:
-        if it.get("source") == "planner" or not it.get("fin"):
-            continue
-        debut, fin = it["debut"], it["fin"]
-        fixed_by_day.setdefault(debut.date(), []).append((debut, fin))
-        if it.get("categorie") == "cours":
-            name = it.get("titre") or "Cours"
-            if name not in seen:
-                seen.add(name)
-                courses.append(name)
-    return fixed_by_day, courses
 
 
 def _serialize_plan(prop) -> dict:
@@ -74,39 +44,14 @@ def _serialize_plan(prop) -> dict:
 def plan_preview(session: SessionDep, date: Optional[dt.date] = None) -> dict:
     """Calcule le planning du cycle. Lecture seule (aucune écriture)."""
     run_date = date or dt.date.today()
-    fixed, courses = _gather_planner_inputs(session, run_date)
-    return _serialize_plan(plan_cycle(run_date, fixed, courses))
+    return _serialize_plan(auto_plan.preview(session, run_date))
 
 
 @router.post("/plan/commit")
 def plan_commit(session: SessionDep, date: Optional[dt.date] = None) -> dict:
     """Recalcule côté serveur, remplace les blocs planner du cycle, écrit en local."""
     run_date = date or dt.date.today()
-    fixed, courses = _gather_planner_inputs(session, run_date)
-    prop = plan_cycle(run_date, fixed, courses)
-
-    from_dt = dt.datetime.combine(prop.window_start, dt.time.min)
-    to_dt = dt.datetime.combine(prop.window_end, dt.time.max)
-    for ev in list_events_for_window(session, from_dt, to_dt):
-        if ev.source == "planner" and ev.id is not None:
-            delete_event(session, ev.id)
-
-    created = 0
-    for b in prop.blocks:
-        meta = TYPE_META.get(b.type, {"categorie": "autre", "couleur": None})
-        create_event(
-            session,
-            {
-                "titre": b.titre,
-                "debut": b.debut,
-                "fin": b.fin,
-                "categorie": meta["categorie"],
-                "couleur": meta["couleur"],
-                "source": "planner",
-                "description": "Bloc planifié automatiquement.",
-            },
-        )
-        created += 1
+    prop, created = auto_plan.commit(session, run_date)
     return {**_serialize_plan(prop), "created": created}
 
 

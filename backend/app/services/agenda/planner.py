@@ -39,9 +39,12 @@ CUISINE_PREF_H = 16
 CUISINE_DURATION_MIN = 120
 
 SPORT_DURATION_MIN = 90
-SPORT_PREF_TIMES = [(18, 0), (7, 30)]   # 18h sinon 7h30
+SPORT_PREF_TIMES = [(7, 30), (12, 30), (18, 0)]   # matin de préférence, sinon midi/soir
 
 REVISION_DURATION_MIN = 120
+
+ETUDES_SESSION_MIN = 90           # bloc d'études depuis l'objectif hebdo
+ETUDES_PREF_TIMES = [(9, 0), (14, 0)]
 
 BUFFER_MIN = 15
 
@@ -51,6 +54,7 @@ TYPE_META: dict[str, dict[str, str]] = {
     "repas": {"categorie": "autre", "couleur": "#14B8A6"},
     "cuisine": {"categorie": "autre", "couleur": "#16A34A"},
     "revision": {"categorie": "cours", "couleur": "#2563EB"},
+    "etudes": {"categorie": "etudes", "couleur": "#6366F1"},
     "sport": {"categorie": "sport", "couleur": "#F59E0B"},
 }
 
@@ -137,12 +141,19 @@ def plan_cycle(
     run_date: dt.date,
     fixed_by_day: dict[dt.date, list[tuple[dt.datetime, dt.datetime]]],
     courses_in_window: list[str],
+    *,
+    sport_weekdays: set[int] | None = None,
+    etudes_target_min: int = 0,
 ) -> Proposal:
     """Place les blocs déplaçables autour des fixes. Fonction pure.
 
     `fixed_by_day` : pour chaque jour, les intervalles occupés par les fixes
     (travail, cours). `courses_in_window` : cours distincts → 2h de révision chacun.
+    `sport_weekdays` : jours de sport (depuis le programme d'entraînement actif) ;
+    défaut `SPORT_WEEKDAYS`. `etudes_target_min` : minutes d'études à placer
+    (depuis l'objectif hebdo) en plus des révisions, dans les créneaux libres.
     """
+    sport_days = SPORT_WEEKDAYS if sport_weekdays is None else sport_weekdays
     start, end = cycle_window(run_date)
     days = _window_days(start, end)
     prop = Proposal(window_start=start, window_end=end)
@@ -190,15 +201,28 @@ def plan_cycle(
         if not placed:
             prop.non_places.append(f"Révision « {course} » : pas de créneau")
 
-    # 5. Sport — 1h30 les jours de sport, 18h sinon 7h30.
+    # 5. Sport — 1h30 les jours de sport (programme actif), matin sinon midi/soir.
     for d in days:
-        if d.weekday() not in SPORT_WEEKDAYS:
+        if d.weekday() not in sport_days:
             continue
         slot = _find_slot(d, occ[d], SPORT_DURATION_MIN, SPORT_PREF_TIMES)
         if slot:
             add(d, slot[0], slot[1], "sport", "Sport")
         else:
             prop.non_places.append(f"Sport ({d:%a %d/%m}) : pas de créneau")
+
+    # 6. Études — depuis l'objectif hebdo, par blocs, dans les créneaux libres.
+    placed_etudes = 0
+    for d in days:
+        if placed_etudes >= etudes_target_min:
+            break
+        dur = min(ETUDES_SESSION_MIN, etudes_target_min - placed_etudes)
+        if dur < 30:
+            break
+        slot = _find_slot(d, occ[d], dur, ETUDES_PREF_TIMES)
+        if slot:
+            add(d, slot[0], slot[1], "etudes", "Études")
+            placed_etudes += dur
 
     prop.blocks.sort(key=lambda b: b.debut)
     return prop

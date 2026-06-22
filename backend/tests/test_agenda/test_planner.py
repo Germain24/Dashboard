@@ -102,6 +102,28 @@ def test_buffer_15min_around_flexible_blocks():
                 assert _gap_min(f, o) >= 15, f"tampon < 15 min : {f.titre} / {o.titre}"
 
 
+# ── Planificateur unifié : jours de sport + études + sport le matin ──────────
+
+def test_sport_weekdays_override():
+    # Programme d'entraînement : seul vendredi est un jour de sport.
+    prop = plan_cycle(THU, fixed_by_day={}, courses_in_window=[], sport_weekdays={4})
+    assert _types(prop)["sport"] == 1   # ven seulement (sam, dim exclus)
+
+
+def test_etudes_from_weekly_target():
+    # 180 min d'objectif → 2 blocs d'études de 90 min.
+    prop = plan_cycle(THU, fixed_by_day={}, courses_in_window=[], etudes_target_min=180)
+    etudes = [b for b in prop.blocks if b.type == "etudes"]
+    assert len(etudes) == 2
+    assert sum((b.fin - b.debut).total_seconds() / 60 for b in etudes) == 180
+
+
+def test_sport_prefers_morning_when_free():
+    prop = plan_cycle(THU, fixed_by_day={}, courses_in_window=[])
+    sport = [b for b in prop.blocks if b.type == "sport"]
+    assert sport and all(b.debut.hour < 12 for b in sport)   # matin de préférence
+
+
 # ── Repas peuvent chevaucher le travail ──────────────────────────────────────
 
 def test_meal_overlaps_work():
