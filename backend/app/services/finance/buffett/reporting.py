@@ -22,6 +22,7 @@ def delete_run(session: Session, run_id: int) -> bool:
         select(BuffettRunResult).where(BuffettRunResult.run_id == run_id)
     ).all():
         session.delete(r)
+    session.flush()  # exécute les DELETE enfants AVANT le parent (FK ON en prod)
     session.delete(run)
     session.commit()
     return True

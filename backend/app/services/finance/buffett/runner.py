@@ -82,25 +82,35 @@ def remove_stale_tickers(csv_path: str, to_remove: set) -> None:
         print(f"[runner] Erreur suppression tickers: {e}")
 
 
+# Mots du NOM qui identifient un vrai fonds/ETF (UCITS, iShares, Amundi…).
+_FUND_NAME_KW = (
+    "ETF", "UCITS", "ISHARES", "AMUNDI", "INVESCO", "LYXOR", "XTRACKERS",
+    "VANGUARD", "SPDR", "INDEX SOLUTIONS",
+)
+
+
+def _looks_like_fund(*names: str) -> bool:
+    return any(any(k in n for k in _FUND_NAME_KW) for n in names if n)
+
+
 def _check_is_etf(ticker: str, data: dict) -> bool:
     """Detecte si le ticker est un ETF/fonds depuis les donnees yfinance.
 
-    Garde-fou anti-faux-positif : un titre qui publie des etats financiers
-    (compte de resultat / bilan) n'est JAMAIS un ETF. Cela corrige les REIT,
-    holdings et cross-listings (ex. Gaming and Leisure Properties, VICI, Global
-    Net Lease...) qui etaient pris pour des ETF a cause d'un quoteType peu fiable
-    ou du mot "ETF"/"fund" dans le nom, et se voyaient attribuer Score=200.
+    Deux garde-fous anti-faux-positif :
+    1. Un titre qui publie des etats financiers (compte de resultat/bilan) n'est
+       JAMAIS un ETF (corrige REIT/holdings : VICI, Gaming and Leisure...).
+    2. La classification repose sur le NOM (UCITS/ETF/iShares/Amundi...), PAS sur
+       le seul `quoteType` : des cotations secondaires/CDR (ex. CHEV.TO, 0QYI.L)
+       renvoient quoteType="ETF" sur des ACTIONS, ce qui leur donnait Score=200,
+       polluait l'allocation et contournait le dedoublonnage (les ETF en sont
+       exemptes). Une action mal cotee n'a pas de nom de fonds -> plus classee ETF.
     """
     if not _is_empty_financials(data):
         return False
     info = data.get("info", {}) or {}
-    qt = (info.get("quoteType") or "").upper()
     ln = (info.get("longName") or "").upper()
     sn = (info.get("shortName") or "").upper()
-    if qt in ("ETF", "MUTUALFUND"):
-        return True
-    # Mot entier "ETF" dans le nom (evite de matcher au milieu d'un autre mot).
-    return any(" ETF" in n or n.endswith(" ETF") or n.startswith("ETF ") for n in (ln, sn))
+    return _looks_like_fund(ln, sn)
 
 
 def _is_forced(ticker: str) -> bool:

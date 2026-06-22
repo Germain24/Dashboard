@@ -70,6 +70,21 @@ def test_etf_detected_by_name_when_no_financials():
     assert _check_is_etf("CW8.PA", data) is True
 
 
+def test_secondary_listing_with_etf_quotetype_is_not_etf():
+    # Cotation secondaire / CDR : yfinance renvoie quoteType="ETF" sur une ACTION,
+    # financials vides. Le nom (entreprise) ne ressemble pas à un fonds → PAS ETF
+    # (sinon Score=200, pollution de l'analyse + contournement du dédoublonnage).
+    data = {"info": {"quoteType": "ETF", "longName": "Chevron Corporation"},
+            "income": None, "balance": None}
+    assert _check_is_etf("CHEV.TO", data) is False
+
+
+def test_real_etf_detected_by_name_despite_no_quotetype():
+    data = {"info": {"quoteType": "", "longName": "Amundi MSCI World UCITS ETF"},
+            "income": None, "balance": None}
+    assert _check_is_etf("CW8.PA", data) is True
+
+
 def test_company_named_with_etf_substring_but_has_financials():
     # Mot "ETF" au milieu d'un nom ne doit pas suffire, et comptes présents = pas ETF.
     data = {
