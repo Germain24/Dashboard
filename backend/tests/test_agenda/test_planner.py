@@ -124,6 +124,13 @@ def test_sport_prefers_morning_when_free():
     assert sport and all(b.debut.hour < 12 for b in sport)   # matin de préférence
 
 
+def test_sport_moment_preference_evening():
+    # Préférence "soir" → sport placé l'après-midi/soir (≥ 12 h), pas le matin.
+    prop = plan_cycle(THU, fixed_by_day={}, courses_in_window=[], moments={"sport": "soir"})
+    sport = [b for b in prop.blocks if b.type == "sport"]
+    assert sport and all(b.debut.hour >= 12 for b in sport)
+
+
 # ── Repas peuvent chevaucher le travail ──────────────────────────────────────
 
 def test_meal_overlaps_work():

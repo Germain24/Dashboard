@@ -48,6 +48,18 @@ ETUDES_PREF_TIMES = [(9, 0), (14, 0)]
 
 BUFFER_MIN = 15
 
+# Préférences de moment (page Préférences) → heures d'essai par activité.
+MOMENT_TIMES: dict[str, list[tuple[int, int]]] = {
+    "matin": [(7, 30), (9, 0), (10, 30)],
+    "aprem": [(12, 30), (14, 0), (16, 0)],
+    "soir": [(18, 0), (19, 30), (20, 30)],
+}
+
+
+def _moment_times(moment: str | None) -> list[tuple[int, int]] | None:
+    """Heures d'essai pour un moment préféré ('matin'|'aprem'|'soir'), sinon None."""
+    return MOMENT_TIMES.get(moment) if moment else None
+
 # Métadonnées par type de bloc (pour l'écriture en événements côté commit).
 TYPE_META: dict[str, dict[str, str]] = {
     "sommeil": {"categorie": "autre", "couleur": "#6366F1"},
@@ -144,6 +156,7 @@ def plan_cycle(
     *,
     sport_weekdays: set[int] | None = None,
     etudes_target_min: int = 0,
+    moments: dict[str, str] | None = None,
 ) -> Proposal:
     """Place les blocs déplaçables autour des fixes. Fonction pure.
 
@@ -151,9 +164,14 @@ def plan_cycle(
     (travail, cours). `courses_in_window` : cours distincts → 2h de révision chacun.
     `sport_weekdays` : jours de sport (depuis le programme d'entraînement actif) ;
     défaut `SPORT_WEEKDAYS`. `etudes_target_min` : minutes d'études à placer
-    (depuis l'objectif hebdo) en plus des révisions, dans les créneaux libres.
+    (depuis l'objectif hebdo). `moments` : moment préféré par activité (page
+    Préférences), ex. {"sport": "matin", "etudes": "soir", "cuisine": "aprem"}.
     """
     sport_days = SPORT_WEEKDAYS if sport_weekdays is None else sport_weekdays
+    moments = moments or {}
+    sport_pref = _moment_times(moments.get("sport")) or SPORT_PREF_TIMES
+    etudes_pref = _moment_times(moments.get("etudes")) or ETUDES_PREF_TIMES
+    cuisine_pref = _moment_times(moments.get("cuisine")) or [(CUISINE_PREF_H, 0)]
     start, end = cycle_window(run_date)
     days = _window_days(start, end)
     prop = Proposal(window_start=start, window_end=end)
@@ -183,7 +201,7 @@ def plan_cycle(
     # 3. Cuisine — 2h le jour de cuisine de la fenêtre (le dernier jour).
     cook_day = end if end.weekday() in COOKING_WEEKDAYS else None
     if cook_day is not None:
-        slot = _find_slot(cook_day, occ[cook_day], CUISINE_DURATION_MIN, [(CUISINE_PREF_H, 0)])
+        slot = _find_slot(cook_day, occ[cook_day], CUISINE_DURATION_MIN, cuisine_pref)
         if slot:
             add(cook_day, slot[0], slot[1], "cuisine", "Batch cooking")
         else:
@@ -205,7 +223,7 @@ def plan_cycle(
     for d in days:
         if d.weekday() not in sport_days:
             continue
-        slot = _find_slot(d, occ[d], SPORT_DURATION_MIN, SPORT_PREF_TIMES)
+        slot = _find_slot(d, occ[d], SPORT_DURATION_MIN, sport_pref)
         if slot:
             add(d, slot[0], slot[1], "sport", "Sport")
         else:
@@ -219,7 +237,7 @@ def plan_cycle(
         dur = min(ETUDES_SESSION_MIN, etudes_target_min - placed_etudes)
         if dur < 30:
             break
-        slot = _find_slot(d, occ[d], dur, ETUDES_PREF_TIMES)
+        slot = _find_slot(d, occ[d], dur, etudes_pref)
         if slot:
             add(d, slot[0], slot[1], "etudes", "Études")
             placed_etudes += dur

@@ -9,21 +9,21 @@
  */
 
 import { useState } from "react";
-import { CalendarDays, CalendarRange, CalendarClock, CheckSquare } from "lucide-react";
+import { CalendarDays, CalendarRange, CalendarClock, SlidersHorizontal } from "lucide-react";
 import { useAgendaToday } from "@/lib/queries/agenda";
 import { ModuleHeader } from "@/components/layout";
 import JourTab from "./JourTab";
 import SemaineTab from "./SemaineTab";
 import MoisTab from "./MoisTab";
-import TachesTab from "./TachesTab";
+import PreferencesTab from "./PreferencesTab";
 
-type Tab = "jour" | "semaine" | "mois" | "taches";
+type Tab = "jour" | "semaine" | "mois" | "preferences";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "jour", label: "Aujourd'hui", Icon: CalendarDays },
   { id: "semaine", label: "Semaine", Icon: CalendarRange },
   { id: "mois", label: "Mois", Icon: CalendarClock },
-  { id: "taches", label: "Tâches", Icon: CheckSquare },
+  { id: "preferences", label: "Préférences", Icon: SlidersHorizontal },
 ];
 
 export default function Agenda() {
@@ -80,7 +80,7 @@ export default function Agenda() {
 
         {tab === "semaine" && <SemaineTab />}
         {tab === "mois" && <MoisTab />}
-        {tab === "taches" && <TachesTab />}
+        {tab === "preferences" && <PreferencesTab />}
       </div>
     </div>
   );

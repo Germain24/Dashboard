@@ -40,6 +40,20 @@ def _serialize_plan(prop) -> dict:
     }
 
 
+@router.get("/preferences")
+def get_preferences() -> dict:
+    """Préférences de planification (moment préféré par activité)."""
+    from app.services.agenda.preferences import get_preferences as _get
+    return _get()
+
+
+@router.post("/preferences")
+def set_preferences(patch: dict) -> dict:
+    """Met à jour les préférences ; le prochain plan en tient compte."""
+    from app.services.agenda.preferences import set_preferences as _set
+    return _set(patch or {})
+
+
 @router.get("/plan/preview")
 def plan_preview(session: SessionDep, date: Optional[dt.date] = None) -> dict:
     """Calcule le planning du cycle. Lecture seule (aucune écriture)."""

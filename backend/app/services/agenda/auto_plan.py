@@ -45,6 +45,15 @@ def _etudes_target_min(session: Session) -> int:
         return 0
 
 
+def _moments() -> dict[str, str]:
+    """Moment préféré par activité (page Préférences)."""
+    try:
+        from app.services.agenda.preferences import get_preferences
+        return get_preferences().get("moments") or {}
+    except Exception:
+        return {}
+
+
 def gather_inputs(
     session: Session, run_date: dt.date
 ) -> tuple[dict[dt.date, list[tuple[dt.datetime, dt.datetime]]], list[str]]:
@@ -78,6 +87,7 @@ def preview(session: Session, run_date: dt.date) -> Proposal:
         run_date, fixed, courses,
         sport_weekdays=_program_sport_weekdays(session),
         etudes_target_min=_etudes_target_min(session),
+        moments=_moments(),
     )
 
 
