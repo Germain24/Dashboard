@@ -19,6 +19,6 @@ def test_register_all_jobs_includes_expected():
     ids = {j.id for j in scheduler.get_jobs()}
     for expected in (
         "portfolio_snapshot", "nutrition_plan", "backup_db", "weather_refresh",
-        "agenda_reminders", "habit_reminders", "purge_old",
+        "agenda_reminders", "habit_reminders", "purge_old", "auto_plan",
     ):
         assert expected in ids, f"job manquant : {expected}"

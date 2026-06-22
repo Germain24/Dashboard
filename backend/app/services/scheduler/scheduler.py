@@ -16,6 +16,7 @@ def get_scheduler(db_url: str | None = None) -> AsyncIOScheduler:
 def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     from app.services.scheduler.jobs import (
         agenda_reminders,
+        auto_plan,
         automatisations,
         backup_db,
         habit_reminders,
@@ -72,3 +73,8 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(run_job, "cron", hour=7, minute=15,
                       args=["anomaly_detection", automatisations.run_anomaly_detection],
                       id="anomaly_detection", replace_existing=True, misfire_grace_time=3600)
+    # Replanifie le cycle (sport, études, repas, batch cooking) chaque jour de
+    # cuisine (jeudi & dimanche) → blocs reposés chaque semaine, plus une seule fois.
+    scheduler.add_job(run_job, "cron", day_of_week="thu,sun", hour=6, minute=0,
+                      args=["auto_plan", auto_plan.run],
+                      id="auto_plan", replace_existing=True, misfire_grace_time=3600)
