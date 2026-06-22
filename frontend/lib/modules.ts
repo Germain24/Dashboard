@@ -14,7 +14,6 @@ import {
   HeartPulse,
   Landmark,
   Languages,
-  ListTodo,
   Music,
   Settings,
   Shirt,
@@ -44,7 +43,8 @@ export type ModuleGroup =
   | "Santé & Performance"
   | "Carrière & Études"
   | "Culture & Loisirs"
-  | "Style & Horizons";
+  | "Style & Horizons"
+  | "Configuration";
 
 /** Ordre d'affichage des groupes dans toutes les surfaces de navigation. */
 export const GROUP_ORDER: ModuleGroup[] = [
@@ -54,6 +54,7 @@ export const GROUP_ORDER: ModuleGroup[] = [
   "Carrière & Études",
   "Culture & Loisirs",
   "Style & Horizons",
+  "Configuration",
 ];
 
 export type Module = {
@@ -108,20 +109,14 @@ export const MODULES: Module[] = [
     group: "Exécution & Système",
     ready: true,
   },
-  {
-    slug: "habitudes",
-    label: "Habitudes",
-    description: "Habit tracker hebdomadaire.",
-    icon: ListTodo,
-    group: "Exécution & Système",
-    ready: true,
-  },
+
+  // ── ⚙️ Configuration — documents, données, routines, paramètres ────
   {
     slug: "documents",
     label: "Documents",
     description: "Échéances, contrats, garanties, rappels.",
     icon: FolderOpen,
-    group: "Exécution & Système",
+    group: "Configuration",
     ready: true,
   },
   {
@@ -129,7 +124,7 @@ export const MODULES: Module[] = [
     label: "Jobs",
     description: "Tâches planifiées & automatisations.",
     icon: Settings,
-    group: "Exécution & Système",
+    group: "Configuration",
     ready: true,
   },
   {
@@ -137,7 +132,7 @@ export const MODULES: Module[] = [
     label: "Routines",
     description: "Automatisations déclenchées par cron ou événement.",
     icon: Zap,
-    group: "Exécution & Système",
+    group: "Configuration",
     ready: true,
   },
   {
@@ -145,7 +140,7 @@ export const MODULES: Module[] = [
     label: "Données",
     description: "Export/import, backup & démo.",
     icon: Database,
-    group: "Exécution & Système",
+    group: "Configuration",
     ready: true,
   },
   {
@@ -153,7 +148,7 @@ export const MODULES: Module[] = [
     label: "Paramètres",
     description: "Variables constantes, intégrations, rétention.",
     icon: Settings,
-    group: "Exécution & Système",
+    group: "Configuration",
     ready: true,
   },
 
