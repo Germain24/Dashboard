@@ -29,15 +29,14 @@ type State =
   | { status: "error" }
   | { status: "ready"; data: AgendaJour };
 
-function upcomingEvents(data: AgendaJour): Evenement[] {
-  const now = Date.now();
+/** Toute la journée planifiée : événements prévus + blocs générés par le
+ *  planificateur (sport, batch cooking, révision, repas…) + séance d'entraînement.
+ *  Triés par heure ; les blocs passés sont gardés (affichés estompés). */
+function dayEvents(data: AgendaJour): Evenement[] {
   return [
     ...data.evenements,
     ...(data.seance_entrainement ? [data.seance_entrainement] : []),
-  ]
-    .filter((e) => new Date(e.fin ?? e.debut).getTime() >= now)
-    .sort((a, b) => a.debut.localeCompare(b.debut))
-    .slice(0, 5);
+  ].sort((a, b) => a.debut.localeCompare(b.debut));
 }
 
 type DeadlineInfo = { label: string; tone: "destructive" | "warning" | "muted" };
@@ -136,7 +135,8 @@ function Ready({
   tasks: Tache[];
   onComplete: (t: Tache) => void;
 }) {
-  const events = upcomingEvents(data);
+  const events = dayEvents(data);
+  const now = Date.now();
   const slot = data.slots_libres[0];
 
   if (events.length === 0 && tasks.length === 0) {
@@ -163,8 +163,10 @@ function Ready({
     <div className="space-y-4">
       {events.length > 0 && (
         <ul className="space-y-2.5">
-          {events.map((e, i) => (
-            <li key={e.id ?? `${e.debut}-${i}`} className="flex items-baseline gap-3 text-sm">
+          {events.map((e, i) => {
+            const past = new Date(e.fin ?? e.debut).getTime() < now;
+            return (
+            <li key={e.id ?? `${e.debut}-${i}`} className={`flex items-baseline gap-3 text-sm ${past ? "opacity-45" : ""}`}>
               <span
                 className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
                 style={{ backgroundColor: couleurFor(e) }}
@@ -180,7 +182,8 @@ function Ready({
                 </span>
               )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 
