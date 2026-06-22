@@ -17,12 +17,20 @@ export const santeKeys = {
   weeklyQuality: (days: number) => [...santeKeys.all, "weekly-quality", days] as const,
   energyBalance: (days: number) => [...santeKeys.all, "energy-balance", days] as const,
   aliments: () => [...santeKeys.all, "aliments"] as const,
+  score: () => [...santeKeys.all, "score"] as const,
+  scoreHistory: (days: number) => [...santeKeys.all, "score-history", days] as const,
   favorites: () => [...santeKeys.all, "favorites"] as const,
   photos: () => [...santeKeys.all, "photos"] as const,
 };
 
 export function useMesures(days = 180) {
   return useQuery({ queryKey: santeKeys.mesures(days), queryFn: () => santeApi.listMesures(days) });
+}
+export function useScore() {
+  return useQuery({ queryKey: santeKeys.score(), queryFn: santeApi.score });
+}
+export function useScoreHistory(days = 90) {
+  return useQuery({ queryKey: santeKeys.scoreHistory(days), queryFn: () => santeApi.scoreHistory(days) });
 }
 export function useNutritionGoal() {
   return useQuery({ queryKey: santeKeys.goal(), queryFn: santeApi.getGoal });

@@ -33,6 +33,14 @@ export type Aliment = {
   proprietes: Record<string, number>;
 };
 
+export type ScoreDay = {
+  date: string;
+  score: number | null;
+  composantes: { sommeil: number | null; sport: number | null; nutrition: number | null };
+  details: { sommeil_h: number | null; sessions_7j: number; kcal_consommees: number | null; kcal_cible: number | null };
+};
+export type ScorePoint = { date: string; score: number | null };
+
 export type NutritionGoal = {
   id: number;
   date_set: string;
@@ -183,6 +191,10 @@ export const santeApi = {
     }),
 
   listAliments: () => api<Aliment[]>(`/sante/aliments`),
+
+  // Score de forme (sommeil + sport + nutrition)
+  score: () => api<ScoreDay>(`/sante/score`),
+  scoreHistory: (days = 90) => api<{ days: number; points: ScorePoint[] }>(`/sante/score/history?days=${days}`),
 
   // Favoris d'aliments — saisie rapide (#64)
   listFavorites: () => api<{ favorites: string[] }>(`/sante/favorites`).then((r) => r.favorites),

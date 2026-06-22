@@ -6,10 +6,11 @@ Tous sont montés sous le même préfixe `/sante`.
 """
 from fastapi import APIRouter
 
-from . import mesures, nutrition, plan, wellbeing
+from . import mesures, nutrition, plan, score, wellbeing
 
 router = APIRouter(tags=["sante"])
 router.include_router(mesures.router)
 router.include_router(wellbeing.router)
 router.include_router(nutrition.router)
 router.include_router(plan.router)
+router.include_router(score.router)
