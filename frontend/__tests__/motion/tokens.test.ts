@@ -15,5 +15,6 @@ describe('motion tokens', () => {
   })
   it('EASE_OUT est une courbe de Bézier à 4 points', () => {
     expect(EASE_OUT).toHaveLength(4)
+    expect(EASE_OUT).toEqual([0.22, 1, 0.36, 1])
   })
 })

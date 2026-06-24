@@ -1,6 +1,6 @@
 /**
  * Tokens de mouvement — source unique des springs, durées et easings.
- * Toute animation Framer Motion du Deck y puise (cohérence + ajustement central).
+ * Toute animation Motion (motion/react) du Deck y puise (cohérence + ajustement central).
  * Mappé sur l'esthétique « quiet luxury » : ressorts amortis, pas de rebond.
  */
 
@@ -27,4 +27,4 @@ export const durations = {
 } as const
 
 /** Équivalent JS de --ease-out (globals.css). */
-export const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1]
+export const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1]
