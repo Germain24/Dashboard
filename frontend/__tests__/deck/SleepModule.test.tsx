@@ -13,6 +13,8 @@ describe('formatSleepHours', () => {
   it('formate les heures décimales en « h min »', () => {
     expect(formatSleepHours(7.5)).toBe('7 h 30')
     expect(formatSleepHours(8)).toBe('8 h 00')
+    expect(formatSleepHours(7.6)).toBe('7 h 36')
+    expect(formatSleepHours(7.99)).toBe('7 h 59')
   })
   it('renvoie — pour null', () => {
     expect(formatSleepHours(null)).toBe('—')
@@ -32,5 +34,15 @@ describe('SleepModule', () => {
     )
     expect(screen.getByText('7 h 30').className).toContain('tabular-nums')
     expect(screen.getByRole('link', { name: /sommeil/i })).toHaveAttribute('href', '/score')
+  })
+
+  it('affiche un skeleton au chargement', () => {
+    mockScore.mockReturnValue({ data: undefined, isLoading: true, isError: false } as ReturnType<typeof useScore>)
+    render(
+      <MotionConfig reducedMotion="always">
+        <SleepModule />
+      </MotionConfig>,
+    )
+    expect(screen.getByTestId('sleep-skeleton')).toBeInTheDocument()
   })
 })
