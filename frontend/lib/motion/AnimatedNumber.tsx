@@ -33,7 +33,9 @@ export function AnimatedNumber({ value, format = (v) => String(Math.round(v)), c
     }
   }, [value, reduced, spring])
 
-  useMotionValueEvent(spring, 'change', (v) => setDisplay(v))
+  useMotionValueEvent(spring, 'change', (v) => {
+    if (!reduced) setDisplay(v)
+  })
 
   return <span className={className}>{format(display)}</span>
 }
