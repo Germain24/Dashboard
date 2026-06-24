@@ -1,14 +1,15 @@
+import React from 'react'
 import { cn } from '@/lib/utils'
 
-interface SkeletonProps {
+interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
   lines?: number
 }
 
-export function Skeleton({ className, lines }: SkeletonProps) {
+export function Skeleton({ className, lines, ...props }: SkeletonProps) {
   if (lines) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2" {...props}>
         {Array.from({ length: lines }).map((_, i) => (
           <div
             key={i}
@@ -22,7 +23,7 @@ export function Skeleton({ className, lines }: SkeletonProps) {
       </div>
     )
   }
-  return <div className={cn('rounded-md skeleton-shimmer', className)} />
+  return <div className={cn('rounded-md skeleton-shimmer', className)} {...props} />
 }
 
 export function SkeletonCard({ className }: { className?: string }) {
