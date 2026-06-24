@@ -53,7 +53,7 @@ components/deck/
     GenericGroupExperience.tsx ← repli : rangée de cartes (les 6 autres groupes)
   modules/                     ← « modules d'information » (vitrine + drill-in)
     ScoreRingModule.tsx   ← HÉROS : anneau de score, count-up, parallax souris
-    MacrosModule.tsx      ← macros du jour (réutilise la logique de MacroBar)
+    MacrosModule.tsx      ← macros du jour + hydratation en indicateur discret
     SleepModule.tsx       ← dernière nuit
     NextWorkoutModule.tsx ← séance du jour / prochaine
     SkincareModule.tsx    ← routine du jour
@@ -140,7 +140,7 @@ passe en `proximity` comme aujourd'hui.
 |---|---|
 | ScoreRing | `useScore()` → `/sante/score` (`ScoreDay`: score + sous-scores sommeil/sport/nutrition) |
 | Sleep | `lib/queries/sante` / `lib/sante.ts` (données sommeil de la nuit) |
-| Macros | logique de `components/sante/MacroBar` + hook macros du jour |
+| Macros | logique de `components/sante/MacroBar` + hook macros du jour ; **hydratation** intégrée en petit indicateur de progression (pas de module séparé) |
 | NextWorkout | `lib/queries` / `lib/entrainement.ts` (séance du jour) |
 | Skincare | `/api/skincare/today` (déjà consommé par `DaySignals`) |
 
