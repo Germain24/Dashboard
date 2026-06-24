@@ -25,16 +25,16 @@ function tone(score: number): string {
 }
 
 export function ScoreRingModule() {
-  const { data, isLoading } = useScore()
+  const { data, isLoading, isError } = useScore()
   const { ref, x, y } = useParallax(8)
 
   if (isLoading) {
     return <Skeleton data-testid="score-skeleton" className="h-[220px] w-[220px] rounded-full" />
   }
 
-  const score = data?.score ?? null
+  const score = isError || data == null ? null : (data.score ?? null)
   const pct = score == null ? 0 : Math.max(0, Math.min(100, score)) / 100
-  const color = tone(score ?? 0)
+  const color = score != null ? tone(score) : 'var(--muted)'
   const comps = data?.composantes
 
   return (
