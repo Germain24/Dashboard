@@ -2,9 +2,10 @@
 
 /**
  * Wrapper générique d'une section du Deck. Conserve le snap CSS (.deck-section)
- * et délègue l'orchestration d'entrée à Framer Motion : le conteneur passe en
- * `visible` (stagger) dès qu'il entre dans le viewport. Réutilisable par toutes
- * les expériences de domaine.
+ * et délègue l'orchestration à Framer Motion : le conteneur passe en `visible`
+ * (stagger) quand il entre dans le viewport et revient en `hidden` (fondu +
+ * léger slide) quand il en sort — entrée ET sortie. Réutilisable par toutes les
+ * expériences de domaine. Sous reduced-motion, seul le fondu d'opacité subsiste.
  */
 
 import { useRef, type ReactNode } from 'react'
@@ -26,7 +27,8 @@ export function DeckSection({
   sectionRef?: (el: HTMLElement | null) => void
 }) {
   const inViewRef = useRef<HTMLDivElement>(null)
-  const inView = useInView(inViewRef, { once: true, amount: 0.4 })
+  // once: false → la section s'anime aussi en SORTIE quand elle quitte le viewport.
+  const inView = useInView(inViewRef, { once: false, amount: 0.35 })
 
   return (
     <section ref={sectionRef} className="deck-section" aria-label={label} data-index={index}>
