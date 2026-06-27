@@ -21,7 +21,7 @@ describe('SkincareModule', () => {
   it('affiche le nombre de produits dus + drill-in /skincare', () => {
     mockToday.mockReturnValue({
       data: { date: '2026-06-24', AM: [], PM: [{}, {}], due: [{}, {}, {}] }, isLoading: false, isError: false,
-    } as ReturnType<typeof useSkincareToday>)
+    } as unknown as ReturnType<typeof useSkincareToday>)
     renderModule()
     // Le chiffre est dans son propre span tabular-nums (« 3 » + « dû »).
     const count = screen.getByText('3')
@@ -33,13 +33,13 @@ describe('SkincareModule', () => {
   it('affiche « à jour » quand rien n\'est dû', () => {
     mockToday.mockReturnValue({
       data: { date: '2026-06-24', AM: [], PM: [], due: [] }, isLoading: false, isError: false,
-    } as ReturnType<typeof useSkincareToday>)
+    } as unknown as ReturnType<typeof useSkincareToday>)
     renderModule()
     expect(screen.getByText(/à jour/i)).toBeInTheDocument()
   })
 
   it('affiche un skeleton au chargement', () => {
-    mockToday.mockReturnValue({ data: undefined, isLoading: true, isError: false } as ReturnType<typeof useSkincareToday>)
+    mockToday.mockReturnValue({ data: undefined, isLoading: true, isError: false } as unknown as ReturnType<typeof useSkincareToday>)
     renderModule()
     expect(screen.getByTestId('skincare-skeleton')).toBeInTheDocument()
   })

@@ -22,7 +22,7 @@ describe('NextWorkoutModule', () => {
     mockToday.mockReturnValue({
       data: { date: '2026-06-24', weekday: 2, jour_label: 'Push', programme_jour_id: 1, slots: [{ label: 'Développé couché' }], seance_en_cours: null, kcal_estimees: 0, poids_corps_kg: 70, mesocycle: null },
       isLoading: false, isError: false,
-    } as ReturnType<typeof useEntrainementToday>)
+    } as unknown as ReturnType<typeof useEntrainementToday>)
     renderModule()
     expect(screen.getByText('Push')).toBeInTheDocument()
     expect(screen.getByText(/Développé couché/)).toBeInTheDocument()
@@ -33,7 +33,7 @@ describe('NextWorkoutModule', () => {
     mockToday.mockReturnValue({
       data: { date: '2026-06-24', weekday: 6, jour_label: 'Repos', programme_jour_id: null, slots: [], seance_en_cours: null, kcal_estimees: 0, poids_corps_kg: 70, mesocycle: null },
       isLoading: false, isError: false,
-    } as ReturnType<typeof useEntrainementToday>)
+    } as unknown as ReturnType<typeof useEntrainementToday>)
     renderModule()
     expect(screen.getByText('Jour de repos')).toBeInTheDocument()
   })

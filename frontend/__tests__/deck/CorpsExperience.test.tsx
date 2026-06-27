@@ -17,8 +17,8 @@ beforeEach(() => {
     isLoading: false, isError: false,
   } as ReturnType<typeof useScore>)
   vi.mocked(useWaterToday).mockReturnValue({ data: { date: '2026-06-24', eau_ml: 1500, cible_ml: 2500, pct: 60 }, isLoading: false, isError: false } as ReturnType<typeof useWaterToday>)
-  vi.mocked(useEntrainementToday).mockReturnValue({ data: { date: '2026-06-24', weekday: 2, jour_label: 'Push', programme_jour_id: 1, slots: [{ label: 'Développé couché' }], seance_en_cours: null, kcal_estimees: 0, poids_corps_kg: 70, mesocycle: null }, isLoading: false, isError: false } as ReturnType<typeof useEntrainementToday>)
-  vi.mocked(useSkincareToday).mockReturnValue({ data: { date: '2026-06-24', AM: [], PM: [{}], due: [{}] }, isLoading: false, isError: false } as ReturnType<typeof useSkincareToday>)
+  vi.mocked(useEntrainementToday).mockReturnValue({ data: { date: '2026-06-24', weekday: 2, jour_label: 'Push', programme_jour_id: 1, slots: [{ label: 'Développé couché' }], seance_en_cours: null, kcal_estimees: 0, poids_corps_kg: 70, mesocycle: null }, isLoading: false, isError: false } as unknown as ReturnType<typeof useEntrainementToday>)
+  vi.mocked(useSkincareToday).mockReturnValue({ data: { date: '2026-06-24', AM: [], PM: [{}], due: [{}] }, isLoading: false, isError: false } as unknown as ReturnType<typeof useSkincareToday>)
 })
 
 describe('CorpsExperience', () => {

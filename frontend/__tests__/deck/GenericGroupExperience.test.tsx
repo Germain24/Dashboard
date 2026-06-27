@@ -5,7 +5,7 @@ import { Wallet } from 'lucide-react'
 import { GenericGroupExperience } from '@/components/deck/experiences/GenericGroupExperience'
 
 const group = {
-  group: 'Finances & Ingénierie',
+  group: 'Finances & Ingénierie' as const,
   items: [
     { slug: 'budget', label: 'Budget', description: 'Trésorerie', icon: Wallet, group: 'Finances & Ingénierie' as const, ready: true },
   ],
