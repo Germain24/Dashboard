@@ -24,6 +24,12 @@ export function useDeckNavigation(total: number) {
     sectionRefs.current[clamped]?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  // Si le nombre de sections diminue (ex. intro retirée), garde l'index actif
+  // dans les bornes pour ne pas pointer au-delà de la dernière section.
+  useEffect(() => {
+    setActive((a) => Math.min(a, Math.max(0, total - 1)))
+  }, [total])
+
   useEffect(() => {
     const io = new IntersectionObserver(
       (entries) => {

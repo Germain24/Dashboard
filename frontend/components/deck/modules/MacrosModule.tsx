@@ -15,9 +15,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function MacrosModule() {
   const { data: score, isLoading: loadingScore } = useScore()
-  const { data: water } = useWaterToday()
+  const { data: water, isLoading: loadingWater } = useWaterToday()
 
-  if (loadingScore) {
+  // On attend aussi l'hydratation pour éviter un flash (calories d'abord, puis
+  // la ligne « Hydratation » qui apparaît après coup).
+  if (loadingScore || loadingWater) {
     return <Skeleton data-testid="macros-skeleton" className="h-28 w-full" />
   }
 

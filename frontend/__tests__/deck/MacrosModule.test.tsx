@@ -44,4 +44,14 @@ describe('MacrosModule', () => {
     renderModule()
     expect(screen.getByTestId('macros-skeleton')).toBeInTheDocument()
   })
+
+  it('reste en skeleton tant que l\'hydratation charge (évite le flash)', () => {
+    mockScore.mockReturnValue({
+      data: { date: '2026-06-24', score: 70, composantes: { sommeil: 1, sport: 1, nutrition: 1 }, details: { sommeil_h: 7, sessions_7j: 3, kcal_consommees: 1840, kcal_cible: 2100 } },
+      isLoading: false, isError: false,
+    } as ReturnType<typeof useScore>)
+    mockWater.mockReturnValue({ data: undefined, isLoading: true, isError: false } as ReturnType<typeof useWaterToday>)
+    renderModule()
+    expect(screen.getByTestId('macros-skeleton')).toBeInTheDocument()
+  })
 })
