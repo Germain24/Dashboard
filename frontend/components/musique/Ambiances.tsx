@@ -5,27 +5,28 @@ import { mediaUrl, musiqueApi, type AmbianceCount, type Track } from "@/lib/musi
 import { useAddAmbiance, useAmbiances, usePlaylist, usePlaylistReco } from "@/lib/queries/musique";
 
 export function Ambiances() {
-  const [sel, setSel] = useState<string>("café");
-
   const ambiances: AmbianceCount[] = useAmbiances().data ?? [];
-  const tracks: Track[] = usePlaylist(sel).data ?? [];
-  const reco: Track[] = usePlaylistReco(sel).data ?? [];
+  const [sel, setSel] = useState<string>("");
+  const active = sel || ambiances[0]?.ambiance || "";
+  const tracks: Track[] = usePlaylist(active).data ?? [];
+  const reco: Track[] = usePlaylistReco(active).data ?? [];
   const addMutation = useAddAmbiance();
 
-  const add = (id: number) => addMutation.mutate({ id, ambiance: sel });
+  const add = (id: number) => addMutation.mutate({ id, ambiance: active });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-1.5">
         {ambiances.map((a) => (
           <button key={a.ambiance} onClick={() => setSel(a.ambiance)}
-            className={`text-xs px-2.5 py-1 rounded-full border ${sel === a.ambiance
+            className={`text-xs px-2.5 py-1 rounded-full border ${active === a.ambiance
               ? "bg-[var(--ring)] text-white border-[var(--ring)]"
               : "border-[var(--border)] text-[var(--muted-foreground)]"}`}>
-            {a.ambiance} ({a.count})
+            {a.label} ({a.count})
           </button>
         ))}
-        <a href={musiqueApi.exportUrl(sel)} className="ml-auto text-xs px-2.5 py-1 rounded-full border border-[var(--border)]">⬇ .m3u</a>
+        <a href={musiqueApi.exportAllUrl()} download
+           className="ml-auto text-xs px-2.5 py-1 rounded-full border border-[var(--border)]">⬇ Tout exporter (.zip)</a>
       </div>
 
       <div className="space-y-1">
