@@ -13,6 +13,7 @@ export const musiqueKeys = {
   playlist: (a: string) => [...musiqueKeys.all, "playlist", a] as const,
   reco: (a: string) => [...musiqueKeys.all, "reco", a] as const,
   discovery: (a: string) => [...musiqueKeys.all, "discovery", a] as const,
+  quality: () => [...musiqueKeys.all, "quality"] as const,
 };
 
 export function useTracks(q = "", ambiance = "") {
@@ -43,6 +44,19 @@ export function useDiscovery(ambiance: string | null) {
     queryKey: musiqueKeys.discovery(ambiance ?? ""),
     queryFn: () => musiqueApi.discovery(ambiance as string),
     enabled: !!ambiance,
+  });
+}
+
+export function useQuality() {
+  return useQuery({ queryKey: musiqueKeys.quality(), queryFn: musiqueApi.quality });
+}
+
+export function useSetQobuzAvailable() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: { id: number; available: boolean | null }) =>
+      musiqueApi.setQobuzAvailable(p.id, p.available),
+    onSuccess: () => qc.invalidateQueries({ queryKey: musiqueKeys.quality() }),
   });
 }
 

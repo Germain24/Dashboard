@@ -9,6 +9,12 @@ export interface Track {
 }
 export interface AmbianceCount { ambiance: string; label: string; count: number; }
 export interface ClassifyProgress { n_done: number; n_total: number; active: boolean; error?: string | null; }
+export interface QualityRow {
+  id: number; title: string; artist: string; format: string;
+  quality_label: string; tier: string;
+  qobuz_available: boolean | null;
+  status: "owned" | "to_buy" | "unavailable" | "unknown";
+}
 
 export const mediaUrl = (rel: string) => `${MEDIA_BASE}/${rel.split("/").map(encodeURIComponent).join("/")}`;
 
@@ -31,4 +37,9 @@ export const musiqueApi = {
   addAmbiance: (id: number, a: string) => api<void>(`/musique/tracks/${id}/ambiances/${encodeURIComponent(a)}`, { method: "PUT" }),
   removeAmbiance: (id: number, a: string) => api<void>(`/musique/tracks/${id}/ambiances/${encodeURIComponent(a)}`, { method: "DELETE" }),
   exportAllUrl: () => `${env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "")}/musique/playlists/export.zip`,
+  quality: () => api<QualityRow[]>("/musique/quality"),
+  setQobuzAvailable: (id: number, available: boolean | null) =>
+    api<void>(`/musique/tracks/${id}/qobuz-available`, {
+      method: "PUT", body: JSON.stringify({ available }),
+    }),
 };

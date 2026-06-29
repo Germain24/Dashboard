@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Bibliotheque } from "./Bibliotheque";
 import { Ambiances } from "./Ambiances";
 import { Decouverte } from "./Decouverte";
+import { Qualite } from "./Qualite";
 
-const TABS = [["ambiances", "Ambiances"], ["bibliotheque", "Bibliothèque"], ["decouverte", "Découverte"]] as const;
+const TABS = [["ambiances", "Ambiances"], ["bibliotheque", "Bibliothèque"], ["qualite", "Qualité"], ["decouverte", "Découverte"]] as const;
 
 export default function Musique() {
   const [tab, setTab] = useState<string>("ambiances");
@@ -21,6 +22,7 @@ export default function Musique() {
       </div>
       {tab === "ambiances" && <Ambiances />}
       {tab === "bibliotheque" && <Bibliotheque />}
+      {tab === "qualite" && <Qualite />}
       {tab === "decouverte" && <Decouverte />}
     </div>
   );
