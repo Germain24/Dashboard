@@ -16,32 +16,26 @@ from sqlmodel import Session, select
 
 from app.models.musique import MusicTrack, TrackAmbiance
 from app.services.musique import claude_client, ollama_client
-from app.services.musique.constants import AMBIANCES, AMBIANCE_NAMES
+from app.services.musique.constants import AMBIANCE_LABELS, AMBIANCES
 
 _progress = {"n_done": 0, "n_total": 0, "active": False, "error": None}
 
 # Au-delà de ce nombre d'échecs Ollama consécutifs, on arrête le job (Ollama HS).
 _MAX_CONSECUTIVE_FAILS = 5
 
-# Le modèle répond souvent en français libre : on mappe les synonymes courants
-# vers les noms canoniques d'ambiances (clés normalisées sans accents).
+# Synonymes (texte normalisé) -> slug, pour le chemin Ollama (texte libre).
 _SYNONYMES = {
-    "amour": "love",
-    "romantique": "love",
-    "romance": "love",
-    "fete": "soirée",
-    "festif": "soirée",
-    "dansant": "soirée",
-    "danse": "soirée",
-    "detente": "repos",
-    "calme": "repos",
-    "relax": "repos",
-    "sieste": "repos",
-    "concentration": "étude",
-    "travail": "coworking",
-    "chill": "loft",
-    "motivant": "énergie",
-    "entrainant": "énergie",
+    "amour": "amour-love-sex", "love": "amour-love-sex", "sex": "amour-love-sex",
+    "romantique": "amour-love-sex", "romance": "amour-love-sex",
+    "fete": "soiree-internationale", "festif": "soiree-internationale",
+    "dansant": "soiree-internationale", "soiree": "soiree-internationale",
+    "internationale": "soiree-internationale", "francophone": "soiree-francophone",
+    "cafe": "cafe-petit-dej", "petit dejeuner": "cafe-petit-dej",
+    "coworking": "coworking-travail-detente", "travail": "coworking-travail-detente",
+    "detente": "coworking-travail-detente", "concentration": "coworking-travail-detente",
+    "chanson francaise": "chanson-francaise", "variete": "chanson-francaise",
+    "melancolie": "melancolie", "melancolique": "melancolie", "triste": "melancolie",
+    "sport": "sport-gym", "gym": "sport-gym", "energie": "sport-gym", "motivant": "sport-gym",
 }
 
 
@@ -54,10 +48,13 @@ def _norm(s: str) -> str:
     return "".join(c for c in s if unicodedata.category(c) != "Mn").strip(" .,-")
 
 
+# Texte normalisé (labels + synonymes) -> slug.
+_NORM_TO_SLUG: dict[str, str] = {_norm(label): slug for slug, label in AMBIANCE_LABELS.items()}
+_NORM_TO_SLUG.update(_SYNONYMES)
+
+
 def build_prompt(track: dict) -> str:
-    # Formulation validée empiriquement (température 0) : les variantes
-    # « genre d'abord / 1-2 max » donnaient de moins bons résultats.
-    lignes = "\n".join(f"- {name} : {desc}" for name, desc in AMBIANCES.items())
+    lignes = "\n".join(f"- {AMBIANCE_LABELS[slug]} : {desc}" for slug, desc in AMBIANCES.items())
     return (
         "Tu classes un morceau de musique par ambiance. Ambiances possibles :\n"
         f"{lignes}\n\n"
@@ -68,16 +65,13 @@ def build_prompt(track: dict) -> str:
     )
 
 
-def parse_ambiances(raw: str, ambiances: list[str]) -> list[str]:
-    norm_map = {_norm(a): a for a in ambiances}
-    for syn, canonical in _SYNONYMES.items():
-        if canonical in ambiances:
-            norm_map.setdefault(syn, canonical)
+def parse_ambiances(raw: str) -> list[str]:
+    """Texte libre (Ollama) -> liste de slugs de playlists."""
     out: list[str] = []
     for token in raw.replace("\n", ",").split(","):
-        key = _norm(token)
-        if key in norm_map and norm_map[key] not in out:
-            out.append(norm_map[key])
+        slug = _NORM_TO_SLUG.get(_norm(token))
+        if slug and slug not in out:
+            out.append(slug)
     return out
 
 
@@ -164,7 +158,7 @@ def _classify_unitaire(session: Session, tracks: list[MusicTrack], generate) -> 
                 break
             continue
         fails = 0  # un succès réinitialise le compteur d'échecs
-        ambiances = parse_ambiances(raw, AMBIANCE_NAMES)
+        ambiances = parse_ambiances(raw)
         for amb in ambiances:
             session.add(TrackAmbiance(track_id=track.id, ambiance=amb, source="auto"))
         track.classified = True

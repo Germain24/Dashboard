@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 
 from app.core.config import settings
-from app.services.musique.constants import AMBIANCES, AMBIANCE_NAMES
+from app.services.musique.constants import AMBIANCE_LABELS, AMBIANCES, LABEL_TO_SLUG
 
 # Taille de lot : assez grand pour limiter le nombre d'appels, assez petit
 # pour une réponse JSON courte et fiable.
@@ -28,7 +28,7 @@ _OUTPUT_SCHEMA = {
                     "index": {"type": "integer"},
                     "ambiances": {
                         "type": "array",
-                        "items": {"type": "string", "enum": AMBIANCE_NAMES},
+                        "items": {"type": "string", "enum": list(AMBIANCE_LABELS.values())},
                     },
                 },
                 "required": ["index", "ambiances"],
@@ -47,7 +47,7 @@ def is_configured() -> bool:
 
 
 def build_batch_prompt(tracks: list[dict]) -> str:
-    lignes = "\n".join(f"- {name} : {desc}" for name, desc in AMBIANCES.items())
+    lignes = "\n".join(f"- {AMBIANCE_LABELS[slug]} : {desc}" for slug, desc in AMBIANCES.items())
     morceaux = "\n".join(
         f"{i}. artiste={t.get('artist', '')}, album={t.get('album', '')}, "
         f"titre={t.get('title', '')}, genre={t.get('genre', '')}"
@@ -92,7 +92,8 @@ def classify_batch(tracks: list[dict], *, model: str | None = None, _create=None
             continue
         vues: list[str] = []
         for amb in item.get("ambiances", []):
-            if amb in AMBIANCE_NAMES and amb not in vues:
-                vues.append(amb)
+            slug = LABEL_TO_SLUG.get(amb)
+            if slug and slug not in vues:
+                vues.append(slug)
         out[i] = vues
     return out
