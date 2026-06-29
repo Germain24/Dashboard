@@ -1,4 +1,4 @@
-# Musique — Playlists `.m3u8` + export ZIP unique
+# Musique — Playlists `.m3u8` + export ZIP unique + suivi qualité Qobuz
 
 **Date :** 2026-06-29
 **Branche :** `feat/ameliorations-section-e`
@@ -171,8 +171,101 @@ Frontend :
 Mettre à jour les tests existants (`test_api.py`, `test_playlists.py`) qui référencent
 les anciens noms (`café`) et la route `export.m3u`.
 
+## Onglet « Qualité / Achat » (suivi Qobuz)
+
+### Objectif
+
+Suivre l'upgrade qualité de la bibliothèque : certains morceaux sont récupérés
+gratuitement en MP3, d'autres achetés sur Qobuz en lossless/hi-res. L'onglet sert de
+**todo-list d'achats** : voir d'un coup d'œil ce qui reste à racheter en meilleure qualité.
+
+### Décisions validées
+
+- **Qualité et origine auto-déduites** du fichier (lecture mutagen), pas de saisie.
+- **Seul champ manuel : « achetable sur Qobuz »** (Oui / Non / À vérifier), saisi
+  manuellement dans le tableau.
+- Pas de case « acheté » : remplacer le MP3 par le FLAC fait basculer le statut tout seul
+  au prochain scan.
+
+### Auto-détection de la qualité
+
+`scan.extract_metadata` lit en plus, via `audio.info` :
+- `bitrate_kbps` (= `audio.info.bitrate // 1000`),
+- `sample_rate_hz` (= `audio.info.sample_rate`),
+- `bits_per_sample` (FLAC ; `None` pour MP3).
+
+Fonction pure `quality_tier(path_suffix, bits_per_sample, sample_rate_hz) -> str` :
+- MP3 (lossy) → `"lossy"`
+- DSF → `"dsd"`
+- FLAC ≥ 24 bit **ou** > 48 kHz → `"hires"`
+- FLAC 16 bit / ≤ 48 kHz → `"cd"`
+
+Fonction pure `quality_label(...)` → libellé lisible (`"MP3 (320 kbps)"`,
+`"FLAC CD (16 bit · 44,1 kHz)"`, `"Hi-Res (24 bit · 96 kHz)"`, `"DSD"`).
+
+**Origine Qobuz (déduite)** : `tier != "lossy"` ⇒ considéré comme déjà en qualité
+(acheté / lossless). Aucun champ stocké.
+
+### Statut d'achat (dérivé)
+
+Fonction pure `purchase_status(tier, qobuz_available) -> str` :
+
+| `tier` | `qobuz_available` | statut |
+|---|---|---|
+| ≠ lossy | — | `owned` (✅ Déjà en qualité) |
+| lossy | `True` | `to_buy` (🛒 À acheter) |
+| lossy | `False` | `unavailable` (⛔ Indispo Qobuz) |
+| lossy | `None` | `unknown` (❔ À vérifier) |
+
+### Modèle de données
+
+`MusicTrack` — nouvelles colonnes (toutes nullable) :
+- `bitrate_kbps: int | None = None` — auto, scan
+- `sample_rate_hz: int | None = None` — auto, scan
+- `bits_per_sample: int | None = None` — auto, scan
+- `qobuz_available: bool | None = None` — manuel (`None` = à vérifier)
+
+**Migration Alembic** (pattern `batch_alter_table` pour SQLite) ajoutant ces 4 colonnes.
+`scan_library` renseigne les 3 colonnes auto à l'ajout **et** à la mise à jour (les
+morceaux déjà indexés se complètent au prochain scan).
+
+### API
+
+- `GET /musique/quality` → liste `[{ id, title, artist, format, quality_label, tier,
+  qobuz_available, status }]` (+ éventuel tri/filtre par `status` en query, sinon filtré
+  côté front).
+- `PUT /musique/tracks/{track_id}/qobuz-available` — corps JSON `{ "available": true |
+  false | null }` ; met à jour la colonne, 404 si morceau inconnu.
+
+### Frontend
+
+- `Musique.tsx` : ajouter l'onglet `["qualite", "Qualité"]`.
+- Nouveau composant `Qualite.tsx` :
+  - en-tête avec compteurs (🛒 à acheter / ❔ à vérifier / ✅ en qualité) ;
+  - filtres rapides (Tous / À acheter / À vérifier / Déjà en qualité) ;
+  - tableau : titre — artiste, qualité (`quality_label`), statut (pastille), et un
+    sélecteur **Oui / Non / ?** liant `qobuz_available` (mutation optimiste).
+- `lib/musique.ts` : type `QualityRow`, `musiqueApi.quality()` et
+  `musiqueApi.setQobuzAvailable(id, value)`.
+- `lib/queries/musique.ts` : `useQuality()` + `useSetQobuzAvailable()` (invalide la liste).
+
+### Tests (TDD)
+
+- `quality_tier` : mp3→lossy, flac 16/44.1→cd, flac 24/96→hires, dsf→dsd.
+- `quality_label` : libellés attendus, valeurs manquantes tolérées.
+- `purchase_status` : couvre la matrice (owned/to_buy/unavailable/unknown).
+- `scan` : `extract_metadata` remplit `bitrate_kbps`/`sample_rate_hz`/`bits_per_sample`
+  (stub `audio.info`).
+- endpoint `GET /musique/quality` : renvoie les champs + statut cohérent.
+- endpoint `PUT …/qobuz-available` : `true`/`false`/`null` modifient bien la colonne et
+  le statut recalculé ; 404 si inconnu.
+
 ## Hors périmètre (YAGNI)
 
 - Pas de migration « intelligente » ancien→nouveau (remplacement total assumé).
 - Pas d'édition des labels/descriptions depuis l'UI (catalogue en dur côté backend).
 - Pas de changement du modèle `TrackAmbiance` (multi-appartenance déjà supporté).
+- Pas d'auto-détection de la disponibilité Qobuz via API (saisie manuelle ; automatisation
+  possible plus tard).
+- Pas de case « acheté » manuelle (le scan recalcule le statut quand le fichier est
+  remplacé).
