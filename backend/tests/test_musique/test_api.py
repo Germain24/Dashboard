@@ -21,7 +21,7 @@ def _engine():
     return e
 
 
-def test_ambiances_and_membership_and_export():
+def test_membership_and_playlist_avec_slug():
     engine = _engine()
     with Session(engine) as s:
         from app.models.musique import MusicTrack
@@ -29,14 +29,35 @@ def test_ambiances_and_membership_and_export():
     client = _client(engine)
 
     assert client.get("/musique/ambiances").status_code == 200
-    r = client.put("/musique/tracks/1/ambiances/café")
-    assert r.status_code == 204
-    pl = client.get("/musique/playlists/café")
+    assert client.put("/musique/tracks/1/ambiances/amour-love-sex").status_code == 204
+    pl = client.get("/musique/playlists/amour-love-sex")
     assert pl.status_code == 200 and len(pl.json()) == 1
-    m = client.get("/musique/playlists/café/export.m3u")
-    assert m.status_code == 200 and m.text.startswith("#EXTM3U")
-    assert client.delete("/musique/tracks/1/ambiances/café").status_code == 204
-    assert client.get("/musique/playlists/café").json() == []
+    assert client.delete("/musique/tracks/1/ambiances/amour-love-sex").status_code == 204
+    assert client.get("/musique/playlists/amour-love-sex").json() == []
+
+
+def test_export_zip_un_seul_fichier_par_playlist():
+    import io, zipfile
+    engine = _engine()
+    with Session(engine) as s:
+        from app.models.musique import MusicTrack
+        from app.models.musique import TrackAmbiance
+        s.add(MusicTrack(path="A/B/1.flac", artist="A", title="T", duree_sec=100)); s.commit()
+        s.add(TrackAmbiance(track_id=1, ambiance="amour-love-sex", source="manuel")); s.commit()
+    client = _client(engine)
+
+    r = client.get("/musique/playlists/export.zip")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/zip"
+    assert "playlists-musique.zip" in r.headers["content-disposition"]
+    zf = zipfile.ZipFile(io.BytesIO(r.content))
+    names = zf.namelist()
+    assert len(names) == 8                                  # une entrée par playlist
+    assert all(n.endswith(".m3u8") and "/" not in n for n in names)
+    assert "amour - love - sex.m3u8" in names
+    contenu = zf.read("amour - love - sex.m3u8").decode("utf-8-sig")
+    assert contenu.startswith("#EXTM3U")
+    assert "A/B/1.flac" in contenu
 
 
 def test_ambiances_renvoie_slug_label_count():

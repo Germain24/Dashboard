@@ -1,4 +1,4 @@
-from app.services.musique.playlists import reco_bibliotheque, to_m3u
+from app.services.musique.playlists import reco_bibliotheque
 
 
 def test_set_membership_add_remove():
@@ -11,10 +11,10 @@ def test_set_membership_add_remove():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as s:
         s.add(MusicTrack(path="A/B/1.flac")); s.commit()
-        set_membership(s, 1, "café", True)
-        set_membership(s, 1, "café", True)  # idempotent
+        set_membership(s, 1, "sport-gym", True)
+        set_membership(s, 1, "sport-gym", True)  # idempotent
         assert len(s.exec(select(TrackAmbiance)).all()) == 1
-        set_membership(s, 1, "café", False)
+        set_membership(s, 1, "sport-gym", False)
         assert s.exec(select(TrackAmbiance)).all() == []
 
 

@@ -30,18 +30,6 @@ def set_membership(session: Session, track_id: int, ambiance: str, present: bool
         session.commit()
 
 
-def to_m3u(tracks: list[dict], *, relatif: bool = True) -> str:
-    """Construit un .m3u (chemins relatifs) lisible par Poweramp."""
-    lines = ["#EXTM3U"]
-    for t in tracks:
-        dur = t.get("duree_sec") or -1
-        artist = t.get("artist", "")
-        title = t.get("title", "")
-        lines.append(f"#EXTINF:{dur},{artist} - {title}")
-        lines.append(t["path"])
-    return "\n".join(lines) + "\n"
-
-
 def to_m3u8(tracks: list[dict], *, titre: str) -> bytes:
     """Construit un .m3u8 (UTF-8 avec BOM) lisible par Poweramp. Chemins relatifs."""
     lines = ["#EXTM3U", f"#PLAYLIST:{titre}"]
