@@ -70,3 +70,39 @@ def test_ambiances_renvoie_slug_label_count():
     by_slug = {r["ambiance"]: r for r in rows}
     assert by_slug["amour-love-sex"]["label"] == "amour/love/sex"
     assert by_slug["amour-love-sex"]["count"] == 0
+
+
+def test_quality_liste_et_statut():
+    engine = _engine()
+    with Session(engine) as s:
+        from app.models.musique import MusicTrack
+        s.add(MusicTrack(path="A/1.mp3", artist="A", title="MP3", bitrate_kbps=320))
+        s.add(MusicTrack(path="B/2.flac", artist="B", title="FLAC",
+                         bitrate_kbps=940, sample_rate_hz=44100, bits_per_sample=16))
+        s.commit()
+    client = _client(engine)
+
+    rows = client.get("/musique/quality").json()
+    by_title = {r["title"]: r for r in rows}
+    assert by_title["MP3"]["format"] == "mp3"
+    assert by_title["MP3"]["status"] == "unknown"          # mp3, dispo inconnue
+    assert by_title["MP3"]["quality_label"] == "MP3 (320 kbps)"
+    assert by_title["FLAC"]["tier"] == "cd"
+    assert by_title["FLAC"]["status"] == "owned"
+
+
+def test_put_qobuz_available_met_a_jour_le_statut():
+    engine = _engine()
+    with Session(engine) as s:
+        from app.models.musique import MusicTrack
+        s.add(MusicTrack(path="A/1.mp3", artist="A", title="MP3", bitrate_kbps=320)); s.commit()
+    client = _client(engine)
+
+    assert client.put("/musique/tracks/1/qobuz-available", json={"available": True}).status_code == 204
+    rows = client.get("/musique/quality").json()
+    assert rows[0]["qobuz_available"] is True and rows[0]["status"] == "to_buy"
+
+    assert client.put("/musique/tracks/1/qobuz-available", json={"available": None}).status_code == 204
+    assert client.get("/musique/quality").json()[0]["status"] == "unknown"
+
+    assert client.put("/musique/tracks/999/qobuz-available", json={"available": True}).status_code == 404

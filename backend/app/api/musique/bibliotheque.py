@@ -1,9 +1,10 @@
 """Sous-routeur Musique : scan, classement, pistes, ambiances (#511)."""
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.api.musique.common import ambiances_for, track_dict
@@ -12,8 +13,13 @@ from app.core.db import get_session
 from app.models.musique import MusicTrack, TrackAmbiance
 from app.services.musique import classify, scan
 from app.services.musique.constants import AMBIANCE_LABELS, AMBIANCE_NAMES
+from app.services.musique.quality import purchase_status, quality_label, quality_tier
 
 router = APIRouter()
+
+
+class QobuzAvailableIn(BaseModel):
+    available: bool | None
 
 
 @router.post("/scan")
@@ -73,3 +79,31 @@ def ambiances(session: Session = Depends(get_session)):
         if r.ambiance in counts:
             counts[r.ambiance] += 1
     return [{"ambiance": a, "label": AMBIANCE_LABELS[a], "count": counts[a]} for a in AMBIANCE_NAMES]
+
+
+@router.get("/quality")
+def quality(session: Session = Depends(get_session)):
+    rows = []
+    for t in session.exec(select(MusicTrack)).all():
+        suffix = PurePosixPath(t.path).suffix
+        tier = quality_tier(suffix, t.bits_per_sample, t.sample_rate_hz)
+        rows.append({
+            "id": t.id, "title": t.title, "artist": t.artist,
+            "format": suffix.lstrip(".").lower(),
+            "quality_label": quality_label(suffix, t.bitrate_kbps, t.sample_rate_hz, t.bits_per_sample),
+            "tier": tier,
+            "qobuz_available": t.qobuz_available,
+            "status": purchase_status(tier, t.qobuz_available),
+        })
+    return rows
+
+
+@router.put("/tracks/{track_id}/qobuz-available", status_code=204)
+def set_qobuz_available(track_id: int, body: QobuzAvailableIn,
+                        session: Session = Depends(get_session)):
+    track = session.get(MusicTrack, track_id)
+    if track is None:
+        raise HTTPException(404, "Morceau inconnu")
+    track.qobuz_available = body.available
+    session.add(track)
+    session.commit()
