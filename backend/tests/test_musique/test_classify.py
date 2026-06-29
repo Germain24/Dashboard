@@ -114,6 +114,8 @@ def test_classify_untagged_par_lots_marque_aussi_les_zero_ambiance():
         s.add(MusicTrack(path="A/1.flac", title="T1")); s.add(MusicTrack(path="B/2.flac", title="T2")); s.commit()
         res = classify_untagged(s, classify_lot=lambda tracks: [["soiree-internationale"], []])
         assert res == {"classes": 1, "total": 2}
+        for t in s.exec(select(MusicTrack)).all():
+            assert t.classified is True
         ambs = [(ta.track_id, ta.ambiance) for ta in s.exec(select(TrackAmbiance)).all()]
         assert ambs == [(1, "soiree-internationale")]
 
