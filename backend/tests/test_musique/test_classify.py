@@ -141,6 +141,37 @@ def test_classify_untagged_par_lots_echec_reste_reclassable():
         assert s.exec(select(TrackAmbiance)).all() == []
 
 
+def test_classify_par_lots_envoie_les_vraies_donnees_apres_commit():
+    """Régression : après le commit du 1er lot, SQLModel expire les objets ORM ;
+    `model_dump()` renvoyait alors des champs vides pour les lots suivants
+    (DeepSeek/Claude recevaient des morceaux vides → 0 ambiance). Les données
+    doivent rester réelles pour TOUS les lots (snapshot avant les commits)."""
+    from sqlmodel import Session, SQLModel, create_engine, select
+    from sqlmodel.pool import StaticPool
+    from app.models.musique import MusicTrack, TrackAmbiance
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        for n in range(25):  # > BATCH_SIZE (20) -> au moins 2 lots
+            s.add(MusicTrack(path=f"A/{n}.flac", artist=f"Artiste{n}", title=f"Titre{n}"))
+        s.commit()
+
+        recus: list[dict] = []
+
+        def fake_lot(dicts):
+            recus.extend(dicts)
+            return [["cafe-petit-dej"] for _ in dicts]  # 1 ambiance chacun
+
+        res = classify_untagged(s, classify_lot=fake_lot)
+        assert res["total"] == 25
+        # Tous les morceaux (y compris ceux du 2e lot) doivent avoir un titre réel.
+        assert all(d["title"].startswith("Titre") for d in recus), \
+            "des morceaux ont été envoyés avec un titre vide après le commit du 1er lot"
+        assert res["classes"] == 25
+        assert len(s.exec(select(TrackAmbiance)).all()) == 25
+
+
 def test_reset_classification_targets_empty_only():
     from sqlmodel import Session, SQLModel, create_engine, select
     from sqlmodel.pool import StaticPool

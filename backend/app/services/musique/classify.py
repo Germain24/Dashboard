@@ -15,7 +15,7 @@ import unicodedata
 from sqlmodel import Session, select
 
 from app.models.musique import MusicTrack, TrackAmbiance
-from app.services.musique import claude_client, ollama_client
+from app.services.musique import claude_client, deepseek_client, ollama_client
 from app.services.musique.constants import AMBIANCE_LABELS, AMBIANCES
 
 _progress = {"n_done": 0, "n_total": 0, "active": False, "error": None}
@@ -95,7 +95,9 @@ def classify_untagged(session: Session, *, generate=None, classify_lot=None) -> 
     _progress.update(n_done=0, n_total=len(tracks), active=True, error=None)
     try:
         if generate is None and classify_lot is None:
-            if claude_client.is_configured():
+            if deepseek_client.is_configured():
+                classify_lot = deepseek_client.classify_batch
+            elif claude_client.is_configured():
                 classify_lot = claude_client.classify_batch
             else:
                 generate = ollama_client.generate
@@ -113,10 +115,15 @@ def _classify_par_lots(session: Session, tracks: list[MusicTrack], classify_lot)
     marqué classé, même sans ambiance ; un lot en échec reste réessayable."""
     classes = 0
     fails = 0
+    # Snapshot des métadonnées AVANT toute écriture : `session.commit()` expire les
+    # objets ORM (expire_on_commit), après quoi `model_dump()` renvoie des champs
+    # vides/absents — le classifieur recevrait des morceaux vides dès le 2e lot.
+    snapshot = [t.model_dump() for t in tracks]
     for i in range(0, len(tracks), claude_client.BATCH_SIZE):
         lot = tracks[i:i + claude_client.BATCH_SIZE]
+        lot_dicts = snapshot[i:i + claude_client.BATCH_SIZE]
         try:
-            resultats = classify_lot([t.model_dump() for t in lot])
+            resultats = classify_lot(lot_dicts)
         except Exception:
             fails += 1
             if fails >= 2:
@@ -144,9 +151,12 @@ def _classify_unitaire(session: Session, tracks: list[MusicTrack], generate) -> 
     modèles locaux)."""
     classes = 0
     fails = 0
-    for track in tracks:
+    # Snapshot AVANT les commits (cf. _classify_par_lots) : sinon les morceaux
+    # suivants seraient envoyés vides après l'expiry du premier commit.
+    snapshot = [t.model_dump() for t in tracks]
+    for track, data in zip(tracks, snapshot):
         try:
-            raw = generate(build_prompt(track.model_dump()))
+            raw = generate(build_prompt(data))
         except Exception:
             # Échec Ollama : on NE marque PAS le morceau classé (réessayable).
             fails += 1

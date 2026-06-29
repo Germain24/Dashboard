@@ -134,6 +134,12 @@ class Settings(BaseSettings):
     # classement retombe sur Ollama local (unitaire, plus lent).
     anthropic_api_key: str = ""
 
+    # --- API DeepSeek (classement musical alternatif, API compatible OpenAI) ---
+    # Si renseignée, DeepSeek est utilisé en priorité pour le classement par lots.
+    deepseek_api_key: str = ""
+    deepseek_base_url: str = "https://api.deepseek.com"
+    musique_deepseek_model: str = "deepseek-chat"
+
     # --- Musique (module playlists par ambiance) ---
     music_dir: str = "C:/Users/germa/Music"
     # Modèle Claude utilisé pour classer les morceaux par lots.
