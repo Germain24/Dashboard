@@ -34,6 +34,7 @@ def extract_metadata(path: Path) -> dict:
 
     artist = album = title = genre = ""
     duree_sec: int | None = None
+    bitrate_kbps = sample_rate_hz = bits_per_sample = None
     try:
         audio = mutagen.File(path, easy=True)
         if audio is not None:
@@ -44,8 +45,16 @@ def extract_metadata(path: Path) -> dict:
             album = first("album")
             title = first("title")
             genre = first("genre")
-            if audio.info and getattr(audio.info, "length", None):
-                duree_sec = int(audio.info.length)
+            info = getattr(audio, "info", None)
+            if info is not None:
+                if getattr(info, "length", None):
+                    duree_sec = int(info.length)
+                if getattr(info, "bitrate", None):
+                    bitrate_kbps = int(info.bitrate) // 1000
+                if getattr(info, "sample_rate", None):
+                    sample_rate_hz = int(info.sample_rate)
+                if getattr(info, "bits_per_sample", None):
+                    bits_per_sample = int(info.bits_per_sample)
     except Exception:
         pass
     # Repli sur l'arborescence .../Artiste/Album/Fichier
@@ -55,7 +64,9 @@ def extract_metadata(path: Path) -> dict:
         album = path.parent.name
     if not title:
         title = path.stem
-    return {"artist": artist, "album": album, "title": title, "genre": genre, "duree_sec": duree_sec}
+    return {"artist": artist, "album": album, "title": title, "genre": genre,
+            "duree_sec": duree_sec, "bitrate_kbps": bitrate_kbps,
+            "sample_rate_hz": sample_rate_hz, "bits_per_sample": bits_per_sample}
 
 
 def scan_library(session: Session, root: Path) -> dict:

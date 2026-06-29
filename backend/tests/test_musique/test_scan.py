@@ -45,6 +45,33 @@ def test_find_cover_canonical_name_wins_over_fallback(tmp_path):
     assert scan.find_cover(album) == album / "cover.jpg"
 
 
+def test_extract_metadata_lit_qualite(monkeypatch):
+    class FakeInfo:
+        length = 200
+        bitrate = 940000
+        sample_rate = 44100
+        bits_per_sample = 16
+
+    class FakeAudio(dict):
+        info = FakeInfo()
+
+    import app.services.musique.scan as scanmod
+    monkeypatch.setattr("mutagen.File", lambda p, easy=True: FakeAudio())
+    meta = scanmod.extract_metadata(Path("Artiste/Album/01.flac"))
+    assert meta["bitrate_kbps"] == 940
+    assert meta["sample_rate_hz"] == 44100
+    assert meta["bits_per_sample"] == 16
+
+
+def test_extract_metadata_qualite_absente_donne_none(monkeypatch):
+    import app.services.musique.scan as scanmod
+    monkeypatch.setattr("mutagen.File", lambda p, easy=True: None)
+    meta = scanmod.extract_metadata(Path("Artiste/Album/01.mp3"))
+    assert meta["bitrate_kbps"] is None
+    assert meta["sample_rate_hz"] is None
+    assert meta["bits_per_sample"] is None
+
+
 def test_scan_library_indexes_audio(tmp_path, monkeypatch):
     # Arborescence factice : 1 morceau flac + une pochette.
     album = tmp_path / "Artiste" / "Album"
