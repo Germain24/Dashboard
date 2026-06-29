@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.db import get_session
 from app.models.musique import MusicTrack, TrackAmbiance
 from app.services.musique import classify, scan
-from app.services.musique.constants import AMBIANCE_NAMES
+from app.services.musique.constants import AMBIANCE_LABELS, AMBIANCE_NAMES
 
 router = APIRouter()
 
@@ -70,5 +70,6 @@ def list_tracks(session: Session = Depends(get_session), q: str | None = None,
 def ambiances(session: Session = Depends(get_session)):
     counts: dict[str, int] = {a: 0 for a in AMBIANCE_NAMES}
     for r in session.exec(select(TrackAmbiance)).all():
-        counts[r.ambiance] = counts.get(r.ambiance, 0) + 1
-    return [{"ambiance": a, "count": counts.get(a, 0)} for a in AMBIANCE_NAMES]
+        if r.ambiance in counts:
+            counts[r.ambiance] += 1
+    return [{"ambiance": a, "label": AMBIANCE_LABELS[a], "count": counts[a]} for a in AMBIANCE_NAMES]

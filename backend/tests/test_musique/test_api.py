@@ -37,3 +37,15 @@ def test_ambiances_and_membership_and_export():
     assert m.status_code == 200 and m.text.startswith("#EXTM3U")
     assert client.delete("/musique/tracks/1/ambiances/café").status_code == 204
     assert client.get("/musique/playlists/café").json() == []
+
+
+def test_ambiances_renvoie_slug_label_count():
+    engine = _engine()
+    client = _client(engine)
+    rows = client.get("/musique/ambiances").json()
+    assert len(rows) == 8
+    first = rows[0]
+    assert set(first) == {"ambiance", "label", "count"}
+    by_slug = {r["ambiance"]: r for r in rows}
+    assert by_slug["amour-love-sex"]["label"] == "amour/love/sex"
+    assert by_slug["amour-love-sex"]["count"] == 0
