@@ -39,17 +39,36 @@ def test_parse_suggestions_splits_list():
     assert parse_suggestions("1. X\n2. Y") == ["X", "Y"]
 
 
-def test_to_m3u_relative_paths():
+def test_to_m3u8_bom_entete_et_lignes():
+    from app.services.musique.playlists import to_m3u8
     tracks = [
         {"path": "A/Alb/01.flac", "artist": "A", "title": "T1", "duree_sec": 200},
         {"path": "B/Alb/02.mp3", "artist": "B", "title": "T2", "duree_sec": None},
     ]
-    m = to_m3u(tracks)
-    lines = m.splitlines()
+    data = to_m3u8(tracks, titre="café pour le petit dep")
+    assert isinstance(data, bytes)
+    assert data.startswith("﻿".encode("utf-8"))    # BOM UTF-8
+    texte = data.decode("utf-8-sig")
+    lines = texte.splitlines()
     assert lines[0] == "#EXTM3U"
+    assert lines[1] == "#PLAYLIST:café pour le petit dep"
     assert "#EXTINF:200,A - T1" in lines
     assert "A/Alb/01.flac" in lines
-    assert "#EXTINF:-1,B - T2" in lines  # durée inconnue -> -1
+    assert "#EXTINF:-1,B - T2" in lines
+
+
+def test_to_m3u8_playlist_vide():
+    from app.services.musique.playlists import to_m3u8
+    data = to_m3u8([], titre="Mélancolie")
+    texte = data.decode("utf-8-sig")
+    assert texte.splitlines() == ["#EXTM3U", "#PLAYLIST:Mélancolie"]
+
+
+def test_safe_filename_retire_les_caracteres_interdits():
+    from app.services.musique.playlists import safe_filename
+    assert safe_filename("amour/love/sex") == "amour - love - sex"
+    assert safe_filename("soirée ( internationale )") == "soirée ( internationale )"
+    assert safe_filename('a:b*c?"d') == "abcd"
 
 
 def test_reco_scores_by_shared_artist_or_genre():

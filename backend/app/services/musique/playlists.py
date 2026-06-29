@@ -42,6 +42,29 @@ def to_m3u(tracks: list[dict], *, relatif: bool = True) -> str:
     return "\n".join(lines) + "\n"
 
 
+def to_m3u8(tracks: list[dict], *, titre: str) -> bytes:
+    """Construit un .m3u8 (UTF-8 avec BOM) lisible par Poweramp. Chemins relatifs."""
+    lines = ["#EXTM3U", f"#PLAYLIST:{titre}"]
+    for t in tracks:
+        dur = t.get("duree_sec") or -1
+        artist = t.get("artist", "")
+        title = t.get("title", "")
+        lines.append(f"#EXTINF:{dur},{artist} - {title}")
+        lines.append(t["path"])
+    texte = "\n".join(lines) + "\n"
+    return ("﻿" + texte).encode("utf-8")
+
+
+# Caractères interdits dans un nom de fichier Windows (hors '/').
+_FORBIDDEN = '<>:"\\|?*'
+
+
+def safe_filename(label: str) -> str:
+    """Label -> nom de fichier sûr : '/' devient ' - ', caractères interdits retirés."""
+    name = label.replace("/", " - ")
+    return "".join(c for c in name if c not in _FORBIDDEN).strip()
+
+
 def purge_unknown_ambiances(session: Session) -> int:
     """Supprime les appartenances aux playlists inconnues (anciens noms) et remet
     les morceaux orphelinés à reclasser. Idempotent. Retourne le nb de lignes purgées."""
