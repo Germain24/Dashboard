@@ -62,3 +62,40 @@ def test_reco_scores_by_shared_artist_or_genre():
     reco = reco_bibliotheque(tracks_in, tracks_out)
     ids = [t["id"] for t in reco]
     assert set(ids) == {2, 3} and 4 not in ids
+
+
+def test_purge_unknown_ambiances():
+    from sqlmodel import Session, SQLModel, create_engine, select
+    from sqlmodel.pool import StaticPool
+    from app.models.musique import MusicTrack, TrackAmbiance
+    from app.services.musique.playlists import purge_unknown_ambiances
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        s.add(MusicTrack(path="A/1.flac", classified=True))   # id1 : ancien nom -> purgé
+        s.add(MusicTrack(path="B/2.flac", classified=True))   # id2 : slug valide -> conservé
+        s.commit()
+        s.add(TrackAmbiance(track_id=1, ambiance="café", source="auto"))      # ancien nom
+        s.add(TrackAmbiance(track_id=2, ambiance="sport-gym", source="auto"))  # slug valide
+        s.commit()
+
+        n = purge_unknown_ambiances(s)
+        assert n == 1
+        restantes = {ta.ambiance for ta in s.exec(select(TrackAmbiance)).all()}
+        assert restantes == {"sport-gym"}
+        t1 = s.exec(select(MusicTrack).where(MusicTrack.path == "A/1.flac")).first()
+        t2 = s.exec(select(MusicTrack).where(MusicTrack.path == "B/2.flac")).first()
+        assert t1.classified is False   # orphelin -> à reclasser
+        assert t2.classified is True
+
+
+def test_purge_unknown_ambiances_idempotent():
+    from sqlmodel import Session, SQLModel, create_engine
+    from sqlmodel.pool import StaticPool
+    from app.services.musique.playlists import purge_unknown_ambiances
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        assert purge_unknown_ambiances(s) == 0

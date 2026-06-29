@@ -42,6 +42,29 @@ def to_m3u(tracks: list[dict], *, relatif: bool = True) -> str:
     return "\n".join(lines) + "\n"
 
 
+def purge_unknown_ambiances(session: Session) -> int:
+    """Supprime les appartenances aux playlists inconnues (anciens noms) et remet
+    les morceaux orphelinés à reclasser. Idempotent. Retourne le nb de lignes purgées."""
+    valides = set(AMBIANCE_NAMES)
+    a_purger = [r for r in session.exec(select(TrackAmbiance)).all() if r.ambiance not in valides]
+    if not a_purger:
+        return 0
+    track_ids = {r.track_id for r in a_purger}
+    for r in a_purger:
+        session.delete(r)
+    encore_taggés = {
+        r.track_id for r in session.exec(select(TrackAmbiance)).all()
+        if r.ambiance in valides
+    }
+    for tid in track_ids - encore_taggés:
+        track = session.get(MusicTrack, tid)
+        if track is not None:
+            track.classified = False
+            session.add(track)
+    session.commit()
+    return len(a_purger)
+
+
 def reco_bibliotheque(tracks_in: list[dict], tracks_out: list[dict]) -> list[dict]:
     """Parmi tracks_out, ceux partageant artiste OU genre avec tracks_in.
 

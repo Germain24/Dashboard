@@ -28,12 +28,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     log.info("Intégrations configurées: %s", integration_status(settings))
 
     with Session(engine) as session:
-        # Sync historique Excel Finance
-        try:
-            from app.services.finance.history_excel import sync_excel_to_db
-            sync_excel_to_db(session)
-        except Exception as exc:
-            log.warning("Sync Excel: %s", exc)
         # Seed catégories Budget
         try:
             from app.services.budget.categories import seed_categories
@@ -52,6 +46,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             seed_skincare(session)
         except Exception as exc:
             log.warning("Seed skincare: %s", exc)
+        # Purge des playlists musicales aux noms obsolètes (#musique)
+        try:
+            from app.services.musique.playlists import purge_unknown_ambiances
+            n = purge_unknown_ambiances(session)
+            if n:
+                log.info("Musique : %d appartenances obsolètes purgées", n)
+        except Exception as exc:
+            log.warning("Purge playlists musique: %s", exc)
 
     # Démarrer Ollama si besoin (module Musique) — en arrière-plan, ne bloque pas le boot.
     if settings.musique_ollama_autostart:
