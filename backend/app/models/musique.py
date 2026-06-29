@@ -16,6 +16,10 @@ class MusicTrack(SQLModel, table=True):
     duree_sec: int | None = None
     cover: str | None = None      # chemin relatif de la pochette
     classified: bool = False      # déjà passé par Ollama
+    bitrate_kbps: int | None = None       # auto (scan mutagen)
+    sample_rate_hz: int | None = None     # auto
+    bits_per_sample: int | None = None    # auto (None pour MP3)
+    qobuz_available: bool | None = None   # manuel (None = à vérifier)
     created_at: dt.datetime = Field(default_factory=utcnow)
 
 
