@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
@@ -26,6 +26,8 @@ const baseData = {
 
 let mockData = { ...baseData };
 
+const autoMutate = vi.hoisted(() => vi.fn());
+
 vi.mock("@/lib/queries/garderobe", () => ({
   useObjectif: () => ({
     isLoading: false,
@@ -33,6 +35,7 @@ vi.mock("@/lib/queries/garderobe", () => ({
     data: mockData,
   }),
   useSyncObjectif: () => ({ mutate: vi.fn(), isPending: false }),
+  useAutoRattacher: () => ({ mutate: autoMutate, isPending: false }),
 }));
 
 import { ObjectifTab } from "@/components/garderobe/ObjectifTab";
@@ -67,5 +70,11 @@ describe("ObjectifTab", () => {
     render(<ObjectifTab />, { wrapper });
     expect(screen.getByText(/non rattachée/)).toBeInTheDocument();
     expect(screen.getByText(/Truc/)).toBeInTheDocument();
+  });
+
+  it("le bouton Rattacher automatiquement déclenche la mutation", () => {
+    render(<ObjectifTab />, { wrapper });
+    fireEvent.click(screen.getByText(/Rattacher automatiquement/i));
+    expect(autoMutate).toHaveBeenCalled();
   });
 });

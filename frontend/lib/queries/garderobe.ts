@@ -89,6 +89,10 @@ export function useSyncObjectif() {
   const invalidate = useInvalidateAll();
   return useMutation({ mutationFn: garderobeApi.syncObjectif, onSuccess: invalidate });
 }
+export function useAutoRattacher() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: garderobeApi.autoRattacher, onSuccess: invalidate });
+}
 export function useSetPlannerDay() {
   const invalidate = useInvalidateAll();
   return useMutation({

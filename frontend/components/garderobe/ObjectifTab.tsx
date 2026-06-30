@@ -1,12 +1,13 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
-import { useObjectif, useSyncObjectif } from "@/lib/queries/garderobe";
+import { RefreshCw, Sparkles } from "lucide-react";
+import { useObjectif, useSyncObjectif, useAutoRattacher } from "@/lib/queries/garderobe";
 import { ObjectifBar } from "./ObjectifBar";
 
 export function ObjectifTab() {
   const objectifQ = useObjectif();
   const syncMut = useSyncObjectif();
+  const autoMut = useAutoRattacher();
 
   if (objectifQ.isLoading) {
     return <div className="p-2 text-[var(--muted-foreground)]">Chargement de l'objectif…</div>;
@@ -26,14 +27,24 @@ export function ObjectifTab() {
           </span>{" "}
           emplacements remplis
         </div>
-        <button
-          onClick={() => syncMut.mutate()}
-          disabled={syncMut.isPending}
-          className="flex items-center gap-2 rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)] disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${syncMut.isPending ? "animate-spin" : ""}`} />
-          Re-synchroniser l'Excel
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => autoMut.mutate()}
+            disabled={autoMut.isPending}
+            className="flex items-center gap-2 rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)] disabled:opacity-50"
+          >
+            <Sparkles className={`h-4 w-4 ${autoMut.isPending ? "animate-pulse" : ""}`} />
+            Rattacher automatiquement
+          </button>
+          <button
+            onClick={() => syncMut.mutate()}
+            disabled={syncMut.isPending}
+            className="flex items-center gap-2 rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)] disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${syncMut.isPending ? "animate-spin" : ""}`} />
+            Re-synchroniser l'Excel
+          </button>
+        </div>
       </div>
 
       {non_rattaches > 0 && (

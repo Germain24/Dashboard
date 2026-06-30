@@ -246,6 +246,11 @@ export const garderobeApi = {
   syncObjectif: () =>
     api<{ types: number }>(`/garderobe/objectif/sync`, { method: "POST" }),
 
+  autoRattacher: () =>
+    api<{ rattaches: number; non_mappes: number }>(`/garderobe/objectif/auto-rattacher`, {
+      method: "POST",
+    }),
+
   frequence: (topN = 5) => api<WearFrequency>(`/garderobe/frequence?top_n=${topN}`),
 
   // Planificateur de tenues hebdomadaire (#79)
