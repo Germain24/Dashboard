@@ -34,7 +34,8 @@ def thermal_score(item: dict[str, Any] | None) -> float:
         return 0.0
 
     # Heuristique de base — plus l'item est conçu pour le froid, plus il chauffe
-    base_score = max(0.0, 25.0 - float(item.get("temp_min") or 20)) / 2.0
+    temp_min = item.get("temp_min")
+    base_score = max(0.0, 25.0 - float(temp_min if temp_min is not None else 20)) / 2.0
 
     # Pondération par matière (le layering bonus est dans calculate_thermal_gap)
     matiere = (item.get("matiere") or "Coton").lower()

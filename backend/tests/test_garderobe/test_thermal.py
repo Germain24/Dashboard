@@ -67,6 +67,21 @@ def test_calculate_thermal_gap_body_bonus():
     assert abs((with_body[0] - without[0]) - 1.5) < 1e-9
 
 
+def test_thermal_score_temp_min_zero_not_treated_as_default():
+    # Régression : temp_min=0 (manteau froid) ne doit PAS être traité comme 20
+    # Le bug "or 20" transformait 0 (falsy) en 20, effaçant le score de 12.5 → 2.5
+    coat_freezing = {"categorie": "Manteau", "matiere": "Coton", "temp_min": 0, "temp_max": 10}
+    coat_mild = {"categorie": "Manteau", "matiere": "Coton", "temp_min": 20, "temp_max": 30}
+    score_freezing = thermal_score(coat_freezing)
+    score_mild = thermal_score(coat_mild)
+    # temp_min=0 → base = (25-0)/2 = 12.5 ; temp_min=20 → base = (25-20)/2 = 2.5
+    assert score_freezing > score_mild, (
+        f"temp_min=0 doit scorer plus haut que temp_min=20, got {score_freezing} vs {score_mild}"
+    )
+    assert abs(score_freezing - 12.5) < 1e-9, f"Expected 12.5, got {score_freezing}"
+    assert abs(score_mild - 2.5) < 1e-9, f"Expected 2.5, got {score_mild}"
+
+
 def test_calculate_thermal_gap_layering_bonus():
     haut = {"categorie": "Haut", "matiere": "Coton", "temp_min": 15, "temp_max": 30}
     veste = {"categorie": "Veste", "matiere": "Coton", "temp_min": 10, "temp_max": 20}
