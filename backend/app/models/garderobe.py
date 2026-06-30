@@ -18,6 +18,7 @@ class Vetement(SQLModel, table=True):
     sous_categorie: Optional[str] = None
     matiere: Optional[str] = None
     couleur: Optional[str] = None
+    type_objectif: Optional[str] = None  # relie la pièce à un ObjectifType.nom
     temp_min: Optional[float] = None
     temp_max: Optional[float] = None
     etat_propre: Optional[float] = None  # % propreté
@@ -40,3 +41,17 @@ class TenueHistory(SQLModel, table=True):
     tenue: dict = Field(sa_column=Column(JSON))  # {Manteau: nom, Haut: nom, ...}
     ids: dict = Field(sa_column=Column(JSON))    # {Manteau: id, Haut: id, ...}
     note: Optional[str] = None
+
+
+class ObjectifType(SQLModel, table=True):
+    """Cache de l'objectif garde-robe (master = data/imports/Vetements.xlsx).
+
+    Écrasé à chaque POST /garderobe/objectif/sync.
+    """
+
+    __tablename__ = "objectif_type"
+
+    nom: str = Field(primary_key=True)
+    ordre: int = 0
+    quantite_objectif: int = 0
+    echelle: list = Field(default_factory=list, sa_column=Column(JSON))

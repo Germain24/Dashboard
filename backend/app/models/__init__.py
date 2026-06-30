@@ -17,7 +17,7 @@ from app.models.finance import (  # noqa: F401
     SnapshotPortefeuille,
     Transaction,
 )
-from app.models.garderobe import TenueHistory, Vetement  # noqa: F401
+from app.models.garderobe import ObjectifType, TenueHistory, Vetement  # noqa: F401
 from app.models.habitudes import Habit, HabitEntry  # noqa: F401
 from app.models.journal import MoodEntry  # noqa: F401
 from app.models.musique import MusicTrack, TrackAmbiance  # noqa: F401
