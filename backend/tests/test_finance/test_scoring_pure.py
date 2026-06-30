@@ -13,6 +13,9 @@ from app.services.finance.buffett.scoring_pure import (
     score_year,
     compute_moat_score,
     compute_buy_signal,
+    robust_growth,
+    select_growth,
+    PEG_GROWTH_CAP,
     THRESHOLD_GPM,
     THRESHOLD_NIM,
     THRESHOLD_ROE,
@@ -203,3 +206,81 @@ def test_buy_signal_unknown_pays_no_buy():
         taux_defaut=0.05, per_max=30.0, peg_max=2.0,
     )
     assert ok is False
+
+
+# ── robust_growth ────────────────────────────────────────────────────────────
+
+def test_robust_growth_constant_rate_recovered():
+    # +10 %/an : la régression log-linéaire retrouve 10 %
+    assert abs(robust_growth([100, 110, 121, 133.1]) - 0.10) < 1e-6
+
+
+def test_robust_growth_resists_low_base_year():
+    # année de base déprimée : le CAGR par extrémités exploserait, pas la régression
+    vals = [1.0, 90.0, 100.0, 110.0]
+    g_robust = robust_growth(vals)
+    g_endpoint = (vals[-1] / vals[0]) ** (1 / (len(vals) - 1)) - 1
+    assert g_robust < g_endpoint
+    assert g_robust < 1.5
+
+
+def test_robust_growth_two_points_is_cagr():
+    assert abs(robust_growth([100, 121]) - 0.21) < 1e-9
+
+
+def test_robust_growth_none_when_base_nonpositive():
+    assert robust_growth([0.0, 50.0]) is None
+    assert robust_growth([5.0]) is None
+    assert robust_growth([]) is None
+
+
+# ── select_growth ────────────────────────────────────────────────────────────
+
+def test_select_growth_prefers_forward():
+    g, rel = select_growth(forward=0.12, growth_rev=0.05, growth_eps=3.0)
+    assert abs(g - 0.12) < 1e-9 and rel is True
+
+
+def test_select_growth_historical_is_conservative_min():
+    # min (pas max) -> neutralise l'EPS aberrant à +375 %
+    g, rel = select_growth(forward=None, growth_rev=0.08, growth_eps=3.75)
+    assert abs(g - 0.08) < 1e-9 and rel is True
+
+
+def test_select_growth_flags_extreme_unreliable():
+    g, rel = select_growth(forward=None, growth_rev=2.0, growth_eps=3.0)
+    assert rel is False
+
+
+def test_select_growth_no_data_is_neutral():
+    g, rel = select_growth(None, None, None)
+    assert g is None and rel is True
+
+
+def test_select_growth_decline_is_unreliable():
+    g, rel = select_growth(None, -0.10, None)
+    assert g is None and rel is False
+
+
+# ── compute_buy_signal : bornage + fiabilité (#3, #4) ────────────────────────
+
+def test_buy_signal_clamps_extreme_growth_peg():
+    # croissance 375 % -> PEG borné (30 %), ne s'effondre PAS vers 0
+    _, peg = compute_buy_signal(
+        secteur="Tech", pays="US", prix=50.0, eps=5.0,
+        per=15.0, growth=3.75, taux_obligataires=TAUX,
+        taux_defaut=0.05, per_max=30.0, peg_max=2.0, growth_reliable=False,
+    )
+    assert peg is not None
+    assert abs(peg - 15.0 / (PEG_GROWTH_CAP * 100)) < 1e-9
+    assert peg > 0.4
+
+
+def test_buy_signal_unreliable_no_growth_blocks():
+    # PEG None : laissez-passer seulement si la croissance est fiable (#4)
+    kw = dict(secteur="Tech", pays="US", prix=50.0, eps=100.0, per=10.0,
+              taux_obligataires=TAUX, taux_defaut=0.05, per_max=30.0, peg_max=2.0)
+    ok_unrel, _ = compute_buy_signal(growth=None, growth_reliable=False, **kw)
+    ok_rel, _ = compute_buy_signal(growth=None, growth_reliable=True, **kw)
+    assert ok_unrel is False
+    assert ok_rel is True

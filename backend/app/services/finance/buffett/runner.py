@@ -33,6 +33,7 @@ RETRY_WAIT_SEC = 30
 from .cache_manager import CacheManager, infer_country
 from .config import Config
 from .data_fetch import fetch_data, load_local_data, merge_data, save_local_data
+from .etf_detect import is_empty_financials as _is_empty_financials
 from .rate_limiter import RateLimiter
 from .scoring import analyze_financials
 
@@ -82,35 +83,14 @@ def remove_stale_tickers(csv_path: str, to_remove: set) -> None:
         print(f"[runner] Erreur suppression tickers: {e}")
 
 
-# Mots du NOM qui identifient un vrai fonds/ETF (UCITS, iShares, Amundi…).
-_FUND_NAME_KW = (
-    "ETF", "UCITS", "ISHARES", "AMUNDI", "INVESCO", "LYXOR", "XTRACKERS",
-    "VANGUARD", "SPDR", "INDEX SOLUTIONS",
-)
-
-
-def _looks_like_fund(*names: str) -> bool:
-    return any(any(k in n for k in _FUND_NAME_KW) for n in names if n)
-
-
-def _check_is_etf(ticker: str, data: dict) -> bool:
-    """Detecte si le ticker est un ETF/fonds depuis les donnees yfinance.
-
-    Deux garde-fous anti-faux-positif :
-    1. Un titre qui publie des etats financiers (compte de resultat/bilan) n'est
-       JAMAIS un ETF (corrige REIT/holdings : VICI, Gaming and Leisure...).
-    2. La classification repose sur le NOM (UCITS/ETF/iShares/Amundi...), PAS sur
-       le seul `quoteType` : des cotations secondaires/CDR (ex. CHEV.TO, 0QYI.L)
-       renvoient quoteType="ETF" sur des ACTIONS, ce qui leur donnait Score=200,
-       polluait l'allocation et contournait le dedoublonnage (les ETF en sont
-       exemptes). Une action mal cotee n'a pas de nom de fonds -> plus classee ETF.
+def _check_is_etf(ticker: str, data: dict | None = None) -> bool:
+    """Vrai si le ticker est un ETF — source AUTORITAIRE : colonne 'Secteur 1' de
+    ToutBroker.xlsx (== 'ETF'). Plus d'heuristique de nom/quoteType : la liste des
+    ETF est entièrement sous contrôle de l'utilisateur (cf. ``load_etf_tickers``).
+    ``data`` est ignoré (conservé pour compat d'appel).
     """
-    if not _is_empty_financials(data):
-        return False
-    info = data.get("info", {}) or {}
-    ln = (info.get("longName") or "").upper()
-    sn = (info.get("shortName") or "").upper()
-    return _looks_like_fund(ln, sn)
+    from .broker_availability import load_etf_tickers
+    return ticker.upper() in load_etf_tickers()
 
 
 def _is_forced(ticker: str) -> bool:
@@ -154,16 +134,6 @@ def _internet_available(timeout: float = 4.0) -> bool:
         except OSError:
             continue
     return False
-
-
-def _is_empty_financials(data: dict) -> bool:
-    """Vrai si yfinance n'a renvoye aucune donnee financiere exploitable."""
-    if not data:
-        return True
-    inc, bal = data.get("income"), data.get("balance")
-    inc_empty = inc is None or getattr(inc, "empty", True)
-    bal_empty = bal is None or getattr(bal, "empty", True)
-    return inc_empty and bal_empty
 
 
 def _fetch_with_retry(
@@ -279,8 +249,14 @@ def _analyze_one(
     # 6. Suppression UNIQUEMENT si yfinance a repondu avec des donnees VIDES
     #    (action delistee / invalide). On se base sur la réponse fraîche
     #    (`fresh_empty`), pas sur le cache local fusionné. Jamais sur l'age,
-    #    jamais sur une coupure reseau.
+    #    jamais sur une coupure reseau. Les tickers présents dans ToutBroker.xlsx
+    #    (univers curé : ETF non marqués, titres sans comptes…) sont PROTÉGÉS.
     if yfinance_repondu and fresh_empty:
+        from .broker_availability import load_broker_universe
+        if ticker.upper() in load_broker_universe():
+            _emit(ticker, 0.0, {"Nom": ticker, "Secteur": "Inconnu", "Achat": False})
+            print(f"[runner] {ticker} donnees vides mais present dans ToutBroker -> conserve (score 0)")
+            return True
         try:
             if file_path.exists():
                 file_path.unlink()
@@ -321,6 +297,23 @@ def run_buffett_analysis(
     Config.load_params()
     Config.ensure_dirs()
     _refresh_bond_yields()
+
+    # ETF = AUTORITAIRE depuis ToutBroker.xlsx (colonne 'Secteur 1' == 'ETF').
+    # On relit le fichier à chaque run (il a pu être édité).
+    from .broker_availability import reset_etf_cache
+    reset_etf_cache()
+
+    # Auto-correction : purge du cache les titres classés ETF (Score=200 figé)
+    # qui ne sont PLUS des ETF selon ToutBroker -> force leur réanalyse. Idempotent.
+    try:
+        from .cache_manager import purge_misclassified_etf_cache
+        purged = purge_misclassified_etf_cache()
+        if purged["removed"]:
+            print(f"[runner] {purged['removed']} faux ETF purgés du cache "
+                  f"({purged['files_deleted']} fichiers locaux supprimés) -> réanalyse")
+    except Exception as e:
+        print(f"[runner] purge faux ETF: {e}")
+
     tickers = load_tickers(csv_path)
     if not tickers:
         return {"error": "Aucun ticker dans tickers.csv"}
@@ -445,13 +438,18 @@ def run_buffett_analysis(
 
     # Optimisation DE
     try:
-        from .dedup import deduplicate_tickers
+        from .dedup import deduplicate_correlated, deduplicate_tickers
         from .optimizer import optimize_portfolio_de, prepare_optimization
         from .allocation import discretize_allocation, latest_prices
         from .broker_availability import merge_broker_columns
+        from .broker_budgets import apply_live_broker_budgets
         import pandas as pd
         import numpy as np
         import yfinance as yf
+
+        # Budgets par broker = soldes RÉELS des comptes (account_balances.json).
+        budgets = apply_live_broker_budgets()
+        print(f"[runner] Budgets brokers (live): {budgets}")
 
         ticker_col = "Ticker Yahoo Finance"
         eligible = {
@@ -461,6 +459,19 @@ def run_buffett_analysis(
             or t.upper() in [f.upper() for f in Config.FORCED_BUY_TICKERS]
         }
         eligible = {t: v for t, v in eligible.items() if v[1].get("Achat", False)}
+        # Filtre de liquidité : on n'alloue pas un titre sous le seuil de volume
+        # échangé €/jour (sauf titres forcés). Évite la sur-pondération d'illiquides.
+        from .liquidity import is_liquid
+        _forced = [f.upper() for f in Config.FORCED_BUY_TICKERS]
+        before_liq = len(eligible)
+        eligible = {
+            t: v for t, v in eligible.items()
+            if t.upper() in _forced
+            or is_liquid(v[1].get("Volume"), v[1].get("Prix"))
+        }
+        if before_liq != len(eligible):
+            print(f"[runner] Liquidité: {before_liq - len(eligible)} titres écartés "
+                  f"(< {Config.MIN_VOLUME_EUR:,.0f} €/j)")
         t_list = list(eligible.keys())
 
         if t_list:
@@ -485,6 +496,7 @@ def run_buffett_analysis(
                 # Disponibilite par broker depuis ToutBroker.xlsx (sinon tout dispo)
                 df_m = merge_broker_columns(df_m, ticker_col)
                 rets = deduplicate_tickers(rets, df_m, ticker_col)
+                rets = deduplicate_correlated(rets, df_m, ticker_col)
                 t_opt = list(rets.columns)
                 mat_access, active_b = prepare_optimization(t_opt, df_m)
                 weights, metric = optimize_portfolio_de(t_opt, rets, mat_access, active_b)
@@ -508,6 +520,14 @@ def run_buffett_analysis(
                     print(f"[runner] {n_w} poids ecrits dans ToutBroker.xlsx")
                 except Exception as e:
                     print(f"[runner] Ecriture Poids ToutBroker: {e}")
+
+                # Répartition du portefeuille optimal dans les logs (géo / secteur /
+                # défensif vs agressif), via look-through.
+                try:
+                    from .breakdown import log_portfolio_breakdown
+                    log_portfolio_breakdown(alloc)
+                except Exception as e:
+                    print(f"[runner] breakdown: {e}")
 
                 return {
                     "n_analyzed": len(results), "n_eligible": len(eligible),

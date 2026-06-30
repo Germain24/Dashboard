@@ -6,7 +6,7 @@ import datetime as dt
 from app.core.timeutil import utcnow
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 
 from app.models.finance import BuffettRun, BuffettRunResult
 
@@ -14,15 +14,17 @@ from app.models.finance import BuffettRun, BuffettRunResult
 def delete_run(session: Session, run_id: int) -> bool:
     """Supprime un run Buffett et tous ses résultats. False si introuvable.
 
-    Sert à retirer une analyse bloquée/interrompue (#) depuis l'UI."""
+    Sert à retirer une analyse bloquée/interrompue (#) depuis l'UI.
+
+    On efface les enfants via un **seul** DELETE en masse (et non ligne par ligne
+    via l'ORM) : un run peut avoir des dizaines de milliers de résultats, et la
+    boucle ORM tenait le verrou d'écriture SQLite trop longtemps → "database is
+    locked" quand un autre run écrivait en parallèle. Le DELETE enfants passe
+    AVANT le parent pour respecter la FK (ON en prod)."""
     run = session.get(BuffettRun, run_id)
     if run is None:
         return False
-    for r in session.exec(
-        select(BuffettRunResult).where(BuffettRunResult.run_id == run_id)
-    ).all():
-        session.delete(r)
-    session.flush()  # exécute les DELETE enfants AVANT le parent (FK ON en prod)
+    session.exec(delete(BuffettRunResult).where(BuffettRunResult.run_id == run_id))
     session.delete(run)
     session.commit()
     return True
@@ -163,6 +165,7 @@ def update_allocations(
             "eur": it.get("eur"),
             "prix": it.get("prix"),
             "type": it.get("type"),
+            "pie_pct": it.get("pie_pct"),   # T212 : % entier du pie (somme 100 dans le broker)
             "pct": it.get("Poids total (%)"),
         } for it in items]
         row.allocation_pct = round(total_pct, 4)

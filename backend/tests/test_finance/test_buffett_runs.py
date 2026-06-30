@@ -42,3 +42,25 @@ def test_delete_run_removes_run_and_its_results():
 def test_delete_run_returns_false_when_absent():
     with Session(_fk_engine()) as s:
         assert delete_run(s, 9999) is False
+
+
+def test_delete_run_bulk_removes_many_results():
+    """Suppression en masse : un run avec beaucoup de résultats doit partir d'un
+    seul DELETE (pas 1 par ligne) — c'est ce qui tenait le verrou trop longtemps
+    et provoquait 'database is locked' en prod pendant qu'un run écrivait."""
+    engine = _fk_engine()
+    with Session(engine) as s:
+        run = BuffettRun(run_date=dt.date.today(), statut="interrompu")
+        s.add(run)
+        s.commit()
+        s.refresh(run)
+        for i in range(500):
+            s.add(BuffettRunResult(run_id=run.id, ticker=f"T{i}", chance_moat=1.0))
+        s.commit()
+
+        assert delete_run(s, run.id) is True
+        assert s.get(BuffettRun, run.id) is None
+        assert (
+            s.exec(select(BuffettRunResult).where(BuffettRunResult.run_id == run.id)).all()
+            == []
+        )

@@ -103,14 +103,7 @@ def take_snapshot_now(session: Session) -> SnapshotPortefeuille | None:
 
         if total_valeur == 0:
             return None
-        snap = upsert_snapshot(session, dt.date.today(), total_valeur, total_investit)
-        # L'Excel reste la source editable : on y reporte le snapshot du jour.
-        try:
-            from app.services.finance.history_excel import write_snapshot_to_excel
-            write_snapshot_to_excel(snap.date, snap.valeur, snap.investit)
-        except Exception:
-            pass
-        return snap
+        return upsert_snapshot(session, dt.date.today(), total_valeur, total_investit)
     except Exception as e:
         print(f"[snapshots] Erreur take_snapshot_now: {e}")
         return None

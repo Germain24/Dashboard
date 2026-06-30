@@ -3,10 +3,19 @@
 /** Panneau des 3 actions Buffett : run complet, ticker unique, portefeuille optimal
  *  (extrait de BuffettTab, #532). */
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { financeApi } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { fmt, ScoreChip } from "./buffett-ui";
+
+type OptProgress = Awaited<ReturnType<typeof financeApi.portfolioProgress>>;
+
+const PHASE_LABEL: Record<OptProgress["phase"], string> = {
+  idle: "",
+  preparation: "Préparation…",
+  optimisation: "Optimisation (Differential Evolution)…",
+  finalisation: "Finalisation…",
+};
 
 export function BuffettActionsPanel({
   starting, progressActive, interrupted, onStartRun, onError,
@@ -22,6 +31,42 @@ export function BuffettActionsPanel({
   const [tickerLoading, setTickerLoading] = useState(false);
   const [tickerResult, setTickerResult] = useState<{ ticker: string; score: number; metrics: Record<string, unknown> } | null>(null);
   const [creatingPortfolio, setCreatingPortfolio] = useState(false);
+  const [optProgress, setOptProgress] = useState<OptProgress | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+  }, []);
+
+  const pollProgress = useCallback(async () => {
+    try {
+      const p = await financeApi.portfolioProgress();
+      setOptProgress(p);
+      if (!p.active) {
+        stopPolling();
+        // garde le message final ~6 s puis efface la barre
+        setTimeout(() => setOptProgress(cur => (cur && !cur.active ? null : cur)), 6000);
+      }
+    } catch {
+      stopPolling();
+    }
+  }, [stopPolling]);
+
+  const startPolling = useCallback(() => {
+    stopPolling();
+    pollProgress();
+    pollRef.current = setInterval(pollProgress, 1500);
+  }, [pollProgress, stopPolling]);
+
+  // Reprend l'affichage si une optimisation tourne déjà (navigation/refresh) ;
+  // nettoie l'intervalle au démontage.
+  useEffect(() => {
+    let cancelled = false;
+    financeApi.portfolioProgress().then(p => {
+      if (!cancelled && p.active) { setOptProgress(p); startPolling(); }
+    }).catch(() => {});
+    return () => { cancelled = true; stopPolling(); };
+  }, [startPolling, stopPolling]);
 
   const analyzeTicker = async () => {
     const t = tickerInput.trim().toUpperCase();
@@ -45,8 +90,10 @@ export function BuffettActionsPanel({
     )) return;
     setCreatingPortfolio(true);
     try {
-      const r = await financeApi.portfolioCreate();
-      alert(`Optimisation lancée en arrière-plan (run #${r.run_id}).\nLe résultat sera visible dans l'onglet Rebalancing.`);
+      await financeApi.portfolioCreate();
+      setOptProgress({ active: true, phase: "preparation", iteration: 0,
+        convergence: 0, progress_pct: 0, message: "Démarrage…", run_id: null });
+      startPolling();
     } catch (e: unknown) {
       onError(e instanceof Error ? e.message : "Erreur création portefeuille");
     } finally { setCreatingPortfolio(false); }
@@ -125,10 +172,45 @@ export function BuffettActionsPanel({
             l&apos;allocation par broker avec Differential Evolution.
           </p>
         </div>
-        <Button variant="outline" onClick={createPortfolio} disabled={creatingPortfolio}>
-          {creatingPortfolio ? "En cours..." : "Optimiser"}
+        <Button variant="outline" onClick={createPortfolio}
+          disabled={creatingPortfolio || !!optProgress?.active}>
+          {creatingPortfolio || optProgress?.active ? "En cours..." : "Optimiser"}
         </Button>
       </div>
+
+      {/* Barre de progression de l'optimisation DE */}
+      {optProgress && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[var(--muted-foreground)]">
+              {optProgress.active
+                ? (PHASE_LABEL[optProgress.phase] || "En cours…")
+                : (optProgress.message || "Terminé")}
+              {optProgress.active && optProgress.phase === "optimisation" && optProgress.iteration > 0
+                ? ` · génération ${optProgress.iteration}` : ""}
+            </span>
+            {optProgress.active && optProgress.phase === "optimisation" && (
+              <span className="font-mono text-[var(--muted-foreground)]">
+                {fmt(optProgress.progress_pct, 0)}%
+              </span>
+            )}
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--muted)]">
+            <div
+              className={`h-full rounded-full bg-[var(--primary)] transition-[width] duration-500 ${
+                optProgress.active && optProgress.phase !== "optimisation" ? "animate-pulse" : ""
+              }`}
+              style={{
+                width: !optProgress.active
+                  ? "100%"
+                  : optProgress.phase === "optimisation"
+                    ? `${Math.max(optProgress.progress_pct, 2)}%`
+                    : "100%",
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

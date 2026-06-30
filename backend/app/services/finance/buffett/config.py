@@ -48,8 +48,36 @@ class Config:
     # Optimiseur
     SHARPE_TARGET_PERCENT: float = settings.buffett_sharpe_target_percent
     MIN_ALLOCATION_THRESHOLD: float = settings.buffett_min_allocation_threshold
+    # Liquidité : volume minimum échangé/jour (€) pour qu'un titre soit éligible à
+    # l'allocation (volume actions × prix). Surchargage possible via params.json.
+    # 100k : assez bas pour les ETF obligataires d'État (volume d'écran faible mais
+    # très liquides), assez haut pour écarter les micro-actions illiquides.
+    MIN_VOLUME_EUR: float = 100_000.0
+    # STARR (objectif d'optimisation centré sur les grosses chutes) :
+    STARR_ALPHA: float = 0.05          # niveau CVaR (5 % des pires cas)
+    STARR_N_SIM: int = 20_000          # scénarios Monte-Carlo (copule de Vine)
+    STARR_DOWNSIDE_WEIGHT: float = 1.0  # λ : poids de la variance baissière (Sortino)
+    # Malus exponentiel au-delà du plafond de positions : pousse l'optimiseur à
+    # regrouper les ETF redondants (même indice) et limiter les micro-lignes, sans
+    # supprimer d'ETF (respecte la dispo broker). penalty = exp(β·(n_lignes−max))−1.
+    # Le plafond est exprimé PAR BROKER actif : max = STARR_MAX_LINES_PER_BROKER × n
+    # (ex. 20/broker → 40 lignes à 2 brokers, 60 à 3 quand IBKR sera ajouté).
+    STARR_MAX_LINES_PER_BROKER: int = 20
+    STARR_CARD_BETA: float = 0.15
+    # Plafond de poids par ACTION (filet anti « tout sur un titre »). Les ETF en sont
+    # EXEMPTÉS : un ETF est déjà diversifié, donc un gros poids n'est pas un risque de
+    # concentration sur un sous-jacent unique.
+    MAX_POSITION_PCT: float = 0.15
+    # Contraintes look-through (feuilles ETF_Defensif / ETF_Pays) :
+    MIN_DEFENSIVE_PCT: float = 0.30    # min du portefeuille en défensif (look-through)
+    MAX_COUNTRY_PCT: float = 0.25      # max par pays (look-through ; métaux exemptés)
+    CONSTRAINT_PENALTY: float = 100.0  # raideur des pénalités (quadratiques ; ↑ = plus strict)
     N_MULTISTART: int = settings.buffett_n_multistart
     USE_BROKER_CONSTRAINTS: bool = True
+    # Seuil de corrélation (rendements convertis EUR) au-delà duquel deux actifs sont
+    # des « jumeaux d'indice » -> on retire le moins liquide. Élevé pour ne viser que
+    # les vrais doublons (Stoxx 600 vs EURO STOXX 50 ~0,95 NE doivent PAS fusionner).
+    CORRELATION_DEDUP_THRESHOLD: float = 0.97
     BUDGET_BROKERS: dict = {
         "Trading212": 733.70,
         "BoursDirect": 0.0,

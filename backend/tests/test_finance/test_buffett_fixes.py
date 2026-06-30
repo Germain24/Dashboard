@@ -44,55 +44,49 @@ def test_json_dump_with_numpy_metrics_does_not_crash():
     assert "85.0" in s and "2025" in s
 
 
-# ── #7 : REIT/holdings ne sont pas des ETF ───────────────────────────────────
+# ── ETF = AUTORITAIRE depuis ToutBroker.xlsx ('Secteur 1' == 'ETF') ──────────
 
-def _df_nonempty():
-    return pd.DataFrame({"2024": [1.0]}, index=["Revenue"])
-
-
-def test_reit_with_financials_is_not_etf():
-    # quoteType peut dire ETF par erreur, mais des comptes existent -> pas ETF.
-    data = {
-        "info": {"quoteType": "ETF", "longName": "VICI Properties Inc."},
-        "income": _df_nonempty(),
-        "balance": _df_nonempty(),
-    }
-    assert _check_is_etf("VICI", data) is False
+def test_check_is_etf_uses_broker_secteur1(monkeypatch):
+    """_check_is_etf ne regarde plus le nom/quoteType : seul compte l'appartenance
+    à l'ensemble ETF de ToutBroker ('Secteur 1' == 'ETF')."""
+    from app.services.finance.buffett import broker_availability as ba
+    from app.services.finance.buffett.runner import _check_is_etf
+    monkeypatch.setattr(ba, "_ETF_CACHE", {"CW8.PA", "SEGA.L"})
+    assert _check_is_etf("CW8.PA") is True
+    assert _check_is_etf("AAPL") is False
+    # quoteType='ETF' + nom de fonds n'a plus AUCUNE influence
+    assert _check_is_etf("BA.TO", {"info": {"quoteType": "ETF", "longName": "iShares"}}) is False
 
 
-def test_etf_without_financials_is_etf():
-    data = {"info": {"quoteType": "ETF", "longName": "iShares Core MSCI"}, "income": None, "balance": None}
-    assert _check_is_etf("CBSM.PA", data) is True
+def test_analyze_financials_etf_only_if_in_broker_set():
+    """analyze_financials : Score=200/Secteur=ETF UNIQUEMENT si le ticker est dans
+    l'ensemble ETF fourni — peu importe le quoteType/nom."""
+    from app.services.finance.buffett.scoring import analyze_financials
+    boeing = {"info": {"quoteType": "ETF", "longName": "The Boeing Company",
+                       "sector": "Industrials"}, "income": None, "balance": None}
+    # absent du set -> PAS ETF (même si quoteType='ETF')
+    score, metrics = analyze_financials("BA.TO", boeing, etf_tickers=set())
+    assert metrics["Secteur"] != "ETF"
+    assert score != 200.0
+    # présent dans le set -> ETF / 200
+    score2, metrics2 = analyze_financials("CW8.PA", boeing, etf_tickers={"CW8.PA"})
+    assert metrics2["Secteur"] == "ETF"
+    assert score2 == 200.0
 
 
-def test_etf_detected_by_name_when_no_financials():
-    data = {"info": {"quoteType": "", "longName": "Amundi MSCI World ETF"}, "income": None, "balance": None}
-    assert _check_is_etf("CW8.PA", data) is True
+# ── 'ETF' comme MOT (utilisé par le pré-remplissage ToutBroker) ──────────────
 
-
-def test_secondary_listing_with_etf_quotetype_is_not_etf():
-    # Cotation secondaire / CDR : yfinance renvoie quoteType="ETF" sur une ACTION,
-    # financials vides. Le nom (entreprise) ne ressemble pas à un fonds → PAS ETF
-    # (sinon Score=200, pollution de l'analyse + contournement du dédoublonnage).
-    data = {"info": {"quoteType": "ETF", "longName": "Chevron Corporation"},
-            "income": None, "balance": None}
-    assert _check_is_etf("CHEV.TO", data) is False
-
-
-def test_real_etf_detected_by_name_despite_no_quotetype():
-    data = {"info": {"quoteType": "", "longName": "Amundi MSCI World UCITS ETF"},
-            "income": None, "balance": None}
-    assert _check_is_etf("CW8.PA", data) is True
-
-
-def test_company_named_with_etf_substring_but_has_financials():
-    # Mot "ETF" au milieu d'un nom ne doit pas suffire, et comptes présents = pas ETF.
-    data = {
-        "info": {"quoteType": "EQUITY", "longName": "Global Net Lease, Inc."},
-        "income": _df_nonempty(),
-        "balance": _df_nonempty(),
-    }
-    assert _check_is_etf("GNL", data) is False
+def test_looks_like_fund_no_etf_substring_false_positive():
+    """'ETF' à l'intérieur d'un mot (nETFlix, nETFonds, rockETFuel) ne doit PAS
+    matcher : ce sont des actions, pas des fonds."""
+    from app.services.finance.buffett.etf_detect import looks_like_fund
+    assert looks_like_fund("NETFLIX, INC.") is False
+    assert looks_like_fund("NETFONDS AG") is False
+    assert looks_like_fund("ROCKETFUEL BLOCKCHAIN, INC.") is False
+    # vrais fonds : toujours détectés
+    assert looks_like_fund("ISHARES CORE MSCI WORLD UCITS ETF") is True
+    assert looks_like_fund("INVESCO BLOOMBERG COMMODITY UCITS ETF") is True
+    assert looks_like_fund("FXI ISHARES CHINA LARGE-CAP ETF") is True
 
 
 # ── #1 : agrégation des poids par ticker (colonne Poids) ─────────────────────
@@ -126,6 +120,28 @@ def test_buffett_result_out_exposes_score_from_chance_moat():
     out = BuffettResultOut.model_validate(row)
     assert out.score == 87.5
     assert out.model_dump()["score"] == 87.5
+
+
+def test_buffett_result_out_exposes_per_broker_allocations():
+    """Le front a besoin du détail par broker (pie % T212 / nb actions) pour
+    afficher l'allocation actionnable, sans exposer tout secteurs_extra."""
+    from app.api.schemas_finance import BuffettResultOut
+    from app.models.finance import BuffettRunResult
+    row = BuffettRunResult(
+        id=1, run_id=1, ticker="CW8.PA", nom="Amundi", chance_moat=200.0,
+        secteur="ETF", allocation_pct=3.1, broker_cible="Trading212",
+        secteurs_extra={"allocations": [
+            {"broker": "Trading212", "type": "pie", "pie_pct": 40,
+             "shares": None, "eur": 361.5, "pct": 1.2},
+            {"broker": "BoursDirect2", "type": "shares", "pie_pct": None,
+             "shares": 3, "eur": 540.0, "pct": 1.9},
+        ]},
+    )
+    out = BuffettResultOut.model_validate(row)
+    dumped = out.model_dump()
+    assert dumped["allocations"][0]["pie_pct"] == 40
+    assert dumped["allocations"][1]["shares"] == 3
+    assert "secteurs_extra" not in dumped  # détail brut non exposé
 
 
 # ── Suppression d'un ticker delisté même avec un cache local périmé (#) ────────

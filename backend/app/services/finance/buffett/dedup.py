@@ -76,6 +76,139 @@ def fuzzy_ratio(a: str, b: str) -> float:
     return 0.65 * ts + 0.25 * jac + 0.10 * ns
 
 
+def drop_correlated(returns, volumes: dict, threshold: float = 0.97) -> tuple[list, list]:
+    """Retire itérativement les « jumeaux » fortement corrélés (même indice, émetteurs
+    différents) que ni le nom ni l'ISIN n'attrapent.
+
+    Algorithme déterministe : tant qu'il existe une paire de corrélation (signée) ≥
+    ``threshold``, on prend la **plus** corrélée et on retire le ticker au **volume le
+    plus bas** (à volume égal, le premier dans l'ordre des colonnes). Corrélation
+    NÉGATIVE = pas un doublon → jamais fusionnée.
+
+    ``returns`` doit déjà être exprimé dans une devise commune (cf. caller : conversion
+    EUR), sinon le bruit de change masque l'équivalence. Retourne (kept, removed).
+    """
+    import pandas as pd  # noqa: F401
+    cols = list(returns.columns)
+    if len(cols) < 2:
+        return cols, []
+    corr = returns.corr()
+    kept = list(cols)
+    removed: list = []   # (ticker_retiré, partenaire_gardé, corrélation)
+    while len(kept) >= 2:
+        best = None  # (corr, a, b)
+        for i in range(len(kept)):
+            for j in range(i + 1, len(kept)):
+                a, b = kept[i], kept[j]
+                c = corr.loc[a, b]
+                if c is None or not (c == c):  # NaN
+                    continue
+                if c >= threshold and (best is None or c > best[0]):
+                    best = (c, a, b)
+        if best is None:
+            break
+        c, a, b = best
+        drop = a if float(volumes.get(a, 0) or 0) <= float(volumes.get(b, 0) or 0) else b
+        partner = b if drop == a else a
+        kept.remove(drop)
+        removed.append((drop, partner, round(float(c), 4)))
+    return kept, removed
+
+
+_SUFFIX_CCY = {
+    "L": "GBP", "PA": "EUR", "DE": "EUR", "AS": "EUR", "MI": "EUR", "MC": "EUR",
+    "BR": "EUR", "LS": "EUR", "VI": "EUR", "HE": "EUR", "IR": "EUR",
+    "HK": "HKD", "KS": "KRW", "KQ": "KRW", "T": "JPY", "TO": "CAD", "V": "CAD",
+    "SW": "CHF", "ST": "SEK", "OL": "NOK", "CO": "DKK", "SI": "SGD", "AX": "AUD",
+}
+
+
+def _ticker_currency(t: str) -> str:
+    """Devise de cotation d'un ticker. fast_info yfinance d'abord (fiable, ex. .L
+    peut être USD/GBP/GBp), repli sur le suffixe. 'GBp'/'GBX' (pence) ramené à 'GBP'
+    (sans effet sur les rendements/corrélations, qui sont des ratios)."""
+    cur = None
+    try:
+        import yfinance as yf
+        from app.services.finance.yf_session import yf_session
+        fi = yf.Ticker(t, session=yf_session()).fast_info
+        cur = (fi.get("currency") if hasattr(fi, "get") else getattr(fi, "currency", None))
+    except Exception:
+        cur = None
+    if not cur:
+        suf = t.rsplit(".", 1)[1].upper() if "." in t else ""
+        cur = _SUFFIX_CCY.get(suf, "USD")
+    cur = str(cur).strip().upper()
+    return "GBP" if cur in ("GBP", "GBX") else cur
+
+
+def deduplicate_correlated(returns, df, ticker_col: str = "Ticker Yahoo Finance",
+                           threshold: float | None = None, base_ccy: str = "EUR"):
+    """Retire les jumeaux d'indice (corrélation ≥ ``threshold``) sur rendements
+    **convertis en ``base_ccy``** (sinon le change masque l'équivalence cross-devises).
+
+    L'optimiseur reçoit ensuite les rendements NATIFS des survivants (on ne convertit
+    que pour la DÉCISION). Robuste : toute erreur (devise/FX introuvable) -> repli sur
+    la corrélation en devise native plutôt que de casser le run.
+    """
+    import pandas as pd
+    if threshold is None:
+        threshold = float(Config.CORRELATION_DEDUP_THRESHOLD)
+    cols = list(returns.columns)
+    if len(cols) < 2:
+        return returns
+    # volume par ticker (règle de conservation)
+    vol: dict = {}
+    try:
+        sub = df[[ticker_col, "Volume"]].copy()
+        sub[ticker_col] = sub[ticker_col].astype(str).str.strip()
+        for t, v in zip(sub[ticker_col], sub["Volume"]):
+            vol.setdefault(t, float(v) if pd.notna(v) else 0.0)
+    except Exception:
+        vol = {}
+
+    rets_eur = returns
+    try:
+        currencies = {t: _ticker_currency(t) for t in cols}
+        need = sorted({c for c in currencies.values() if c and c != base_ccy})
+        if need:
+            import yfinance as yf
+            from app.services.finance.yf_session import yf_session
+            fx_ret: dict = {}
+            for ccy in need:
+                raw = yf.download(f"{ccy}{base_ccy}=X", period="5y", interval="1d",
+                                  progress=False, session=yf_session())
+                if raw is None or raw.empty:
+                    raise RuntimeError(f"FX {ccy}{base_ccy} indisponible")
+                close = raw["Close"]
+                close = close.iloc[:, 0] if hasattr(close, "columns") else close
+                fx_ret[ccy] = close.pct_change().reindex(returns.index).fillna(0.0)
+            conv = {}
+            for t in cols:
+                ccy = currencies[t]
+                if ccy == base_ccy:
+                    conv[t] = returns[t]
+                else:
+                    conv[t] = (1.0 + returns[t]) * (1.0 + fx_ret[ccy]) - 1.0
+            rets_eur = pd.DataFrame(conv)
+    except Exception as e:
+        print(f"[dedup] conversion {base_ccy} impossible ({e}); corrélation en devise native.")
+        rets_eur = returns
+
+    kept, removed = drop_correlated(rets_eur, vol, threshold)
+    if removed:
+        print(f"[dedup] {len(removed)} jumeaux d'indice (corr>={threshold}) retires :")
+        for t, partner, c in removed:
+            print(f"[dedup]   - {t} (corr {c} avec {partner}, garde)")
+    return returns[kept]
+
+
+def _norm_isin(v) -> str:
+    """ISIN nettoyé en MAJ, ou '' si absent / sentinelle yfinance ('-')."""
+    s = str(v).strip().upper() if v is not None else ""
+    return "" if s in ("", "-", "NAN", "NONE") else s
+
+
 def deduplicate_tickers(returns, df, ticker_col: str = "Ticker Yahoo Finance") -> "pd.DataFrame":
     """Supprime les cross-listings (même entreprise, plusieurs bourses)."""
     import pandas as pd
@@ -94,8 +227,22 @@ def deduplicate_tickers(returns, df, ticker_col: str = "Ticker Yahoo Finance") -
         is_etf = "ETF" in str(row.get("Secteur", "")).upper()
         is_forced = t.upper() in forced_up
 
-        if is_forced or is_etf:
-            groups[f"_ETF_{t}"] = [(t, vol)]
+        if is_forced:
+            groups[f"_ETF_{t}"] = [(t, vol)]   # ticker forcé : jamais fusionné
+            continue
+        if is_etf:
+            # Les ETF ne sont PAS dédupliqués par similarité FLOUE de nom (deux
+            # indices distincts ont des noms proches). Mais deux lignes de cotation
+            # du MÊME fonds sont de vrais doublons : on les regroupe par ISIN
+            # (identité exacte, colonne ToutBroker curée) ou, à défaut, par nom
+            # normalisé EXACT. Les classes Acc/Dist (ISIN différents) restent séparées.
+            isin = _norm_isin(row.get("ISIN"))
+            if isin:
+                key = f"_ETFISIN_{isin}"
+            else:
+                nrm = normalize(raw)
+                key = f"_ETFNAME_{nrm}" if nrm else f"_ETF_{t}"
+            groups.setdefault(key, []).append((t, vol))
             continue
 
         norm = normalize(raw)

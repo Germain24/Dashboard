@@ -3,9 +3,54 @@
 /** Vue détail d'un run Buffett : allocation cible, backtest, exports (extrait de BuffettTab, #532). */
 
 import { useState } from "react";
-import { financeApi, type BuffettRunDetail } from "@/lib/finance";
+import { financeApi, type BuffettRunDetail, type BuffettResultOut } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { fmt, ScoreChip, StatusBadge } from "./buffett-ui";
+
+/** Abrège le nom du broker pour l'affichage compact. */
+function brokerShort(b?: string): string {
+  if (!b) return "";
+  const c = b.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (c.includes("trading212") || c === "t212") return "T212";
+  if (c.includes("boursedirect") || c.includes("boursdirect")) return "Bourso";
+  if (c.includes("ibkr")) return "IBKR";
+  return b;
+}
+
+/** Montant total investi (€) sur un titre, tous brokers confondus. */
+function investedEur(r: BuffettResultOut): number {
+  return (r.allocations ?? []).reduce((s, a) => s + (a.eur ?? 0), 0);
+}
+
+const fmtEur = (v: number) =>
+  `${Math.round(v).toLocaleString("fr-FR")} €`;
+
+/** Allocation actionnable par titre : « X % pie (T212) » et/ou « N act. (broker) ». */
+function AllocCell({ r }: { r: BuffettResultOut }) {
+  const lines = (r.allocations ?? []).filter(a =>
+    a.type === "pie" ? (a.pie_pct ?? 0) > 0 : (a.shares ?? 0) > 0,
+  );
+  if (lines.length === 0) {
+    return <span>{r.allocation_pct ? `${fmt(r.allocation_pct)} %` : "—"}</span>;
+  }
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      {lines.map((a, i) => (
+        <span key={i} className="whitespace-nowrap">
+          {a.type === "pie" ? (
+            <><span className="font-semibold">{a.pie_pct} %</span>{" "}
+              <span className="text-[var(--muted-foreground)]">pie {brokerShort(a.broker)}</span></>
+          ) : (
+            <><span className="font-semibold">{a.shares}</span>{" "}
+              <span className="text-[var(--muted-foreground)]">
+                {a.shares === 1 ? "action" : "actions"} {brokerShort(a.broker)}
+              </span></>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function BuffettRunDetailView({
   selected, onBack, onError,
@@ -43,13 +88,16 @@ export function BuffettRunDetailView({
     }
   };
 
-  // S'il existe des allocations : on affiche le portefeuille cible trié
-  // par poids décroissant, sans les lignes à 0. Sinon : top scores MOAT.
-  const allocated = selected.top_results
+  // S'il existe une allocation cible : on affiche le portefeuille complet à
+  // acheter (toutes les lignes allouées, pas seulement le top 50 par score),
+  // trié par poids décroissant. Sinon : top scores MOAT.
+  const allocated = [...selected.allocation_cible]
     .filter(r => (r.allocation_pct ?? 0) > 0)
-    .sort((a, b) => (b.allocation_pct ?? 0) - (a.allocation_pct ?? 0));
+    .sort((a, b) => investedEur(b) - investedEur(a));   // tri par montant investi décroissant
   const hasAlloc = allocated.length > 0;
   const displayRows = hasAlloc ? allocated : selected.top_results;
+  const totalInvested = allocated.reduce((s, r) => s + investedEur(r), 0);
+  const totalPct = allocated.reduce((s, r) => s + (r.allocation_pct ?? 0), 0);
 
   return (
     <div className="space-y-4">
@@ -87,8 +135,13 @@ export function BuffettRunDetailView({
         <p className="text-sm text-[var(--muted-foreground)]">{selected.run.resume}</p>
       )}
       <div>
-        <h3 className="text-sm font-semibold mb-2">
-          {hasAlloc ? "Allocation cible (par poids décroissant)" : "Top 50 scores MOAT"}
+        <h3 className="text-sm font-semibold mb-2 flex items-baseline gap-2 flex-wrap">
+          {hasAlloc ? "Allocation cible (par montant investi)" : "Top 50 scores MOAT"}
+          {hasAlloc && (
+            <span className="text-xs font-normal text-[var(--muted-foreground)]">
+              — {fmtEur(totalInvested)} investis ({fmt(totalPct)} % du capital)
+            </span>
+          )}
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -98,7 +151,8 @@ export function BuffettRunDetailView({
                 <th className="pb-1 pr-3">Nom</th>
                 <th className="pb-1 pr-3">Secteur</th>
                 <th className="pb-1 pr-3 text-right">Score</th>
-                <th className="pb-1 text-right">Alloc. cible</th>
+                {hasAlloc && <th className="pb-1 pr-3 text-right">Investi</th>}
+                <th className="pb-1 text-right">{hasAlloc ? "À acheter" : "Alloc. cible"}</th>
               </tr>
             </thead>
             <tbody>
@@ -108,8 +162,16 @@ export function BuffettRunDetailView({
                   <td className="py-1 pr-3 text-xs">{r.nom ?? "—"}</td>
                   <td className="py-1 pr-3 text-xs text-[var(--muted-foreground)]">{r.secteur ?? "—"}</td>
                   <td className="py-1 pr-3 text-right"><ScoreChip score={r.score} /></td>
+                  {hasAlloc && (
+                    <td className="py-1 pr-3 text-right text-xs whitespace-nowrap">
+                      <span className="font-semibold">{fmtEur(investedEur(r))}</span>
+                      {r.allocation_pct != null && (
+                        <span className="text-[var(--muted-foreground)]"> · {fmt(r.allocation_pct)} %</span>
+                      )}
+                    </td>
+                  )}
                   <td className="py-1 text-right text-xs">
-                    {r.allocation_pct ? `${fmt(r.allocation_pct)}%` : "—"}
+                    <AllocCell r={r} />
                   </td>
                 </tr>
               ))}

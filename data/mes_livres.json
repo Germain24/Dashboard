@@ -4,6 +4,7 @@
     "auteur": "Morgan Housel",
     "isbn": "9780593332702",
     "pages": 240,
+    "langue": "Anglais",
     "genre": "Psychologie comportementale et sociale",
     "statut": "a_lire",
     "couverture_url": "https://m.media-amazon.com/images/I/417ycDMhl5L._SY445_SX342_ML2_.jpg"
@@ -13,8 +14,159 @@
     "auteur": "Jeff Nippard",
     "isbn": "1628604867",
     "pages": 390,
+    "langue": "Anglais",
     "genre": "Science du sport et de l'exercice",
     "statut": "a_lire",
     "couverture_url": "https://www.indigo.ca/cdn/shop/files/image_00ce1607-896f-4323-b76f-46445faacf8a.jpg?v=1757685494&width=299"
-  }
+  },
+  {
+    "titre": "L'Économie : les grands concepts expliqués",
+    "auteur": "collectif",
+    "isbn": "9782898372391",
+    "pages": 360,
+    "langue": "Francais",
+    "genre": "Économie générale",
+    "statut": "a_lire",
+    "couverture_url": "https://medias.groupehmh.com/storage/medias/9284/large-L97828983723911.jpg?v=1727800220"
+  },
+  {
+    "titre": "Attack on Titan, Volume 1",
+    "auteur": "Hajime Isayama",
+    "isbn": "4063842762",
+    "pages": 191,
+    "langue": "Japonais",
+    "genre": "Manga / Shōnen",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/81NCTgKhW9L._SY522_.jpg"
+  },
+  {
+    "titre": "One Piece #01 Éd. originale",
+    "auteur": "Eiichiro Oda",
+    "isbn": "9782723488525",
+    "pages": 208,
+    "langue": "Japonais",
+    "genre": "Manga / Shōnen",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/61a249sIzNL._SY445_SX342_ML2_.jpg"
+  },
+  {
+    "titre": "Attack on Titan: Lost Girls",
+    "auteur": "Ryōsuke Fuji",
+    "isbn": "1632363852",
+    "pages": 192,
+    "langue": "Japonais",
+    "genre": "Manga / Shōnen",
+    "statut": "a_lire",
+    "couverture_url": "https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Attack_on_Titan_Lost_Girls%2C_volume_1.jpg/250px-Attack_on_Titan_Lost_Girls%2C_volume_1.jpg"
+  },
+  {
+    "titre": "Logocratie",
+    "auteur": "Clément Viktorovitch",
+    "isbn": "9782021591163",
+    "pages": 289,
+    "langue": "Francais",
+    "genre": "Sciences politiques",
+    "statut": "a_lire",
+    "couverture_url": "https://images.renaud-bray.com/images/PG/4500/4500208-gf.jpg?404=404RB.gif"
+  },
+  {
+    "titre": "Siddhartha",
+    "auteur": "Hermann Hesse",
+    "isbn": "9782253008484",
+    "pages": 168,
+    "langue": "Anglais",
+    "genre": "Roman philosophique et initiatique",
+    "statut": "a_lire",
+    "couverture_url": "https://www.shambhala.com/media/catalog/product/cache/43c9ce78173f84079209d5374492a7a4/9/7/9781611806441.jpg"
+  },
+  {
+    "titre": "One Up On Wall Street: How To Use What You Already Know To Make Money In The Market",
+    "auteur": "Peter Lynch",
+    "isbn": "0671661035",
+    "pages": 304,
+    "langue": "Anglais",
+    "genre": "Finance d'entreprise et Investissement",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/81zUedrQHVL._SX522_.jpg"
+  },
+  {
+    "titre": "The Art of Spending Money: Simple Choices for a Richer Life",
+    "auteur": "Morgan Housel",
+    "isbn": "",
+    "pages": 256,
+    "langue": "Anglais",
+    "genre": "Finances personnelles",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/41E0J7Mav+L._SY445_SX342_ML2_.jpg"
+  },
+  {
+    "titre": "Ce livre vous fera gagner du temps",
+    "auteur": "Fabien Olicard",
+    "isbn": "9782412101544",
+    "pages": 228,
+    "langue": "Francais",
+    "genre": "Gestion du temps et Productivité",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/4185TM7Y8JL._SY445_SX342_QL70_ML2_.jpg"
+  },
+  {
+    "titre": "The Psychology of Money: Timeless lessons on wealth, greed, and happiness",
+    "auteur": "Morgan Housel",
+    "isbn": "180409160X",
+    "pages": 272,
+    "langue": "Anglais",
+    "genre": "Finances personnelles",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/71oAJY1LbcL._SY522_.jpg"
+  },
+  {
+    "titre": "Korean Mother's Easy Recipes: Illustrated Korean Traditional Cooking",
+    "auteur": "Jinjoo Chae",
+    "isbn": "1565914945",
+    "pages": 200,
+    "langue": "Anglais",
+    "genre": "Cuisine asiatique",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/71Ayw5zsOXL._SY522_.jpg"
+  },
+  {
+    "titre": "Solo: Embrace the Pleasure of Cooking for Yourself",
+    "auteur": "Emma de Thouars",
+    "isbn": "0778807363",
+    "pages": 176,
+    "langue": "Anglais",
+    "genre": "Cuisine",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/71STDaUgkJL._SY522_.jpg"
+  },
+  {
+    "titre": "Buffett's Tips: A Guide to Financial Literacy and Life",
+    "auteur": "John M. Longo",
+    "isbn": "1119763916",
+    "pages": 432,
+    "langue": "Anglais",
+    "genre": "Littératie financière",
+    "statut": "a_lire",
+    "couverture_url": "https://m.media-amazon.com/images/I/61HhtlK6ceL._SY522_.jpg"
+  },
+  {
+  "titre": "Atomic Habits: An Easy & Proven Way to Build Good Habits & Break Bad Ones",
+  "auteur": "James Clear",
+  "isbn": "0735211299",
+  "pages": 320,
+  "langue": "Anglais",
+  "genre": "Développement personnel / Productivité",
+  "statut": "a_lire",
+  "couverture_url": "https://m.media-amazon.com/images/I/81YkqyaFVEL._SY522_.jpg"
+},
+  {
+  "titre": "Investments",
+  "auteur": "Zvi Bodie, Alex Kane, Alan J. Marcus",
+  "isbn": "007133887X",
+  "pages": 992,
+  "langue": "Anglais",
+  "genre": "Finance quantitative / Gestion de portefeuille",
+  "statut": "a_lire",
+  "couverture_url": "https://m.media-amazon.com/images/I/51422yX2jqL._SX342_SY445_ML2_.jpg"
+}
 ]

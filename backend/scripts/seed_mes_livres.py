@@ -15,6 +15,7 @@ Comportement :
 from __future__ import annotations
 
 import datetime as dt
+from app.core.timeutil import utcnow
 import json
 import sys
 from pathlib import Path
@@ -30,7 +31,7 @@ from app.models.livres import Book  # noqa: E402
 LIVRES_JSON = settings.data_dir / "mes_livres.json"
 
 # Champs mis a jour si le livre existe deja (statut / page_courante preserves)
-UPDATABLE_FIELDS = ["auteur", "isbn", "pages", "genre", "couverture_url"]
+UPDATABLE_FIELDS = ["auteur", "isbn", "pages", "genre", "langue", "couverture_url"]
 
 
 def load_livres() -> list[dict]:
@@ -83,9 +84,10 @@ def main() -> None:
                     isbn=data.get("isbn"),
                     pages=data.get("pages"),
                     genre=data.get("genre", ""),
+                    langue=data.get("langue", ""),
                     statut=data.get("statut", "a_lire"),
                     couverture_url=data.get("couverture_url"),
-                    created_at=dt.datetime.utcnow(),
+                    created_at=utcnow(),
                 )
                 session.add(book)
                 print(f"  [+]   {titre}")

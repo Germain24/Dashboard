@@ -37,8 +37,9 @@ en français (fr-CA), sans jargon marketing.
   au-dessus de chaque section.
 - Les kits Material/Bootstrap par défaut : composants non travaillés, ombres
   lourdes, look « admin panel » générique.
-- (À éviter aussi : fintech navy-and-gold clinquant / glassmorphism, gamification
-  envahissante.)
+- (À éviter aussi : fintech navy-and-gold clinquant, glassmorphism décoratif criard
+  — néons, halos, verre teinté ; le verre clair architectural du chrome est, lui,
+  assumé —, gamification envahissante.)
 
 ## Design Principles
 

@@ -1,0 +1,9 @@
+{
+  "backup_retention_count": 14,
+  "jobrun_retention_days": 30,
+  "notification_retention_days": 30,
+  "music_dir": "C:/Users/germa/Music",
+  "mode_vacances": false,
+  "objectif_patrimoine_eur": 300000,
+  "automatisations_kill_switch": false
+}

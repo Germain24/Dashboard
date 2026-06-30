@@ -57,6 +57,80 @@ def load_broker_table():
         return None
 
 
+def _secteur1_col(columns) -> str | None:
+    """Trouve la colonne 'Secteur 1' (tolère espaces/casse)."""
+    for c in columns:
+        if str(c).strip().lower() == "secteur 1":
+            return c
+    return None
+
+
+def _norm_ticker(v) -> str:
+    s = str(v).strip().upper()
+    return "" if s in ("", "NAN", "NONE") else s
+
+
+def _compute_etf_tickers(df, ticker_col: str) -> set[str]:
+    if df is None or getattr(df, "empty", True):
+        return set()
+    tcol = _find_ticker_col(df.columns, ticker_col)
+    scol = _secteur1_col(df.columns)
+    if tcol is None or scol is None:
+        return set()
+    out: set[str] = set()
+    for t, s in zip(df[tcol], df[scol]):
+        if str(s).strip().upper() == "ETF":
+            tt = _norm_ticker(t)
+            if tt:
+                out.add(tt)
+    return out
+
+
+_ETF_CACHE: set[str] | None = None
+_UNIVERSE_CACHE: set[str] | None = None
+
+
+def reset_etf_cache() -> None:
+    """Invalide les caches ETF/univers (à appeler après modif de ToutBroker.xlsx)."""
+    global _ETF_CACHE, _UNIVERSE_CACHE
+    _ETF_CACHE = None
+    _UNIVERSE_CACHE = None
+
+
+def load_etf_tickers(df=None, ticker_col: str = "Ticker Yahoo Finance") -> set[str]:
+    """Tickers (MAJ) dont 'Secteur 1' == 'ETF' dans ToutBroker.xlsx.
+
+    Source AUTORITAIRE de la classification ETF (score=200). ``df`` explicite =
+    pas de cache (tests) ; sinon résultat mémoïsé (relire l'Excel à chaque ticker
+    serait prohibitif). Utiliser ``reset_etf_cache()`` après une écriture du fichier.
+    """
+    global _ETF_CACHE
+    if df is not None:
+        return _compute_etf_tickers(df, ticker_col)
+    if _ETF_CACHE is None:
+        _ETF_CACHE = _compute_etf_tickers(load_broker_table(), ticker_col)
+    return _ETF_CACHE
+
+
+def _compute_universe(df, ticker_col: str) -> set[str]:
+    if df is None or getattr(df, "empty", True):
+        return set()
+    tcol = _find_ticker_col(df.columns, ticker_col)
+    if tcol is None:
+        return set()
+    return {tt for t in df[tcol] if (tt := _norm_ticker(t))}
+
+
+def load_broker_universe(df=None, ticker_col: str = "Ticker Yahoo Finance") -> set[str]:
+    """Tous les tickers (MAJ) présents dans ToutBroker.xlsx (univers curé)."""
+    global _UNIVERSE_CACHE
+    if df is not None:
+        return _compute_universe(df, ticker_col)
+    if _UNIVERSE_CACHE is None:
+        _UNIVERSE_CACHE = _compute_universe(load_broker_table(), ticker_col)
+    return _UNIVERSE_CACHE
+
+
 def _cell_state(v) -> bool | None:
     """Interprète une cellule de disponibilité broker : True / False / None (vide).
 
@@ -161,6 +235,27 @@ _RESULT_TO_BROKER_COL = {
 }
 
 
+def _save_main_sheet(df, path: str) -> None:
+    """Écrit ``df`` dans la 1re feuille de ToutBroker en PRÉSERVANT les autres
+    feuilles (``ETF_Defensif``, ``ETF_Pays``…). Sans autres feuilles -> écriture simple.
+    """
+    import pandas as pd
+    main, has_others = None, False
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(path, read_only=True)
+        main = wb.sheetnames[0]
+        has_others = len(wb.sheetnames) > 1
+        wb.close()
+    except Exception:
+        pass
+    if has_others and main:
+        with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as w:
+            df.to_excel(w, sheet_name=main, index=False)
+    else:
+        df.to_excel(path, index=False)
+
+
 def update_broker_file_scores(rows, path: str | None = None,
                               ticker_col: str = "Ticker Yahoo Finance") -> int:
     """Écrit les scores/indicateurs de l'analyse dans ToutBroker.xlsx (upsert par ticker).
@@ -223,7 +318,7 @@ def update_broker_file_scores(rows, path: str | None = None,
         if new_rows:
             df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
 
-        df.to_excel(path, index=False)
+        _save_main_sheet(df, path)
         return n
     except Exception as e:
         print(f"[broker_availability] Écriture scores ToutBroker: {e}")
@@ -279,7 +374,7 @@ def update_broker_file_weights(alloc: list[dict], path: str | None = None,
             if tk in index:
                 df.at[index[tk], weight_col] = pct
                 n += 1
-        df.to_excel(path, index=False)
+        _save_main_sheet(df, path)
         return n
     except Exception as e:
         print(f"[broker_availability] Écriture Poids ToutBroker: {e}")
@@ -312,6 +407,11 @@ def merge_broker_columns(df_m, ticker_col: str = "Ticker Yahoo Finance"):
                 continue
             series = lookup[col]
             out[broker] = [series.get(k, None) for k in keys]
+        # Colonne ISIN (dédup ETF par identité exacte), si présente dans ToutBroker.
+        isin_col = next((c for c in tbl.columns if str(c).strip().upper() == "ISIN"), None)
+        if isin_col is not None:
+            series = lookup[isin_col]
+            out["ISIN"] = [series.get(k, None) for k in keys]
         return out
     except Exception as e:
         print(f"[broker_availability] Fusion colonnes broker: {e}")

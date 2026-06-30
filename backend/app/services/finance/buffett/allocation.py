@@ -11,9 +11,30 @@ Règle métier (CONV 4 — révision) :
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from .config import Config
+
+
+def _int_pct_largest_remainder(rel: dict[str, float]) -> dict[str, int]:
+    """Convertit des poids relatifs (somme≈1) en % ENTIERS sommant exactement à 100.
+
+    Méthode du plus fort reste (Hare-Niemeyer) : plancher puis +1% aux plus grands
+    restes. Sert au pie Trading212 (incréments de 1 %).
+    """
+    items = [(t, max(float(v), 0.0)) for t, v in rel.items() if v and v > 0]
+    tot = sum(v for _, v in items)
+    if tot <= 0:
+        return {}
+    raw = {t: v / tot * 100.0 for t, v in items}
+    floors = {t: int(math.floor(x)) for t, x in raw.items()}
+    rem = 100 - sum(floors.values())
+    order = sorted(raw, key=lambda t: raw[t] - floors[t], reverse=True)
+    for t in order[:max(rem, 0)]:
+        floors[t] += 1
+    return floors
 
 
 def _clean(name) -> str:
@@ -84,16 +105,18 @@ def discretize_allocation(
             continue
 
         if is_fractional_broker(broker):
-            # Pies : montant € exact, renormalisé pour utiliser tout le budget
-            for i in range(num_t):
-                t = tickers[i]
-                e = eur_target[t] / total_target * budget_j
-                if e <= 0.01:
+            # Pie Trading212 : % ENTIERS sommant à 100 DANS le broker (incrément 1%).
+            pies = _int_pct_largest_remainder({tickers[i]: eur_target[tickers[i]]
+                                               for i in range(num_t)})
+            for t, pct in pies.items():
+                if pct <= 0:
                     continue
+                e = pct / 100.0 * budget_j  # 100% du budget T212 est utilisé
                 alloc.append({
                     "Ticker": t, "Broker": broker, "shares": None,
                     "eur": round(e, 2), "prix": round(float(prices.get(t, 0) or 0), 4),
-                    "type": "pie", "Poids total (%)": round(e / total_cap * 100, 4),
+                    "type": "pie", "pie_pct": int(pct),
+                    "Poids total (%)": round(e / total_cap * 100, 4),
                 })
             continue
 
@@ -106,19 +129,23 @@ def discretize_allocation(
         spent = sum(shares[t] * float(prices.get(t, 0) or 0) for t in shares)
         remaining = budget_j - spent
 
-        # Remplir le budget restant : +1 action au titre le plus sous-pondéré qui rentre
-        for _ in range(100000):
-            if remaining <= 0:
-                break
-            best, best_gap = None, 0.0
+        # Remplir le budget restant action par action. On vise le titre le moins
+        # financé EN RELATIF (shares·prix / cible €) parmi ceux dont une action
+        # entière rentre encore dans le reliquat. PAS de plafond à la cible du
+        # titre : le budget qu'on ne peut PAS placer sur sa ligne d'origine (prix
+        # runtime manquant, ou action trop chère pour son reliquat) déborde sur
+        # les autres lignes achetables au lieu de rester en cash. Le reste final
+        # est ainsi borné par le prix de l'action la moins chère.
+        for _ in range(1_000_000):
+            best, best_ratio = None, None
             for i in range(num_t):
                 t = tickers[i]
                 p = float(prices.get(t, 0) or 0)
                 if p <= 0 or eur_target[t] <= 0 or p > remaining + 1e-9:
                     continue
-                gap = eur_target[t] - shares[t] * p   # sous-pondération en €
-                if gap > best_gap:
-                    best_gap, best = gap, t
+                ratio = (shares[t] * p) / eur_target[t]   # taux de financement courant
+                if best_ratio is None or ratio < best_ratio:
+                    best_ratio, best = ratio, t
             if best is None:
                 break
             shares[best] += 1
@@ -134,6 +161,7 @@ def discretize_allocation(
             alloc.append({
                 "Ticker": t, "Broker": broker, "shares": int(n),
                 "eur": round(e, 2), "prix": round(p, 4),
-                "type": "shares", "Poids total (%)": round(e / total_cap * 100, 4),
+                "type": "shares", "pie_pct": None,
+                "Poids total (%)": round(e / total_cap * 100, 4),
             })
     return alloc

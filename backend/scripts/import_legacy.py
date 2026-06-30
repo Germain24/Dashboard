@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
+from app.core.timeutil import utcnow
 import json
 import logging
 import sys
@@ -130,7 +131,7 @@ def import_vetements(session: Session) -> int:
         if existing:
             for k, v in data.items():
                 setattr(existing, k, v)
-            existing.updated_at = dt.datetime.utcnow()
+            existing.updated_at = utcnow()
         else:
             session.add(Vetement(**data))
         n += 1
@@ -398,7 +399,7 @@ def import_watchlist(session: Session) -> int:
         if existing:
             for k, v in data_row.items():
                 setattr(existing, k, v)
-            existing.updated_at = dt.datetime.utcnow()
+            existing.updated_at = utcnow()
         else:
             session.add(WatchlistEntry(**data_row))
         n += 1

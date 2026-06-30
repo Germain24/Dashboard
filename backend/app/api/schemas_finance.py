@@ -179,12 +179,26 @@ class BuffettResultOut(BaseModel):
     pays: Optional[str] = None
     allocation_pct: Optional[float] = None
     broker_cible: Optional[str] = None
+    # Détail brut par broker (non sérialisé) ; exposé via `allocations`.
+    secteurs_extra: Optional[dict] = Field(default=None, exclude=True)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def score(self) -> Optional[float]:
         """Alias de `chance_moat` attendu par le front (colonne Score)."""
         return self.chance_moat
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def allocations(self) -> Optional[list[dict]]:
+        """Détail actionnable par broker : pie % (Trading212) ou nb d'actions.
+
+        Chaque entrée : {broker, type 'pie'|'shares', pie_pct, shares, eur, prix, pct}.
+        """
+        if not self.secteurs_extra:
+            return None
+        allocs = self.secteurs_extra.get("allocations")
+        return allocs or None
 
 
 class BuffettRunDetailOut(BaseModel):

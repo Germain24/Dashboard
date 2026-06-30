@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from .cache_manager import infer_country
 from .config import Config
-from .scoring_pure import compute_buy_signal, compute_moat_score
+from .scoring_pure import compute_buy_signal, compute_moat_score, robust_growth, select_growth
 
 
 def _v(s, i):
@@ -42,9 +42,10 @@ def extract_metrics(symbol: str, info: dict) -> dict:
         info = {}
     qt = info.get("quoteType", "").upper()
     ln, sn = info.get("longName", ""), info.get("shortName", "")
+    # NB : la classification ETF est décidée par etf_detect.is_etf (financials +
+    # nom de fonds), pas ici sur le seul quoteType/nom — sinon les cotations
+    # secondaires (quoteType="ETF" à tort) écrasent le vrai secteur.
     secteur = info.get("sector", "Inconnu")
-    if qt == "ETF" or "ETF" in ln.upper() or "ETF" in sn.upper():
-        secteur = "ETF"
     pays = info.get("country", "Inconnu")
     if pays == "Inconnu":
         pays = infer_country(symbol)
@@ -89,13 +90,21 @@ def _filter_incomplete(df):
     return _norm_date_index(f)
 
 
-def analyze_financials(symbol: str, data: dict) -> tuple[float, dict]:
-    """Analyse financière complète → (score 0-100, metrics dict)."""
+def analyze_financials(symbol: str, data: dict, etf_tickers: set | None = None) -> tuple[float, dict]:
+    """Analyse financière complète → (score 0-100, metrics dict).
+
+    ``etf_tickers`` : ensemble AUTORITAIRE des tickers ETF (ToutBroker 'Secteur 1'
+    == 'ETF'). Si None, chargé depuis ToutBroker. Un ticker ETF → Score=200.
+    """
     import pandas as pd
+
+    if etf_tickers is None:
+        from .broker_availability import load_etf_tickers
+        etf_tickers = load_etf_tickers()
 
     info = data.get("info", {})
     metrics = extract_metrics(symbol, info)
-    is_etf = metrics.get("Secteur") == "ETF" or metrics.get("QuoteType") == "ETF"
+    is_etf = symbol.upper() in etf_tickers
     is_forced = symbol.upper() in [t.upper() for t in Config.FORCED_BUY_TICKERS]
     if is_forced or is_etf:
         metrics["Achat"] = True
@@ -162,26 +171,30 @@ def analyze_financials(symbol: str, data: dict) -> tuple[float, dict]:
     # Ratios de l'année la plus récente (index 0 = poids le plus fort) -> détail du score.
     if yearly:
         metrics["ratios_recents"] = yearly[0]
-    growth = growth_rev = growth_eps = None
+    growth = growth_rev = growth_eps = forward = None
+    growth_reliable = True
     try:
         for lbl in ("Total Revenue","Revenue"):
             if lbl in income.columns:
-                rv = income[lbl].dropna()
-                if len(rv)>=2 and rv.values[0]>0 and rv.values[-1]>0:
-                    growth_rev = (rv.values[-1]/rv.values[0])**(1/(len(rv)-1))-1
+                growth_rev = robust_growth(list(income[lbl].dropna().values))
                 break
         ev = [float(e) for e in (eps_.values if hasattr(eps_,"values") else [eps_])]
-        if len(ev)>=2 and ev[0]>0 and ev[-1]>0:
-            growth_eps = (ev[-1]/ev[0])**(1/(len(ev)-1))-1
-        growth = max([g for g in [growth_rev, growth_eps] if g is not None], default=None)
+        growth_eps = robust_growth(ev)
+        # Croissance FUTURE prévue (analystes) : EPS forward vs EPS trailing (info).
+        fwd_eps = float(info.get("forwardEps") or 0)
+        trail_eps = float(metrics.get("EPS") or 0)
+        forward = (fwd_eps / trail_eps - 1.0) if (fwd_eps and trail_eps > 0) else None
+        growth, growth_reliable = select_growth(forward, growth_rev, growth_eps)
     except Exception: pass
 
-    metrics.update({"CAGR":growth,"CAGR_Rev":growth_rev,"CAGR_EPS":growth_eps})
+    metrics.update({"CAGR":growth,"CAGR_Rev":growth_rev,"CAGR_EPS":growth_eps,
+                    "CAGR_Forward":forward,"growth_reliable":growth_reliable})
     achat, peg = compute_buy_signal(
         metrics.get("Secteur","Inconnu"), metrics.get("Pays","Inconnu"),
         float(metrics.get("Prix") or 0), float(metrics.get("EPS") or 0),
         float(metrics.get("PER") or 0), growth,
         Config.TAUX_OBLIGATAIRES, Config.TAUX_DEFAUT, Config.PER_MAX, Config.PEG_MAX,
+        growth_reliable=growth_reliable,
     )
     metrics["Achat"] = achat
     metrics["PEG"] = peg

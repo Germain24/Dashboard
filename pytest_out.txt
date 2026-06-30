@@ -1,0 +1,36 @@
+........................................................................ [ 44%]
+........................................................................ [ 88%]
+...................                                                      [100%]
+============================== warnings summary ===============================
+tests/test_agenda/test_api.py: 9 warnings
+tests/test_agenda/test_entrainement_bridge.py: 2 warnings
+tests/test_entrainement/test_api.py: 307 warnings
+tests/test_entrainement/test_calories.py: 4 warnings
+tests/test_entrainement/test_correlation.py: 1 warning
+tests/test_entrainement/test_garmin_seed.py: 183 warnings
+tests/test_entrainement/test_intensity.py: 9 warnings
+tests/test_entrainement/test_muscle_volume.py: 5 warnings
+tests/test_entrainement/test_progression.py: 7 warnings
+tests/test_entrainement/test_suggested_weight.py: 3 warnings
+tests/test_entrainement/test_today_calories.py: 167 warnings
+  C:\Users\germa\Documents\GitHub\mission-control\backend\.venv\Lib\site-packages\pydantic\_internal\_fields.py:727: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return fac()
+
+tests/test_agenda/test_api.py::test_mark_task_done
+  C:\Users\germa\Documents\GitHub\mission-control\backend\app\services\agenda\tasks.py:56: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    tache.updated_at = dt.datetime.utcnow()
+
+tests/test_agenda/test_export_ics.py::test_serialize_basic_structure
+tests/test_agenda/test_export_ics.py::test_escaping_special_chars
+tests/test_agenda/test_export_ics.py::test_missing_fin_defaults_one_hour
+tests/test_agenda/test_export_ics.py::test_location_included
+tests/test_agenda/test_export_ics.py::test_skips_invalid_debut
+  C:\Users\germa\Documents\GitHub\mission-control\backend\app\services\agenda\ical_adapter.py:128: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = dt.datetime.utcnow()
+
+tests/test_entrainement/test_api.py::test_progression_endpoint
+  C:\Users\germa\Documents\GitHub\mission-control\backend\tests\test_entrainement\test_api.py:156: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    today = dt.datetime.utcnow().isoformat()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+163 passed, 1 deselected, 704 warnings in 90.29s (0:01:30)

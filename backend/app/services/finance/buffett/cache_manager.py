@@ -58,6 +58,58 @@ def json_default(o):
     raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
 
+def purge_misclassified_etf_cache(
+    cache_file: str | None = None, output_dir: str | None = None,
+    etf_tickers: set | None = None,
+) -> dict:
+    """Purge du cache les titres classés ETF (``score >= 200``) qui ne sont PLUS
+    des ETF selon ToutBroker.xlsx (ticker absent de la colonne 'Secteur 1' == 'ETF').
+
+    Ces titres restaient figés Score=200 et n'étaient jamais réanalysés. On retire
+    l'entrée du cache ET son fichier financier local, pour forcer leur réanalyse au
+    prochain run. ``etf_tickers`` : ensemble autoritaire (si None, lu depuis ToutBroker).
+
+    Retourne {removed, tickers, files_deleted}.
+    """
+    if etf_tickers is None:
+        from .broker_availability import load_etf_tickers
+        etf_tickers = load_etf_tickers()
+
+    cache_file = cache_file or Config.CACHE_FILE
+    out = Path(output_dir) if output_dir else Config.output_dir()
+
+    if not os.path.exists(cache_file):
+        return {"removed": 0, "tickers": [], "files_deleted": 0}
+    try:
+        with open(cache_file) as f:
+            cache = json.load(f)
+    except Exception:
+        return {"removed": 0, "tickers": [], "files_deleted": 0}
+
+    victims = [
+        t for t, info in cache.items()
+        if float((info or {}).get("score") or 0) >= 200
+        and t.upper() not in etf_tickers
+    ]
+
+    files_deleted = 0
+    for t in victims:
+        cache.pop(t, None)
+        fp = out / f"{t.replace(':', '_')}.xlsx"
+        try:
+            if fp.exists():
+                fp.unlink()
+                files_deleted += 1
+        except Exception:
+            pass
+
+    if victims:
+        with open(cache_file, "w") as f:
+            json.dump(cache, f, indent=2, default=json_default)
+
+    return {"removed": len(victims), "tickers": sorted(victims), "files_deleted": files_deleted}
+
+
 class CacheManager:
     """Gere le fichier cache_status.json (thread-safe)."""
 

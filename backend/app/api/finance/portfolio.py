@@ -143,18 +143,6 @@ def history(days: int = 365, session: Session = Depends(get_session)):
             for r in rows]
 
 
-@router.post("/history/sync-excel")
-def history_sync_excel(session: Session = Depends(get_session)):
-    """Recharge l'historique depuis Historique_portefeuille.xlsx (source editable).
-
-    Tu edites le fichier (Date JJ/MM/AAAA, Valeur, Investit), tu cliques -> la courbe
-    du Suivi est mise a jour sans redemarrer.
-    """
-    from app.services.finance.history_excel import sync_excel_to_db, find_history_file
-    n = sync_excel_to_db(session)
-    return {"synced": n, "file": find_history_file() or "introuvable"}
-
-
 # --- Positions manuelles ---
 
 @router.get("/positions/list", response_model=list[PositionIdOut])

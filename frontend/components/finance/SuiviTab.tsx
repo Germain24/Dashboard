@@ -171,7 +171,6 @@ export function SuiviTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [snapping, setSnapping] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [currency, setCurrency] = useState<"EUR" | "USD" | "CAD">("EUR");
   const [rate, setRate] = useState(1);
 
@@ -220,14 +219,6 @@ export function SuiviTab() {
     try { await financeApi.snapshotCreate(); await load(); }
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Erreur snapshot"); }
     finally { setSnapping(false); }
-  };
-
-  // Recharge l'historique depuis Historique_portefeuille.xlsx (l'Excel = la source)
-  const handleSyncExcel = async () => {
-    setSyncing(true); setError(null);
-    try { await financeApi.historySyncExcel(); await load(); }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : "Erreur rechargement Excel"); }
-    finally { setSyncing(false); }
   };
 
   const valeur = perf?.valeur ?? 0;
@@ -324,10 +315,6 @@ export function SuiviTab() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={handleSyncExcel} disabled={syncing || loading}
-              title="Relit Historique_portefeuille.xlsx (Date, Valeur, Investit)">
-              {syncing ? "..." : "↻ Recharger l'Excel"}
-            </Button>
             <Button size="sm" variant="secondary" onClick={handleSnapshot} disabled={snapping || loading}>
               {snapping ? "..." : "Snapshot maintenant"}
             </Button>

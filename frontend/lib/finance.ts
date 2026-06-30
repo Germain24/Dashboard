@@ -187,10 +187,21 @@ export interface BuffettRunOut {
   resume?: string; erreur?: string; created_at: string;
 }
 
+export interface BuffettAllocationLine {
+  broker?: string;
+  type?: "pie" | "shares";
+  pie_pct?: number | null;   // Trading212 : % entier du pie (somme 100 dans le broker)
+  shares?: number | null;    // autres brokers : nombre d'actions entières
+  eur?: number | null;
+  prix?: number | null;
+  pct?: number | null;       // % du capital total
+}
+
 export interface BuffettResultOut {
   id: number; run_id?: number; ticker: string; nom?: string;
   score?: number; secteur?: string; pays?: string;
   allocation_pct?: number; broker_cible?: string;
+  allocations?: BuffettAllocationLine[] | null;
 }
 
 export interface BuffettRunDetail {
@@ -276,8 +287,6 @@ export const financeApi = {
   snapshotCreate: () => post<SnapshotOut>("/snapshot"),
   snapshotAuto: () => post<{ status: string; date?: string; valeur?: number }>("/snapshot/auto"),
   history: (days = 365) => get<HistoryPoint[]>(`/history?days=${days}`),
-  /** Recharge l'historique depuis Historique_portefeuille.xlsx (source editable) */
-  historySyncExcel: () => post<{ synced: number; file: string }>("/history/sync-excel"),
 
   // Portfolio
   portfolio: () => get<PositionOut[]>("/portfolio"),
@@ -361,6 +370,17 @@ export const financeApi = {
   portfolioCreate: (minScore = 80) =>
     post<{ message: string; status: string; run_id: number }>(
       `/portfolio/create?min_score=${minScore}`),
+  /** Progression de l'optimisation DE (barre de chargement du bouton 3) */
+  portfolioProgress: () =>
+    get<{
+      active: boolean;
+      phase: "idle" | "preparation" | "optimisation" | "finalisation";
+      iteration: number;
+      convergence: number;
+      progress_pct: number;
+      message: string;
+      run_id: number | null;
+    }>("/portfolio/progress"),
 
   // Rebalancing
   rebalancing: () => get<RebalancingDiff | null>("/rebalancing/diff"),

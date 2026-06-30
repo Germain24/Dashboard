@@ -1,0 +1,1678 @@
+{
+ "CMOP.L": {
+  "defensif": 0.03,
+  "pays": {},
+  "isin": null
+ },
+ "BNKE.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "CW8.PA": {
+  "defensif": 15.91,
+  "pays": {},
+  "isin": null
+ },
+ "EUNW.DE": {
+  "defensif": 0.57,
+  "pays": {},
+  "isin": "IE00B66F4759"
+ },
+ "XESX.DE": {
+  "defensif": 13.99,
+  "pays": {
+   "France": 30.11,
+   "Germany": 29.99,
+   "Netherlands": 18.26,
+   "Spain": 10.56,
+   "Italy": 8.23,
+   "Belgium": 1.55,
+   "Finland": 1.31,
+   "Other": 0.0
+  },
+  "isin": "LU0274211217"
+ },
+ "NDIA.L": {
+  "defensif": 17.34,
+  "pays": {},
+  "isin": null
+ },
+ "IS3R.DE": {
+  "defensif": 13.06,
+  "pays": {
+   "United States": 47.36,
+   "Japan": 11.53,
+   "Canada": 6.43,
+   "United Kingdom": 5.42,
+   "Spain": 3.28,
+   "Netherlands": 2.97,
+   "Switzerland": 2.34,
+   "France": 1.9,
+   "Ireland": 1.76,
+   "Germany": 1.71,
+   "Singapore": 1.21,
+   "Australia": 1.12,
+   "Italy": 1.07,
+   "Other": 11.9
+  },
+  "isin": "IE00BP3QZ825"
+ },
+ "EXH4.DE": {
+  "defensif": 1.01,
+  "pays": {
+   "France": 18.94,
+   "Germany": 18.67,
+   "United Kingdom": 15.76,
+   "Switzerland": 9.95,
+   "Sweden": 9.83,
+   "Netherlands": 7.8,
+   "Italy": 3.43,
+   "Finland": 3.05,
+   "Denmark": 3.01,
+   "Ireland": 1.72,
+   "Other": 7.84
+  },
+  "isin": "DE000A0H08J9"
+ },
+ "EXS1.DE": {
+  "defensif": 11.18,
+  "pays": {},
+  "isin": "DE0005933931"
+ },
+ "IBGE.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "ESE.PA": {
+  "defensif": 14.91,
+  "pays": {},
+  "isin": null
+ },
+ "CNAL.L": {
+  "defensif": 14.11,
+  "pays": {},
+  "isin": null
+ },
+ "EXV6.DE": {
+  "defensif": 0.73,
+  "pays": {
+   "United Kingdom": 34.52,
+   "Switzerland": 15.46,
+   "Luxembourg": 6.59,
+   "Finland": 5.91,
+   "Sweden": 5.91,
+   "Norway": 3.74,
+   "Poland": 2.98,
+   "Mexico": 2.12,
+   "Austria": 1.5,
+   "Germany": 1.4,
+   "Other": 19.87
+  },
+  "isin": "DE000A0F5UK5"
+ },
+ "FXI": {
+  "defensif": 4.11,
+  "pays": {},
+  "isin": null
+ },
+ "EXH9.DE": {
+  "defensif": 96.12,
+  "pays": {
+   "United Kingdom": 24.71,
+   "Spain": 24.2,
+   "Italy": 16.65,
+   "Germany": 13.36,
+   "France": 12.08,
+   "Portugal": 2.21,
+   "Denmark": 1.67,
+   "Finland": 1.49,
+   "Belgium": 1.12,
+   "Other": 2.51
+  },
+  "isin": "DE000A0Q4R02"
+ },
+ "XESC.L": {
+  "defensif": 13.99,
+  "pays": {
+   "France": 30.11,
+   "Germany": 29.99,
+   "Netherlands": 18.26,
+   "Spain": 10.56,
+   "Italy": 8.23,
+   "Belgium": 1.55,
+   "Finland": 1.31,
+   "Other": 0.0
+  },
+  "isin": "LU0380865021"
+ },
+ "SXRT.DE": {
+  "defensif": 15.4,
+  "pays": {
+   "Germany": 29.71,
+   "France": 29.68,
+   "Netherlands": 18.21,
+   "Spain": 10.35,
+   "Italy": 8.15,
+   "Belgium": 1.56,
+   "Finland": 1.29,
+   "Other": 1.05
+  },
+  "isin": "IE00B53L3W79"
+ },
+ "IEMB.L": {
+  "defensif": 0.72,
+  "pays": {},
+  "isin": null
+ },
+ "WSML.L": {
+  "defensif": 16.9,
+  "pays": {},
+  "isin": null
+ },
+ "MEUD.PA": {
+  "defensif": 24.52,
+  "pays": {},
+  "isin": null
+ },
+ "DBXD.DE": {
+  "defensif": 11.58,
+  "pays": {},
+  "isin": "LU0274211480"
+ },
+ "IHYG.L": {
+  "defensif": 0.57,
+  "pays": {},
+  "isin": null
+ },
+ "IPOL.L": {
+  "defensif": 7.63,
+  "pays": {},
+  "isin": null
+ },
+ "EXW1.DE": {
+  "defensif": 15.29,
+  "pays": {
+   "Germany": 29.89,
+   "France": 29.87,
+   "Netherlands": 18.33,
+   "Spain": 10.42,
+   "Italy": 8.2,
+   "Belgium": 1.57,
+   "Finland": 1.3,
+   "Other": 0.42
+  },
+  "isin": "DE0005933956"
+ },
+ "EUN2.DE": {
+  "defensif": 15.46,
+  "pays": {
+   "Germany": 29.69,
+   "France": 29.67,
+   "Netherlands": 18.2,
+   "Spain": 10.35,
+   "Italy": 8.15,
+   "Belgium": 1.56,
+   "Finland": 1.29,
+   "Other": 1.09
+  },
+  "isin": "IE0008471009"
+ },
+ "IWVL.L": {
+  "defensif": 15.68,
+  "pays": {},
+  "isin": null
+ },
+ "INRG.L": {
+  "defensif": 32.36,
+  "pays": {},
+  "isin": null
+ },
+ "EIMI.L": {
+  "defensif": 8.43,
+  "pays": {},
+  "isin": null
+ },
+ "IUIT.L": {
+  "defensif": 0.22,
+  "pays": {},
+  "isin": null
+ },
+ "ENGE.L": {
+  "defensif": 0.28,
+  "pays": {},
+  "isin": null
+ },
+ "IBTM.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "CBSM.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": "IE000XJA2OU4"
+ },
+ "CMOD.L": {
+  "defensif": 0.03,
+  "pays": {},
+  "isin": "IE00BD6FTQ80"
+ },
+ "SEGA.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "EXV2.DE": {
+  "defensif": 0.36,
+  "pays": {
+   "Germany": 25.74,
+   "Finland": 16.39,
+   "Sweden": 12.65,
+   "United Kingdom": 11.6,
+   "France": 9.1,
+   "Spain": 7.3,
+   "Switzerland": 5.74,
+   "Netherlands": 4.5,
+   "Italy": 2.46,
+   "Norway": 2.26,
+   "Other": 2.26
+  },
+  "isin": "DE000A0H08R2"
+ },
+ "IBCI.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": "IE00B0M62X26"
+ },
+ "WDSC.L": {
+  "defensif": 16.12,
+  "pays": {},
+  "isin": null
+ },
+ "HIGH.L": {
+  "defensif": 0.57,
+  "pays": {},
+  "isin": null
+ },
+ "RBTX.L": {
+  "defensif": 2.18,
+  "pays": {},
+  "isin": null
+ },
+ "PAEJ.PA": {
+  "defensif": 6.84,
+  "pays": {},
+  "isin": null
+ },
+ "SXR7.DE": {
+  "defensif": 17.84,
+  "pays": {
+   "France": 25.81,
+   "Germany": 25.59,
+   "Netherlands": 16.58,
+   "Spain": 10.12,
+   "Italy": 8.82,
+   "Finland": 3.29,
+   "Belgium": 2.43,
+   "Ireland": 1.54,
+   "Other": 5.82
+  },
+  "isin": "IE00B53QG562"
+ },
+ "EESM.PA": {
+  "defensif": 13.77,
+  "pays": {
+   "United Kingdom": 31.24,
+   "Switzerland": 11.38,
+   "Sweden": 10.31,
+   "Norway": 8.2,
+   "Germany": 4.1,
+   "France": 3.77,
+   "Finland": 3.56,
+   "Belgium": 3.53,
+   "Spain": 2.88,
+   "Netherlands": 2.83,
+   "Denmark": 2.74,
+   "Italy": 2.05,
+   "Austria": 1.97,
+   "Portugal": 1.45,
+   "Bermuda": 1.39,
+   "Other": 8.6
+  },
+  "isin": "LU1291101555"
+ },
+ "XDPE.DE": {
+  "defensif": 15.12,
+  "pays": {},
+  "isin": "IE00BM67HW99"
+ },
+ "IUFS.L": {
+  "defensif": 0.48,
+  "pays": {},
+  "isin": null
+ },
+ "XLYS.L": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "IUHC.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "LOCK.L": {
+  "defensif": 0.32,
+  "pays": {},
+  "isin": null
+ },
+ "PTPXE.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "XDEE.DE": {
+  "defensif": 23.27,
+  "pays": {},
+  "isin": "IE0002EI5AG0"
+ },
+ "CLIM.L": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "SHLD.L": {
+  "defensif": 0.32,
+  "pays": {},
+  "isin": null
+ },
+ "MLPD.L": {
+  "defensif": 3.19,
+  "pays": {},
+  "isin": null
+ },
+ "NSI": {
+  "defensif": 10.3,
+  "pays": {},
+  "isin": null
+ },
+ "AT1D.L": {
+  "defensif": 1.78,
+  "pays": {
+   "United Kingdom": 24.73,
+   "France": 17.28,
+   "Switzerland": 13.35,
+   "Netherlands": 5.84,
+   "Germany": 3.93,
+   "Spain": 3.89,
+   "United States": 2.95,
+   "Denmark": 1.89,
+   "Finland": 1.64,
+   "Uzbekistan": 1.55,
+   "New Zealand": 1.47,
+   "Other": 21.48
+  },
+  "isin": "IE00BG0TQB18"
+ },
+ "RIOL.L": {
+  "defensif": 18.53,
+  "pays": {},
+  "isin": null
+ },
+ "INFL.L": {
+  "defensif": 0,
+  "pays": {},
+  "isin": null
+ },
+ "RS2K.PA": {
+  "defensif": 21.29,
+  "pays": {},
+  "isin": "LU1681038672"
+ },
+ "EXV3.DE": {
+  "defensif": 0.37,
+  "pays": {
+   "Netherlands": 44.5,
+   "Germany": 24.93,
+   "United Kingdom": 9.78,
+   "Switzerland": 6.43,
+   "France": 4.6,
+   "Spain": 3.62,
+   "Sweden": 3.28,
+   "Other": 2.86
+  },
+  "isin": "DE000A0H08Q4"
+ },
+ "SHC.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "PUST.PA": {
+  "defensif": 11.3,
+  "pays": {},
+  "isin": null
+ },
+ "PDJE.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "CL2.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "EXSB.DE": {
+  "defensif": 22.32,
+  "pays": {},
+  "isin": "DE0002635273"
+ },
+ "ESEH.PA": {
+  "defensif": 14.91,
+  "pays": {},
+  "isin": "FR0013041530"
+ },
+ "EXS3.DE": {
+  "defensif": 4.09,
+  "pays": {},
+  "isin": "DE0005933923"
+ },
+ "EXS2.DE": {
+  "defensif": 22.69,
+  "pays": {},
+  "isin": "DE0005933972"
+ },
+ "PINR.PA": {
+  "defensif": 16.84,
+  "pays": {},
+  "isin": null
+ },
+ "XDDX.DE": {
+  "defensif": 6.84,
+  "pays": {},
+  "isin": "LU0838782315"
+ },
+ "MSEC.SW": {
+  "defensif": 13.7,
+  "pays": {
+   "Germany": 29.96,
+   "France": 28.08,
+   "Netherlands": 18.49,
+   "Spain": 10.41,
+   "Italy": 8.08,
+   "Belgium": 1.52,
+   "Finland": 1.28,
+   "Other": 2.18
+  },
+  "isin": "FR0012399731"
+ },
+ "IS3U.DE": {
+  "defensif": 20.19,
+  "pays": {},
+  "isin": "IE00BP3QZJ36"
+ },
+ "FMI.MI": {
+  "defensif": 15.72,
+  "pays": {},
+  "isin": null
+ },
+ "PASI.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "XDUE.SW": {
+  "defensif": 16.13,
+  "pays": {
+   "France": 26.15,
+   "Germany": 25.77,
+   "Netherlands": 16.66,
+   "Spain": 10.27,
+   "Italy": 8.89,
+   "Finland": 3.29,
+   "Belgium": 2.36,
+   "Ireland": 1.55,
+   "Other": 5.06
+  },
+  "isin": "LU1215828218"
+ },
+ "SPYW.DE": {
+  "defensif": 33.68,
+  "pays": {
+   "Italy": 21.96,
+   "Germany": 19.09,
+   "France": 14.35,
+   "Finland": 13.04,
+   "Belgium": 10.9,
+   "Netherlands": 9.79,
+   "Portugal": 5.21,
+   "Ireland": 2.4,
+   "Spain": 1.86,
+   "Austria": 1.42,
+   "Other": 0.0
+  },
+  "isin": "IE00B5M1WJ87"
+ },
+ "0W9J.IL": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "EXX1.DE": {
+  "defensif": 1.36,
+  "pays": {
+   "Spain": 29.85,
+   "Italy": 21.48,
+   "France": 14.93,
+   "Netherlands": 8.27,
+   "Germany": 6.84,
+   "Finland": 5.0,
+   "Austria": 4.16,
+   "Ireland": 3.29,
+   "Belgium": 2.56,
+   "Other": 3.62
+  },
+  "isin": "DE0006289309"
+ },
+ "EXXV.DE": {
+  "defensif": 20.13,
+  "pays": {
+   "France": 31.23,
+   "Germany": 23.89,
+   "Spain": 18.85,
+   "Italy": 10.59,
+   "Finland": 4.41,
+   "Netherlands": 3.4,
+   "Belgium": 1.36,
+   "Ireland": 1.28,
+   "Switzerland": 1.23,
+   "Other": 3.76
+  },
+  "isin": "DE000A0F5UG3"
+ },
+ "MIB.PA": {
+  "defensif": 17.53,
+  "pays": {},
+  "isin": null
+ },
+ "PLEM.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "ETZ.PA": {
+  "defensif": 24.88,
+  "pays": {},
+  "isin": null
+ },
+ "DXSA.DE": {
+  "defensif": 20.2,
+  "pays": {
+   "France": 23.52,
+   "Italy": 22.96,
+   "Netherlands": 16.52,
+   "Spain": 13.92,
+   "Germany": 13.18,
+   "Portugal": 6.3,
+   "Other": 3.6
+  },
+  "isin": "LU0292095535"
+ },
+ "EVOE.PA": {
+  "defensif": 29.21,
+  "pays": {},
+  "isin": null
+ },
+ "EEI.L": {
+  "defensif": 21.81,
+  "pays": {},
+  "isin": null
+ },
+ "EQUA.PA": {
+  "defensif": 13.32,
+  "pays": {},
+  "isin": null
+ },
+ "CU2.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "EEMU.PA": {
+  "defensif": 17.37,
+  "pays": {},
+  "isin": null
+ },
+ "C40.PA": {
+  "defensif": 16.43,
+  "pays": {},
+  "isin": null
+ },
+ "EXXX.DE": {
+  "defensif": 9.17,
+  "pays": {},
+  "isin": "DE000A0D8Q23"
+ },
+ "LVC.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "CAC.PA": {
+  "defensif": 14.66,
+  "pays": {},
+  "isin": null
+ },
+ "SGLN.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "EXSG.DE": {
+  "defensif": 16.17,
+  "pays": {
+   "Netherlands": 27.72,
+   "France": 19.81,
+   "Germany": 17.46,
+   "Italy": 9.06,
+   "Belgium": 6.25,
+   "Spain": 5.82,
+   "Austria": 4.95,
+   "Portugal": 2.87,
+   "Finland": 2.42,
+   "Other": 3.64
+  },
+  "isin": "DE0002635281"
+ },
+ "EXSI.DE": {
+  "defensif": 17.26,
+  "pays": {
+   "France": 26.95,
+   "Germany": 24.96,
+   "Netherlands": 15.82,
+   "Spain": 9.9,
+   "Italy": 9.25,
+   "Finland": 3.47,
+   "Belgium": 2.68,
+   "Ireland": 1.23,
+   "Austria": 1.05,
+   "Other": 4.69
+  },
+  "isin": "DE000A0D8Q07"
+ },
+ "EXXY.DE": {
+  "defensif": 0.03,
+  "pays": {},
+  "isin": "DE000A0H0728"
+ },
+ "GRE.PA": {
+  "defensif": 19.69,
+  "pays": {},
+  "isin": null
+ },
+ "LVE.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "UIMR.DE": {
+  "defensif": 13.02,
+  "pays": {
+   "France": 32.29,
+   "Germany": 19.9,
+   "Netherlands": 17.1,
+   "Italy": 7.43,
+   "Finland": 6.75,
+   "Spain": 3.09,
+   "Belgium": 2.81,
+   "Ireland": 2.13,
+   "Austria": 1.93,
+   "Other": 6.57
+  },
+  "isin": "LU0629460675"
+ },
+ "VERX.AS": {
+  "defensif": 23.57,
+  "pays": {
+   "Germany": 17.21,
+   "France": 16.64,
+   "Switzerland": 14.95,
+   "Netherlands": 10.99,
+   "Spain": 7.02,
+   "Italy": 6.41,
+   "Sweden": 6.21,
+   "Finland": 2.23,
+   "Denmark": 1.9,
+   "Belgium": 1.72,
+   "Norway": 1.22,
+   "Other": 13.5
+  },
+  "isin": "IE00BKX55S42"
+ },
+ "LVD.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "AWAT.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "ETZD.PA": {
+  "defensif": 24.88,
+  "pays": {},
+  "isin": null
+ },
+ "EXV5.DE": {
+  "defensif": 0.23,
+  "pays": {},
+  "isin": "DE000A0Q4R28"
+ },
+ "CD8.PA": {
+  "defensif": 23.98,
+  "pays": {},
+  "isin": null
+ },
+ "SSLN.L": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "IPLT.L": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "0XC5.IL": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "BNK.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "CEUU.AS": {
+  "defensif": 17.84,
+  "pays": {},
+  "isin": null
+ },
+ "CMU.PA": {
+  "defensif": 15.03,
+  "pays": {},
+  "isin": null
+ },
+ "CS1.PA": {
+  "defensif": 19.0,
+  "pays": {},
+  "isin": null
+ },
+ "DAXXF": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "EDM4.DE": {
+  "defensif": 17.99,
+  "pays": {
+   "France": 26.58,
+   "Germany": 24.54,
+   "Netherlands": 13.71,
+   "Spain": 9.81,
+   "Italy": 8.7,
+   "Finland": 3.72,
+   "Belgium": 2.87,
+   "Ireland": 2.38,
+   "Other": 7.69
+  },
+  "isin": "IE00BHZPJ015"
+ },
+ "EGRO.PA": {
+  "defensif": 24.04,
+  "pays": {},
+  "isin": null
+ },
+ "EMPA.AS": {
+  "defensif": 18.55,
+  "pays": {},
+  "isin": null
+ },
+ "EPAB.PA": {
+  "defensif": 16.31,
+  "pays": {},
+  "isin": null
+ },
+ "ESIT.DE": {
+  "defensif": 0.38,
+  "pays": {
+   "Netherlands": 41.31,
+   "Germany": 25.87,
+   "Finland": 8.73,
+   "Sweden": 7.29,
+   "Switzerland": 6.83,
+   "United Kingdom": 4.52,
+   "France": 4.44,
+   "Other": 1.01
+  },
+  "isin": "IE00BMW42413"
+ },
+ "EUSR.L": {
+  "defensif": 13.02,
+  "pays": {
+   "France": 32.29,
+   "Germany": 19.9,
+   "Netherlands": 17.1,
+   "Italy": 7.43,
+   "Finland": 6.75,
+   "Spain": 3.09,
+   "Belgium": 2.81,
+   "Ireland": 2.13,
+   "Austria": 1.93,
+   "Other": 6.57
+  },
+  "isin": "LU1280300853"
+ },
+ "GUARD.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "HLT.PA": {
+  "defensif": 98.92,
+  "pays": {},
+  "isin": null
+ },
+ "IE00BN4Q1675.SG": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "IEXF.L": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "LBRE.DE": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": "LU1834983550"
+ },
+ "LFOD.DE": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": "LU1834985845"
+ },
+ "LGQG.DE": {
+  "defensif": 17.38,
+  "pays": {
+   "France": 24.38,
+   "Germany": 23.75,
+   "Netherlands": 14.76,
+   "Spain": 9.99,
+   "Italy": 9.74,
+   "Finland": 3.56,
+   "Belgium": 3.11,
+   "Ireland": 1.87,
+   "Austria": 1.06,
+   "Other": 7.78
+  },
+  "isin": "LU0908501058"
+ },
+ "LIGS.DE": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": "LU1834987890"
+ },
+ "LIRU.DE": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": "LU1834987973"
+ },
+ "LTVL.DE": {
+  "defensif": -98.97,
+  "pays": {},
+  "isin": "LU1834988781"
+ },
+ "LU1971906802.SG": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "LYQ4.DU": {
+  "defensif": 0.0,
+  "pays": {
+   "Germany": 29.96,
+   "France": 28.08,
+   "Netherlands": 18.49,
+   "Spain": 10.41,
+   "Italy": 8.08,
+   "Belgium": 1.52,
+   "Finland": 1.28,
+   "Other": 2.18
+  },
+  "isin": "FR0012399806"
+ },
+ "MUSRI.PA": {
+  "defensif": 20.64,
+  "pays": {},
+  "isin": null
+ },
+ "OBLI.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "P500H.PA": {
+  "defensif": 17.08,
+  "pays": {},
+  "isin": null
+ },
+ "PAASI.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "PABZ.PA": {
+  "defensif": 18.55,
+  "pays": {},
+  "isin": null
+ },
+ "PAEEM.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "PALAT.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "PANX.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "PCEU.PA": {
+  "defensif": 26.02,
+  "pays": {},
+  "isin": null
+ },
+ "PE500.PA": {
+  "defensif": 17.08,
+  "pays": {},
+  "isin": null
+ },
+ "PRIZ.L": {
+  "defensif": 17.27,
+  "pays": {},
+  "isin": null
+ },
+ "PTPXH.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "SEL.PA": {
+  "defensif": 3.62,
+  "pays": {},
+  "isin": null
+ },
+ "SLMA.DE": {
+  "defensif": 17.78,
+  "pays": {
+   "France": 26.22,
+   "Germany": 23.47,
+   "Netherlands": 16.2,
+   "Spain": 9.85,
+   "Italy": 9.77,
+   "Finland": 3.64,
+   "Belgium": 2.64,
+   "Ireland": 1.72,
+   "Austria": 1.02,
+   "Other": 5.47
+  },
+  "isin": "IE00BFNM3B99"
+ },
+ "TNO.PA": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "UTI.MI": {
+  "defensif": 96.07,
+  "pays": {},
+  "isin": null
+ },
+ "VAL.MI": {
+  "defensif": 21.95,
+  "pays": {},
+  "isin": null
+ },
+ "VGER.DE": {
+  "defensif": 11.35,
+  "pays": {},
+  "isin": "IE00BG143G97"
+ },
+ "XDGM.DE": {
+  "defensif": 5.2,
+  "pays": {},
+  "isin": "IE00B9MRJJ36"
+ },
+ "LU2109787635.SG": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "IWDA.L": {
+  "defensif": 16.16,
+  "pays": {},
+  "isin": null
+ },
+ "SWDA.L": {
+  "defensif": 16.16,
+  "pays": {},
+  "isin": null
+ },
+ "EUNL.DE": {
+  "defensif": 16.16,
+  "pays": {
+   "United States": 67.71,
+   "Japan": 5.57,
+   "United Kingdom": 3.25,
+   "Canada": 3.08,
+   "France": 2.24,
+   "Germany": 2.22,
+   "Switzerland": 2.17,
+   "Australia": 1.61,
+   "Netherlands": 1.53,
+   "Ireland": 1.22,
+   "Other": 9.4
+  },
+  "isin": "IE00B4L5Y983"
+ },
+ "VWCE.DE": {
+  "defensif": 14.76,
+  "pays": {
+   "United States": 56.99,
+   "Japan": 5.63,
+   "Taiwan": 2.89,
+   "United Kingdom": 2.85,
+   "China": 2.73,
+   "Canada": 2.66,
+   "South Korea": 2.24,
+   "Switzerland": 1.89,
+   "Germany": 1.88,
+   "France": 1.79,
+   "Australia": 1.56,
+   "India": 1.39,
+   "Netherlands": 1.28,
+   "Ireland": 1.04,
+   "Other": 13.18
+  },
+  "isin": "IE00BK5BQT80"
+ },
+ "VWRL.L": {
+  "defensif": 14.76,
+  "pays": {},
+  "isin": null
+ },
+ "VWRP.L": {
+  "defensif": 14.76,
+  "pays": {},
+  "isin": null
+ },
+ "XDWD.L": {
+  "defensif": 16.11,
+  "pays": {
+   "United States": 68.39,
+   "Japan": 5.6,
+   "United Kingdom": 3.15,
+   "Canada": 3.0,
+   "Germany": 2.18,
+   "France": 2.17,
+   "Switzerland": 2.15,
+   "Australia": 1.56,
+   "Netherlands": 1.53,
+   "Ireland": 1.16,
+   "Other": 9.11
+  },
+  "isin": "IE00BJ0KDQ92"
+ },
+ "SPPW.DE": {
+  "defensif": 15.9,
+  "pays": {
+   "United States": 68.07,
+   "Japan": 5.61,
+   "United Kingdom": 3.29,
+   "Canada": 3.07,
+   "France": 2.27,
+   "Germany": 2.23,
+   "Switzerland": 2.16,
+   "Australia": 1.63,
+   "Netherlands": 1.47,
+   "Ireland": 1.26,
+   "Other": 8.94
+  },
+  "isin": "IE00BFY0GT14"
+ },
+ "ISAC.L": {
+  "defensif": 15.18,
+  "pays": {},
+  "isin": null
+ },
+ "SSAC.L": {
+  "defensif": 15.18,
+  "pays": {},
+  "isin": null
+ },
+ "HMWO.L": {
+  "defensif": 16.03,
+  "pays": {},
+  "isin": null
+ },
+ "IWMO.L": {
+  "defensif": 13.06,
+  "pays": {},
+  "isin": null
+ },
+ "IWQU.L": {
+  "defensif": 16.26,
+  "pays": {},
+  "isin": null
+ },
+ "MVOL.L": {
+  "defensif": 31.8,
+  "pays": {},
+  "isin": null
+ },
+ "XDEW.DE": {
+  "defensif": 23.27,
+  "pays": {},
+  "isin": "IE00BLNMYC90"
+ },
+ "CSPX.L": {
+  "defensif": 15.1,
+  "pays": {},
+  "isin": null
+ },
+ "SXR8.DE": {
+  "defensif": 15.1,
+  "pays": {},
+  "isin": "IE00B5BMR087"
+ },
+ "VUSA.L": {
+  "defensif": 14.93,
+  "pays": {},
+  "isin": "IE00B3XXRP09"
+ },
+ "VUAA.L": {
+  "defensif": 14.93,
+  "pays": {},
+  "isin": "IE00BFMXXD54"
+ },
+ "IUSA.L": {
+  "defensif": 15.1,
+  "pays": {},
+  "isin": "IE0031442068"
+ },
+ "SPY5.L": {
+  "defensif": 15.05,
+  "pays": {},
+  "isin": "IE00B6YX5C33"
+ },
+ "CSP1.L": {
+  "defensif": 15.1,
+  "pays": {},
+  "isin": null
+ },
+ "EQQQ.L": {
+  "defensif": 11.26,
+  "pays": {},
+  "isin": "IE0032077012"
+ },
+ "CNDX.L": {
+  "defensif": 11.55,
+  "pays": {},
+  "isin": null
+ },
+ "SXRV.DE": {
+  "defensif": 11.55,
+  "pays": {},
+  "isin": "IE00B53SZB19"
+ },
+ "CSUS.L": {
+  "defensif": 15.05,
+  "pays": {},
+  "isin": null
+ },
+ "IUSQ.L": {
+  "defensif": 0.0,
+  "pays": {
+   "United States": 59.82,
+   "Japan": 4.9,
+   "Taiwan": 2.84,
+   "United Kingdom": 2.83,
+   "Canada": 2.74,
+   "China": 2.52,
+   "South Korea": 2.21,
+   "France": 1.97,
+   "Germany": 1.96,
+   "Switzerland": 1.93,
+   "Australia": 1.44,
+   "Netherlands": 1.34,
+   "India": 1.21,
+   "Ireland": 1.07,
+   "Other": 11.22
+  },
+  "isin": "IE00B6R52259"
+ },
+ "IUVL.L": {
+  "defensif": 13.33,
+  "pays": {},
+  "isin": null
+ },
+ "XRSG.DE": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "ZPRR.DE": {
+  "defensif": 21.31,
+  "pays": {},
+  "isin": "IE00BJ38QD84"
+ },
+ "FUSD.L": {
+  "defensif": 15.32,
+  "pays": {},
+  "isin": "IE00BYXVGX24"
+ },
+ "IMEU.L": {
+  "defensif": 26.35,
+  "pays": {},
+  "isin": null
+ },
+ "SMEA.L": {
+  "defensif": 26.35,
+  "pays": {},
+  "isin": null
+ },
+ "VEUR.L": {
+  "defensif": 25.51,
+  "pays": {},
+  "isin": null
+ },
+ "VERX.L": {
+  "defensif": 23.57,
+  "pays": {
+   "Germany": 17.21,
+   "France": 16.64,
+   "Switzerland": 14.95,
+   "Netherlands": 10.99,
+   "Spain": 7.02,
+   "Italy": 6.41,
+   "Sweden": 6.21,
+   "Finland": 2.23,
+   "Denmark": 1.9,
+   "Belgium": 1.72,
+   "Norway": 1.22,
+   "Other": 13.5
+  },
+  "isin": "IE00BKX55S42"
+ },
+ "EXSA.DE": {
+  "defensif": 25.2,
+  "pays": {
+   "United Kingdom": 20.03,
+   "France": 14.27,
+   "Germany": 13.24,
+   "Switzerland": 11.78,
+   "Netherlands": 8.39,
+   "Spain": 5.23,
+   "Italy": 4.9,
+   "Sweden": 4.59,
+   "Finland": 1.84,
+   "Denmark": 1.73,
+   "Belgium": 1.43,
+   "Norway": 1.08,
+   "Other": 11.49
+  },
+  "isin": "DE0002635307"
+ },
+ "CSEMU.L": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "SX5S.DE": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "XD5E.DE": {
+  "defensif": 16.13,
+  "pays": {
+   "France": 26.15,
+   "Germany": 25.77,
+   "Netherlands": 16.66,
+   "Spain": 10.27,
+   "Italy": 8.89,
+   "Finland": 3.29,
+   "Belgium": 2.36,
+   "Ireland": 1.55,
+   "Other": 5.06
+  },
+  "isin": "LU0846194776"
+ },
+ "EMIM.L": {
+  "defensif": 8.43,
+  "pays": {},
+  "isin": null
+ },
+ "IEMA.L": {
+  "defensif": 7.3,
+  "pays": {},
+  "isin": null
+ },
+ "VFEM.L": {
+  "defensif": 9.52,
+  "pays": {
+   "Taiwan": 28.18,
+   "China": 26.35,
+   "India": 13.6,
+   "Brazil": 4.44,
+   "Saudi Arabia": 3.19,
+   "South Africa": 2.9,
+   "Mexico": 2.09,
+   "Malaysia": 1.59,
+   "United Arab Emirates": 1.38,
+   "Hong Kong": 1.21,
+   "Thailand": 1.11,
+   "Other": 13.96
+  },
+  "isin": "IE00B3VVMM84"
+ },
+ "AEEM.PA": {
+  "defensif": 7.08,
+  "pays": {},
+  "isin": null
+ },
+ "XMME.DE": {
+  "defensif": 7.66,
+  "pays": {
+   "Taiwan": 24.39,
+   "South Korea": 20.32,
+   "China": 20.17,
+   "India": 9.75,
+   "Brazil": 3.75,
+   "Saudi Arabia": 2.45,
+   "South Africa": 2.24,
+   "Mexico": 1.64,
+   "Malaysia": 1.09,
+   "United Arab Emirates": 1.03,
+   "Other": 13.17
+  },
+  "isin": "IE00BTJRMP35"
+ },
+ "SJPA.L": {
+  "defensif": 11.46,
+  "pays": {},
+  "isin": null
+ },
+ "IJPN.L": {
+  "defensif": 10.77,
+  "pays": {},
+  "isin": null
+ },
+ "VJPN.L": {
+  "defensif": 10.77,
+  "pays": {},
+  "isin": "IE00B95PGT31"
+ },
+ "CPXJ.L": {
+  "defensif": 10.34,
+  "pays": {},
+  "isin": null
+ },
+ "FXC.L": {
+  "defensif": 4.13,
+  "pays": {},
+  "isin": null
+ },
+ "HMCH.L": {
+  "defensif": 10.18,
+  "pays": {},
+  "isin": null
+ },
+ "IBGX.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "IEGA.L": {
+  "defensif": 99.71,
+  "pays": {},
+  "isin": null
+ },
+ "VETY.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "IBTS.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "IDTL.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "IGLO.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "IGLT.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "ITPS.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "IEAC.L": {
+  "defensif": 0.04,
+  "pays": {},
+  "isin": null
+ },
+ "LQDE.L": {
+  "defensif": 1.13,
+  "pays": {},
+  "isin": null
+ },
+ "VECP.L": {
+  "defensif": 0.0,
+  "pays": {
+   "France": 15.62,
+   "United States": 15.01,
+   "Netherlands": 11.88,
+   "Germany": 5.98,
+   "United Kingdom": 5.74,
+   "Luxembourg": 3.92,
+   "Spain": 3.72,
+   "Italy": 2.85,
+   "Belgium": 1.95,
+   "Australia": 1.84,
+   "Sweden": 1.5,
+   "Ireland": 1.09,
+   "Other": 28.9
+  },
+  "isin": "IE00BZ163G84"
+ },
+ "EUNA.DE": {
+  "defensif": 0.61,
+  "pays": {
+   "United States": 19.02,
+   "Japan": 9.9,
+   "China": 6.98,
+   "France": 3.47,
+   "United Kingdom": 2.87,
+   "Germany": 2.53,
+   "Ireland": 2.5,
+   "Canada": 1.99,
+   "Italy": 1.94,
+   "Spain": 1.53,
+   "Australia": 1.26,
+   "Other": 46.01
+  },
+  "isin": "IE00BDBRDM35"
+ },
+ "AGGG.L": {
+  "defensif": 0.61,
+  "pays": {},
+  "isin": null
+ },
+ "VAGF.L": {
+  "defensif": 0.0,
+  "pays": {
+   "United States": 25.57,
+   "Japan": 7.44,
+   "France": 4.72,
+   "Germany": 3.55,
+   "Canada": 3.45,
+   "United Kingdom": 3.21,
+   "Italy": 2.09,
+   "Australia": 1.98,
+   "Netherlands": 1.83,
+   "Luxembourg": 1.44,
+   "South Korea": 1.39,
+   "Spain": 1.23,
+   "Belgium": 1.13,
+   "Other": 40.97
+  },
+  "isin": "IE00BG47KH54"
+ },
+ "IHYU.L": {
+  "defensif": 1.14,
+  "pays": {},
+  "isin": null
+ },
+ "SLXX.L": {
+  "defensif": -0.08,
+  "pays": {},
+  "isin": null
+ },
+ "PHAU.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "4GLD.DE": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": "DE000A0S9GB0"
+ },
+ "ICOM.L": {
+  "defensif": 0.03,
+  "pays": {},
+  "isin": null
+ },
+ "XDWT.L": {
+  "defensif": 0.1,
+  "pays": {
+   "United States": 86.03,
+   "Japan": 3.12,
+   "Netherlands": 2.94,
+   "Germany": 1.11,
+   "Ireland": 1.03,
+   "Other": 5.77
+  },
+  "isin": "IE00BM67HT60"
+ },
+ "WHEA.L": {
+  "defensif": 100.0,
+  "pays": {},
+  "isin": null
+ },
+ "WNRG.L": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": "XS2284324667"
+ },
+ "WFIN.L": {
+  "defensif": 0.0,
+  "pays": {},
+  "isin": null
+ },
+ "2B7K.DE": {
+  "defensif": 16.45,
+  "pays": {
+   "United States": 57.06,
+   "Japan": 7.25,
+   "Netherlands": 5.5,
+   "Canada": 4.48,
+   "Switzerland": 3.55,
+   "France": 3.4,
+   "United Kingdom": 2.24,
+   "Germany": 1.76,
+   "Ireland": 1.64,
+   "Australia": 1.27,
+   "Other": 11.85
+  },
+  "isin": "IE00BYX2JD69"
+ },
+ "VHYL.L": {
+  "defensif": 24.83,
+  "pays": {},
+  "isin": null
+ },
+ "ISPA.DE": {
+  "defensif": 16.14,
+  "pays": {
+   "United States": 20.97,
+   "Hong Kong": 10.44,
+   "Australia": 9.45,
+   "France": 8.75,
+   "United Kingdom": 7.79,
+   "Canada": 7.44,
+   "Netherlands": 6.9,
+   "Japan": 6.69,
+   "Singapore": 4.12,
+   "Germany": 3.96,
+   "Norway": 1.92,
+   "Belgium": 1.13,
+   "Poland": 1.13,
+   "Italy": 1.12,
+   "Other": 8.19
+  },
+  "isin": "DE000A0F5UH1"
+ },
+ "IUKD.L": {
+  "defensif": 24.92,
+  "pays": {},
+  "isin": null
+ },
+ "RBOT.L": {
+  "defensif": 2.18,
+  "pays": {},
+  "isin": null
+ },
+ "WCBR.L": {
+  "defensif": 0.51,
+  "pays": {},
+  "isin": null
+ },
+ "DGTL.L": {
+  "defensif": 0.54,
+  "pays": {},
+  "isin": null
+ }
+}

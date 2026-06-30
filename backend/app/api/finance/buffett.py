@@ -87,6 +87,20 @@ def buffett_progress(session: Session = Depends(get_session)):
     return BuffettProgressOut(run_id=None, statut="idle", active=False, progress_pct=0.0)
 
 
+@router.get("/portfolio/progress")
+def portfolio_progress():
+    """Progression de l'optimisation de portefeuille (Differential Evolution).
+
+    Alimente la barre de chargement du bouton « Créer le portefeuille optimal ».
+    ``convergence`` (0→1) vient du callback DE et croît à mesure que la population
+    converge ; ``progress_pct`` en dérive (0–100).
+    """
+    from app.services.finance.buffett import optimization_progress as opt_prog
+    snap = opt_prog.snapshot()
+    snap["progress_pct"] = round(snap.get("convergence", 0.0) * 100, 1)
+    return snap
+
+
 @router.get("/buffett/runs/{run_id}", response_model=BuffettRunDetailOut)
 def buffett_run_detail(run_id: int, session: Session = Depends(get_session)):
     run = session.get(BuffettRun, run_id)
@@ -412,6 +426,7 @@ def portfolio_create(
         from app.services.finance.buffett.broker_availability import merge_broker_columns
         from app.services.finance.buffett.reporting import update_allocations
         from app.services.finance.buffett.dedup import deduplicate_tickers
+        from app.services.finance.buffett import optimization_progress as opt_prog
         from app.core.db import engine
         from sqlmodel import Session as S, select as sel
         import pandas as pd
@@ -419,6 +434,9 @@ def portfolio_create(
         import yfinance as yf
 
         Config.load_params()
+        from app.services.finance.buffett.broker_budgets import apply_live_broker_budgets
+        apply_live_broker_budgets()  # budgets = soldes réels des comptes
+        opt_prog.start(run_id=run_id, message="Préparation des candidats…")
 
         with S(engine) as sess:
             # Tous les candidats: score >= seuil OU ETF (score=200) OU Achat=True
@@ -434,6 +452,7 @@ def portfolio_create(
         }
         if not candidates:
             logger.warning("[portfolio_create] Aucun candidat eligible.")
+            opt_prog.finish(message="Aucun candidat éligible.")
             return
 
         logger.info(f"[portfolio_create] {len(candidates)} candidats (depuis le run en DB)...")
@@ -443,30 +462,41 @@ def portfolio_create(
         # vide -> Sharpe -inf. On réutilise les scores/indicateurs déjà calculés
         # par le run (en DB). Le seul appel réseau restant est le download groupé
         # des cours pour la matrice de covariance (impersoné via yf_session).
+        from app.services.finance.buffett.liquidity import is_liquid
         forced = [t.upper() for t in Config.FORCED_BUY_TICKERS]
         verified: dict[str, tuple[float, dict]] = {}
+        n_illiquid = 0
         for ticker, r in candidates.items():
             score = float(r.chance_moat or 0)
             is_etf = (r.secteur == "ETF") or score >= 200
             is_forced = ticker.upper() in forced
             eligible = score >= min_score_val or is_etf or is_forced
+            # Filtre de liquidité (sauf forcés) : volume échangé €/jour >= seuil.
+            if not is_forced and not is_liquid(r.volume, r.prix):
+                if eligible and r.achat:
+                    n_illiquid += 1
+                continue
             if eligible and r.achat:
                 verified[ticker] = (score, {
                     "Nom": r.nom or "", "Secteur": r.secteur or "",
                     "Volume": r.volume or 0, "Achat": True,
                 })
 
-        logger.info(f"[portfolio_create] {len(verified)} tickers valides -> optimisation DE...")
+        logger.info(f"[portfolio_create] {len(verified)} tickers valides "
+                    f"({n_illiquid} écartés <{Config.MIN_VOLUME_EUR:,.0f} €/j) -> optimisation DE...")
         if not verified:
             logger.warning("[portfolio_create] Aucun ticker valide -> optimisation annulee.")
+            opt_prog.finish(message="Aucun ticker valide.")
             return
 
         t_list = list(verified.keys())
         ticker_col = "Ticker Yahoo Finance"
         try:
+            opt_prog.set_phase("preparation", "Téléchargement des cours…")
             from app.services.finance.yf_session import yf_session
             raw = yf.download(t_list, period="5y", interval="1d", progress=False, group_by="ticker", session=yf_session())
             if raw.empty:
+                opt_prog.finish(message="Cours indisponibles.")
                 return
             if len(t_list) == 1:
                 cd = raw["Close"].to_frame()
@@ -497,10 +527,15 @@ def portfolio_create(
                     f"[portfolio_create] {len(t_opt)} ticker(s) avec historique de cours "
                     "exploitable -> optimisation impossible (besoin d'au moins 2)."
                 )
+                opt_prog.finish(message="Pas assez de titres avec historique.")
                 return
             mat_access, active_b = prepare_optimization(t_opt, df_m)
-            weights, sharpe = optimize_portfolio_de(t_opt, rets, mat_access, active_b)
+            opt_prog.set_phase("optimisation", f"Optimisation Differential Evolution ({len(t_opt)} titres)…")
+            weights, sharpe = optimize_portfolio_de(
+                t_opt, rets, mat_access, active_b, progress_cb=opt_prog.update_de,
+            )
 
+            opt_prog.set_phase("finalisation", "Calcul de l'allocation…")
             total_cap = sum(Config.BUDGET_BROKERS.values())
             # Actions entieres (hors Trading212) / pies (Trading212), a partir des prix
             prices = latest_prices(cd, t_opt)
@@ -516,8 +551,10 @@ def portfolio_create(
                 logger.error(f"[portfolio_create] Ecriture Poids: {e}")
             n_alloc = len({a["Ticker"] for a in alloc})
             logger.info(f"[portfolio_create] Sharpe={sharpe:.3f}, {n_alloc} tickers alloues.")
+            opt_prog.finish(message=f"Portefeuille créé : {n_alloc} titres alloués.")
         except Exception as e:
             logger.error(f"[portfolio_create] Erreur optimisation: {e}")
+            opt_prog.finish(message=f"Erreur optimisation : {e}")
 
     background_tasks.add_task(_run_portfolio_creation, latest_run.id, min_score)
     return {
