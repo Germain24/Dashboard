@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { Vetement } from "@/lib/garderobe";
 import { emojiForCategorie, assetUrl, mediaUrl } from "@/lib/garderobe";
-import { useUploadVetementPhoto } from "@/lib/queries/garderobe";
+import { useObjectif, useUpdateVetement, useUploadVetementPhoto } from "@/lib/queries/garderobe";
 import { dominantColorFromFile } from "@/lib/dominantColor";
 
 export function InventaireTab({ wardrobe, onReload }: { wardrobe: Vetement[]; onReload?: () => void }) {
@@ -12,6 +12,12 @@ export function InventaireTab({ wardrobe, onReload }: { wardrobe: Vetement[]; on
   const [etat, setEtat] = useState<string>("");
   const [couleur, setCouleur] = useState<string>("");
   const [saison, setSaison] = useState<string>("");
+
+  const objectifQ = useObjectif();
+  const typeNames = useMemo(
+    () => (objectifQ.data?.types ?? []).map((t) => t.nom),
+    [objectifQ.data],
+  );
 
   const cats = useMemo(
     () => Array.from(new Set(wardrobe.map((v) => v.categorie).filter(Boolean))).sort(),
@@ -75,7 +81,7 @@ export function InventaireTab({ wardrobe, onReload }: { wardrobe: Vetement[]; on
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 stagger">
           {filtered.map((v) => (
-            <VetementCard key={v.id} v={v} onReload={onReload} />
+            <VetementCard key={v.id} v={v} onReload={onReload} typeNames={typeNames} />
           ))}
         </div>
       )}
@@ -83,7 +89,7 @@ export function InventaireTab({ wardrobe, onReload }: { wardrobe: Vetement[]; on
   );
 }
 
-function VetementCard({ v, onReload }: { v: Vetement; onReload?: () => void }) {
+function VetementCard({ v, onReload, typeNames }: { v: Vetement; onReload?: () => void; typeNames: string[] }) {
   const [failed, setFailed] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -94,6 +100,9 @@ function VetementCard({ v, onReload }: { v: Vetement; onReload?: () => void }) {
     : "border-[var(--border)]";
 
   const uploadMutation = useUploadVetementPhoto();
+  const updateMutation = useUpdateVetement();
+  const current = v.type_objectif ?? "";
+  const opts = current && !typeNames.includes(current) ? [current, ...typeNames] : typeNames;
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,6 +160,17 @@ function VetementCard({ v, onReload }: { v: Vetement; onReload?: () => void }) {
           </span>
         </div>
       )}
+      <select
+        title="Type objectif"
+        value={current}
+        onChange={(e) => updateMutation.mutate({ id: v.id, patch: { type_objectif: e.target.value || null } })}
+        className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 text-[10px]"
+      >
+        <option value="">— Type objectif —</option>
+        {opts.map((t) => (
+          <option key={t} value={t}>{t}</option>
+        ))}
+      </select>
     </div>
   );
 }
