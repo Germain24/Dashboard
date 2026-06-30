@@ -115,3 +115,14 @@ def test_patch_vetement_image(client, session):
     r = client.patch("/garderobe/vetements/vi", json={"image": "Haut/tee-uniqlo-noir.png"})
     assert r.status_code == 200
     assert r.json()["image"] == "Haut/tee-uniqlo-noir.png"
+
+
+def test_get_objectif_emplacement_image(client, session):
+    session.add(ObjectifType(nom="T-shirts", ordre=0, quantite_objectif=1,
+                             echelle=["Uniqlo U"]))
+    session.add(Vetement(id="t", nom="Tee", categorie="Haut", marque="Uniqlo U",
+                         type_objectif="T-shirts", image="Haut/tee.png"))
+    session.commit()
+    data = client.get("/garderobe/objectif").json()
+    emp = data["types"][0]["emplacements"][0]
+    assert emp["image"] == "Haut/tee.png"

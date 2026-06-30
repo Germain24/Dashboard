@@ -34,7 +34,7 @@ def get_objectif(session: Session = Depends(get_session)) -> ObjectifResponse:
     owned_by_type: dict[str, list[dict]] = {}
     for v in vets:
         owned_by_type.setdefault(v.type_objectif, []).append(
-            {"id": v.id, "nom": v.nom, "marque": v.marque}
+            {"id": v.id, "nom": v.nom, "marque": v.marque, "image": v.image}
         )
 
     type_names = {t.nom for t in types}

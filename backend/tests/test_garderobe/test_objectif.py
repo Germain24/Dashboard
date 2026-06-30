@@ -72,3 +72,15 @@ def test_fill_slots_unknown_brand_is_off_scale_and_last():
     assert res["excedent"][0]["marque"] == "Lacoste"
     assert res["excedent"][0]["hors_echelle"] is True
     assert res["excedent"][0]["position"] is None
+
+
+def test_fill_slots_transporte_image():
+    ech = ["Uniqlo U", "Visvim"]
+    owned = [{"id": "a", "nom": "A", "marque": "Visvim", "image": "Haut/a.png"}]
+    res = fill_slots(ech, 1, owned)
+    assert res["emplacements"][0]["image"] == "Haut/a.png"
+
+
+def test_fill_slots_empty_slot_image_none():
+    res = fill_slots(["X"], 2, [])
+    assert res["emplacements"][0]["image"] is None

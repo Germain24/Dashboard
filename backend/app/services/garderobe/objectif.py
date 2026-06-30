@@ -47,6 +47,7 @@ def _empty_slot() -> dict:
         "marque": None,
         "position": None,
         "hors_echelle": False,
+        "image": None,
     }
 
 
@@ -68,6 +69,7 @@ def fill_slots(echelle: list[str], quantite: int, owned: list[dict]) -> dict:
                 "marque": o.get("marque"),
                 "position": pos,
                 "hors_echelle": pos is None,
+                "image": o.get("image"),
             }
         )
     enriched.sort(

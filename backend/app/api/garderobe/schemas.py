@@ -229,6 +229,7 @@ class Emplacement(BaseModel):
     marque: Optional[str] = None
     position: Optional[float] = None  # 0..100, None si vide ou hors échelle
     hors_echelle: bool = False
+    image: Optional[str] = None
 
 
 class ObjectifTypeOut(BaseModel):
