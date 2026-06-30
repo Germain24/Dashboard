@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { type Emplacement } from "@/lib/garderobe";
 
-/** Une ligne d'emplacement : nom de marque + barre 0→100 (Q/P → Qualité Max). */
+/** Une ligne d'emplacement : vignette + nom de marque + barre 0→100 (Q/P → Qualité Max). */
 export function ObjectifBar({ slot, excedent = false }: { slot: Emplacement; excedent?: boolean }) {
   const empty = slot.statut === "vide";
   const pos = slot.position ?? 0;
+  const [imgFailed, setImgFailed] = useState(false);
 
   let barClass = "bg-[var(--primary)]";
   if (excedent) barClass = "bg-[var(--destructive)]";
@@ -14,6 +16,17 @@ export function ObjectifBar({ slot, excedent = false }: { slot: Emplacement; exc
 
   return (
     <div className={`flex items-center gap-3 ${excedent ? "text-[var(--destructive)]" : ""}`}>
+      <div className="h-6 w-6 shrink-0 flex items-center justify-center">
+        {!empty && slot.image && !imgFailed && (
+          <img
+            src={`/garderobe/assets/${slot.image}`}
+            alt={slot.vetement_nom ?? ""}
+            onError={() => setImgFailed(true)}
+            style={{ imageRendering: "pixelated" }}
+            className="max-h-6 max-w-6 object-contain"
+          />
+        )}
+      </div>
       <span className="w-32 shrink-0 truncate text-sm">
         {empty ? <span className="text-[var(--muted-foreground)]">—</span> : slot.marque ?? "?"}
       </span>

@@ -16,8 +16,8 @@ const baseData = {
       echelle: ["Uniqlo U", "Visvim"],
       rempli: 1,
       emplacements: [
-        { statut: "rempli", vetement_id: "v1", vetement_nom: "Tee", marque: "Visvim", position: 100, hors_echelle: false },
-        { statut: "vide", vetement_id: null, vetement_nom: null, marque: null, position: null, hors_echelle: false },
+        { statut: "rempli", vetement_id: "v1", vetement_nom: "Tee", marque: "Visvim", position: 100, hors_echelle: false, image: "Haut/tee.png" },
+        { statut: "vide", vetement_id: null, vetement_nom: null, marque: null, position: null, hors_echelle: false, image: null },
       ],
       excedent: [],
     },
@@ -49,6 +49,12 @@ describe("ObjectifTab", () => {
     expect(screen.getByText(/1\/2/)).toBeInTheDocument();      // total rempli/emplacements
     expect(screen.getByText("T-shirts")).toBeInTheDocument();
     expect(screen.getByText("Visvim")).toBeInTheDocument();    // marque possédée
+  });
+
+  it("affiche la vignette pixel art d'un emplacement rempli", () => {
+    render(<ObjectifTab />, { wrapper });
+    const img = screen.getByAltText("Tee") as HTMLImageElement;
+    expect(img.getAttribute("src")).toBe("/garderobe/assets/Haut/tee.png");
   });
 
   it("affiche un avertissement quand des pièces sont non rattachées", () => {

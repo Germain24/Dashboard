@@ -158,6 +158,7 @@ export type Emplacement = {
   marque: string | null;
   position: number | null; // 0..100, null si vide ou hors échelle
   hors_echelle: boolean;
+  image: string | null;
 };
 
 export type ObjectifTypeOut = {
