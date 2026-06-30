@@ -15,7 +15,7 @@ export function ObjectifTab() {
     return <div className="p-2 text-[var(--destructive)]">⚠ Impossible de charger l'objectif.</div>;
   }
 
-  const { total_emplacements, total_remplis, types } = objectifQ.data;
+  const { total_emplacements, total_remplis, non_rattaches, non_rattaches_items, types } = objectifQ.data;
 
   return (
     <div className="space-y-6">
@@ -35,6 +35,13 @@ export function ObjectifTab() {
           Re-synchroniser l'Excel
         </button>
       </div>
+
+      {non_rattaches > 0 && (
+        <div className="rounded-lg border border-[var(--destructive)] bg-[var(--destructive)]/10 px-3 py-2 text-sm text-[var(--destructive)]">
+          ⚠ {non_rattaches} pièce{non_rattaches > 1 ? "s" : ""} non rattachée{non_rattaches > 1 ? "s" : ""} :{" "}
+          {non_rattaches_items.map((p) => `${p.vetement_nom} (${p.type_objectif ?? "?"})`).join(", ")}
+        </div>
+      )}
 
       {types.map((t) => (
         <div key={t.nom} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">

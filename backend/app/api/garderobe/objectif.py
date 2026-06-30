@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from app.api.garderobe.schemas import Emplacement, ObjectifResponse, ObjectifTypeOut
+from app.api.garderobe.schemas import Emplacement, NonRattacheOut, ObjectifResponse, ObjectifTypeOut
 from app.core.config import settings
 from app.core.db import get_session
 from app.models.garderobe import ObjectifType, Vetement
@@ -37,6 +37,13 @@ def get_objectif(session: Session = Depends(get_session)) -> ObjectifResponse:
             {"id": v.id, "nom": v.nom, "marque": v.marque}
         )
 
+    type_names = {t.nom for t in types}
+    non_rattaches_items = [
+        NonRattacheOut(vetement_id=v.id, vetement_nom=v.nom, type_objectif=v.type_objectif)
+        for v in vets
+        if v.type_objectif not in type_names
+    ]
+
     out_types: list[ObjectifTypeOut] = []
     total_emp = 0
     total_remplis = 0
@@ -59,6 +66,8 @@ def get_objectif(session: Session = Depends(get_session)) -> ObjectifResponse:
     return ObjectifResponse(
         total_emplacements=total_emp,
         total_remplis=total_remplis,
+        non_rattaches=len(non_rattaches_items),
+        non_rattaches_items=non_rattaches_items,
         types=out_types,
     )
 

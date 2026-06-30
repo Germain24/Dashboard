@@ -90,3 +90,20 @@ def test_post_sync_missing_file(client, monkeypatch, tmp_path):
     monkeypatch.setattr(objectif_mod, "_objectif_xlsx_path", lambda: tmp_path / "absent.xlsx")
     r = client.post("/garderobe/objectif/sync")
     assert r.status_code == 404
+
+
+def test_get_objectif_non_rattaches(client, session):
+    session.add(ObjectifType(nom="T-shirts", ordre=0, quantite_objectif=1,
+                             echelle=["Uniqlo U"]))
+    session.add(Vetement(id="ok", nom="Tee", categorie="Haut",
+                         marque="Uniqlo U", type_objectif="T-shirts"))
+    session.add(Vetement(id="orphan", nom="Truc", categorie="Haut",
+                         marque="X", type_objectif="Inexistant"))
+    session.commit()
+
+    data = client.get("/garderobe/objectif").json()
+    assert data["non_rattaches"] == 1
+    assert data["non_rattaches_items"][0]["vetement_id"] == "orphan"
+    assert data["non_rattaches_items"][0]["type_objectif"] == "Inexistant"
+    # l'orphelin n'est compté nulle part dans les types
+    assert data["total_remplis"] == 1

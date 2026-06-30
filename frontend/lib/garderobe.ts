@@ -172,6 +172,8 @@ export type ObjectifTypeOut = {
 export type ObjectifResponse = {
   total_emplacements: number;
   total_remplis: number;
+  non_rattaches: number;
+  non_rattaches_items: { vetement_id: string; vetement_nom: string; type_objectif: string | null }[];
   types: ObjectifTypeOut[];
 };
 

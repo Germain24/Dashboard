@@ -239,7 +239,15 @@ class ObjectifTypeOut(BaseModel):
     excedent: list[Emplacement]
 
 
+class NonRattacheOut(BaseModel):
+    vetement_id: str
+    vetement_nom: str
+    type_objectif: Optional[str] = None
+
+
 class ObjectifResponse(BaseModel):
     total_emplacements: int
     total_remplis: int
+    non_rattaches: int
+    non_rattaches_items: list[NonRattacheOut]
     types: list[ObjectifTypeOut]
