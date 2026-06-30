@@ -18,6 +18,7 @@ const tee: Vetement = {
   temp_min: null, temp_max: null, etat_propre: null, usure_max: null,
   portes: 0, impermeable: false, style: null, extra: null,
   type_objectif: "T-shirts",
+  image: null,
   proprete_pct: 100, vie_pct: 100, needs_wash: false, is_worn_out: false,
   ports_avant_lavage: 3, thermal_score: 0, saison: "toutes", entretien: null,
 };

@@ -19,6 +19,7 @@ export type Vetement = {
   matiere: string | null;
   couleur: string | null;
   type_objectif: string | null;
+  image: string | null;
   temp_min: number | null;
   temp_max: number | null;
   etat_propre: number | null;
@@ -301,4 +302,10 @@ export function emojiForCategorie(cat: string | null | undefined): string {
 
 export function assetUrl(itemId: string): string {
   return `/garderobe/assets/${itemId}.png`;
+}
+
+/** URL de la vignette : `image` (chemin rangé) si présent, sinon repli sur l'id. */
+export function imageUrl(v: Pick<Vetement, "image" | "id">): string {
+  if (v.image) return `/garderobe/assets/${v.image}`;
+  return assetUrl(v.id);
 }

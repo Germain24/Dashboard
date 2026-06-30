@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { Vetement } from "@/lib/garderobe";
-import { emojiForCategorie, assetUrl, mediaUrl } from "@/lib/garderobe";
+import { emojiForCategorie, imageUrl, mediaUrl } from "@/lib/garderobe";
 import { useObjectif, useUpdateVetement, useUploadVetementPhoto } from "@/lib/queries/garderobe";
 import { dominantColorFromFile } from "@/lib/dominantColor";
 
@@ -134,7 +134,7 @@ function VetementCard({ v, onReload, typeNames }: { v: Vetement; onReload?: () =
       {photoUrl ? (
         <img src={mediaUrl(photoUrl)} alt={v.nom} style={{ height: "56px", width: "auto", objectFit: "cover", borderRadius: "6px" }} />
       ) : !failed ? (
-        <img src={assetUrl(v.id)} alt={v.nom} onError={() => setFailed(true)} style={{ imageRendering: "pixelated", height: "56px", width: "auto" }} />
+        <img src={imageUrl(v)} alt={v.nom} onError={() => setFailed(true)} style={{ imageRendering: "pixelated", height: "56px", width: "auto" }} />
       ) : (
         <div className="text-2xl">{emojiForCategorie(v.categorie)}</div>
       )}

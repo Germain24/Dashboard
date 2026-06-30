@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Vetement, SlotInfo } from "@/lib/garderobe";
-import { emojiForCategorie, assetUrl } from "@/lib/garderobe";
+import { emojiForCategorie, imageUrl } from "@/lib/garderobe";
 
 type Props = {
   slot: SlotInfo;
@@ -75,7 +75,7 @@ function SlotPreview({ item, slot }: { item: Vetement | null; slot: SlotInfo }) 
     <div className={"flex-1 min-h-[110px] min-w-0 overflow-hidden rounded-md border " + border + " bg-[var(--card)] flex flex-col items-center justify-center gap-1 p-2 text-center"}>
       {!pngFailed ? (
         <img
-          src={assetUrl(item.id)}
+          src={imageUrl(item)}
           alt={item.nom}
           onError={() => setPngFailed(true)}
           style={{ imageRendering: "pixelated" }}
