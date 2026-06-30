@@ -18,6 +18,7 @@ export type Vetement = {
   sous_categorie: string | null;
   matiere: string | null;
   couleur: string | null;
+  type_objectif: string | null;
   temp_min: number | null;
   temp_max: number | null;
   etat_propre: number | null;
@@ -149,6 +150,31 @@ export type WearFrequency = {
   most_worn: Vetement[];
 };
 
+export type Emplacement = {
+  statut: "rempli" | "vide";
+  vetement_id: string | null;
+  vetement_nom: string | null;
+  marque: string | null;
+  position: number | null; // 0..100, null si vide ou hors échelle
+  hors_echelle: boolean;
+};
+
+export type ObjectifTypeOut = {
+  nom: string;
+  ordre: number;
+  quantite_objectif: number;
+  echelle: string[];
+  rempli: number;
+  emplacements: Emplacement[];
+  excedent: Emplacement[];
+};
+
+export type ObjectifResponse = {
+  total_emplacements: number;
+  total_remplis: number;
+  types: ObjectifTypeOut[];
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Endpoints
 // ─────────────────────────────────────────────────────────────────────────────
@@ -210,6 +236,11 @@ export const garderobeApi = {
   stats: () => api<StatsResponse>(`/garderobe/stats`),
 
   recommendations: () => api<Recommendation[]>(`/garderobe/recommendations`),
+
+  getObjectif: () => api<ObjectifResponse>(`/garderobe/objectif`),
+
+  syncObjectif: () =>
+    api<{ types: number }>(`/garderobe/objectif/sync`, { method: "POST" }),
 
   frequence: (topN = 5) => api<WearFrequency>(`/garderobe/frequence?top_n=${topN}`),
 

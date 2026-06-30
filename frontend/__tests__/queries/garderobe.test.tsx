@@ -18,10 +18,16 @@ vi.mock("@/lib/garderobe", () => ({
     updateVetement: vi.fn().mockResolvedValue({ id: "v1" }),
     uploadPhoto: vi.fn().mockResolvedValue({ id: "v1" }),
     setPlannerDay: vi.fn().mockResolvedValue({ date: "2026-06-10", tenue: {} }),
+    getObjectif: vi.fn().mockResolvedValue({
+      total_emplacements: 2,
+      total_remplis: 1,
+      types: [{ nom: "T-shirts", ordre: 0, quantite_objectif: 2, echelle: [], rempli: 1, emplacements: [], excedent: [] }],
+    }),
+    syncObjectif: vi.fn().mockResolvedValue({ types: 55 }),
   },
 }));
 
-import { garderobeKeys, useVetements, useValiderTenue } from "@/lib/queries/garderobe";
+import { garderobeKeys, useObjectif, useVetements, useValiderTenue } from "@/lib/queries/garderobe";
 
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -44,5 +50,12 @@ describe("queries/garderobe", () => {
     const { result } = renderHook(() => useValiderTenue(), { wrapper });
     result.current.mutate({ tenue: { Haut: "v1" }, use_body: false });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it("useObjectif charge l'objectif", async () => {
+    const { result } = renderHook(() => useObjectif(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.total_emplacements).toBe(2);
+    expect(garderobeKeys.objectif()).toEqual(["garderobe", "objectif"]);
   });
 });

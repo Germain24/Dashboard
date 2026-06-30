@@ -16,6 +16,7 @@ export const garderobeKeys = {
   recommendations: () => [...garderobeKeys.all, "recommendations"] as const,
   frequence: (topN: number) => [...garderobeKeys.all, "frequence", topN] as const,
   planner: (start?: string) => [...garderobeKeys.all, "planner", start ?? "current"] as const,
+  objectif: () => [...garderobeKeys.all, "objectif"] as const,
 };
 
 export function useVetements(params?: Parameters<typeof garderobeApi.listVetements>[0]) {
@@ -80,6 +81,13 @@ export function useUploadVetementPhoto() {
       garderobeApi.uploadPhoto(p.id, p.file, p.couleurDominante),
     onSuccess: invalidate,
   });
+}
+export function useObjectif() {
+  return useQuery({ queryKey: garderobeKeys.objectif(), queryFn: garderobeApi.getObjectif });
+}
+export function useSyncObjectif() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: garderobeApi.syncObjectif, onSuccess: invalidate });
 }
 export function useSetPlannerDay() {
   const invalidate = useInvalidateAll();
