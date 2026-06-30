@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Shirt, Sparkles, PieChart, Clock, CalendarDays } from "lucide-react";
+import { Shirt, Sparkles, PieChart, Clock, CalendarDays, Target } from "lucide-react";
 import {
   type SlotInfo,
   type SuggestResponse,
@@ -26,11 +26,13 @@ import { StatsTab } from "./StatsTab";
 import { HistoriqueTab } from "./HistoriqueTab";
 import { RecommandationsTab } from "./RecommandationsTab";
 import { WeekPlannerTab } from "./WeekPlannerTab";
+import { ObjectifTab } from "./ObjectifTab";
 
-type Tab = "tenue" | "inventaire" | "stats" | "history" | "recs" | "semaine";
+type Tab = "tenue" | "inventaire" | "stats" | "history" | "recs" | "semaine" | "objectif";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "inventaire", label: "Inventaire", Icon: Shirt },
+  { id: "objectif", label: "Objectif", Icon: Target },
   { id: "semaine", label: "Semaine", Icon: CalendarDays },
   { id: "recs", label: "Recommandations", Icon: Sparkles },
   { id: "stats", label: "Stats", Icon: PieChart },
@@ -260,6 +262,7 @@ export function Garderobe() {
             onReload={() => void wardrobeQ.refetch()}
           />
         )}
+        {tab === "objectif" && <ObjectifTab />}
         {tab === "semaine" && <WeekPlannerTab wardrobe={wardrobe} />}
         {tab === "stats" && stats && <StatsTab stats={stats} />}
         {tab === "history" && <HistoriqueTab history={history} />}
