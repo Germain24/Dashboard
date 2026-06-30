@@ -107,3 +107,11 @@ def test_get_objectif_non_rattaches(client, session):
     assert data["non_rattaches_items"][0]["type_objectif"] == "Inexistant"
     # l'orphelin n'est compté nulle part dans les types
     assert data["total_remplis"] == 1
+
+
+def test_patch_vetement_image(client, session):
+    session.add(Vetement(id="vi", nom="Tee", categorie="Haut"))
+    session.commit()
+    r = client.patch("/garderobe/vetements/vi", json={"image": "Haut/tee-uniqlo-noir.png"})
+    assert r.status_code == 200
+    assert r.json()["image"] == "Haut/tee-uniqlo-noir.png"

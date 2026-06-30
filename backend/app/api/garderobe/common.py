@@ -29,6 +29,7 @@ def vetement_to_dict(v: Vetement) -> dict[str, Any]:
         "matiere": v.matiere,
         "couleur": v.couleur,
         "type_objectif": v.type_objectif,
+        "image": v.image,
         "temp_min": v.temp_min,
         "temp_max": v.temp_max,
         "etat_propre": v.etat_propre,

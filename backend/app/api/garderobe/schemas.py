@@ -20,6 +20,7 @@ class VetementBase(BaseModel):
     matiere: Optional[str] = None
     couleur: Optional[str] = None
     type_objectif: Optional[str] = None
+    image: Optional[str] = None
     temp_min: Optional[float] = None
     temp_max: Optional[float] = None
     etat_propre: Optional[float] = None
@@ -58,6 +59,7 @@ class VetementUpdate(BaseModel):
     matiere: Optional[str] = None
     couleur: Optional[str] = None
     type_objectif: Optional[str] = None
+    image: Optional[str] = None
     temp_min: Optional[float] = None
     temp_max: Optional[float] = None
     etat_propre: Optional[float] = None

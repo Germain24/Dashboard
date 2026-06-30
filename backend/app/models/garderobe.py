@@ -19,6 +19,7 @@ class Vetement(SQLModel, table=True):
     matiere: Optional[str] = None
     couleur: Optional[str] = None
     type_objectif: Optional[str] = None  # relie la pièce à un ObjectifType.nom
+    image: Optional[str] = None  # chemin relatif sous assets/, ex. "Haut/xxx.png"
     temp_min: Optional[float] = None
     temp_max: Optional[float] = None
     etat_propre: Optional[float] = None  # % propreté
