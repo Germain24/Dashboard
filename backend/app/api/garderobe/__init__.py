@@ -6,10 +6,11 @@ Tous sont montés sous le même préfixe `/garderobe`.
 """
 from fastapi import APIRouter
 
-from . import insights, planner, tenues, vetements
+from . import insights, objectif, planner, tenues, vetements
 
 router = APIRouter(tags=["garderobe"])
 router.include_router(vetements.router)
 router.include_router(tenues.router)
 router.include_router(insights.router)
 router.include_router(planner.router)
+router.include_router(objectif.router)

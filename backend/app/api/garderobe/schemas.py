@@ -19,6 +19,7 @@ class VetementBase(BaseModel):
     sous_categorie: Optional[str] = None
     matiere: Optional[str] = None
     couleur: Optional[str] = None
+    type_objectif: Optional[str] = None
     temp_min: Optional[float] = None
     temp_max: Optional[float] = None
     etat_propre: Optional[float] = None
@@ -56,6 +57,7 @@ class VetementUpdate(BaseModel):
     sous_categorie: Optional[str] = None
     matiere: Optional[str] = None
     couleur: Optional[str] = None
+    type_objectif: Optional[str] = None
     temp_min: Optional[float] = None
     temp_max: Optional[float] = None
     etat_propre: Optional[float] = None
@@ -212,3 +214,32 @@ class SlotInfo(BaseModel):
 
 class SlotsResponse(BaseModel):
     slots: list[SlotInfo]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Objectif garde-robe
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Emplacement(BaseModel):
+    statut: str  # "rempli" | "vide"
+    vetement_id: Optional[str] = None
+    vetement_nom: Optional[str] = None
+    marque: Optional[str] = None
+    position: Optional[float] = None  # 0..100, None si vide ou hors échelle
+    hors_echelle: bool = False
+
+
+class ObjectifTypeOut(BaseModel):
+    nom: str
+    ordre: int
+    quantite_objectif: int
+    echelle: list[str]
+    rempli: int
+    emplacements: list[Emplacement]
+    excedent: list[Emplacement]
+
+
+class ObjectifResponse(BaseModel):
+    total_emplacements: int
+    total_remplis: int
+    types: list[ObjectifTypeOut]

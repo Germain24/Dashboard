@@ -30,11 +30,11 @@ def thermal_score(item: dict[str, Any] | None) -> float:
         return 0.0
 
     # Si aucune borne de température n'est définie, on considère neutre
-    if "temp_min" not in item and "temp_max" not in item:
+    if item.get("temp_min") is None and item.get("temp_max") is None:
         return 0.0
 
     # Heuristique de base — plus l'item est conçu pour le froid, plus il chauffe
-    base_score = max(0.0, 25.0 - float(item.get("temp_min", 20))) / 2.0
+    base_score = max(0.0, 25.0 - float(item.get("temp_min") or 20)) / 2.0
 
     # Pondération par matière (le layering bonus est dans calculate_thermal_gap)
     matiere = (item.get("matiere") or "Coton").lower()
