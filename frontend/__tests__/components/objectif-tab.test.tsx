@@ -52,6 +52,7 @@ describe("ObjectifTab", () => {
   });
 
   it("affiche la vignette pixel art d'un emplacement rempli", () => {
+    mockData = { ...baseData };
     render(<ObjectifTab />, { wrapper });
     const img = screen.getByAltText("Tee") as HTMLImageElement;
     expect(img.getAttribute("src")).toBe("/garderobe/assets/Haut/tee.png");

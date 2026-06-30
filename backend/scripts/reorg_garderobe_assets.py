@@ -2,6 +2,9 @@
 
 One-time. Idempotent : ne refait rien si l'image est déjà à la bonne place.
 
+Note : Vetement.image n'est rempli que dans la base contre laquelle ce script tourne.
+Après tout reset/rebuild depuis les migrations, relancer ce script — sinon image vaut NULL et les PNG déplacés renvoient 404.
+
 Usage (depuis backend/) :
     uv run python -m scripts.reorg_garderobe_assets
 """
@@ -63,7 +66,7 @@ def _git_mv(repo_root: Path, src: Path, dst: Path) -> None:
         )
     except Exception:
         shutil.move(str(src), str(dst))
-        subprocess.run(["git", "-C", str(repo_root), "add", str(dst)], check=False)
+        subprocess.run(["git", "-C", str(repo_root), "add", str(src), str(dst)], check=False)
 
 
 def main() -> dict:
