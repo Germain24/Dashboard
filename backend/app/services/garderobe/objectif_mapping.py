@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Iterable
 
 
 def norm(s: str | None) -> str:
@@ -17,6 +18,8 @@ def norm(s: str | None) -> str:
 
 
 # Libellés lisibles -> nom EXACT d'un type objectif (cf. Vetements.xlsx).
+# Volontairement fermée : montres, bijoux et lunettes de vue n'ont aucun type
+# objectif correspondant et restent donc non mappés (sélecteur manuel).
 _RAW_MAPPING: dict[str, str] = {
     "T-shirt": "T-shirts",
     "T-shirt Manches Longues": "T-shirts",
@@ -39,7 +42,11 @@ _RAW_MAPPING: dict[str, str] = {
 MAPPING: dict[str, str] = {norm(k): v for k, v in _RAW_MAPPING.items()}
 
 
-def derive_type_objectif(categorie, sous_categorie, type_names) -> str | None:
+def derive_type_objectif(
+    categorie: str | None,
+    sous_categorie: str | None,
+    type_names: Iterable[str],
+) -> str | None:
     """Type objectif dérivé de la pièce, ou None si non mappable / type absent.
 
     Priorité à `sous_categorie`, repli sur `categorie`. Ne renvoie un type que
@@ -48,6 +55,6 @@ def derive_type_objectif(categorie, sous_categorie, type_names) -> str | None:
     names = set(type_names)
     for key in (norm(sous_categorie), norm(categorie)):
         val = MAPPING.get(key) if key else None
-        if val and val in names:
+        if val is not None and val in names:
             return val
     return None
