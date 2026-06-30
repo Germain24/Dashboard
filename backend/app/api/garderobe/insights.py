@@ -6,8 +6,9 @@ from sqlmodel import Session, select
 
 from app.api.garderobe.common import vetement_to_dict, vetement_to_read
 from app.api.garderobe.schemas import (
+    ConseilAchat,
+    ConseilsAchatResponse,
     CountEntry,
-    RecommendationOut,
     StatsResponse,
     TenueHistoryOut,
     VetementRead,
@@ -15,8 +16,9 @@ from app.api.garderobe.schemas import (
 from app.core.db import get_session
 from app.core.pagination import Pagination, paginate
 from app.models.garderobe import TenueHistory, Vetement
-from app.services.garderobe import get_purchase_recommendations, is_worn_out, needs_wash
+from app.services.garderobe import is_worn_out, needs_wash
 from app.services.garderobe.frequency import wear_buckets
+from app.services.garderobe.purchase_combos import count_outfits, purchase_advice
 from app.services.garderobe.style import get_color_category
 
 router = APIRouter()
@@ -111,8 +113,10 @@ def frequence(top_n: int = Query(5, ge=1, le=20), session: Session = Depends(get
     }
 
 
-@router.get("/recommendations", response_model=list[RecommendationOut])
-def recommendations(session: Session = Depends(get_session)) -> list[RecommendationOut]:
+@router.get("/recommendations", response_model=ConseilsAchatResponse)
+def recommendations(session: Session = Depends(get_session)) -> ConseilsAchatResponse:
     items = [vetement_to_dict(v) for v in session.exec(select(Vetement)).all()]
-    recs = get_purchase_recommendations(items)
-    return [RecommendationOut(**r) for r in recs]
+    return ConseilsAchatResponse(
+        total_tenues=count_outfits(items),
+        conseils=[ConseilAchat(**c) for c in purchase_advice(items)],
+    )

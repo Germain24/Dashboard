@@ -198,11 +198,16 @@ class PlannerDayUpdate(BaseModel):
     tenue: dict[str, Optional[str]] = {}
 
 
-class RecommendationOut(BaseModel):
-    nom: str
-    raison: str
-    potentiel: int
-    type: str
+class ConseilAchat(BaseModel):
+    slot: str
+    couleur: str
+    debloque: int
+    total_apres: int
+
+
+class ConseilsAchatResponse(BaseModel):
+    total_tenues: int
+    conseils: list[ConseilAchat]
 
 
 # Slots config exposée au frontend

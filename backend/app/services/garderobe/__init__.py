@@ -16,7 +16,6 @@ weather depuis le sous-module explicitement.
 
 from app.services.garderobe.constants import EMO_CAT, SLOTS
 from app.services.garderobe.optimizer import suggest_outfit
-from app.services.garderobe.recommendations import get_purchase_recommendations
 from app.services.garderobe.state import (
     disponible,
     is_worn_out,
@@ -43,7 +42,6 @@ __all__ = [
     "colors_compat",
     "disponible",
     "get_color_category",
-    "get_purchase_recommendations",
     "is_worn_out",
     "needs_wash",
     "ports_avant_lavage",
