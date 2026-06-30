@@ -16,6 +16,7 @@ from app.core.db import get_session
 from app.models.garderobe import ObjectifType, Vetement
 from app.services.garderobe.objectif import fill_slots
 from app.services.garderobe.objectif_import import sync_objectif
+from app.services.garderobe.objectif_mapping import derive_type_objectif
 
 router = APIRouter()
 
@@ -70,6 +71,23 @@ def get_objectif(session: Session = Depends(get_session)) -> ObjectifResponse:
         non_rattaches_items=non_rattaches_items,
         types=out_types,
     )
+
+
+@router.post("/objectif/auto-rattacher")
+def post_objectif_auto_rattacher(session: Session = Depends(get_session)) -> dict:
+    type_names = {t.nom for t in session.exec(select(ObjectifType)).all()}
+    vets = session.exec(select(Vetement).where(Vetement.type_objectif.is_(None))).all()
+    rattaches = 0
+    non_mappes = 0
+    for v in vets:
+        t = derive_type_objectif(v.categorie, v.sous_categorie, type_names)
+        if t:
+            v.type_objectif = t
+            rattaches += 1
+        else:
+            non_mappes += 1
+    session.commit()
+    return {"rattaches": rattaches, "non_mappes": non_mappes}
 
 
 @router.post("/objectif/sync")

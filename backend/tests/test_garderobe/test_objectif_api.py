@@ -126,3 +126,24 @@ def test_get_objectif_emplacement_image(client, session):
     data = client.get("/garderobe/objectif").json()
     emp = data["types"][0]["emplacements"][0]
     assert emp["image"] == "Haut/tee.png"
+
+
+def test_auto_rattacher_remplit_vides_sans_ecraser(client, session):
+    session.add(ObjectifType(nom="Polos", ordre=0, quantite_objectif=3, echelle=["Lacoste"]))
+    session.add(ObjectifType(nom="T-shirts", ordre=1, quantite_objectif=3, echelle=["Uniqlo"]))
+    # pièce vide mappable
+    session.add(Vetement(id="p1", nom="Polo vert", categorie="Haut", sous_categorie="Polo"))
+    # pièce déjà rattachée manuellement (ne doit PAS bouger)
+    session.add(Vetement(id="p2", nom="Tee", categorie="Haut", sous_categorie="T-shirt",
+                         type_objectif="Polos"))
+    # pièce vide non mappable
+    session.add(Vetement(id="w1", nom="Montre", categorie="Montre", sous_categorie="Smartwatch"))
+    session.commit()
+
+    r = client.post("/garderobe/objectif/auto-rattacher")
+    assert r.status_code == 200
+    assert r.json() == {"rattaches": 1, "non_mappes": 1}
+
+    assert session.get(Vetement, "p1").type_objectif == "Polos"      # rattaché
+    assert session.get(Vetement, "p2").type_objectif == "Polos"      # inchangé (manuel préservé)
+    assert session.get(Vetement, "w1").type_objectif is None         # non mappable
