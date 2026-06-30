@@ -59,18 +59,20 @@ def test_purchase_advice_recommande_le_slot_manquant():
 
 
 def test_purchase_advice_exclut_gains_nuls_et_trie():
-    # Pantalon Noir + Chaussures Marron : ajouter un Haut Or ne débloque rien
-    # (Or incompatible avec Marron), un Haut neutre débloque 1.
+    # Pantalon + Chaussures mais pas de Haut -> base 0. Seul le slot manquant
+    # (Haut) débloque des tenues ; ajouter un 2e Pantalon/Chaussures ne forme
+    # toujours aucun triplet -> gain 0, donc exclu. (Dans la palette toutes les
+    # couleurs sont 2-à-2 compatibles, donc tous les Haut débloquent 1.)
     wardrobe = [
         {"categorie": "Pantalon", "couleur": "Noir"},
-        {"categorie": "Chaussures", "couleur": "Marron"},
+        {"categorie": "Chaussures", "couleur": "Noir"},
     ]
     advice = purchase_advice(wardrobe, top=10)
-    assert advice[0]["slot"] == "Haut"
-    assert advice[0]["debloque"] == 1
+    # gains nuls (Pantalon/Chaussures en plus) exclus -> tous les conseils sont Haut
+    assert all(c["slot"] == "Haut" for c in advice)
+    assert all(c["debloque"] > 0 for c in advice)
     # tri décroissant
     gains = [c["debloque"] for c in advice]
     assert gains == sorted(gains, reverse=True)
-    # aucun gain nul, et "Or" (incompatible) absent des conseils Haut
-    assert all(c["debloque"] > 0 for c in advice)
-    assert not any(c["couleur"] == "Or" for c in advice)
+    # à gain égal, tie-break déterministe par ordre de palette -> neutre "Noir" en tête
+    assert advice[0]["couleur"] == "Noir"
