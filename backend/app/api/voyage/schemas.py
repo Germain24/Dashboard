@@ -26,8 +26,8 @@ class SyncVoyageOut(BaseModel):
 
 class PlanifierRequest(BaseModel):
     candidats: list[int]
-    depart_iata: str
-    arrivee_iata: str
+    depart_iata: str = "YUL"
+    arrivee_iata: str | None = None
     date_debut: dt.date
     date_fin: dt.date
     budget_total: float

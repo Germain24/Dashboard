@@ -79,12 +79,18 @@ def post_planifier(req: PlanifierRequest, session: Session = Depends(get_session
         raise HTTPException(status.HTTP_400_BAD_REQUEST,
                              f"Lieux incomplets (aéroport/jours manquants) : {', '.join(incomplets)}")
 
+    visites = [lv.nom for lv in lieux if lv.visite]
+    if visites:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                             f"Lieux déjà visités (exclus des candidats) : {', '.join(visites)}")
+
+    arrivee_iata = req.arrivee_iata or req.depart_iata
     date_ref = req.date_debut.isoformat()
     by_id = {str(lv.id): lv for lv in lieux}
     points = (
         [("DEPART", req.depart_iata)]
         + [(str(lv.id), lv.aeroport_iata) for lv in lieux]
-        + [("ARRIVEE", req.arrivee_iata)]
+        + [("ARRIVEE", arrivee_iata)]
     )
 
     trajets: dict[tuple[str, str], dict] = {}

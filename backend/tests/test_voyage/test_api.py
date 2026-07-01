@@ -157,6 +157,70 @@ def test_planifier_returns_502_when_duffel_unavailable(client, session, monkeypa
     assert r.status_code == 502
 
 
+def test_planifier_rejects_visited_lieu(client, session):
+    lv = LieuVoyage(nom="Déjà vu", aeroport_iata="CPT", jours_min=2, jours_max=2,
+                     cout_jour_estime=80.0, visite=True)
+    session.add(lv)
+    session.commit()
+    session.refresh(lv)
+
+    r = client.post("/voyage/planifier", json={
+        "candidats": [lv.id], "depart_iata": "YUL", "arrivee_iata": "YUL",
+        "date_debut": "2026-09-01", "date_fin": "2026-09-10", "budget_total": 10000,
+    })
+    assert r.status_code == 400
+    assert "Déjà vu" in r.json()["detail"]
+
+
+def test_planifier_defaults_depart_et_arrivee_iata_to_yul(client, session, monkeypatch):
+    lv = LieuVoyage(nom="Table Mountain", aeroport_iata="CPT", jours_min=2, jours_max=2,
+                     cout_jour_estime=80.0)
+    session.add(lv)
+    session.commit()
+    session.refresh(lv)
+
+    appels = []
+
+    def fake_fetch_offer(session, origine, destination, date_ref):
+        appels.append((origine, destination))
+        return {"prix": 500.0, "devise": "USD", "duree_min": 600}
+
+    monkeypatch.setattr(voyage_routes, "fetch_offer", fake_fetch_offer)
+
+    r = client.post("/voyage/planifier", json={
+        "candidats": [lv.id],
+        "date_debut": "2026-09-01", "date_fin": "2026-09-10", "budget_total": 10000,
+    })
+    assert r.status_code == 200
+    origines_destinations = {o for pair in appels for o in pair}
+    assert "YUL" in origines_destinations
+    assert "CPT" in origines_destinations
+
+
+def test_planifier_arrivee_iata_defaults_to_depart_iata_when_omitted(client, session, monkeypatch):
+    lv = LieuVoyage(nom="Table Mountain", aeroport_iata="CPT", jours_min=2, jours_max=2,
+                     cout_jour_estime=80.0)
+    session.add(lv)
+    session.commit()
+    session.refresh(lv)
+
+    appels = []
+
+    def fake_fetch_offer(session, origine, destination, date_ref):
+        appels.append((origine, destination))
+        return {"prix": 500.0, "devise": "USD", "duree_min": 600}
+
+    monkeypatch.setattr(voyage_routes, "fetch_offer", fake_fetch_offer)
+
+    r = client.post("/voyage/planifier", json={
+        "candidats": [lv.id], "depart_iata": "YYZ",
+        "date_debut": "2026-09-01", "date_fin": "2026-09-10", "budget_total": 10000,
+    })
+    assert r.status_code == 200
+    origines_destinations = {o for pair in appels for o in pair}
+    assert origines_destinations == {"YYZ", "CPT"}
+
+
 def test_confirmer_marks_visite(client, session, monkeypatch, tmp_path):
     p = tmp_path / "Voyage.xlsx"
     wb = openpyxl.Workbook()
