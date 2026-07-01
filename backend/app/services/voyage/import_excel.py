@@ -98,3 +98,43 @@ def sync_voyage(session: Session, path: Path) -> dict:
             incomplets.append(r["nom"])
     session.commit()
     return {"lieux": len(rows), "incomplets": incomplets}
+
+
+def marquer_visites(session: Session, path: Path, noms: list[str]) -> Path:
+    """Marque `noms` comme visités : backup horodaté, écrit `Visité=True`
+    dans l'Excel (ligne trouvée par correspondance exacte de `Lieux`), et
+    met à jour le cache DB en une seule opération.
+
+    Nécessaire car `sync_voyage` est un import destructif (écrase la table) :
+    sans écriture Excel, la prochaine synchro effacerait `visite=True`.
+    """
+    import datetime as dt
+    import shutil
+
+    import openpyxl
+
+    ts = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = path.with_name(f"{path.stem}.backup-{ts}{path.suffix}")
+    shutil.copy2(path, backup)
+
+    wb = openpyxl.load_workbook(path)  # writable (pas read_only)
+    ws = wb.worksheets[0]
+    header = {cell.value: cell.column for cell in ws[1]}
+    col_lieux = header.get(_COLS["nom"])
+    col_visite = header.get(_COLS["visite"])
+    if col_lieux is None or col_visite is None:
+        raise ValueError(f"Colonnes '{_COLS['nom']}' ou '{_COLS['visite']}' introuvables dans {path}")
+
+    remaining = set(noms)
+    for row in range(2, ws.max_row + 1):
+        cell_nom = ws.cell(row=row, column=col_lieux).value
+        if cell_nom and str(cell_nom).strip() in remaining:
+            ws.cell(row=row, column=col_visite, value=True)
+            remaining.discard(str(cell_nom).strip())
+    wb.save(path)
+
+    for lv in session.exec(select(LieuVoyage).where(LieuVoyage.nom.in_(noms))).all():
+        lv.visite = True
+        session.add(lv)
+    session.commit()
+    return backup

@@ -69,3 +69,45 @@ def test_sync_voyage_does_not_flag_incomplete_if_already_visited(tmp_path, sessi
 
     result = sync_voyage(session, p)
     assert result["incomplets"] == []
+
+
+def test_marquer_visites_writes_excel_and_db(tmp_path, session):
+    from app.services.voyage.import_excel import marquer_visites
+
+    p = tmp_path / "Voyage.xlsx"
+    _make_xlsx(p)
+    sync_voyage(session, p)  # peuple la DB depuis l'Excel initial
+
+    backup = marquer_visites(session, p, ["Table Mountain"])
+
+    assert backup.exists()
+    assert backup.name.startswith("Voyage.backup-")
+
+    # Excel mis à jour
+    import openpyxl
+    wb = openpyxl.load_workbook(p, data_only=True)
+    ws = wb.active
+    header = [c.value for c in ws[1]]
+    col_lieux = header.index("Lieux") + 1
+    col_visite = header.index("Visité") + 1
+    row = next(r for r in range(2, ws.max_row + 1) if ws.cell(r, col_lieux).value == "Table Mountain")
+    assert ws.cell(row, col_visite).value is True
+    # les autres lignes ne sont pas touchées
+    row_k2 = next(r for r in range(2, ws.max_row + 1) if ws.cell(r, col_lieux).value == "K-2")
+    assert ws.cell(row_k2, col_visite).value is False
+
+    # DB mise à jour dans la même opération
+    lv = session.exec(select(LieuVoyage).where(LieuVoyage.nom == "Table Mountain")).first()
+    assert lv.visite is True
+
+
+def test_marquer_visites_raises_if_columns_missing(tmp_path, session):
+    from app.services.voyage.import_excel import marquer_visites
+
+    p = tmp_path / "Voyage.xlsx"
+    wb = openpyxl.Workbook()
+    wb.active.append(["Autre chose"])
+    wb.save(p)
+
+    with pytest.raises(ValueError):
+        marquer_visites(session, p, ["X"])
