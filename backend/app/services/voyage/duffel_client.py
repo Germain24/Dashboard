@@ -61,24 +61,28 @@ def fetch_offer(
         import httpx
         poster = httpx.post
 
-    resp = poster(
-        _OFFER_REQUESTS_URL,
-        headers={
-            "Authorization": f"Bearer {settings.duffel_api_key}",
-            "Duffel-Version": "v2",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-        json={
-            "data": {
-                "slices": [{"origin": origine_iata, "destination": destination_iata,
-                             "departure_date": date_reference}],
-                "passengers": [{"type": "adult"}],
-                "cabin_class": "economy",
-            }
-        },
-        timeout=30,
-    )
+    try:
+        resp = poster(
+            _OFFER_REQUESTS_URL,
+            headers={
+                "Authorization": f"Bearer {settings.duffel_api_key}",
+                "Duffel-Version": "v2",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json={
+                "data": {
+                    "slices": [{"origin": origine_iata, "destination": destination_iata,
+                                 "departure_date": date_reference}],
+                    "passengers": [{"type": "adult"}],
+                    "cabin_class": "economy",
+                }
+            },
+            timeout=30,
+        )
+    except Exception:
+        return None
+
     if resp.status_code != 201:
         return None
     offers = resp.json().get("data", {}).get("offers", [])

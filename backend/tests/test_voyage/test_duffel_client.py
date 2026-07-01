@@ -79,3 +79,18 @@ def test_fetch_offer_returns_none_when_no_offers(session, monkeypatch):
     result = fetch_offer(session, "YUL", "XXX", "2026-09-01",
                           http_post=lambda *a, **k: _FakeResponse(201, {"data": {"offers": []}}))
     assert result is None
+
+
+def test_fetch_offer_returns_none_on_network_exception(session, monkeypatch):
+    monkeypatch.setattr(settings, "duffel_api_key", "duffel_test_fake")
+
+    def fake_post_raises(*a, **k):
+        raise Exception("Network connection failed")
+
+    result = fetch_offer(session, "YUL", "NRT", "2026-09-01", http_post=fake_post_raises)
+
+    assert result is None
+
+    # Verify no cache entry was created
+    cached = session.get(DuffelPriceCache, "YUL|NRT|2026-09-01")
+    assert cached is None
