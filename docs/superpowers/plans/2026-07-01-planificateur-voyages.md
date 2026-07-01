@@ -759,6 +759,8 @@ git commit -m "feat(voyage): client Duffel (prix/durée de vol) avec cache DB"
 
 Algorithme vérifié manuellement avant écriture de ce plan (voir note ci-dessous) : circuit optionnel CP-SAT (`AddCircuit`) sur les nœuds `{depart} ∪ candidats ∪ {arrivee}`, chaque candidat a une boucle sur lui-même (non retenu) ou fait partie du chemin ; un arc virtuel `arrivee → depart` (coût/durée nuls) ferme le circuit pour satisfaire `AddCircuit` sans que ce soit un vrai trajet. Piège identifié pendant la vérification : la variable de durée d'un candidat doit être forcée à 0 s'il est écarté (sinon son `jours_min` grève le budget temps même non visité) — géré via une contrainte réifiée sur le literal de saut.
 
+**Correction post-implémentation (Task 5 bloquée par son implémenteur, diagnostic confirmé) :** l'objectif initial (`maximiser Σ visite[i]` seul) ne contraint en rien la durée choisie pour un candidat retenu à l'intérieur de `[jours_min, jours_max]` — CP-SAT peut légitimement renvoyer n'importe quelle valeur de la fourchette, et ce choix s'est avéré non déterministe d'une machine à l'autre (vérifié : `jours_max` sur la machine de vérification initiale, `jours_min` sur la machine de l'implémenteur, avec un modèle pourtant identique). L'objectif est donc **lexicographique** : `maximiser (Σ visite[i]) × BIG − Σ jours_total`, avec `BIG = jours_disponibles + 1` (borne sûre qui garantit que l'objectif primaire domine toujours le secondaire). Effet : à nombre de lieux égal, minimise le total de jours utilisés — un lieu retenu sans autre contrainte reçoit `jours_min`, jamais plus, sauf si prolonger le séjour est nécessaire pour respecter une autre contrainte (ce qui n'arrive jamais ici puisque rester plus longtemps ne peut qu'augmenter le coût). Re-vérifié sur les 6 scénarios de test ci-dessous avant de débloquer l'implémenteur.
+
 - [ ] **Step 1: Add the new dependency**
 
 Dans `backend/pyproject.toml`, ajouter à la liste `dependencies` (après le bloc `# Util`) :
@@ -822,13 +824,18 @@ def test_returns_none_when_even_direct_trip_is_infeasible():
     assert result is None
 
 
-def test_respects_jours_max_when_budget_allows_longer_stay():
+def test_defaults_to_shortest_stay_when_unconstrained():
+    """Rien ne pousse vers une durée précise dans [jours_min, jours_max] hormis
+    l'objectif secondaire (minimiser le total de jours à nombre de lieux égal)
+    -> sans lui, CP-SAT peut légitimement choisir n'importe quelle valeur de la
+    fourchette et le résultat devient non déterministe d'une machine à l'autre
+    (constaté en le vérifiant sur deux machines différentes avant ce plan)."""
     candidats = [{"id": "X", "jours_min": 1, "jours_max": 3, "cout_jour": 10.0}]
     points = ["DEPART", "X", "ARRIVEE"]
     trajets = _trajets_uniformes(points, prix=10.0, duree_min=60)
     result = solve_itinerary(candidats, trajets, budget_total=1000, jours_disponibles=30)
     assert result is not None
-    assert result[0]["jours"] == 3  # maximise la durée dans sa fourchette quand rien ne la contraint
+    assert result[0]["jours"] == 1  # jours_min : rien ne justifie de rester plus longtemps
 
 
 def test_departure_and_arrival_can_differ():
@@ -859,8 +866,11 @@ depart -> ... -> arrivee. Un arc virtuel arrivee -> depart (coût/durée nuls)
 ferme le circuit pour satisfaire la contrainte `AddCircuit` de CP-SAT — ce
 n'est pas un vrai trajet, juste un artifice de modélisation.
 
-Objectif : maximiser le nombre de lieux retenus, sous contrainte de jours
-disponibles et de budget total (transport + coût/jour × durée du séjour).
+Objectif lexicographique : (1) maximiser le nombre de lieux retenus, sous
+contrainte de jours disponibles et de budget total (transport + coût/jour ×
+durée du séjour) ; (2) à nombre égal, minimiser le total de jours utilisés
+(un lieu retenu reçoit sa durée minimale, sauf si en rester justifié par
+ailleurs — ce qui ne se produit jamais dans ce modèle).
 """
 from __future__ import annotations
 
@@ -941,7 +951,17 @@ def solve_itinerary(
 
     model.Add(cp_model.LinearExpr.Sum(total_days) <= jours_disponibles)
     model.Add(cp_model.LinearExpr.Sum(total_cost) <= round(budget_total))
-    model.Maximize(sum(1 - skip_lit[idx[c["id"]]] for c in candidats))
+
+    # Objectif lexicographique : (1) maximiser le nombre de lieux visités,
+    # (2) à égalité, minimiser le total de jours utilisés. Sans (2), la durée
+    # d'un candidat retenu dans [jours_min, jours_max] n'est contrainte par
+    # rien d'autre et CP-SAT peut renvoyer n'importe quelle valeur de la
+    # fourchette — constaté non déterministe d'une machine à l'autre avec
+    # l'objectif (1) seul. BIG doit dominer strictement le terme secondaire,
+    # qui est borné par jours_disponibles via la contrainte ci-dessus.
+    BIG = jours_disponibles + 1
+    n_visites = sum(1 - skip_lit[idx[c["id"]]] for c in candidats)
+    model.Maximize(n_visites * BIG - cp_model.LinearExpr.Sum(total_days))
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 10
