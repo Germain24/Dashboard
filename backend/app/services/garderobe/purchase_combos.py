@@ -15,11 +15,16 @@ _BASE_SLOTS = ["Haut", "Pantalon", "Chaussures"]
 PALETTE: list[str] = list(NEUTRES) + list(SECONDAIRES) + list(ACCENTS)
 
 # categorie -> slot de base (depuis les slots ALWAYS de SLOTS)
-_CAT_TO_SLOT: dict[str, str] = {}
-for _s in SLOTS:
-    if _s["id"] in _BASE_SLOTS:
-        for _c in _s["categories"]:
-            _CAT_TO_SLOT[_c] = _s["id"]
+def _build_cat_to_slot() -> dict[str, str]:
+    d: dict[str, str] = {}
+    for s in SLOTS:
+        if s["id"] in _BASE_SLOTS:
+            for c in s["categories"]:
+                d[c] = s["id"]
+    return d
+
+
+_CAT_TO_SLOT: dict[str, str] = _build_cat_to_slot()
 
 
 def base_slot_of(item: dict[str, Any]) -> str | None:

@@ -4,7 +4,7 @@ import type { ConseilsAchat } from "@/lib/garderobe";
 
 export function RecommandationsTab({ recs }: { recs: ConseilsAchat }) {
   const { total_tenues, conseils } = recs;
-  const maxGain = conseils.length ? conseils[0].debloque : 1;
+  const maxGain = Math.max(1, conseils.length ? conseils[0].debloque : 1);
 
   return (
     <div className="space-y-3">

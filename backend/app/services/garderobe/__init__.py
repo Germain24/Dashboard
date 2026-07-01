@@ -6,7 +6,7 @@ Decoupage par responsabilite (port depuis legacy_code/habits/logic.py) :
 - thermal       : score thermique d'un item, gap a la cible
 - weather       : provider OpenWeather + fallback Open-Meteo, cache 30 min
 - optimizer     : suggest_outfit(...) avec body coton dans la recherche
-- recommendations : suggestions d'achat
+- purchase_combos  : conseils d'achat combinatoires (tenues débloquées)
 
 Important :
 On n'importe PAS weather ici (dependance httpx) pour que les tests purs
