@@ -1650,7 +1650,6 @@ Dans `frontend/lib/modules.ts`, ajouter l'import d'icône `Plane` (import lucide
 // frontend/components/voyage/LieuxTab.tsx
 "use client";
 
-import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { useLieuxVoyage, useSyncVoyage } from "@/lib/queries/voyage";
 
