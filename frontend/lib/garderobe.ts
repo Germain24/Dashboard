@@ -127,11 +127,16 @@ export type StatsResponse = {
   valeur_count: number;
 };
 
-export type Recommendation = {
-  nom: string;
-  raison: string;
-  potentiel: number;
-  type: string;
+export type ConseilAchat = {
+  slot: string;
+  couleur: string;
+  debloque: number;
+  total_apres: number;
+};
+
+export type ConseilsAchat = {
+  total_tenues: number;
+  conseils: ConseilAchat[];
 };
 
 export type PlannerEvent = { titre: string; categorie: string | null; heure: string };
@@ -239,7 +244,7 @@ export const garderobeApi = {
 
   stats: () => api<StatsResponse>(`/garderobe/stats`),
 
-  recommendations: () => api<Recommendation[]>(`/garderobe/recommendations`),
+  recommendations: () => api<ConseilsAchat>(`/garderobe/recommendations`),
 
   getObjectif: () => api<ObjectifResponse>(`/garderobe/objectif`),
 

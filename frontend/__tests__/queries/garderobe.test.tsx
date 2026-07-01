@@ -10,7 +10,7 @@ vi.mock("@/lib/garderobe", () => ({
     getSlots: vi.fn().mockResolvedValue({ slots: [] }),
     stats: vi.fn().mockResolvedValue({ total: 1 }),
     history: vi.fn().mockResolvedValue([]),
-    recommendations: vi.fn().mockResolvedValue([]),
+    recommendations: vi.fn().mockResolvedValue({ total_tenues: 0, conseils: [] }),
     frequence: vi.fn().mockResolvedValue({}),
     getPlanner: vi.fn().mockResolvedValue({ days: [] }),
     suggest: vi.fn().mockResolvedValue({ slots: [], use_body: false }),

@@ -70,7 +70,7 @@ export function Garderobe() {
   const weather = weatherQ.data ?? null;
   const stats = statsQ.data ?? null;
   const history = historyQ.data ?? [];
-  const recs = recsQ.data ?? [];
+  const recs = recsQ.data ?? { total_tenues: 0, conseils: [] };
   const loading =
     slotsQ.isLoading || wardrobeQ.isLoading || weatherQ.isLoading ||
     statsQ.isLoading || historyQ.isLoading || recsQ.isLoading;
