@@ -85,6 +85,11 @@ class Settings(BaseSettings):
     garderobe_hour_end: int = 23
     garderobe_weather_cache_ttl: int = 1800
 
+    # --- Voyage (planificateur d'itinéraire) ---
+    # Clé de test/prod Duffel (https://duffel.com) — recherche d'offres de vols.
+    # Vide = module désactivé (fetch_offer renvoie toujours None).
+    duffel_api_key: str = ""
+
     # ── Réglages métier ajustables (override .env) ──────────────────────
     # Finance — score Buffett & valorisation
     buffett_score_threshold: float = 80.0       # score d'achat minimal
