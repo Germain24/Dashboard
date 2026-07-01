@@ -6,6 +6,21 @@ L'échelle d'un type va de Qualité/Prix (index 0 → position 0) à Qualité Ma
 """
 from __future__ import annotations
 
+import re
+import unicodedata
+
+
+def _fold(s: str) -> str:
+    """Clé de comparaison robuste : minuscule, sans accents ni ponctuation/espaces.
+
+    Deux variantes d'écriture d'une même marque (« R.M. Williams » saisie sur
+    une pièce vs « RM Williams » dans l'échelle Excel, ou l'inverse) doivent
+    matcher — sinon la pièce tombe « hors échelle » et la barre reste au
+    minimum malgré une marque placée en position max dans le classeur.
+    """
+    ascii_s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]", "", ascii_s.lower())
+
 
 def build_echelle(brands: list) -> list[str]:
     """Liste de marques ordonnée, dédupliquée (insensible à la casse), sans vides."""
@@ -29,8 +44,8 @@ def brand_position(echelle: list[str], marque: str | None) -> float | None:
     """Position 0..100 de `marque` dans `echelle`, ou None si absente/None."""
     if not marque:
         return None
-    key = str(marque).strip().casefold()
-    idx = next((i for i, b in enumerate(echelle) if b.casefold() == key), None)
+    key = _fold(str(marque))
+    idx = next((i for i, b in enumerate(echelle) if _fold(b) == key), None)
     if idx is None:
         return None
     n = len(echelle)

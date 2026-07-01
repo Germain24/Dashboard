@@ -34,6 +34,15 @@ def test_brand_position_case_insensitive_and_single():
     assert brand_position(["Auralee"], "Auralee") == 0.0  # échelle de longueur 1
 
 
+def test_brand_position_ignores_punctuation_and_accents():
+    """« R.M. Williams » (échelle) doit matcher « RM Williams » (pièce saisie
+    sans points) — sinon la pièce tombe hors échelle et la barre reste au
+    minimum malgré une marque placée en position max."""
+    ech = ["Blundstone", "R.M. Williams"]
+    assert brand_position(ech, "RM Williams") == 100.0
+    assert brand_position(ech, "r.m.williams") == 100.0
+
+
 def test_fill_slots_partial_fills_then_empty():
     ech = ["Uniqlo U", "Beams Plus", "Visvim"]
     owned = [{"id": "v1", "nom": "Tee gris", "marque": "Visvim"}]
