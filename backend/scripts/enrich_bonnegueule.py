@@ -84,3 +84,59 @@ ENRICHMENT: dict[str, list[str]] = {
     "Maillots techniques": ["Circle Sportswear"],
     "Shorts techniques": ["Circle Sportswear"],
 }
+
+
+def _echelle_from_row(ws, row: int) -> list[str]:
+    """Marques d'une ligne (colonnes C.. = 3..), non vides."""
+    out: list[str] = []
+    for col in range(3, ws.max_column + 1):
+        v = ws.cell(row=row, column=col).value
+        if v is not None and str(v).strip():
+            out.append(str(v).strip())
+    return out
+
+
+def main() -> dict:
+    import datetime as dt
+    import shutil
+
+    import openpyxl
+
+    from app.core.config import settings
+
+    path = settings.imports_dir / "Vetements.xlsx"
+    ts = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = path.with_name(f"Vetements.backup-{ts}.xlsx")
+    shutil.copy2(path, backup)
+
+    wb = openpyxl.load_workbook(path)  # writable (pas read_only)
+    ws = wb.worksheets[0]
+
+    found_types: set[str] = set()
+    enriched = 0
+    for row in range(2, ws.max_row + 1):
+        nom_cell = ws.cell(row=row, column=1).value
+        if not nom_cell or not str(nom_cell).strip():
+            continue
+        nom = str(nom_cell).strip()
+        found_types.add(nom)
+        if nom not in ENRICHMENT:
+            continue
+        old = _echelle_from_row(ws, row)
+        new = insert_after_entry(old, ENRICHMENT[nom])
+        if new == old:
+            continue
+        # insert_after_entry n'ajoute que -> len(new) >= len(old), pas de nettoyage
+        for i, brand in enumerate(new):
+            ws.cell(row=row, column=3 + i, value=brand)
+        enriched += 1
+        print(f"{nom}: +{len(new) - len(old)}  {old} -> {new}")
+
+    not_found = sorted(t for t in ENRICHMENT if t not in found_types)
+    wb.save(path)
+    print(f"types enrichis: {enriched} / {len(ENRICHMENT)} ; backup: {backup.name} ; non trouvés: {not_found}")
+    return {"enriched": enriched, "backup": str(backup), "not_found": not_found}
+
+
+if __name__ == "__main__":
+    main()
