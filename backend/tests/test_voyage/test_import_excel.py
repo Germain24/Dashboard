@@ -111,3 +111,31 @@ def test_marquer_visites_raises_if_columns_missing(tmp_path, session):
 
     with pytest.raises(ValueError):
         marquer_visites(session, p, ["X"])
+
+
+def test_marquer_visites_raises_if_name_not_found(tmp_path, session):
+    from app.services.voyage.import_excel import marquer_visites
+
+    p = tmp_path / "Voyage.xlsx"
+    _make_xlsx(p)
+    sync_voyage(session, p)  # peuple la DB depuis l'Excel initial
+
+    # Try to mark a non-existent name as visited
+    with pytest.raises(ValueError, match="Noms introuvables"):
+        marquer_visites(session, p, ["Non-existent Place"])
+
+    # Verify Excel was not modified: existing rows should remain unchanged
+    wb = openpyxl.load_workbook(p, data_only=True)
+    ws = wb.active
+    header = [c.value for c in ws[1]]
+    col_lieux = header.index("Lieux") + 1
+    col_visite = header.index("Visité") + 1
+
+    # Table Mountain should still be False
+    row_tm = next(r for r in range(2, ws.max_row + 1) if ws.cell(r, col_lieux).value == "Table Mountain")
+    assert ws.cell(row_tm, col_visite).value is False
+    wb.close()
+
+    # Verify DB was not modified: Table Mountain should still be visite=False
+    lv = session.exec(select(LieuVoyage).where(LieuVoyage.nom == "Table Mountain")).first()
+    assert lv.visite is False

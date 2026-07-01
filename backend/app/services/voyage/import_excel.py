@@ -131,6 +131,10 @@ def marquer_visites(session: Session, path: Path, noms: list[str]) -> Path:
         if cell_nom and str(cell_nom).strip() in remaining:
             ws.cell(row=row, column=col_visite, value=True)
             remaining.discard(str(cell_nom).strip())
+
+    if remaining:
+        raise ValueError(f"Noms introuvables dans {path}: {', '.join(sorted(remaining))}")
+
     wb.save(path)
 
     for lv in session.exec(select(LieuVoyage).where(LieuVoyage.nom.in_(noms))).all():
