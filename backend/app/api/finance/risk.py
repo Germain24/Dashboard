@@ -66,6 +66,7 @@ def risk(session: Session = Depends(get_session)):
 def treemap(group_by: str = "secteur", session: Session = Depends(get_session)):
     positions = get_positions(session)
     label_by_ticker: dict[str, str] = {}
+    frac_by_ticker: dict[str, dict[str, float]] = {}
     if group_by in ("secteur", "pays"):
         from sqlmodel import select
         from app.models.finance import BuffettRunResult
@@ -74,5 +75,24 @@ def treemap(group_by: str = "secteur", session: Session = Depends(get_session)):
             for r in session.exec(select(BuffettRunResult)).all()
             if getattr(r, group_by)
         }
-    nodes = get_treemap_data(positions, group_by, label_by_ticker)
+        if group_by == "pays":
+            # Look-through ETF : CW8.PA etc. sont sinon attribués à leur seul
+            # pays de cotation au lieu d'être répartis sur leurs sous-jacents.
+            try:
+                from app.services.finance.buffett.lookthrough import load_lookthrough
+                _defensif, paysmap = load_lookthrough()
+                frac_by_ticker = {t: dist for t, dist in paysmap.items() if dist}
+            except Exception:
+                frac_by_ticker = {}
+        elif group_by == "secteur":
+            # Les ETF portent "ETF" en secteur brut (Secteur 1) ; la classification
+            # ToutBroker donne un vrai libellé (secteur sectoriel ou "Actions
+            # diversifiées") au lieu de les regrouper tous sous "ETF".
+            try:
+                from app.services.finance.buffett.breakdown import load_classification
+                _classmap, sectmap = load_classification()
+                label_by_ticker.update({t: s for t, s in sectmap.items() if s and s != "Inconnu"})
+            except Exception:
+                pass
+    nodes = get_treemap_data(positions, group_by, label_by_ticker, frac_by_ticker)
     return [TreemapNodeOut(**n) for n in nodes]

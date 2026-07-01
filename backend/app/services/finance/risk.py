@@ -151,6 +151,7 @@ def get_treemap_data(
     positions: list[dict],
     group_by: str = "secteur",
     label_by_ticker: Optional[dict[str, str]] = None,
+    frac_by_ticker: Optional[dict[str, dict[str, float]]] = None,
 ) -> list[dict]:
     """Treemap hiérarchique groupé par secteur / pays / devise.
 
@@ -159,31 +160,50 @@ def get_treemap_data(
     et un enfant par position rattaché à sa racine. ``group_by="devise"`` lit la
     devise sur la position ; secteur/pays passent par ``label_by_ticker`` (résolu
     en amont depuis les résultats Buffett).
+
+    ``frac_by_ticker`` (pays uniquement) : {ticker: {label: fraction 0-1}} pour
+    les ETF connus du look-through (``buffett.lookthrough.load_lookthrough``) —
+    répartit leur valeur sur plusieurs racines au lieu de tout attribuer à leur
+    seul pays de cotation. Un ticker absent de ce mapping garde le comportement
+    ``label_by_ticker`` habituel.
     """
     label_by_ticker = label_by_ticker or {}
+    frac_by_ticker = frac_by_ticker or {}
     held = [p for p in positions if p.get("valeur_actuelle", 0) > 0]
     if not held:
         return []
 
-    groups: dict[str, list[dict]] = {}
+    # Chaque contribution = une part (ticker, valeur) rattachée à un label ;
+    # un ETF look-through produit plusieurs contributions pour un seul ticker.
+    contributions: list[dict] = []
     for p in held:
+        valeur = p.get("valeur_actuelle", 0)
         if group_by == "devise":
-            label = p.get("devise") or "Inconnu"
+            contributions.append({"label": p.get("devise") or "Inconnu", "ticker": p["ticker"], "valeur": valeur})
+            continue
+        frac = frac_by_ticker.get(p["ticker"])
+        if frac:
+            for label, fraction in frac.items():
+                contributions.append({"label": label, "ticker": p["ticker"], "valeur": valeur * fraction})
         else:
             label = label_by_ticker.get(p["ticker"]) or "Inconnu"
-        groups.setdefault(label, []).append(p)
+            contributions.append({"label": label, "ticker": p["ticker"], "valeur": valeur})
+
+    groups: dict[str, list[dict]] = {}
+    for c in contributions:
+        groups.setdefault(c["label"], []).append(c)
 
     def _val(items: list[dict]) -> float:
-        return sum(i.get("valeur_actuelle", 0) for i in items)
+        return sum(i["valeur"] for i in items)
 
     nodes: list[dict] = []
     for label, items in sorted(groups.items(), key=lambda kv: _val(kv[1]), reverse=True):
         nodes.append({"id": label, "parent": "", "label": label, "valeur": round(_val(items), 2)})
-        for p in sorted(items, key=lambda x: x.get("valeur_actuelle", 0), reverse=True):
+        for c in sorted(items, key=lambda x: x["valeur"], reverse=True):
             nodes.append({
-                "id": f"{label}/{p['ticker']}",
+                "id": f"{label}/{c['ticker']}",
                 "parent": label,
-                "label": p["ticker"],
-                "valeur": round(p.get("valeur_actuelle", 0), 2),
+                "label": c["ticker"],
+                "valeur": round(c["valeur"], 2),
             })
     return nodes
