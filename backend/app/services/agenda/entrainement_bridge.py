@@ -92,3 +92,25 @@ def get_training_block_for_date(
     except Exception as exc:
         log.warning("Erreur bridge Entraînement→Agenda : %s", exc)
     return None
+
+
+def dedupe_sport_events(
+    events: list[dict[str, Any]],
+    training: Optional[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Retire les événements « sport » (récurrence/ponctuel) redondants avec
+    le bloc Entraînement du jour.
+
+    Avant le module Entraînement, l'utilisateur avait ses propres événements/
+    récurrences « catégorie sport » (ex. une règle hebdo « Musculation »).
+    Une fois un programme actif, le bridge produit un bloc plus précis
+    (« Entraînement — Pull/Push/Legs ») pour le même jour : sans ce filtre,
+    les deux coexistent et la séance apparaît deux fois dans l'agenda.
+    """
+    if not training:
+        return events
+    return [
+        e
+        for e in events
+        if not (e.get("categorie") == "sport" and e.get("source") != "entrainement")
+    ]

@@ -10,6 +10,7 @@ from app.api.agenda.common import SessionDep, ev_to_read
 from app.api.agenda.schemas import AgendaJourResponse, EvenementRead, SlotLibre, TacheRead
 from app.services.agenda import (
     create_event,
+    dedupe_sport_events,
     free_slots,
     get_full_calendar,
     get_training_block_for_date,
@@ -34,6 +35,7 @@ def today(session: SessionDep):
     raw_events = get_full_calendar(session, from_dt, to_dt)
     training = get_training_block_for_date(session, today_date)
     if training:
+        raw_events = dedupe_sport_events(raw_events, training)
         raw_events.append(training)
         raw_events.sort(key=lambda x: x["debut"])
 
@@ -68,6 +70,7 @@ def slots_endpoint(
     items = get_full_calendar(session, from_dt, to_dt)
     blk = get_training_block_for_date(session, target)
     if blk:
+        items = dedupe_sport_events(items, blk)
         items.append(blk)
 
     occupied = [
@@ -97,6 +100,7 @@ def plan_focus(
     items = get_full_calendar(session, from_dt, to_dt)
     blk = get_training_block_for_date(session, target)
     if blk:
+        items = dedupe_sport_events(items, blk)
         items.append(blk)
     occupied = [
         (e["debut"], e["fin"] or e["debut"] + dt.timedelta(hours=1))

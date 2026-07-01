@@ -13,7 +13,10 @@ Contrat avec CONV 6 (Études) :
     Créer des tâches via `create_task(session, {..., "source": "etudes", "source_id": devoir_id})`
 """
 
-from app.services.agenda.entrainement_bridge import get_training_block_for_date
+from app.services.agenda.entrainement_bridge import (
+    dedupe_sport_events,
+    get_training_block_for_date,
+)
 from app.services.agenda.events import (
     create_event,
     create_recurrence_rule,
@@ -44,6 +47,7 @@ __all__ = [
     "create_event",
     "create_recurrence_rule",
     "create_task",
+    "dedupe_sport_events",
     "delete_event",
     "delete_recurrence_rule",
     "delete_task",
