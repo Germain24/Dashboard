@@ -66,7 +66,7 @@ Fonction pure et testable : `solve_itinerary(candidats, distances, budget_total,
 - Liste ordonnée des lieux retenus avec durée assignée et dates estimées (calculées séquentiellement depuis `date_debut`)
 - Coût total, détaillé transport vs séjour
 - Lieux candidats non retenus (et pourquoi ils ont été écartés n'est **pas** garanti — CP-SAT ne motive pas ses exclusions, on affiche juste "non retenu")
-- Action « Confirmer ce voyage » : marque les lieux retenus `Visité=True` dans le cache DB (et à la prochaine resync Excel, propage l'écriture dans le fichier — même mécanique que les autres masters Excel du projet)
+- Action « Confirmer ce voyage » : écrit `Visité=True` directement dans `Voyage.xlsx` (backup horodaté + `openpyxl`, même mécanique que `scripts/enrich_bonnegueule.py`) **et** dans le cache DB en une seule opération. Nécessaire car la synchro Excel→DB est un import destructif (« écrase la table cache », comme `sync_objectif`) : si seule la DB était mise à jour, la prochaine resync effacerait le `Visité=True` en le ré-important depuis un Excel resté inchangé.
 
 ## 6. Intégration technique
 
