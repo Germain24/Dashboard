@@ -391,10 +391,6 @@ html {
 .animate-fade-in-up { animation: fadeInUp 0.45s var(--ease-out) forwards; }
 .animate-fade-in    { animation: fadeIn 0.3s var(--ease-out) forwards; }
 
-/* Transition d'entrée de page (template.tsx, remonté à chaque navigation).
-   Opacité seule : un transform persistant créerait un bloc conteneur et
-   casserait les `position: fixed` des enfants (rail de points du Deck). */
-.page-transition { animation: fadeIn 0.3s var(--ease-out) forwards; }
 .animate-slide-left { animation: slideInLeft 0.3s var(--ease-out) forwards; }
 .animate-scale-in   { animation: scaleIn 0.28s var(--ease-out) forwards; }
 

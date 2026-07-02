@@ -26,6 +26,8 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
+import { MotionProvider } from "@/lib/motion/MotionProvider";
+import { PageTransition } from "@/lib/motion/PageTransition";
 
 export const metadata: Metadata = {
   title: { default: "Mission Control", template: "%s · Mission Control" },
@@ -68,25 +70,27 @@ export default function RootLayout({
           Aller au contenu
         </a>
         <QueryProvider>
-          {/* Palette de commandes globale (Cmd/Ctrl+K) + raccourcis j/k */}
-          <CommandPalette />
-          <KeyboardShortcuts />
-          <ShortcutsHelp />
+          <MotionProvider>
+            {/* Palette de commandes globale (Cmd/Ctrl+K) + raccourcis j/k */}
+            <CommandPalette />
+            <KeyboardShortcuts />
+            <ShortcutsHelp />
 
-          {/* Navigation mobile (fixed header + hamburger drawer) */}
-          <MobileNav />
+            {/* Navigation mobile (fixed header + hamburger drawer) */}
+            <MobileNav />
 
-          {/* Dock flottant en verre (remplace la sidebar desktop). */}
-          <Dock />
+            {/* Dock flottant en verre (remplace la sidebar desktop). */}
+            <Dock />
 
-          {/* Contenu : l'accueil est le Deck plein écran ; les pages module
-              défilent normalement avec une garde basse pour le Dock. */}
-          <div className="flex min-h-screen">
-            <MainShell>
-              <Breadcrumbs />
-              {children}
-            </MainShell>
-          </div>
+            {/* Contenu : l'accueil est le Deck plein écran ; les pages module
+                défilent normalement avec une garde basse pour le Dock. */}
+            <div className="flex min-h-screen">
+              <MainShell>
+                <Breadcrumbs />
+                <PageTransition>{children}</PageTransition>
+              </MainShell>
+            </div>
+          </MotionProvider>
         </QueryProvider>
       </body>
     </html>
