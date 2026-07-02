@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { springs } from "@/lib/motion/tokens";
 
 interface TabsContextValue {
   value: string;
@@ -97,16 +99,25 @@ function TabsTrigger({ value, children, className }: TabsTriggerProps) {
       onClick={() => ctx.onChange(value)}
       onKeyDown={handleKeyDown}
       className={cn(
-        "shrink-0 rounded-[var(--radius-full)] px-3.5 py-1.5 text-sm",
-        "transition-[background-color,color,box-shadow] duration-200 ease-[var(--ease-out)]",
+        "relative shrink-0 rounded-[var(--radius-full)] px-3.5 py-1.5 text-sm",
+        "transition-[color] duration-200 ease-[var(--ease-out)]",
         "focus-visible:outline-2 focus-visible:outline-[var(--ring)] focus-visible:outline-offset-1 focus-visible:rounded-[var(--radius-full)]",
         active
-          ? "bg-[var(--glass-strong)] text-[var(--foreground)] font-medium shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow-sm)]"
+          ? "text-[var(--foreground)] font-medium"
           : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
         className,
       )}
     >
-      {children}
+      {active && (
+        <motion.span
+          layoutId={ctx.id + "-pill"}
+          transition={springs.soft}
+          data-testid="tab-pill"
+          aria-hidden
+          className="absolute inset-0 rounded-[var(--radius-full)] bg-[var(--glass-strong)] shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow-sm)]"
+        />
+      )}
+      <span className="relative z-10">{children}</span>
     </button>
   );
 }
@@ -121,15 +132,18 @@ function TabsContent({ value, children, className }: TabsContentProps) {
   const ctx = React.useContext(TabsContext);
   if (ctx.value !== value) return null;
   return (
-    <div
+    <motion.div
       role="tabpanel"
       id={ctx.id + "-panel-" + value}
       aria-labelledby={ctx.id + "-tab-" + value}
       tabIndex={0}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={springs.soft}
       className={cn("focus-visible:outline-none", className)}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
