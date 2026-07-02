@@ -5,16 +5,15 @@ import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet"
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Itineraire } from "@/lib/voyage";
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 
 // Le bundler ne préserve pas les chemins d'assets relatifs que Leaflet
 // utilise par défaut pour ses icônes de marqueur ; sans ce correctif les
 // marqueurs s'affichent avec une image cassée.
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+L.Icon.Default.mergeOptions({ iconRetinaUrl, iconUrl, shadowUrl });
 
 type Point = { lat: number; lon: number; label: string; detail?: ReactNode };
 
