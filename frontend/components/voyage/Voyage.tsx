@@ -20,7 +20,7 @@ export function Voyage() {
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Voyage</h1>
       <LieuxTab selected={selected} onToggle={toggle} />
-      <PlanifierTab candidats={[...selected]} />
+      <PlanifierTab candidats={[...selected]} onConfirmed={() => setSelected(new Set())} />
     </div>
   );
 }

@@ -3,8 +3,15 @@
 import { useState } from "react";
 import { usePlanifier, useConfirmerVoyage } from "@/lib/queries/voyage";
 import type { Itineraire } from "@/lib/voyage";
+import { notifySuccess } from "@/lib/toast";
 
-export function PlanifierTab({ candidats }: { candidats: number[] }) {
+export function PlanifierTab({
+  candidats,
+  onConfirmed,
+}: {
+  candidats: number[];
+  onConfirmed?: () => void;
+}) {
   const [departIata, setDepartIata] = useState("YUL");
   const [arriveeIata, setArriveeIata] = useState("YUL");
   const [dateDebut, setDateDebut] = useState("");
@@ -81,12 +88,25 @@ export function PlanifierTab({ candidats }: { candidats: number[] }) {
             ))}
           </ol>
           <button
-            onClick={() => confirmerMut.mutate(resultat.etapes.map((e) => e.lieu_id))}
+            onClick={() =>
+              confirmerMut.mutate(resultat.etapes.map((e) => e.lieu_id), {
+                onSuccess: () => {
+                  setResultat(null);
+                  notifySuccess("Voyage confirmé !");
+                  onConfirmed?.();
+                },
+              })
+            }
             disabled={confirmerMut.isPending}
             className="rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)] disabled:opacity-50"
           >
             {confirmerMut.isPending ? "Confirmation…" : "Confirmer ce voyage"}
           </button>
+          {confirmerMut.isError && (
+            <div className="text-sm text-[var(--destructive)]">
+              {(confirmerMut.error as Error)?.message ?? "Erreur de confirmation"}
+            </div>
+          )}
         </div>
       )}
     </div>
