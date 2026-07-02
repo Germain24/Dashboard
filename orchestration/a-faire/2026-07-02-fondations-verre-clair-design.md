@@ -61,7 +61,7 @@ ajustables à l'implémentation dans la limite ≤ 10 % clair / ≤ 12 % sombre.
 
 ## 3. Recette de verre unique (improvements 2.3)
 
-Quatre recettes officielles dans globals.css — et plus aucun backdrop-filter ad hoc :
+Cinq recettes officielles dans globals.css — et plus aucun backdrop-filter ad hoc :
 
 - `.glass-panel` (existe) : chrome — dock, headers sticky, drawers.
 - `.glass-modal` (existe) : surfaces flottantes — dialogs, palette.
@@ -72,6 +72,9 @@ Quatre recettes officielles dans globals.css — et plus aucun backdrop-filter a
 - **`.glass-veil`** (nouvelle) : le voile d'overlay —
   `background: rgb(0 0 0 / 0.3)` + `backdrop-filter: blur(6px)`
   (le `bg-black/40 backdrop-blur-sm` et variantes actuels sont unifiés dessus).
+- **`.glass-inset`** (nouvelle) : surface encastrée (rail d'onglets, champs) —
+  `background: var(--field)`, `backdrop-filter: blur(var(--glass-blur)) saturate(1.4)`
+  (sans liseré ni ombre : le creux, pas le relief).
 
 Migration des usages recensés (2026-07-02) : `components/ui/card.tsx`,
 `stat-card.tsx`, `chart-frame.tsx`, `tabs.tsx`, `dialog.tsx` (voile),
