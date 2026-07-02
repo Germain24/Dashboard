@@ -26,18 +26,23 @@ continuité entre pages : chaque navigation « clignote ». `motion` v12 est dé
     continues** pilotées par `motion/react` : un `PageTransition` client qui anime
     opacité + translation Y légère (8–12 px) avec un spring doux, et n'anime **pas**
     lors des navigations intra-module (changement d'onglet, query params).
+    ← FINIS ✓ (2026-07-02) PageTransition keyée module, opacité seule (contrainte fixed)
 1.2 [M](\*\*\*) Étudier la **View Transitions API** (supportée par Next 15 via
     `experimental.viewTransition`) pour les éléments partagés : titre de module,
     stat-cards du hub → page détail. Fallback automatique = comportement actuel.
 1.3 [S](\*\*) Étendre `.stagger` (limité à 6 enfants en CSS nth-child) par un vrai
     stagger déclaratif `motion` (`staggerChildren`) sur les grilles de cartes.
+    ← PARTIEL (2026-07-02) StaggerGroup/StaggerItem livrés ; migration des 9 usages CSS → P1
 1.4 [S](\*\*) Harmoniser les courbes : une seule source de vérité pour les easings/springs
     (tokens `--ease-*` de globals.css ↔ constantes `motion` partagées dans `lib/motion.ts`).
+    ← FINIS ✓ (2026-07-02) lib/motion/tokens.ts seule source ; MotionConfig reducedMotion global
 1.5 [S](\*\*\*) Conserver strictement le respect de `prefers-reduced-motion` (déjà en
     place côté CSS) dans toutes les nouvelles animations (`useReducedMotion`).
 1.6 [M](\*\*) Micro-interactions systématiques sur les primitives `components/ui/` :
     press-scale des boutons, élévation douce des cards au survol, apparition
     spring des dialogs, entrée/sortie des toasts sonner alignées sur les tokens.
+    ← PARTIEL (2026-07-02) dialog spring+sortie, tabs pastille layoutId, StatCard count-up
+    (boutons/cards avaient déjà press-scale et hover ; toasts sonner restants)
 1.7 [S](\*\*) Navigation Dock/Sidebar : indicateur actif animé (layoutId partagé) au
     lieu d'un changement d'état sec.
 1.8 [M](\*\*) Transitions de données : lorsqu'une requête TanStack revalide, animer les
