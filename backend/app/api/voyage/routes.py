@@ -15,12 +15,13 @@ from sqlmodel import Session, select
 
 from app.api.voyage.schemas import (
     ConfirmerRequest, EtapeItineraire, ItineraireOut, LieuVoyageOut,
-    PlanifierRequest, SyncVoyageOut,
+    PlanifierRequest, PointItineraire, SyncVoyageOut,
 )
 from app.core.config import settings
 from app.core.db import get_session
 from app.models.voyage import LieuVoyage
 from app.services.finance import fx
+from app.services.voyage.airports import lookup_coords
 from app.services.voyage.duffel_client import fetch_offer
 from app.services.voyage.import_excel import marquer_visites, sync_voyage
 from app.services.voyage.solver import solve_itinerary
@@ -104,6 +105,8 @@ def post_planifier(req: PlanifierRequest, session: Session = Depends(get_session
                              f"Lieux déjà visités (exclus des candidats) : {', '.join(visites)}")
 
     arrivee_iata = req.arrivee_iata or req.depart_iata
+    depart_lat, depart_lon = lookup_coords(req.depart_iata) or (None, None)
+    arrivee_lat, arrivee_lon = lookup_coords(arrivee_iata) or (None, None)
     date_ref = req.date_debut.isoformat()
     by_id = {str(lv.id): lv for lv in lieux}
     points = (
@@ -156,9 +159,11 @@ def post_planifier(req: PlanifierRequest, session: Session = Depends(get_session
         date_arrivee = current_date
         current_date += dt.timedelta(days=etape["jours"])
         date_depart = current_date
+        lat, lon = lookup_coords(lieu.aeroport_iata) or (None, None)
         etapes.append(EtapeItineraire(
             lieu_id=lieu.id, nom=lieu.nom, jours=etape["jours"],
             date_arrivee=date_arrivee, date_depart=date_depart,
+            lat=lat, lon=lon,
         ))
         cout_sejour += (lieu.cout_jour_estime or 0.0) * etape["jours"]
 
@@ -167,6 +172,8 @@ def post_planifier(req: PlanifierRequest, session: Session = Depends(get_session
     return ItineraireOut(
         etapes=etapes, cout_total=cout_transport + cout_sejour,
         cout_transport=cout_transport, cout_sejour=cout_sejour,
+        depart=PointItineraire(iata=req.depart_iata, lat=depart_lat, lon=depart_lon),
+        arrivee=PointItineraire(iata=arrivee_iata, lat=arrivee_lat, lon=arrivee_lon),
     )
 
 

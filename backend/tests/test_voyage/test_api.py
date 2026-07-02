@@ -152,6 +152,57 @@ def test_planifier_happy_path(client, session, monkeypatch):
     assert data["cout_total"] == 1160.0
 
 
+def test_planifier_includes_coordinates(client, session, monkeypatch):
+    lv = LieuVoyage(nom="Table Mountain", aeroport_iata="CPT", jours_min=2, jours_max=2,
+                     cout_jour_estime=80.0)
+    session.add(lv)
+    session.commit()
+    session.refresh(lv)
+
+    monkeypatch.setattr(
+        voyage_routes, "fetch_offer",
+        lambda session, origine, destination, date_ref: {"prix": 500.0, "devise": "EUR", "duree_min": 600},
+    )
+    monkeypatch.setattr(
+        voyage_routes, "lookup_coords",
+        lambda iata, **kwargs: {"YUL": (45.4706, -73.7408), "CPT": (-33.9648, 18.6017)}.get(iata),
+    )
+
+    r = client.post("/voyage/planifier", json={
+        "candidats": [lv.id], "depart_iata": "YUL", "arrivee_iata": "YUL",
+        "date_debut": "2026-09-01", "date_fin": "2026-09-10", "budget_total": 10000,
+    })
+    assert r.status_code == 200
+    data = r.json()
+    assert data["depart"] == {"iata": "YUL", "lat": 45.4706, "lon": -73.7408}
+    assert data["arrivee"] == {"iata": "YUL", "lat": 45.4706, "lon": -73.7408}
+    assert data["etapes"][0]["lat"] == -33.9648
+    assert data["etapes"][0]["lon"] == 18.6017
+
+
+def test_planifier_null_coordinates_when_iata_unknown(client, session, monkeypatch):
+    lv = LieuVoyage(nom="Table Mountain", aeroport_iata="CPT", jours_min=2, jours_max=2,
+                     cout_jour_estime=80.0)
+    session.add(lv)
+    session.commit()
+    session.refresh(lv)
+
+    monkeypatch.setattr(
+        voyage_routes, "fetch_offer",
+        lambda session, origine, destination, date_ref: {"prix": 500.0, "devise": "EUR", "duree_min": 600},
+    )
+    monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: None)
+
+    r = client.post("/voyage/planifier", json={
+        "candidats": [lv.id], "depart_iata": "YUL", "arrivee_iata": "YUL",
+        "date_debut": "2026-09-01", "date_fin": "2026-09-10", "budget_total": 10000,
+    })
+    assert r.status_code == 200
+    data = r.json()
+    assert data["depart"]["lat"] is None and data["depart"]["lon"] is None
+    assert data["etapes"][0]["lat"] is None and data["etapes"][0]["lon"] is None
+
+
 def test_planifier_returns_409_when_infeasible(client, session, monkeypatch):
     lv = LieuVoyage(nom="Table Mountain", aeroport_iata="CPT", jours_min=2, jours_max=2,
                      cout_jour_estime=80.0)

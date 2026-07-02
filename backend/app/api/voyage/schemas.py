@@ -33,12 +33,20 @@ class PlanifierRequest(BaseModel):
     budget_total: float
 
 
+class PointItineraire(BaseModel):
+    iata: str
+    lat: float | None
+    lon: float | None
+
+
 class EtapeItineraire(BaseModel):
     lieu_id: int
     nom: str
     jours: int
     date_arrivee: dt.date
     date_depart: dt.date
+    lat: float | None
+    lon: float | None
 
 
 class ItineraireOut(BaseModel):
@@ -46,6 +54,8 @@ class ItineraireOut(BaseModel):
     cout_total: float
     cout_transport: float
     cout_sejour: float
+    depart: PointItineraire
+    arrivee: PointItineraire
 
 
 class ConfirmerRequest(BaseModel):
