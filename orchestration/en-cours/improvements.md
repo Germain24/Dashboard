@@ -76,10 +76,12 @@ l'application **inégale** de ce système à travers les 29 modules.
 Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data/`,
 `docs/`, `orchestration/`, `tools/`). Les écarts sont des résidus, pas une refonte.
 
-3.1 [S](\*\*) **Consolidation documentation** : `docs/index.md` comme hub ; déplacer
-    `DESIGN.md` → `docs/design/` et `PRODUCT.md` → `docs/` avec liens de renvoi ;
-    `README.md` et `ARCHITECTURE.md` restent à la racine (convention GitHub) mais
-    pointent vers le hub. Les specs/plans superpowers restent où ils sont.
+3.1 [S](\*\*) **Consolidation documentation** : réalisé autrement le 2026-07-02
+    (choix user) — tous les specs/plans regroupés dans `orchestration/` classés par
+    avancement (`a-faire/`, `en-cours/`, `finis/`), convention dans
+    `orchestration/README.md` ; `docs/` supprimé. ← FINIS ✓ (2026-07-02)
+    Résidu : `README.md`/`ARCHITECTURE.md`/`DESIGN.md`/`PRODUCT.md` restent à la
+    racine ; ajouter des liens de renvoi vers `orchestration/README.md`.
 3.2 [S](\*) Nettoyage racine : `pytest_out.txt`, `pytest_full.txt` → supprimés et
     gitignorés ; `entities.json`, `mempalace.yaml` → `orchestration/` si rien ne les
     référence à la racine (à vérifier avant déplacement).
@@ -142,9 +144,9 @@ Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data
 ### 5.4 Logistique & Planification
 - [S](\*\*) Voyage : la carte Leaflet vient d'être livrée — checklist par voyage et
   budget par étape comme prochains incréments.
-- [M](\*\*) Garde-robe : les deux chantiers déjà planifiés (`docs/superpowers/plans/
-  2026-06-30-garderobe-conseils-achat-combinatoires.md` et `…-enrichissement-
-  bonnegueule.md`) sont les prochaines briques logiques.
+- [M](\*\*) Garde-robe : conseils d'achat combinatoires + enrichissement BonneGueule
+  livrés (plans dans `orchestration/finis/`). ← FINIS ✓ (2026-07-01)
+  Module garde-robe complet, plus rien en attente.
 - [S](\*) Objectifs long-terme : jalons datés + lien vers les modules concernés
   (un objectif « épargne X $ » pointe vers patrimoine).
 
