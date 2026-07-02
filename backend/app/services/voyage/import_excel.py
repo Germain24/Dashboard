@@ -83,8 +83,8 @@ def sync_voyage(session: Session, path: Path) -> dict:
     """Écrase la table cache `lieu_voyage` avec le contenu de l'Excel.
 
     Retourne `{"lieux": n, "incomplets": [noms]}` — un lieu non visité sans
-    aéroport IATA ou sans fourchette de jours n'est pas utilisable comme
-    candidat de planification.
+    aéroport IATA, sans fourchette de jours, ou sans coût/jour estimé n'est
+    pas utilisable comme candidat de planification.
     """
     rows = parse_voyage_xlsx(path)
     for old in session.exec(select(LieuVoyage)).all():
@@ -94,6 +94,7 @@ def sync_voyage(session: Session, path: Path) -> dict:
         session.add(LieuVoyage(**r))
         if not r["visite"] and (
             not r["aeroport_iata"] or r["jours_min"] is None or r["jours_max"] is None
+            or r["cout_jour_estime"] is None
         ):
             incomplets.append(r["nom"])
     session.commit()

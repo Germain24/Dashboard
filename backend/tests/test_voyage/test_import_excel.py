@@ -58,6 +58,21 @@ def test_sync_voyage_wipes_and_refills_and_flags_incomplete(tmp_path, session):
     assert noms == {"Table Mountain", "K-2", "Robben Island"}  # ancien "Obsolète" effacé
 
 
+def test_sync_voyage_flags_incomplete_when_cout_jour_estime_missing(tmp_path, session):
+    """Issue 3 (revue finale) : aéroport + jours renseignés mais coût/jour manquant
+    -> incomplet (cohérent avec `_est_complet` côté API)."""
+    p = tmp_path / "Voyage.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Lieux", "Ville (ou ville la plus proche)", "Pays", "Visité", "Ordre",
+               "Aéroport (IATA)", "Jours min", "Jours max", "Coût/jour estimé"])
+    ws.append(["Sans coût", "Ville X", "Pays X", False, 1, "CPT", 2, 4, None])
+    wb.save(p)
+
+    result = sync_voyage(session, p)
+    assert result["incomplets"] == ["Sans coût"]
+
+
 def test_sync_voyage_does_not_flag_incomplete_if_already_visited(tmp_path, session):
     p = tmp_path / "Voyage.xlsx"
     wb = openpyxl.Workbook()

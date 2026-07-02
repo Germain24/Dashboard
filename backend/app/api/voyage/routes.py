@@ -20,6 +20,7 @@ from app.api.voyage.schemas import (
 from app.core.config import settings
 from app.core.db import get_session
 from app.models.voyage import LieuVoyage
+from app.services.finance import fx
 from app.services.voyage.duffel_client import fetch_offer
 from app.services.voyage.import_excel import marquer_visites, sync_voyage
 from app.services.voyage.solver import solve_itinerary
@@ -34,7 +35,25 @@ def _voyage_xlsx_path() -> Path:
 
 
 def _est_complet(lv: LieuVoyage) -> bool:
-    return bool(lv.aeroport_iata) and lv.jours_min is not None and lv.jours_max is not None
+    return (
+        bool(lv.aeroport_iata)
+        and lv.jours_min is not None
+        and lv.jours_max is not None
+        and lv.cout_jour_estime is not None
+    )
+
+
+def _prix_en_eur(prix: float, devise: str | None) -> float:
+    """Convertit `prix` (dans `devise`) en EUR, best-effort (repli sur la
+    valeur brute si le taux de change est indisponible). Mirroir de
+    `app.services.finance.patrimoine.to_eur`."""
+    if not devise or devise.upper() == "EUR":
+        return round(float(prix), 2)
+    try:
+        eur = fx.convert(float(prix), devise.upper(), "EUR")
+        return eur if eur else round(float(prix), 2)
+    except Exception:
+        return round(float(prix), 2)
 
 
 @router.get("/ping")
@@ -98,13 +117,19 @@ def post_planifier(req: PlanifierRequest, session: Session = Depends(get_session
         for b_id, b_iata in points:
             if a_id == b_id:
                 continue
+            if a_iata == b_iata:
+                # Même aéroport (ex. YUL -> YUL par défaut) : rien à parcourir,
+                # Duffel ne peut de toute façon pas pricer une paire identique.
+                trajets[(a_id, b_id)] = {"prix": 0.0, "duree_min": 0}
+                continue
             offer = fetch_offer(session, a_iata, b_iata, date_ref)
             if offer is None:
                 raise HTTPException(
                     status.HTTP_502_BAD_GATEWAY,
                     f"Impossible d'obtenir un prix de vol {a_iata} -> {b_iata}",
                 )
-            trajets[(a_id, b_id)] = {"prix": offer["prix"], "duree_min": offer["duree_min"]}
+            prix_eur = _prix_en_eur(offer["prix"], offer.get("devise"))
+            trajets[(a_id, b_id)] = {"prix": prix_eur, "duree_min": offer["duree_min"]}
 
     candidats_solver = [
         {"id": str(lv.id), "jours_min": lv.jours_min, "jours_max": lv.jours_max,

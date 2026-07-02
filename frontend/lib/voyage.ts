@@ -48,8 +48,13 @@ export const voyageApi = {
 
   sync: () => api<SyncVoyageResult>(`/voyage/sync`, { method: "POST" }),
 
+  // /planifier peut enchaîner de nombreux appels Duffel séquentiels (jusqu'à
+  // (k+2)(k+1) paires pour k candidats) : le timeout par défaut (15 s) est
+  // bien trop court, on l'étend à 2 min.
   planifier: (req: PlanifierRequest) =>
-    api<Itineraire>(`/voyage/planifier`, { method: "POST", body: JSON.stringify(req) }),
+    api<Itineraire>(`/voyage/planifier`, {
+      method: "POST", body: JSON.stringify(req), timeoutMs: 120_000,
+    }),
 
   confirmer: (lieuIds: number[]) =>
     api<{ visites: number }>(`/voyage/confirmer`, {
