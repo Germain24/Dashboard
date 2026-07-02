@@ -1,5 +1,3 @@
-'use client'
-
 import { AnimatedNumber } from '@/lib/motion/AnimatedNumber'
 
 interface StatCardProps {
