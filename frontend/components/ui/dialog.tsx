@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import { X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { springs, durations, EASE_OUT } from "@/lib/motion/tokens";
 
 /* ── Overlay ─────────────────────────────────────────────── */
 interface DialogProps {
@@ -22,32 +24,43 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  if (!open) return null;
   return (
-    <div
-      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-4"
-      role="dialog"
-      aria-modal
-    >
-      {/* Backdrop : voile flouté, le contenu reste deviné derrière le verre */}
-      <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-[6px] animate-fade-in"
-        onClick={onClose}
-        aria-hidden
-      />
-      {/* Panel : verre épais */}
-      <div
-        className={cn(
-          "glass-modal relative z-10 w-full max-w-lg rounded-[var(--radius-lg)]",
-          "animate-scale-in",
-          // On mobile: bottom sheet; sm+: centered modal
-          "max-h-[90dvh] overflow-y-auto",
-          className,
-        )}
-      >
-        {children}
-      </div>
-    </div>
+    <AnimatePresence>
+      {open && (
+        <div
+          className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-4"
+          role="dialog"
+          aria-modal
+        >
+          {/* Backdrop : voile flouté, le contenu reste deviné derrière le verre */}
+          <motion.div
+            data-testid="dialog-backdrop"
+            className="absolute inset-0 bg-black/30 backdrop-blur-[6px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: durations.fast, ease: EASE_OUT }}
+            onClick={onClose}
+            aria-hidden
+          />
+          {/* Panel : verre épais, ressort amorti sans rebond */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: 4 }}
+            transition={springs.soft}
+            className={cn(
+              "glass-modal relative z-10 w-full max-w-lg rounded-[var(--radius-lg)]",
+              // On mobile: bottom sheet; sm+: centered modal
+              "max-h-[90dvh] overflow-y-auto",
+              className,
+            )}
+          >
+            {children}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }
 
