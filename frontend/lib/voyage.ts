@@ -28,12 +28,20 @@ export type PlanifierRequest = {
   budget_total: number;
 };
 
+export type PointItineraire = {
+  iata: string;
+  lat: number | null;
+  lon: number | null;
+};
+
 export type EtapeItineraire = {
   lieu_id: number;
   nom: string;
   jours: number;
   date_arrivee: string;
   date_depart: string;
+  lat: number | null;
+  lon: number | null;
 };
 
 export type Itineraire = {
@@ -41,6 +49,8 @@ export type Itineraire = {
   cout_total: number;
   cout_transport: number;
   cout_sejour: number;
+  depart: PointItineraire;
+  arrivee: PointItineraire;
 };
 
 export const voyageApi = {

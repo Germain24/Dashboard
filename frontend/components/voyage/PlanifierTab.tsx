@@ -4,6 +4,12 @@ import { useState } from "react";
 import { usePlanifier, useConfirmerVoyage } from "@/lib/queries/voyage";
 import type { Itineraire } from "@/lib/voyage";
 import { notifySuccess } from "@/lib/toast";
+import dynamic from "next/dynamic";
+
+const ItineraryMap = dynamic(
+  () => import("./ItineraryMap").then((m) => m.ItineraryMap),
+  { ssr: false },
+);
 
 export function PlanifierTab({
   candidats,
@@ -80,6 +86,7 @@ export function PlanifierTab({
             {resultat.etapes.length} lieu(x) retenu(s) · {resultat.cout_total.toFixed(0)} €
             (transport {resultat.cout_transport.toFixed(0)} € + séjour {resultat.cout_sejour.toFixed(0)} €)
           </div>
+          <ItineraryMap itineraire={resultat} />
           <ol className="list-decimal space-y-1 pl-5 text-sm">
             {resultat.etapes.map((e) => (
               <li key={e.lieu_id}>
