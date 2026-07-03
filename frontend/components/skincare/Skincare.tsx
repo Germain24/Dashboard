@@ -52,7 +52,7 @@ export function Skincare() {
   );
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Skincare"
         subtitle="Routines & produits"

@@ -18,6 +18,8 @@ import { WorkoutBurnWidget } from "./WorkoutBurnWidget";
 import { EnergyBalanceAlert } from "./EnergyBalanceAlert";
 import { Button } from "@/components/ui/button";
 import { exportMacrosImage } from "@/lib/exportMacrosImage";
+import { StaggerGroup, StaggerItem } from "@/lib/motion/Stagger";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 
 type Props = {
   plan: PlanResponse | null;
@@ -122,13 +124,21 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
 
   return (
     <div className="space-y-4 animate-fade-in-up">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <WaterWidget />
-        <SleepWidget />
-      </div>
-      <EnergyBalanceAlert />
-      <NutritionQualityWidget />
-      <WorkoutBurnWidget consumedCalories={consumed?.["Calories"] as number | undefined} />
+      <CollapsibleSection title="Suivi quotidien (eau, sommeil)" defaultOpen={false}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <WaterWidget />
+          <SleepWidget />
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Alertes & qualité nutritionnelle" defaultOpen={false}>
+        <div className="space-y-3">
+          <EnergyBalanceAlert />
+          <NutritionQualityWidget />
+          <WorkoutBurnWidget consumedCalories={consumed?.["Calories"] as number | undefined} />
+        </div>
+      </CollapsibleSection>
+
       {/* Bandeau état */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 flex flex-wrap items-center gap-3 text-sm card-hover">
         <span className="font-medium">{new Date(plan.date).toLocaleDateString("fr-CA")}</span>
@@ -194,24 +204,27 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
       )}
 
       {/* Barres macros */}
-      <div className="grid gap-2 stagger">
+      <StaggerGroup className="grid gap-2">
         {MACRO_KEYS.map((k) => (
-          <MacroBar
-            key={k}
-            label={k}
-            unit={MACRO_UNITS[k] ?? ""}
-            current={totals[k] ?? 0}
-            target={targets[k] ?? 0}
-          />
+          <StaggerItem key={k}>
+            <MacroBar
+              label={k}
+              unit={MACRO_UNITS[k] ?? ""}
+              current={totals[k] ?? 0}
+              target={targets[k] ?? 0}
+            />
+          </StaggerItem>
         ))}
-        <MacroBar
-          label="Prix"
-          unit="CAD"
-          current={totals["Prix"] ?? sumPrix(plan)}
-          target={plan.budget_max_daily}
-          isMax
-        />
-      </div>
+        <StaggerItem>
+          <MacroBar
+            label="Prix"
+            unit="CAD"
+            current={totals["Prix"] ?? sumPrix(plan)}
+            target={plan.budget_max_daily}
+            isMax
+          />
+        </StaggerItem>
+      </StaggerGroup>
 
       {/* Actions principales */}
       <div className="flex flex-wrap gap-2">
@@ -249,39 +262,41 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
       </div>
 
       {/* Tableau du plan */}
-      <div className="rounded-xl border border-[var(--border)] overflow-hidden animate-fade-in-up">
-        <table className="w-full text-sm">
-          <thead className="bg-[var(--muted)]/50 text-[var(--muted-foreground)] text-xs uppercase">
-            <tr>
-              <th className="text-left px-3 py-2">Aliment</th>
-              <th className="text-right px-3 py-2">Quantité</th>
-              <th className="text-right px-3 py-2">kcal</th>
-              <th className="text-right px-3 py-2">Prot.</th>
-              <th className="text-right px-3 py-2">Lip.</th>
-              <th className="text-right px-3 py-2">Gluc.</th>
-              <th className="text-right px-3 py-2">CAD</th>
-            </tr>
-          </thead>
-          <tbody>
-            {plan.items.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-4 text-center text-[var(--muted-foreground)]">
-                Aucun item — clique sur Re-générer.
-              </td></tr>
-            )}
-            {plan.items.map((it) => (
-              <tr key={it.aliment} className="border-t border-[var(--border)]">
-                <td className="px-3 py-1.5">{it.aliment}</td>
-                <td className="px-3 py-1.5 text-right">{it.quantite_str}</td>
-                <td className="px-3 py-1.5 text-right">{it.calories.toFixed(0)}</td>
-                <td className="px-3 py-1.5 text-right">{it.proteines.toFixed(1)}</td>
-                <td className="px-3 py-1.5 text-right">{it.lipides.toFixed(1)}</td>
-                <td className="px-3 py-1.5 text-right">{it.glucides.toFixed(1)}</td>
-                <td className="px-3 py-1.5 text-right">{it.prix.toFixed(2)}</td>
+      <CollapsibleSection title="Détail des aliments du plan" defaultOpen={false}>
+        <div className="rounded-xl border border-[var(--border)] overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-[var(--muted)]/50 text-[var(--muted-foreground)] text-xs uppercase">
+              <tr>
+                <th className="text-left px-3 py-2">Aliment</th>
+                <th className="text-right px-3 py-2">Quantité</th>
+                <th className="text-right px-3 py-2">kcal</th>
+                <th className="text-right px-3 py-2">Prot.</th>
+                <th className="text-right px-3 py-2">Lip.</th>
+                <th className="text-right px-3 py-2">Gluc.</th>
+                <th className="text-right px-3 py-2">CAD</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {plan.items.length === 0 && (
+                <tr><td colSpan={7} className="px-3 py-4 text-center text-[var(--muted-foreground)]">
+                  Aucun item — clique sur Re-générer.
+                </td></tr>
+              )}
+              {plan.items.map((it) => (
+                <tr key={it.aliment} className="border-t border-[var(--border)]">
+                  <td className="px-3 py-1.5">{it.aliment}</td>
+                  <td className="px-3 py-1.5 text-right">{it.quantite_str}</td>
+                  <td className="px-3 py-1.5 text-right">{it.calories.toFixed(0)}</td>
+                  <td className="px-3 py-1.5 text-right">{it.proteines.toFixed(1)}</td>
+                  <td className="px-3 py-1.5 text-right">{it.lipides.toFixed(1)}</td>
+                  <td className="px-3 py-1.5 text-right">{it.glucides.toFixed(1)}</td>
+                  <td className="px-3 py-1.5 text-right">{it.prix.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CollapsibleSection>
 
       {err && <div className="text-sm text-[var(--destructive)]">⚠ {err}</div>}
 

@@ -57,7 +57,7 @@ export function Entrainement() {
   const todayJour = program?.jours.find((j) => j.weekday === todayWeekday);
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Entraînement"
         subtitle="Séances & progression"

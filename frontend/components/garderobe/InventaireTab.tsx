@@ -5,6 +5,7 @@ import type { Vetement } from "@/lib/garderobe";
 import { emojiForCategorie, imageUrl, mediaUrl } from "@/lib/garderobe";
 import { useObjectif, useUpdateVetement, useUploadVetementPhoto } from "@/lib/queries/garderobe";
 import { dominantColorFromFile } from "@/lib/dominantColor";
+import { StaggerGroup, StaggerItem } from "@/lib/motion/Stagger";
 
 export function InventaireTab({ wardrobe, onReload }: { wardrobe: Vetement[]; onReload?: () => void }) {
   const [cat, setCat] = useState<string>("");
@@ -79,11 +80,13 @@ export function InventaireTab({ wardrobe, onReload }: { wardrobe: Vetement[]; on
       {filtered.length === 0 ? (
         <p className="text-sm text-[var(--muted-foreground)]">Aucun vêtement ne correspond.</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 stagger">
+        <StaggerGroup className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map((v) => (
-            <VetementCard key={v.id} v={v} onReload={onReload} typeNames={typeNames} />
+            <StaggerItem key={v.id}>
+              <VetementCard v={v} onReload={onReload} typeNames={typeNames} />
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerGroup>
       )}
     </div>
   );

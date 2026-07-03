@@ -13,6 +13,7 @@ import {
   useUpsertMesure,
 } from "@/lib/queries/sante";
 import { ModuleHeader } from "@/components/layout";
+import { SkeletonStatRow, SkeletonList } from "@/components/ui/skeleton";
 import { JourTab } from "./JourTab";
 import { TendanceTab } from "./TendanceTab";
 import { CompositionTab } from "./CompositionTab";
@@ -68,19 +69,10 @@ export function Sante() {
     await updateGoalMutation.mutateAsync(patch);
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-4 animate-fade-in">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 rounded-xl border border-[var(--border)] bg-[var(--card)] skeleton-shimmer" />
-        ))}
-      </div>
-    );
-  }
   if (error) return <div className="p-6 text-[var(--destructive)]">⚠ {error}</div>;
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Santé"
         subtitle="Nutrition & mesures corporelles"
@@ -97,27 +89,34 @@ export function Sante() {
         }
       />
 
-      <div key={tab} className="p-6 animate-fade-in-up">
-        {tab === "jour" && (
-          <JourTab
-            plan={plan}
-            goal={goal}
-            onGenerate={onGeneratePlan}
-            onPlanUpdated={() => {}}
-            onOpenMicros={() => setMicrosOpen(true)}
-          />
-        )}
-        {tab === "tendance" && (
-          <TendanceTab mesures={mesures} projection={projection} goal={goal} />
-        )}
-        {tab === "composition" && (
-          <CompositionTab mesures={mesures} onSave={onSaveMesure} />
-        )}
-        {tab === "progression" && <ProgressionTab />}
-        {tab === "objectif" && goal && (
-          <GoalTab goal={goal} onSave={onSaveGoal} />
-        )}
-      </div>
+      {loading ? (
+        <div className="p-6 space-y-4">
+          <SkeletonStatRow count={2} />
+          <SkeletonList rows={3} />
+        </div>
+      ) : (
+        <div key={tab} className="p-6 animate-fade-in-up">
+          {tab === "jour" && (
+            <JourTab
+              plan={plan}
+              goal={goal}
+              onGenerate={onGeneratePlan}
+              onPlanUpdated={() => {}}
+              onOpenMicros={() => setMicrosOpen(true)}
+            />
+          )}
+          {tab === "tendance" && (
+            <TendanceTab mesures={mesures} projection={projection} goal={goal} />
+          )}
+          {tab === "composition" && (
+            <CompositionTab mesures={mesures} onSave={onSaveMesure} />
+          )}
+          {tab === "progression" && <ProgressionTab />}
+          {tab === "objectif" && goal && (
+            <GoalTab goal={goal} onSave={onSaveGoal} />
+          )}
+        </div>
+      )}
 
       <MicrosDrawer
         open={microsOpen}

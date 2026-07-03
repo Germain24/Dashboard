@@ -6,6 +6,7 @@ import {
   type NutritionGoal,
   type ProjectionResponse,
 } from "@/lib/sante";
+import { INK } from "@/lib/design/colors";
 
 type Props = {
   mesures: MesureSante[];
@@ -158,7 +159,7 @@ export function TendanceTab({ mesures, projection, goal }: Props) {
               y1={trendLine.y1}
               x2={trendLine.x2}
               y2={trendLine.y2}
-              stroke="#3b82f6"
+              stroke={INK.slate}
               strokeDasharray="6 4"
               strokeWidth={1.5}
               opacity={0.6}

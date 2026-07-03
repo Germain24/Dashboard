@@ -16,6 +16,7 @@ import { FinishBar, MesocycleBanner, RestTimer } from "./SeanceWidgets";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
+import { StaggerGroup, StaggerItem } from "@/lib/motion/Stagger";
 
 export function AujourdhuiTab() {
   // Minuteur de repos entre séries (#106)
@@ -84,7 +85,7 @@ export function AujourdhuiTab() {
           Poids : {today.poids_corps_kg.toFixed(1)} kg
         </span>
         {today.kcal_estimees > 0 && (
-          <span className="ml-auto rounded-md bg-[color-mix(in_srgb,var(--success,#16a34a)_12%,transparent)] text-[var(--success,#16a34a)] px-2 py-0.5 text-xs">
+          <span className="ml-auto rounded-md bg-[var(--success-muted)] text-[var(--success-foreground)] px-2 py-0.5 text-xs">
             🔥 {today.kcal_estimees.toFixed(0)} kcal
           </span>
         )}
@@ -109,22 +110,24 @@ export function AujourdhuiTab() {
       )}
 
       {!isRest && (
-        <div className="space-y-2 stagger">
-          {today.slots.map((slot, i) => (
-            <SlotCard
-              key={i}
-              slot={slot}
-              seance={seance}
-              onRest={() => startRest(restDuration)}
-            />
-          ))}
-          {today.slots.length === 0 && (
-            <EmptyState
-              title="Aucun slot configuré"
-              description="Lance POST /entrainement/program/seed-garmin ou édite le jour dans l'onglet Programme."
-            />
-          )}
-        </div>
+        today.slots.length === 0 ? (
+          <EmptyState
+            title="Aucun slot configuré"
+            description="Lance POST /entrainement/program/seed-garmin ou édite le jour dans l'onglet Programme."
+          />
+        ) : (
+          <StaggerGroup className="space-y-2">
+            {today.slots.map((slot, i) => (
+              <StaggerItem key={i}>
+                <SlotCard
+                  slot={slot}
+                  seance={seance}
+                  onRest={() => startRest(restDuration)}
+                />
+              </StaggerItem>
+            ))}
+          </StaggerGroup>
+        )
       )}
 
       {seance && (

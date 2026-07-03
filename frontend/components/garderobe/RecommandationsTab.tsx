@@ -25,7 +25,7 @@ export function RecommandationsTab({ recs }: { recs: ConseilsAchat }) {
               <div className="text-sm font-semibold">
                 Ajouter {c.slot} {c.couleur}
               </div>
-              <span className="ml-auto text-xs font-mono text-[var(--success,#16a34a)]">
+              <span className="ml-auto text-xs font-mono text-[var(--success)]">
                 +{c.debloque} tenue{c.debloque > 1 ? "s" : ""}
               </span>
             </div>

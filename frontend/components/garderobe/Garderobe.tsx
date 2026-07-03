@@ -18,6 +18,7 @@ import {
   useVetements,
 } from "@/lib/queries/garderobe";
 import { ModuleHeader } from "@/components/layout";
+import { SkeletonCardGrid, Skeleton } from "@/components/ui/skeleton";
 import { SlotCard } from "./SlotCard";
 import { WeatherBanner } from "./WeatherBanner";
 import { ThermalScore } from "./ThermalScore";
@@ -154,21 +155,12 @@ export function Garderobe() {
     return total;
   }, [tenue, useBody, wornItems]);
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-4 animate-fade-in">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 rounded-xl border border-[var(--border)] bg-[var(--card)] skeleton-shimmer" />
-        ))}
-      </div>
-    );
-  }
   if (error) {
     return <div className="p-6 text-[var(--destructive)]">⚠ {error}</div>;
   }
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Garde-robe"
         subtitle="Tenues & météo"
@@ -179,95 +171,110 @@ export function Garderobe() {
         active={tab}
         onChange={(id) => setTab(id as Tab)}
         actions={
-          <span className="text-xs rounded-[var(--radius-full)] bg-[var(--muted)] px-2.5 py-1 text-[var(--muted-foreground)]">
-            {wardrobe.length} pièces
-          </span>
+          loading ? undefined : (
+            <span className="text-xs rounded-[var(--radius-full)] bg-[var(--muted)] px-2.5 py-1 text-[var(--muted-foreground)]">
+              {wardrobe.length} pièces
+            </span>
+          )
         }
       />
 
-      {weather && (
-        <div className="px-6 pt-6">
-          <WeatherBanner weather={weather} meanTemp={suggestion?.mean_temp ?? weather.mean_window_temp} />
-        </div>
-      )}
-
-      <div key={tab} className="p-6 animate-fade-in-up">
-        {tab === "tenue" && (
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2 items-center">
-              <button
-                onClick={onResuggest}
-                disabled={resuggesting}
-                className="rounded bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm font-medium disabled:opacity-50"
-              >
-                {resuggesting ? "…" : "✨ Re-suggérer"}
-              </button>
-              <button
-                onClick={onReset}
-                className="rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)]"
-              >
-                🗑 Réinitialiser
-              </button>
-              <label className="ml-2 text-sm flex items-center gap-2">
-                <input type="checkbox" checked={useBody} onChange={(e) => setUseBody(e.target.checked)} />
-                👕 Body en coton (+1.5)
-              </label>
-            </div>
-
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-              {SLOT_ROW_1.map((sid) => slotsMap[sid] && (
-                <SlotCard
-                  key={sid}
-                  slot={slotsMap[sid]}
-                  item={tenue[sid] ?? null}
-                  candidates={wardrobe.filter((v) => slotsMap[sid].categories.includes(v.categorie))}
-                  onChange={(next) => setTenue((t) => ({ ...t, [sid]: next }))}
-                />
-              ))}
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-              {SLOT_ROW_2.map((sid) => slotsMap[sid] && (
-                <SlotCard
-                  key={sid}
-                  slot={slotsMap[sid]}
-                  item={tenue[sid] ?? null}
-                  candidates={wardrobe.filter((v) => slotsMap[sid].categories.includes(v.categorie))}
-                  onChange={(next) => setTenue((t) => ({ ...t, [sid]: next }))}
-                />
-              ))}
-            </div>
-
-            <ThermalScore
-              total={totalThermal}
-              target={targetThermal}
-              useBody={useBody}
-              styleScore={suggestion?.style_score ?? 0}
-            />
-
-            <div className="flex justify-center">
-              <button
-                onClick={onValider}
-                disabled={validating || wornItems.length === 0}
-                className="rounded bg-[var(--success,#16a34a)] text-white px-6 py-2.5 text-sm font-semibold disabled:opacity-50"
-              >
-                {validating ? "…" : "✅ PORTER CETTE TENUE AUJOURD'HUI"}
-              </button>
-            </div>
+      {loading ? (
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-9" />
+            ))}
           </div>
-        )}
+          <SkeletonCardGrid count={8} cols={4} />
+        </div>
+      ) : (
+        <>
+          {weather && (
+            <div className="px-6 pt-6">
+              <WeatherBanner weather={weather} meanTemp={suggestion?.mean_temp ?? weather.mean_window_temp} />
+            </div>
+          )}
 
-        {tab === "inventaire" && (
-          <InventaireTab
-            wardrobe={wardrobe}
-            onReload={() => void wardrobeQ.refetch()}
-          />
-        )}
-        {tab === "objectif" && <ObjectifTab />}
-        {tab === "semaine" && <WeekPlannerTab wardrobe={wardrobe} />}
-        {tab === "stats" && stats && <StatsTab stats={stats} />}
-        {tab === "history" && <HistoriqueTab history={history} />}
-        {tab === "recs" && <RecommandationsTab recs={recs} />}
-      </div>
+          <div key={tab} className="p-6 animate-fade-in-up">
+            {tab === "tenue" && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2 items-center">
+                  <button
+                    onClick={onResuggest}
+                    disabled={resuggesting}
+                    className="rounded bg-[var(--primary)] text-[var(--primary-foreground)] px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+                  >
+                    {resuggesting ? "…" : "✨ Re-suggérer"}
+                  </button>
+                  <button
+                    onClick={onReset}
+                    className="rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)]"
+                  >
+                    🗑 Réinitialiser
+                  </button>
+                  <label className="ml-2 text-sm flex items-center gap-2">
+                    <input type="checkbox" checked={useBody} onChange={(e) => setUseBody(e.target.checked)} />
+                    👕 Body en coton (+1.5)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                  {SLOT_ROW_1.map((sid) => slotsMap[sid] && (
+                    <SlotCard
+                      key={sid}
+                      slot={slotsMap[sid]}
+                      item={tenue[sid] ?? null}
+                      candidates={wardrobe.filter((v) => slotsMap[sid].categories.includes(v.categorie))}
+                      onChange={(next) => setTenue((t) => ({ ...t, [sid]: next }))}
+                    />
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                  {SLOT_ROW_2.map((sid) => slotsMap[sid] && (
+                    <SlotCard
+                      key={sid}
+                      slot={slotsMap[sid]}
+                      item={tenue[sid] ?? null}
+                      candidates={wardrobe.filter((v) => slotsMap[sid].categories.includes(v.categorie))}
+                      onChange={(next) => setTenue((t) => ({ ...t, [sid]: next }))}
+                    />
+                  ))}
+                </div>
+
+                <ThermalScore
+                  total={totalThermal}
+                  target={targetThermal}
+                  useBody={useBody}
+                  styleScore={suggestion?.style_score ?? 0}
+                />
+
+                <div className="flex justify-center">
+                  <button
+                    onClick={onValider}
+                    disabled={validating || wornItems.length === 0}
+                    className="rounded bg-[var(--success)] text-white px-6 py-2.5 text-sm font-semibold disabled:opacity-50"
+                  >
+                    {validating ? "…" : "✅ PORTER CETTE TENUE AUJOURD'HUI"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {tab === "inventaire" && (
+              <InventaireTab
+                wardrobe={wardrobe}
+                onReload={() => void wardrobeQ.refetch()}
+              />
+            )}
+            {tab === "objectif" && <ObjectifTab />}
+            {tab === "semaine" && <WeekPlannerTab wardrobe={wardrobe} />}
+            {tab === "stats" && stats && <StatsTab stats={stats} />}
+            {tab === "history" && <HistoriqueTab history={history} />}
+            {tab === "recs" && <RecommandationsTab recs={recs} />}
+          </div>
+        </>
+      )}
     </div>
   );
 }
