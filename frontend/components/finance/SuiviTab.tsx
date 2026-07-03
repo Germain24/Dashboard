@@ -352,8 +352,9 @@ export function SuiviTab() {
               <tbody>
                 {benchmarks.map(b => (
                   <tr key={b.ticker ?? b.nom} className="border-b border-[var(--border)]">
-                    <td className="py-1.5 pr-4 font-medium"
-                      style={(b.nom === "CW8" || b.ticker === "CW8.PA") ? { color: CW8_COLOR } : {}}>
+                    <td className={`py-1.5 pr-4 font-medium ${
+                      (b.nom === "CW8" || b.ticker === "CW8.PA") ? "text-[var(--warning)]" : ""
+                    }`}>
                       {b.nom}{(b.nom === "CW8" || b.ticker === "CW8.PA") ? " (CW8.PA)" : ""}
                     </td>
                     <td className="py-1.5 pr-4"><PerfBadge v={b.perf_6m_pct} /></td>
