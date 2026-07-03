@@ -98,6 +98,7 @@ describe.each(themes)("thème %s — texte >= 4.5:1", (_name, t) => {
 
 describe.each(themes)("thème %s — UI >= 3:1", (_name, t) => {
   const bg = color(t, "--background");
+  // --border est décoratif (non porteur d'état) : hors périmètre du seuil UI 3:1 — seul --ring est audité.
   it("ring / background", () => {
     expect(contrastRatio(color(t, "--ring"), bg)).toBeGreaterThanOrEqual(3.0);
   });

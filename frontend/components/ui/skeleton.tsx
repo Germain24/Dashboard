@@ -60,13 +60,11 @@ export function SkeletonHeader() {
   )
 }
 
-/** Rangée de stat-cards (géométrie StatCard : ~96px de haut). */
-export function SkeletonStatRow({ count = 3 }: { count?: number }) {
+/** Rangée de stat-cards (géométrie StatCard : ~96px de haut, responsive 2 col mobile). */
+export function SkeletonStatRow({ count = 3 }: { count?: 2 | 3 | 4 }) {
+  const colClass = { 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' }[count]
   return (
-    <div
-      className="grid gap-3"
-      style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
-    >
+    <div className={cn('grid grid-cols-2 gap-3', colClass)}>
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
