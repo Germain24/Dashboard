@@ -24,6 +24,14 @@
   --wash-2: rgb(197 160 89 / 0.10);
   --wash-3: rgb(83 98 82 / 0.06);
 
+  /* Lavis d'accent par module (catégories du Deck) — repère spatial subtil. */
+  --wash-module: transparent;
+  --tint-finance: rgb(4 20 44 / 0.08);
+  --tint-corps: rgb(83 98 82 / 0.07);
+  --tint-quotidien: rgb(138 109 31 / 0.07);
+  --tint-savoir: rgb(80 19 18 / 0.06);
+  --tint-loisirs: rgb(56 71 98 / 0.08);
+
   /* ── Foreground (encre) ────────────────────────────────── */
   --foreground: #1b1c1a;
 
@@ -133,6 +141,12 @@
     --wash-2: rgb(56 71 98 / 0.30);
     --wash-3: rgb(80 19 18 / 0.14);
 
+    --tint-finance: rgb(56 71 98 / 0.12);
+    --tint-corps: rgb(83 98 82 / 0.10);
+    --tint-quotidien: rgb(197 160 89 / 0.09);
+    --tint-savoir: rgb(80 19 18 / 0.10);
+    --tint-loisirs: rgb(56 71 98 / 0.12);
+
     --muted: rgb(242 241 237 / 0.06);
     --muted-foreground: #9aa3b0;
     --border: rgb(242 241 237 / 0.12);
@@ -199,6 +213,12 @@
   --wash-1: rgb(197 160 89 / 0.09);
   --wash-2: rgb(56 71 98 / 0.30);
   --wash-3: rgb(80 19 18 / 0.14);
+
+  --tint-finance: rgb(56 71 98 / 0.12);
+  --tint-corps: rgb(83 98 82 / 0.10);
+  --tint-quotidien: rgb(197 160 89 / 0.09);
+  --tint-savoir: rgb(80 19 18 / 0.10);
+  --tint-loisirs: rgb(56 71 98 / 0.12);
 
   --muted: rgb(242 241 237 / 0.06);
   --muted-foreground: #9aa3b0;
@@ -292,7 +312,8 @@ body::before {
   background:
     radial-gradient(1100px 720px at 85% -8%, var(--wash-1), transparent 62%),
     radial-gradient(940px 640px at -4% 100%, var(--wash-2), transparent 58%),
-    radial-gradient(760px 540px at 55% 48%, var(--wash-3), transparent 62%);
+    radial-gradient(760px 540px at 55% 48%, var(--wash-3), transparent 62%),
+    radial-gradient(900px 600px at 50% -10%, var(--wash-module), transparent 60%);
   animation: washDrift 70s ease-in-out infinite alternate;
 }
 @keyframes washDrift {
@@ -312,6 +333,36 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-repeat: repeat;
 }
+
+/* Catégorie -> teinte. Les segments hors table gardent les lavis de base. */
+body[data-module="finance"],
+body[data-module="patrimoine"],
+body[data-module="budget"] { --wash-module: var(--tint-finance); }
+
+body[data-module="sante"],
+body[data-module="entrainement"],
+body[data-module="score"],
+body[data-module="skincare"],
+body[data-module="garderobe"] { --wash-module: var(--tint-corps); }
+
+body[data-module="cuisine"],
+body[data-module="routines"],
+body[data-module="agenda"],
+body[data-module="habitudes"] { --wash-module: var(--tint-quotidien); }
+
+body[data-module="etudes"],
+body[data-module="travail"],
+body[data-module="jobs"],
+body[data-module="langues"],
+body[data-module="documents"],
+body[data-module="livres"] { --wash-module: var(--tint-savoir); }
+
+body[data-module="musique"],
+body[data-module="film"],
+body[data-module="series"],
+body[data-module="gaming"],
+body[data-module="voyage"],
+body[data-module="journal"] { --wash-module: var(--tint-loisirs); }
 
 /* Titres en serif éditorial (Libre Caslon) — la voix de l'almanach, conservée
    dans le monde liquid glass. `.font-display` étend le serif à un élément
