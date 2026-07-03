@@ -25,7 +25,7 @@ export function Etudes() {
   const [tab, setTab] = useState<Tab>("cours");
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Études"
         subtitle="Cours, évaluations & GPA"

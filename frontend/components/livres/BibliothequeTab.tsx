@@ -7,10 +7,11 @@ import type { Book, Statut, SearchResult } from '@/lib/livres'
 import { searchBooks, syncFromJson } from '@/lib/livres'
 import { useBooks, useCreateBook, useUpdateBook } from '@/lib/queries/livres'
 import { Skeleton } from '@/components/ui/skeleton'
+import { StaggerGroup, StaggerItem } from '@/lib/motion/Stagger'
 import BookDetailModal from '@/components/livres/BookDetailModal'
 
 const STATUT_CONFIG: Record<Statut, { label: string; icon: typeof BookOpen; color: string; bg: string }> = {
-  en_cours: { label: 'En cours', icon: Clock, color: '#f59e0b', bg: 'color-mix(in_srgb,#f59e0b_12%,transparent)' },
+  en_cours: { label: 'En cours', icon: Clock, color: 'var(--warning)', bg: 'color-mix(in_srgb,var(--warning)_12%,transparent)' },
   a_lire: { label: 'À lire', icon: Bookmark, color: 'var(--ring)', bg: 'color-mix(in_srgb,var(--ring)_10%,transparent)' },
   lu: { label: 'Lu', icon: CheckCircle2, color: 'var(--success)', bg: 'color-mix(in_srgb,var(--success)_10%,transparent)' },
   abandonne: { label: 'Abandonné', icon: XCircle, color: 'var(--muted-foreground)', bg: 'var(--muted)' },
@@ -27,7 +28,7 @@ function Stars({ note, onSet }: { note: number | null; onSet?: (n: number) => vo
           type="button"
           disabled={!onSet}
           onClick={(e) => { e.stopPropagation(); onSet?.(i + 1) }}
-          className={`text-sm ${onSet ? 'cursor-pointer' : 'cursor-default'} ${i < (note ?? 0) ? 'text-[#f59e0b]' : 'text-[var(--border)]'}`}
+          className={`text-sm ${onSet ? 'cursor-pointer' : 'cursor-default'} ${i < (note ?? 0) ? 'text-[var(--warning)]' : 'text-[var(--border)]'}`}
           aria-label={`Note ${i + 1}`}
         >
           ★
@@ -77,25 +78,26 @@ export default function BibliothequeTab() {
   return (
     <div className="max-w-xl space-y-6">
       {/* Étagères (#145) */}
-      <div className="grid grid-cols-4 gap-3 stagger">
+      <StaggerGroup className="grid grid-cols-4 gap-3">
         {ALL_STATUTS.map((s) => {
           const cfg = STATUT_CONFIG[s]
           const Icon = cfg.icon
           return (
-            <button
-              key={s}
-              onClick={() => setFiltre((f) => (f === s ? 'tous' : s))}
-              className={`rounded-xl border bg-[var(--card)] p-3 text-center transition-all animate-fade-in-up ${
-                filtre === s ? 'border-[var(--ring)]' : 'border-[var(--border)] hover:border-[var(--muted-foreground)]'
-              }`}
-            >
-              <Icon size={18} className="mx-auto mb-1" style={{ color: cfg.color }} />
-              <p className="font-display text-[1.75rem] leading-tight tabular-nums">{counts[s]}</p>
-              <p className="text-[11px] text-[var(--muted-foreground)]">{cfg.label}</p>
-            </button>
+            <StaggerItem key={s}>
+              <button
+                onClick={() => setFiltre((f) => (f === s ? 'tous' : s))}
+                className={`w-full rounded-xl border bg-[var(--card)] p-3 text-center transition-all ${
+                  filtre === s ? 'border-[var(--ring)]' : 'border-[var(--border)] hover:border-[var(--muted-foreground)]'
+                }`}
+              >
+                <Icon size={18} className="mx-auto mb-1" style={{ color: cfg.color }} />
+                <p className="font-display text-[1.75rem] leading-tight tabular-nums">{counts[s]}</p>
+                <p className="text-[11px] text-[var(--muted-foreground)]">{cfg.label}</p>
+              </button>
+            </StaggerItem>
           )
         })}
-      </div>
+      </StaggerGroup>
 
       {/* Barre d'actions */}
       <div className="flex items-center justify-between gap-2">
@@ -163,7 +165,7 @@ export default function BibliothequeTab() {
           Aucun livre {filtre !== 'tous' ? `« ${STATUT_CONFIG[filtre].label} »` : ''}. Ajoute-en un !
         </p>
       ) : (
-        <div className="space-y-2 stagger">
+        <StaggerGroup className="space-y-2">
           {livresFiltres.map((livre) => {
             const cfg = STATUT_CONFIG[livre.statut] ?? STATUT_CONFIG.a_lire
             const total = livre.pages ?? 0
@@ -172,60 +174,61 @@ export default function BibliothequeTab() {
             return (
               // div role=button (et non <button>) : la rangée contient les
               // étoiles cliquables, et un <button> imbriqué est du HTML invalide.
-              <div
-                key={livre.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelected(livre)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(livre) }
-                }}
-                className="w-full cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-left card-hover animate-fade-in-up"
-              >
-                <div className="flex items-start gap-3">
-                  {livre.couverture_url ? (
-                    <img src={livre.couverture_url} alt="" className="h-14 w-10 shrink-0 rounded object-cover" />
-                  ) : (
-                    <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded" style={{ background: cfg.bg }}>
-                      <BookOpen size={16} style={{ color: cfg.color }} />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold leading-tight">{livre.titre}</p>
-                        <p className="mt-0.5 truncate text-xs text-[var(--muted-foreground)]">{livre.auteur || '—'}</p>
-                      </div>
-                      <Stars note={livre.note} onSet={(n) => void setNote(livre, n)} />
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={{ background: cfg.bg, color: cfg.color }}>
-                        {cfg.label}
-                      </span>
-                      {livre.genre && (
-                        <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">{livre.genre}</span>
-                      )}
-                      {livre.langue && (
-                        <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">{livre.langue}</span>
-                      )}
-                      {total > 0 && <span className="text-xs text-[var(--muted-foreground)]">{total} p.</span>}
-                    </div>
-                    {total > 0 && (current > 0 || livre.statut === 'en_cours') && livre.statut !== 'lu' && (
-                      <div className="mt-2">
-                        <div className="mb-1 flex justify-between text-[10px] text-[var(--muted-foreground)]">
-                          <span>Page {current} / {total}</span><span>{pct}%</span>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: cfg.color }} />
-                        </div>
+              <StaggerItem key={livre.id}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelected(livre)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(livre) }
+                  }}
+                  className="w-full cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-left card-hover"
+                >
+                  <div className="flex items-start gap-3">
+                    {livre.couverture_url ? (
+                      <img src={livre.couverture_url} alt="" className="h-14 w-10 shrink-0 rounded object-cover" />
+                    ) : (
+                      <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded" style={{ background: cfg.bg }}>
+                        <BookOpen size={16} style={{ color: cfg.color }} />
                       </div>
                     )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold leading-tight">{livre.titre}</p>
+                          <p className="mt-0.5 truncate text-xs text-[var(--muted-foreground)]">{livre.auteur || '—'}</p>
+                        </div>
+                        <Stars note={livre.note} onSet={(n) => void setNote(livre, n)} />
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={{ background: cfg.bg, color: cfg.color }}>
+                          {cfg.label}
+                        </span>
+                        {livre.genre && (
+                          <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">{livre.genre}</span>
+                        )}
+                        {livre.langue && (
+                          <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">{livre.langue}</span>
+                        )}
+                        {total > 0 && <span className="text-xs text-[var(--muted-foreground)]">{total} p.</span>}
+                      </div>
+                      {total > 0 && (current > 0 || livre.statut === 'en_cours') && livre.statut !== 'lu' && (
+                        <div className="mt-2">
+                          <div className="mb-1 flex justify-between text-[10px] text-[var(--muted-foreground)]">
+                            <span>Page {current} / {total}</span><span>{pct}%</span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
+                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: cfg.color }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </StaggerItem>
             )
           })}
-        </div>
+        </StaggerGroup>
       )}
 
       {showAdd && (

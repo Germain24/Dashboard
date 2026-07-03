@@ -13,7 +13,6 @@ const frontendRoot = path.resolve(__dirname, "../..");
 export const HEX_WHITELIST = [
   "components/deck/modules/ScoreRingModule.tsx",
   "components/films/WatchlistSection.tsx",
-  "components/livres/BibliothequeTab.tsx",
   "components/musique/Bibliotheque.tsx",
   "src/app/donnees/page.tsx",
   "src/app/layout.tsx",

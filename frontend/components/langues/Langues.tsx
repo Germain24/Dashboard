@@ -40,7 +40,7 @@ export function Langues() {
   const [onglet, setOnglet] = useState<Onglet>("japonais");
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Langues & International"
         subtitle="Japonais (vocabulaire, kanjis) & masterplan Asie"

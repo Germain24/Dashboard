@@ -18,7 +18,7 @@ export default function DocumentsPage() {
   const [tab, setTab] = useState<Tab>('documents')
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Documents"
         subtitle="Coffre-fort administratif"
