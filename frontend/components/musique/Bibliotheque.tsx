@@ -75,7 +75,7 @@ export function Bibliotheque() {
           className="ml-auto px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--background)]" />
       </div>
       {error && (
-        <div className="rounded-md border border-[var(--warning-muted,#d97706)] bg-[color-mix(in_srgb,#d97706_8%,transparent)] px-3 py-2 text-xs text-[var(--warning-foreground,#92400e)]">
+        <div className="rounded-md border border-[var(--warning-muted)] bg-[color-mix(in_srgb,var(--warning)_8%,transparent)] px-3 py-2 text-xs text-[var(--warning-foreground)]">
           ⚠ {error}
         </div>
       )}

@@ -12,9 +12,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useScore, useScoreHistory } from "@/lib/queries/sante";
 
 const COMPONENTS = [
-  { key: "sommeil", label: "Sommeil", Icon: Moon, color: "#6366f1" },
-  { key: "sport", label: "Sport", Icon: Dumbbell, color: "#f59e0b" },
-  { key: "nutrition", label: "Nutrition", Icon: Apple, color: "#22c55e" },
+  { key: "sommeil", label: "Sommeil", Icon: Moon, color: "var(--info)" },
+  { key: "sport", label: "Sport", Icon: Dumbbell, color: "var(--warning)" },
+  { key: "nutrition", label: "Nutrition", Icon: Apple, color: "var(--success)" },
 ] as const;
 
 const LINKS = [
@@ -25,14 +25,14 @@ const LINKS = [
 
 function tone(score: number): { label: string; color: string } {
   if (score >= 80) return { label: "Excellent", color: "var(--success)" };
-  if (score >= 60) return { label: "Bon", color: "#22c55e" };
-  if (score >= 40) return { label: "Moyen", color: "#f59e0b" };
+  if (score >= 60) return { label: "Bon", color: "var(--success)" };
+  if (score >= 40) return { label: "Moyen", color: "var(--warning)" };
   return { label: "À surveiller", color: "var(--destructive)" };
 }
 
 export default function ScorePage() {
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader title="Score" subtitle="Ta forme du jour : sommeil · sport · nutrition" />
       <div className="p-6">
         <ErrorBoundary label="Score">

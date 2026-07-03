@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 const STATUT_CONFIG: Record<WatchStatut, { label: string; icon: typeof Eye; color: string }> = {
   a_voir:   { label: 'À voir',    icon: Bookmark, color: 'var(--ring)' },
-  en_cours: { label: 'En cours',  icon: Clock,    color: '#f59e0b' },
+  en_cours: { label: 'En cours',  icon: Clock,    color: 'var(--warning)' },
   vu:       { label: 'Vu',        icon: Check,    color: 'var(--success)' },
 }
 
@@ -32,7 +32,7 @@ function StarRating({ note, onSet }: { note: number | null; onSet?: (n: number) 
           disabled={!onSet}
           onClick={(e) => { e.stopPropagation(); onSet?.(i + 1) }}
           className={`text-sm ${onSet ? 'cursor-pointer' : 'cursor-default'} ${
-            i < (note ?? 0) ? 'text-[#f59e0b]' : 'text-[var(--border)]'
+            i < (note ?? 0) ? 'text-[var(--warning)]' : 'text-[var(--border)]'
           }`}
         >★</button>
       ))}

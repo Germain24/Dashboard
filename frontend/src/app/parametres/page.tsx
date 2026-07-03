@@ -73,7 +73,7 @@ export default function ParametresPage() {
   const save = () => mutation.mutate(form as Record<string, unknown>)
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader title="Paramètres" subtitle="Intégrations & préférences" />
 
       <div className="p-6 max-w-lg space-y-8 animate-fade-in-up">

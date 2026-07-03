@@ -18,9 +18,8 @@ const R = 86
 const CIRC = 2 * Math.PI * R
 
 function tone(score: number): string {
-  if (score >= 80) return 'var(--success)'
-  if (score >= 60) return '#22c55e'
-  if (score >= 40) return '#f59e0b'
+  if (score >= 60) return 'var(--success)'
+  if (score >= 40) return 'var(--warning)'
   return 'var(--destructive)'
 }
 

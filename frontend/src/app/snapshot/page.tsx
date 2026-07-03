@@ -18,10 +18,10 @@ function WellbeingWidget() {
   if (!data) return null
 
   const color =
-    data.score >= 85 ? 'text-green-500' :
-    data.score >= 70 ? 'text-blue-500' :
-    data.score >= 55 ? 'text-amber-500' :
-    'text-red-500'
+    data.score >= 85 ? 'text-[var(--success)]' :
+    data.score >= 70 ? 'text-[var(--info)]' :
+    data.score >= 55 ? 'text-[var(--warning)]' :
+    'text-[var(--destructive)]'
 
   const arc = (score: number) => {
     const r = 28
@@ -36,7 +36,7 @@ function WellbeingWidget() {
           <circle cx="32" cy="32" r="28" fill="none" stroke="var(--accent)" strokeWidth="6" />
           <circle
             cx="32" cy="32" r="28" fill="none"
-            stroke={data.score >= 85 ? '#22c55e' : data.score >= 70 ? '#3b82f6' : data.score >= 55 ? '#f59e0b' : '#ef4444'}
+            stroke={data.score >= 85 ? 'var(--success)' : data.score >= 70 ? 'var(--info)' : data.score >= 55 ? 'var(--warning)' : 'var(--destructive)'}
             strokeWidth="6" strokeLinecap="round"
             strokeDasharray={`${2 * Math.PI * 28}`}
             strokeDashoffset={arc(data.score)}
@@ -173,7 +173,7 @@ function EnergyBudget() {
   const { data } = useEnergyBudget()
   if (!data) return null
   const pct = data.capacite > 0 ? Math.max(0, Math.min(100, (data.restant / data.capacite) * 100)) : 0
-  const color = data.statut === 'dépassé' ? 'var(--warning-foreground)' : data.statut === 'serré' ? '#f59e0b' : 'var(--ring)'
+  const color = data.statut === 'dépassé' ? 'var(--warning-foreground)' : data.statut === 'serré' ? 'var(--warning)' : 'var(--ring)'
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
       <div className="mb-1.5 flex items-center justify-between">
@@ -336,7 +336,7 @@ function SnapshotContent() {
 
 export default function SnapshotPage() {
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader title="Journal de vie" subtitle="Snapshot quotidien multi-modules + score bien-être" />
       <div className="p-6 animate-fade-in-up">
         <ErrorBoundary label="Journal de vie">

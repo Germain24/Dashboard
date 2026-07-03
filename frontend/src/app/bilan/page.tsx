@@ -72,7 +72,7 @@ function Bilan() {
 
 export default function BilanPage() {
   return (
-    <div className="animate-fade-in">
+    <div>
       <ModuleHeader title="Bilan mensuel" subtitle="Synthèse de vie imprimable (→ PDF)" />
       <div className="p-6 animate-fade-in-up">
         <ErrorBoundary label="Bilan">

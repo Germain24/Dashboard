@@ -2,7 +2,8 @@
  * Garde de conformité Verre Clair : les couleurs vivent dans les tokens
  * (globals.css) ou lib/design/colors.ts — jamais en dur dans les composants.
  * HEX_WHITELIST = dette connue (constat 2026-07-03), vidée lot par lot ;
- * le lot 6 l'asserte vide.
+ * lot 5 (Loisirs + transverse) retire les 7 dernières entrées, le lot 6
+ * asserte qu'elle reste vide.
  */
 import { it, expect } from "vitest";
 import { execSync } from "node:child_process";
@@ -10,15 +11,7 @@ import path from "node:path";
 
 const frontendRoot = path.resolve(__dirname, "../..");
 
-export const HEX_WHITELIST = [
-  "components/deck/modules/ScoreRingModule.tsx",
-  "components/films/WatchlistSection.tsx",
-  "components/musique/Bibliotheque.tsx",
-  "src/app/donnees/page.tsx",
-  "src/app/layout.tsx",
-  "src/app/score/page.tsx",
-  "src/app/snapshot/page.tsx",
-];
+export const HEX_WHITELIST: string[] = [];
 
 function gitGrepFiles(pattern: string): string[] {
   try {

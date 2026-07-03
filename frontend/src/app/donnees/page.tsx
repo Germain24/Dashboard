@@ -75,7 +75,7 @@ export default function DonneesPage() {
     : 0
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader title="Données" subtitle="Export, import, backup & données de démo" />
 
       <ErrorBoundary label="Données">
@@ -94,7 +94,7 @@ export default function DonneesPage() {
         <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
           <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold"><Upload className="h-4 w-4" /> Restaurer un backup</h2>
           <p className="mb-2 flex items-start gap-1.5 text-xs text-[var(--muted-foreground)]">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--warning,#d97706)]" />
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--warning)]" />
             « Remplacer » vide chaque table présente dans le fichier avant import.
           </p>
           <input ref={fileRef} type="file" accept="application/json"

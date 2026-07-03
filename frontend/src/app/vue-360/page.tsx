@@ -216,7 +216,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 export default function Vue360Page() {
   const [active, setActive] = useState<TabId>('synthese')
   return (
-    <div className="animate-fade-in">
+    <div>
       <ModuleHeader
         title="Vue 360"
         subtitle="Synthèse de toute ta vie sur un écran"

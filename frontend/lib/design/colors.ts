@@ -32,3 +32,11 @@ export const UNCATEGORISED_COLOR = "#9aa3b0";
  * plutôt qu'en dur dans le composant.
  */
 export const HABIT_COLOR_DEFAULT = "#6366f1";
+
+/**
+ * Fond sombre « midnight marine » du design system, utilisé comme
+ * `viewport.themeColor` (src/app/layout.tsx) : la metadata Next.js exige un
+ * littéral hex statique (pas de token CSS résolu à l'exécution) — centralisé
+ * ici plutôt qu'en dur dans le composant.
+ */
+export const MIDNIGHT = "#0B121E";

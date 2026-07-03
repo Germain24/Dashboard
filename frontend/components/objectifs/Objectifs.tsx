@@ -6,6 +6,7 @@ import type { LongTermGoal } from "@/lib/objectifs";
 import { useCreateGoal, useDeleteGoal, useGoals, useUpdateGoal } from "@/lib/queries/objectifs";
 import { ModuleHeader } from "@/components/layout";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonList } from "@/components/ui/skeleton";
 
 const inputCls =
   "w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]";
@@ -33,15 +34,6 @@ export function Objectifs() {
 
   const [form, setForm] = useState({ titre: "", categorie: "autre", echeance: "", description: "" });
 
-  if (goalsQ.isLoading) {
-    return (
-      <div className="p-6 space-y-4 animate-fade-in">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 rounded-xl border border-[var(--border)] bg-[var(--card)] skeleton-shimmer" />
-        ))}
-      </div>
-    );
-  }
   if (goalsQ.isError) return <div className="p-6 text-[var(--destructive)]">⚠ {(goalsQ.error).message}</div>;
 
   const goals = goalsQ.data ?? [];
@@ -109,67 +101,73 @@ export function Objectifs() {
   );
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader title="Objectifs long terme" subtitle="Masters, concours, opportunités en gestion d'actifs" />
 
-      <div className="p-6 space-y-6 animate-fade-in-up">
-        {/* Nouvel objectif */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-3">
-          <p className="text-sm font-semibold">Nouvel objectif</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <label className="block sm:col-span-1">
-              <span className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">Titre</span>
-              <input value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} placeholder="Master finance, gendarmerie…" className={inputCls} />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">Catégorie</span>
-              <select value={form.categorie} onChange={(e) => setForm({ ...form, categorie: e.target.value })} className={inputCls}>
-                {Object.entries(CATEGORIES).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">Échéance</span>
-              <input type="date" value={form.echeance} onChange={(e) => setForm({ ...form, echeance: e.target.value })} className={inputCls} />
-            </label>
-          </div>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">Notes</span>
-            <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Dossier, prérequis, veille…" className={inputCls} />
-          </label>
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!form.titre.trim() || createM.isPending}
-              className="rounded-md bg-[var(--foreground)] px-3 py-1.5 text-sm font-medium text-[var(--background)] disabled:opacity-50"
-            >
-              Ajouter
-            </button>
-          </div>
+      {goalsQ.isLoading ? (
+        <div className="p-6">
+          <SkeletonList rows={3} />
         </div>
+      ) : (
+        <div className="p-6 space-y-6 animate-fade-in-up">
+          {/* Nouvel objectif */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-3">
+            <p className="text-sm font-semibold">Nouvel objectif</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <label className="block sm:col-span-1">
+                <span className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">Titre</span>
+                <input value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} placeholder="Master finance, gendarmerie…" className={inputCls} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">Catégorie</span>
+                <select value={form.categorie} onChange={(e) => setForm({ ...form, categorie: e.target.value })} className={inputCls}>
+                  {Object.entries(CATEGORIES).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">Échéance</span>
+                <input type="date" value={form.echeance} onChange={(e) => setForm({ ...form, echeance: e.target.value })} className={inputCls} />
+              </label>
+            </div>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">Notes</span>
+              <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Dossier, prérequis, veille…" className={inputCls} />
+            </label>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={submit}
+                disabled={!form.titre.trim() || createM.isPending}
+                className="rounded-md bg-[var(--foreground)] px-3 py-1.5 text-sm font-medium text-[var(--background)] disabled:opacity-50"
+              >
+                Ajouter
+              </button>
+            </div>
+          </div>
 
-        {goals.length === 0 ? (
-          <EmptyState
-            icon={<Target className="h-6 w-6" />}
-            title="Aucun objectif"
-            description="Ajoute tes projets long terme : programmes de Master, concours, opportunités."
-          />
-        ) : (
-          <>
-            <ul className="space-y-2">{actifs.map(renderGoal)}</ul>
-            {clos.length > 0 && (
-              <details>
-                <summary className="cursor-pointer text-sm text-[var(--muted-foreground)]">
-                  Clos ({clos.length})
-                </summary>
-                <ul className="mt-2 space-y-2 opacity-70">{clos.map(renderGoal)}</ul>
-              </details>
-            )}
-          </>
-        )}
-      </div>
+          {goals.length === 0 ? (
+            <EmptyState
+              icon={<Target className="h-6 w-6" />}
+              title="Aucun objectif"
+              description="Ajoute tes projets long terme : programmes de Master, concours, opportunités."
+            />
+          ) : (
+            <>
+              <ul className="space-y-2">{actifs.map(renderGoal)}</ul>
+              {clos.length > 0 && (
+                <details>
+                  <summary className="cursor-pointer text-sm text-[var(--muted-foreground)]">
+                    Clos ({clos.length})
+                  </summary>
+                  <ul className="mt-2 space-y-2 opacity-70">{clos.map(renderGoal)}</ul>
+                </details>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

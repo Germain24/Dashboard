@@ -28,6 +28,7 @@ import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { MotionProvider } from "@/lib/motion/MotionProvider";
 import { PageTransition } from "@/lib/motion/PageTransition";
+import { MIDNIGHT } from "@/lib/design/colors";
 
 export const metadata: Metadata = {
   title: { default: "Mission Control", template: "%s · Mission Control" },
@@ -38,7 +39,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#0B121E",
+  themeColor: MIDNIGHT,
 };
 
 export default function RootLayout({
