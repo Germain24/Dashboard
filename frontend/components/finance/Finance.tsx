@@ -21,7 +21,7 @@ function ObjectifWidget() {
   if (isLoading || !data) return null;
 
   const pct = Math.min(data.progression_pct, 100);
-  const color = data.atteint ? "var(--success, #22c55e)" : pct >= 75 ? "#f59e0b" : "var(--ring)";
+  const color = data.atteint ? "var(--success)" : pct >= 75 ? "var(--warning)" : "var(--ring)";
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -100,7 +100,7 @@ export function Finance() {
   const [active, setActive] = useState<Tab>("suivi");
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Finance"
         subtitle="Portefeuille long terme"

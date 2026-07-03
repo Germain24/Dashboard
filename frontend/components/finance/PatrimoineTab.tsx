@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, Plus } from "lucide-react";
 import { financeApi, PATRIMOINE_DEVISES, type PatrimoineItem, type PatrimoineItemCreate } from "@/lib/finance";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { CHART_SERIES } from "@/lib/design/colors";
 
 const eur = (n: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -64,7 +66,9 @@ export function PatrimoineTab() {
         <Stat label="Passifs" value={eur(data.passifs)} negative />
       </div>
 
-      <AccountBreakdownChart />
+      <CollapsibleSection title="Évolution par compte" defaultOpen={false}>
+        <AccountBreakdownChart />
+      </CollapsibleSection>
 
       <NetWorthChart />
 
@@ -102,11 +106,6 @@ export function PatrimoineTab() {
   );
 }
 
-const ACCOUNT_PALETTE = [
-  "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6",
-  "#06b6d4", "#ec4899", "#84cc16", "#14b8a6", "#f97316",
-];
-
 const fmtMonthYear = (iso: string) =>
   new Date(iso + "T12:00:00").toLocaleDateString("fr-CA", { month: "short", year: "2-digit" });
 
@@ -121,16 +120,13 @@ function AccountBreakdownChart() {
   const comptes = data?.comptes ?? [];
   const series = data?.series ?? {};
   const total = data?.total ?? [];
-  const color = (i: number) => ACCOUNT_PALETTE[i % ACCOUNT_PALETTE.length];
+  const color = (i: number) => CHART_SERIES[i % CHART_SERIES.length];
 
   if (dates.length < 2 || comptes.length === 0) {
     return (
-      <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
-        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution par compte</p>
-        <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-          Pas encore assez de relevés pour tracer la répartition de ta valeur brute dans le temps.
-        </p>
-      </div>
+      <p className="text-xs text-[var(--muted-foreground)]">
+        Pas encore assez de relevés pour tracer la répartition de ta valeur brute dans le temps.
+      </p>
     );
   }
   const n = dates.length;
@@ -156,10 +152,9 @@ function AccountBreakdownChart() {
   const labelIdx = [0, Math.floor(n / 4), Math.floor(n / 2), Math.floor((3 * n) / 4), n - 1];
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
-      <div className="mb-2 flex items-baseline justify-between gap-3">
-        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Évolution par compte · valeur brute</p>
-        <span className="shrink-0 text-xs tabular-nums text-[var(--foreground)]">{eur(last)}</span>
+    <div>
+      <div className="mb-2 flex items-center justify-end gap-3">
+        <span className="shrink-0 text-xs tabular-nums text-[var(--foreground)]">valeur brute · {eur(last)}</span>
       </div>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-48 w-full"
         role="img" aria-label="Évolution de la valeur par compte">

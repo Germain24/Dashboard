@@ -6,14 +6,11 @@ import {
   useRollingSummary, useCategoryShare, useByTag,
 } from '@/lib/queries/budget'
 import { CategoryShareChart, TrendChart, Donut } from './charts'
+import { StaggerGroup, StaggerItem } from '@/lib/motion/Stagger'
+import { CHART_SERIES } from '@/lib/design/colors'
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
-
-const CATEGORY_COLORS = [
-  '#6366f1', '#22c55e', '#f59e0b', '#ef4444',
-  '#8b5cf6', '#06b6d4', '#71717a', '#ec4899', '#84cc16',
-]
 
 export default function MoisTab() {
   const [goalInput, setGoalInput] = useState('')
@@ -161,23 +158,29 @@ export default function MoisTab() {
       )}
 
       {/* Stats cards — 30 derniers jours glissants */}
-      <div className="grid grid-cols-3 gap-4 stagger">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
-          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Revenus <span className="opacity-60">· 30 j</span></p>
-          <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--success)]">{formatCAD(rolling.revenus)}</p>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
-          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Dépenses <span className="opacity-60">· 30 j</span></p>
-          <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--destructive)]">{formatCAD(rolling.depenses)}</p>
-          {rolling.revenus > 0 && <p className="text-xs text-[var(--muted-foreground)] mt-1">{depensesPct}% des revenus</p>}
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up">
-          <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Solde <span className="opacity-60">· 30 j</span></p>
-          <p className={`font-display text-[1.75rem] leading-tight tabular-nums ${rolling.solde >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>
-            {formatCAD(rolling.solde)}
-          </p>
-        </div>
-      </div>
+      <StaggerGroup className="grid grid-cols-3 gap-4">
+        <StaggerItem>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover">
+            <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Revenus <span className="opacity-60">· 30 j</span></p>
+            <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--success)]">{formatCAD(rolling.revenus)}</p>
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover">
+            <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Dépenses <span className="opacity-60">· 30 j</span></p>
+            <p className="font-display text-[1.75rem] leading-tight tabular-nums text-[var(--destructive)]">{formatCAD(rolling.depenses)}</p>
+            {rolling.revenus > 0 && <p className="text-xs text-[var(--muted-foreground)] mt-1">{depensesPct}% des revenus</p>}
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover">
+            <p className="text-xs font-medium text-[var(--muted-foreground)] mb-1">Solde <span className="opacity-60">· 30 j</span></p>
+            <p className={`font-display text-[1.75rem] leading-tight tabular-nums ${rolling.solde >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>
+              {formatCAD(rolling.solde)}
+            </p>
+          </div>
+        </StaggerItem>
+      </StaggerGroup>
 
       {/* Zoom temporel des graphes */}
       <div className="flex items-center justify-end gap-1.5 text-xs">
@@ -229,7 +232,7 @@ export default function MoisTab() {
         {byTag.length ? (
           <Donut data={byTag.map((t, i) => ({
             category_id: i, nom: t.tag,
-            couleur: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+            couleur: CHART_SERIES[i % CHART_SERIES.length],
             montant: t.montant, pct: t.pct,
           }))} />
         ) : (
@@ -291,7 +294,7 @@ export default function MoisTab() {
           </div>
           <div className="divide-y divide-[var(--border)]">
             {envelopes.map((env: any, i: number) => {
-              const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length]
+              const color = CHART_SERIES[i % CHART_SERIES.length]
               const pct = Math.min(env.pct ?? 0, 100)
               const status = env.status ?? ((env.pct ?? 0) > 100 ? 'over' : 'ok')
               const over = status === 'over'

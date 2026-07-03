@@ -17,3 +17,11 @@ export const INK = {
 export const CHART_SERIES: string[] = [
   INK.navy, INK.brass, INK.green, INK.oxblood, INK.slate, INK.ochre, INK.vermilion,
 ];
+
+/**
+ * Sentinelle "Sans catégorie" envoyée telle quelle par le backend
+ * (backend/app/services/budget/analytics.py: UNCATEGORISED_COLOR) et comparée
+ * par égalité aux couleurs de catégorie — pas un token thème, mais centralisée
+ * ici plutôt qu'en dur dans le composant.
+ */
+export const UNCATEGORISED_COLOR = "#9aa3b0";

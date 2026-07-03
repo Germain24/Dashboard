@@ -119,8 +119,8 @@ export function CompositionTab() {
     <div className="space-y-5">
       {/* Alerte de surpondération sectorielle */}
       {divers && divers.n_surponderes > 0 && (
-        <div className="rounded-xl border border-[var(--warning,#d97706)]/30 bg-[color-mix(in_srgb,var(--warning,#d97706)_8%,transparent)] px-4 py-2.5 text-sm">
-          <span className="text-[var(--warning,#d97706)] font-medium">⚠ Surpondération sectorielle</span>
+        <div className="rounded-xl border border-[var(--warning)]/30 bg-[color-mix(in_srgb,var(--warning)_8%,transparent)] px-4 py-2.5 text-sm">
+          <span className="text-[var(--warning)] font-medium">⚠ Surpondération sectorielle</span>
           <span className="text-[var(--muted-foreground)]">
             {" "}— {divers.secteurs.filter(s => s.surpondere).map(s => `${s.secteur} (${s.poids_pct.toFixed(0)}%)`).join(", ")}
             {" "}dépasse{divers.n_surponderes > 1 ? "nt" : ""} {divers.seuil_pct.toFixed(0)}%.

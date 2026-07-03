@@ -2,6 +2,7 @@
 /** Graphes du module Budget (extraits de MoisTab.tsx, #519) : camembert + tendance. */
 
 import type { CategorySpend, CategoryShare, MonthTrend } from '@/lib/budget'
+import { CHART_SERIES, UNCATEGORISED_COLOR } from '@/lib/design/colors'
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(v ?? 0)
@@ -58,10 +59,6 @@ export function Donut({ data }: { data: CategorySpend[] }) {
 
 /** Part (%) de chaque catégorie de dépenses au fil du temps (fenêtre glissante
  *  de 30 j). Colonnes empilées à 100 % : chaque colonne = un point dans le temps. */
-const SHARE_PALETTE = [
-  '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4',
-  '#ec4899', '#84cc16', '#14b8a6', '#f97316', '#a855f7', '#eab308',
-]
 
 export function CategoryShareChart({ data }: { data: CategoryShare }) {
   const { categories, points } = data
@@ -73,7 +70,7 @@ export function CategoryShareChart({ data }: { data: CategoryShare }) {
   const colorOf = new Map<string, string>()
   let pi = 0
   for (const c of categories) {
-    colorOf.set(c.nom, c.couleur === '#9aa3b0' ? '#9aa3b0' : SHARE_PALETTE[pi++ % SHARE_PALETTE.length])
+    colorOf.set(c.nom, c.couleur === UNCATEGORISED_COLOR ? UNCATEGORISED_COLOR : CHART_SERIES[pi++ % CHART_SERIES.length])
   }
   const labelEvery = Math.ceil(points.length / 6)  // ~6 repères temporels
   return (

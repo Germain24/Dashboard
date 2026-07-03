@@ -6,7 +6,7 @@ export const metadata = { title: "Patrimoine — Mission Control" };
 
 export default function PatrimoinePage() {
   return (
-    <div className="animate-fade-in">
+    <div>
       <ModuleHeader title="Patrimoine net" subtitle="Tes comptes en devise locale, total converti en €" />
       <div className="p-6 animate-fade-in-up">
         <ErrorBoundary label="Patrimoine">

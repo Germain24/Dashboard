@@ -9,9 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectionTool } from "./ProjectionTool";
 import { CashTaxPanel } from "./CashTaxPanel";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { StaggerGroup, StaggerItem } from "@/lib/motion/Stagger";
+import { INK } from "@/lib/design/colors";
 
-// Couleur de série du benchmark CW8 (demande explicite : orange)
-const CW8_COLOR = "#f97316";
+// Couleur de série du benchmark CW8 (demande explicite : orange — la teinte la
+// plus chaude de la palette DESIGN.md est utilisée en l'absence d'orange dédié)
+const CW8_COLOR = INK.brass;
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(v);
@@ -250,7 +254,7 @@ export function SuiviTab() {
       </div>
 
       {/* KPIs — skeleton pendant le loading, vraies valeurs ensuite */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger">
+      <StaggerGroup className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {loading ? (
           <>
             <StatCardSkeleton />
@@ -274,19 +278,18 @@ export function SuiviTab() {
                 color: plPct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]",
               },
             ].map(stat => (
-              <div
-                key={stat.label}
-                className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover animate-fade-in-up"
-              >
-                <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">
-                  {stat.label}
-                </p>
-                <p className={`font-display text-xl tabular-nums ${stat.color}`}>{stat.value}</p>
-              </div>
+              <StaggerItem key={stat.label}>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover">
+                  <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">
+                    {stat.label}
+                  </p>
+                  <p className={`font-display text-xl tabular-nums ${stat.color}`}>{stat.value}</p>
+                </div>
+              </StaggerItem>
             ))}
           </>
         )}
-      </div>
+      </StaggerGroup>
 
       {/* Rendement annualisé (TWR) vs benchmark */}
       {!loading && perf?.twr_annualise_pct != null && (
@@ -335,8 +338,7 @@ export function SuiviTab() {
 
       {/* Benchmarks */}
       {!loading && benchmarks.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-semibold">Benchmarks</h2>
+        <CollapsibleSection title="Benchmarks" defaultOpen={false}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -362,7 +364,7 @@ export function SuiviTab() {
               </tbody>
             </table>
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
       <CashTaxPanel />
