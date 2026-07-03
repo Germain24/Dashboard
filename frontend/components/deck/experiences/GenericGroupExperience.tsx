@@ -40,7 +40,7 @@ export function GenericGroupExperience({
           const card = (
             <FadeUpItem
               className={cn(
-                'group relative flex h-[220px] w-[280px] flex-col justify-between overflow-hidden rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-6 backdrop-blur-[var(--glass-blur)] shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow)]',
+                'glass-card group relative flex h-[220px] w-[280px] flex-col justify-between overflow-hidden rounded-[var(--radius-lg)] p-6',
                 disabled ? 'opacity-55' : 'hover:-translate-y-1.5',
               )}
             >

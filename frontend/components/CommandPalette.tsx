@@ -230,7 +230,7 @@ export function CommandPalette() {
   const navCount = results.filter((r) => r.kind === "nav").length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 backdrop-blur-[6px] pt-[15vh] animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-start justify-center glass-veil pt-[15vh] animate-fade-in">
       <div
         ref={dialogRef}
         role="dialog"

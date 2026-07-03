@@ -94,7 +94,7 @@ function AddModal({ onClose }: { onClose: () => void }) {
   const eventLabel = opts?.events.find((e) => e.value === eventValue)?.label
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-10 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto glass-veil p-4 py-10">
       <div className="glass-modal w-full max-w-lg rounded-[var(--radius-lg)] p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-lg">Nouvelle automatisation</h2>
@@ -394,7 +394,7 @@ function KillSwitchBanner() {
       className={`mb-6 flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border px-4 py-3 ${
         on
           ? 'border-[var(--destructive)] bg-[var(--destructive-muted)]'
-          : 'border-[var(--glass-border)] bg-[var(--card)] backdrop-blur-[var(--glass-blur)]'
+          : 'glass-card'
       }`}
     >
       <div className="flex items-center gap-2.5">

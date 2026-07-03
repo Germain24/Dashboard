@@ -28,7 +28,7 @@ export function SleepModule() {
       <Link
         href="/score"
         aria-label="Sommeil de la dernière nuit"
-        className="block rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-5 backdrop-blur-[var(--glass-blur)] shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+        className="glass-card block rounded-[var(--radius-lg)] p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
       >
         <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
           <Moon className="h-4 w-4" aria-hidden="true" />

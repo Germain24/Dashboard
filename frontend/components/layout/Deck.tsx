@@ -101,8 +101,8 @@ export function Deck({ intro }: { intro?: ReactNode }) {
                       role="listitem"
                       className={cn(
                         'springy group relative flex h-[min(58vh,420px)] w-[min(78vw,300px)] shrink-0 flex-col justify-between',
-                        'overflow-hidden rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-6',
-                        'backdrop-blur-[var(--glass-blur)] backdrop-saturate-[1.8]',
+                        'overflow-hidden rounded-[var(--radius-lg)] border border-[var(--glass-border)] p-6',
+                        'glass-panel',
                         'shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow)]',
                         disabled
                           ? 'opacity-55'

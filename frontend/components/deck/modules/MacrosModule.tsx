@@ -33,7 +33,7 @@ export function MacrosModule() {
       <Link
         href="/sante"
         aria-label="Macros et nutrition du jour"
-        className="block rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-5 backdrop-blur-[var(--glass-blur)] shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+        className="glass-card block rounded-[var(--radius-lg)] p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
       >
         <div className="flex items-baseline justify-between">
           <h3 className="font-display text-xl text-[var(--foreground)]">Macros</h3>
