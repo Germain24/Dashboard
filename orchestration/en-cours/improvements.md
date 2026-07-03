@@ -60,16 +60,21 @@ l'application **inégale** de ce système à travers les 29 modules.
 2.2 [M](\*\*) **Backgrounds structurés et sobres** : texture papier très subtile (grain
     SVG inline < 2 Ko, opacité ≤ 3 %), dégradé marin discret derrière le hub,
     variation par module via une teinte d'accent unique — jamais de gradients criards.
+    ← FINIS ✓ (2026-07-03) grain SVG + lavis d'accent par module (--wash-module)
 2.3 [S](\*\*) Verre translucide cohérent : un seul recipe `backdrop-blur` (chrome du
     Dock, dialogs, headers sticky) avec bordure et ombre unifiées.
+    ← FINIS ✓ (2026-07-03) recettes .glass-card/.glass-veil/.glass-inset + garde CI
 2.4 [M](\*\*) Mode sombre « minuit marine + laiton » : vérifier contraste AA et
     cohérence des 15 primitives ui/ dans les deux thèmes.
+    ← FINIS ✓ (2026-07-03) contraste AA testé (contrast-tokens.test.ts, 2 thèmes)
 2.5 [S](\*\*) États vides (`empty-state.tsx`) : illustration/typographie éditoriale au
     lieu de texte brut — un état vide premium est ce qui distingue une app finie.
+    ← FINIS ✓ (2026-07-03) EmptyState serif italique + ornement laiton
 2.6 [S](\*) Densité : hiérarchiser les pages très denses (finance, santé) avec des
     sections repliables et un rythme vertical constant.
 2.7 [S](\*\*) Skeletons (`loading.tsx` par segment) calqués sur la géométrie réelle des
     pages pour éliminer les layout shifts au chargement.
+    ← FINIS ✓ (2026-07-03) blocs composables + 6 loading.tsx sur mesure
 
 ## 3. Architecture & rangement — consolidation sans casse (P1/P3)
 
