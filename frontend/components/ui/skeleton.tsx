@@ -49,3 +49,62 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
     </div>
   )
 }
+
+/** Géométrie du ModuleHeader : titre display + sous-titre. */
+export function SkeletonHeader() {
+  return (
+    <div className="space-y-2">
+      <Skeleton className="h-8 w-56" />
+      <Skeleton className="h-4 w-72" />
+    </div>
+  )
+}
+
+/** Rangée de stat-cards (géométrie StatCard : ~96px de haut). */
+export function SkeletonStatRow({ count = 3 }: { count?: number }) {
+  return (
+    <div
+      className="grid gap-3"
+      style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          data-skeleton="stat"
+          className="h-24 rounded-[var(--radius-lg)] border border-[var(--border)] skeleton-shimmer"
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Grille de cartes de contenu (géométrie Card : ~160px). */
+export function SkeletonCardGrid({ count = 6, cols = 3 }: { count?: number; cols?: 2 | 3 | 4 }) {
+  const colClass = { 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' }[cols]
+  return (
+    <div className={cn('grid gap-3', colClass)}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          data-skeleton="card"
+          className="h-40 rounded-[var(--radius-lg)] border border-[var(--border)] skeleton-shimmer"
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Lignes hautes (agenda, listes d'items). */
+export function SkeletonList({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div
+          key={i}
+          data-skeleton="row"
+          className="h-16 rounded-[var(--radius-lg)] border border-[var(--border)] skeleton-shimmer"
+        />
+      ))}
+    </div>
+  )
+}
