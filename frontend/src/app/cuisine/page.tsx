@@ -18,7 +18,7 @@ const TABS = [
 export default function CuisinePage() {
   const [active, setActive] = useState('recettes')
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Cuisine"
         subtitle="Recettes & meal planning"

@@ -25,6 +25,7 @@ import {
   useHabits, useStreaks, useUpdateHabit,
 } from '@/lib/queries/habitudes'
 import { Skeleton } from '@/components/ui/skeleton'
+import { HABIT_COLOR_DEFAULT } from '@/lib/design/colors'
 
 function parseLinked(raw: string | undefined): number[] {
   try {
@@ -279,7 +280,7 @@ function NewHabitForm({ onClose, onCreated }: { onClose: () => void; onCreated: 
   const [frequence, setFrequence] = useState('daily')
   const [type, setType] = useState('binaire')
   const [icone, setIcone] = useState('')
-  const [couleur, setCouleur] = useState('#6366f1')
+  const [couleur, setCouleur] = useState(HABIT_COLOR_DEFAULT)
   const createMutation = useCreateHabit()
   const saving = createMutation.isPending
 

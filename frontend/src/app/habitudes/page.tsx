@@ -18,7 +18,7 @@ const TABS = [
 export default function HabitudesPage() {
   const [active, setActive] = useState('aujourd-hui')
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Habitudes"
         subtitle="Streaks & suivi quotidien"

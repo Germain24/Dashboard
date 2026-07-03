@@ -791,7 +791,7 @@ function AuditLog() {
 
 export default function RoutinesPage() {
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader title="Routines" subtitle="Automatisations déclenchées par cron ou événement" />
       <div className="p-6 animate-fade-in-up">
         <ErrorBoundary label="Routines">

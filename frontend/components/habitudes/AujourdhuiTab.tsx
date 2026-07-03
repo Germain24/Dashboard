@@ -1,5 +1,6 @@
 'use client'
 import { useCheckEntry, useDeleteEntry, useStreaks, useToday } from '@/lib/queries/habitudes'
+import { StaggerGroup, StaggerItem } from '@/lib/motion/Stagger'
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -61,41 +62,42 @@ export default function AujourdhuiTab() {
       )}
 
       {/* Checklist */}
-      <div className="space-y-2 max-w-sm stagger">
+      <StaggerGroup className="space-y-2 max-w-sm">
         {items.map((item: any) => {
           const ischecked = !!item.entry
           const streak = streakFor(item.habit.id)
           return (
-            <button
-              key={item.habit.id}
-              onClick={() => toggle(item)}
-              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-all duration-200 text-left group cursor-pointer animate-fade-in-up ${
-                ischecked
-                  ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_8%,transparent)]'
-                  : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--muted-foreground)] hover:bg-[var(--muted)]'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${
-                  ischecked ? 'bg-[var(--success)] border-[var(--success)]' : 'border-[var(--border)] group-hover:border-[var(--muted-foreground)]'
-                }`}>
-                  {ischecked && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
+            <StaggerItem key={item.habit.id}>
+              <button
+                onClick={() => toggle(item)}
+                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-all duration-200 text-left group cursor-pointer ${
+                  ischecked
+                    ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_8%,transparent)]'
+                    : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--muted-foreground)] hover:bg-[var(--muted)]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${
+                    ischecked ? 'bg-[var(--success)] border-[var(--success)]' : 'border-[var(--border)] group-hover:border-[var(--muted-foreground)]'
+                  }`}>
+                    {ischecked && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium">{item.habit.nom}</span>
                 </div>
-                <span className="text-sm font-medium">{item.habit.nom}</span>
-              </div>
-              {streak > 0 && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[color-mix(in_srgb,#f59e0b_15%,transparent)] text-[#d97706]">
-                  {streak} 🔥
-                </span>
-              )}
-            </button>
+                {streak > 0 && (
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[var(--warning-muted)] text-[var(--warning-foreground)]">
+                    {streak} 🔥
+                  </span>
+                )}
+              </button>
+            </StaggerItem>
           )
         })}
-      </div>
+      </StaggerGroup>
 
       {items.length === 0 && (
         <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center animate-fade-in-up">

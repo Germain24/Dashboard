@@ -172,7 +172,7 @@ export default function SemaineTab() {
         <div className="flex flex-wrap gap-1.5">
           {presentCats.map((c) => {
             const active = !hidden.has(c);
-            const color = CATEGORIE_COLORS[c] || "#6B7280";
+            const color = CATEGORIE_COLORS[c] || CATEGORIE_COLORS.autre;
             return (
               <button
                 key={c}

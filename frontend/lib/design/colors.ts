@@ -25,3 +25,10 @@ export const CHART_SERIES: string[] = [
  * ici plutôt qu'en dur dans le composant.
  */
 export const UNCATEGORISED_COLOR = "#9aa3b0";
+
+/**
+ * Valeur initiale du sélecteur `<input type="color">` (habitudes/GestionTab.tsx) :
+ * l'élément natif exige un littéral hex, pas un token CSS — centralisé ici
+ * plutôt qu'en dur dans le composant.
+ */
+export const HABIT_COLOR_DEFAULT = "#6366f1";

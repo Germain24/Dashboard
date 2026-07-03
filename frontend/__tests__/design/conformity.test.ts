@@ -11,12 +11,8 @@ import path from "node:path";
 const frontendRoot = path.resolve(__dirname, "../..");
 
 export const HEX_WHITELIST = [
-  "components/agenda/Agenda.tsx",
-  "components/agenda/SemaineTab.tsx",
   "components/deck/modules/ScoreRingModule.tsx",
   "components/films/WatchlistSection.tsx",
-  "components/habitudes/AujourdhuiTab.tsx",
-  "components/habitudes/GestionTab.tsx",
   "components/livres/BibliothequeTab.tsx",
   "components/musique/Bibliotheque.tsx",
   "src/app/donnees/page.tsx",

@@ -34,7 +34,7 @@ export default function Agenda() {
   const error = todayQ.isError ? (todayQ.error as Error).message : null;
 
   return (
-    <div className="space-y-0 animate-fade-in">
+    <div className="space-y-0">
       <ModuleHeader
         title="Agenda"
         subtitle="Événements & tâches"
@@ -50,7 +50,7 @@ export default function Agenda() {
                 </span>
               )}
               {todayData.slots_libres.length > 0 && (
-                <span className="rounded-[var(--radius-full)] bg-[color-mix(in_srgb,var(--success,#16a34a)_12%,transparent)] text-[var(--success,#16a34a)] px-2.5 py-1">
+                <span className="rounded-[var(--radius-full)] bg-[color-mix(in_srgb,var(--success)_12%,transparent)] text-[var(--success)] px-2.5 py-1">
                   {todayData.slots_libres.length} slot{todayData.slots_libres.length > 1 ? "s" : ""} libre{todayData.slots_libres.length > 1 ? "s" : ""}
                 </span>
               )}
