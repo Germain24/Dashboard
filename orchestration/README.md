@@ -19,4 +19,4 @@ Restent à la racine (documents vivants, référencés par le code ou le README)
 - `PLAN.md` — document de référence du projet (architecture, règles).
 - `CHANGELOG.md` — journal des livraisons.
 - `AMELIORATIONS_200.txt` — suivi item par item (marquage FINIS daté).
-- `convs/`, `logs/`, `graphify/` — historiques et graphe de connaissance.
+- `logs/`, `graphify/` — historiques et graphe de connaissance.
