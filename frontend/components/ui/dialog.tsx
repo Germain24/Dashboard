@@ -35,7 +35,7 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
           {/* Backdrop : voile flouté, le contenu reste deviné derrière le verre */}
           <motion.div
             data-testid="dialog-backdrop"
-            className="absolute inset-0 bg-black/30 backdrop-blur-[6px]"
+            className="glass-veil absolute inset-0"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

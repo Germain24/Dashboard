@@ -8,11 +8,9 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      // Verre clair : fond translucide + blur, liseré supérieur lumineux
-      // (l'arête du verre), ombre lithographique douce.
-      "rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] text-[var(--card-foreground)]",
-      "backdrop-blur-[var(--glass-blur)] backdrop-saturate-[1.4]",
-      "shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow)]",
+      // Verre clair : recette .glass-card (globals.css) — fond translucide,
+      // blur, liseré supérieur lumineux, ombre lithographique.
+      "glass-card rounded-[var(--radius-lg)] text-[var(--card-foreground)]",
       className,
     )}
     {...props}

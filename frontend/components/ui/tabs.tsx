@@ -47,11 +47,10 @@ function TabsList({ children, className }: { children: React.ReactNode; classNam
   return (
     <nav
       className={cn(
-        // Contrôle segmenté en verre : les onglets vivent dans un rail
-        // translucide, l'actif est une pastille soulevée.
+        // Contrôle segmenté en verre : rail encastré (.glass-inset),
+        // l'actif est une pastille soulevée.
         "flex w-fit max-w-full gap-1 overflow-x-auto rounded-[var(--radius-full)]",
-        "border border-[var(--glass-border)] bg-[var(--field)] p-1",
-        "backdrop-blur-[var(--glass-blur)] backdrop-saturate-[1.4]",
+        "glass-inset border border-[var(--glass-border)] p-1",
         className,
       )}
       role="tablist"
