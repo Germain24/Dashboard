@@ -124,7 +124,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
 
   return (
     <div className="space-y-4 animate-fade-in-up">
-      <CollapsibleSection title="Suivi quotidien (eau, sommeil)" defaultOpen={false}>
+      <CollapsibleSection title="Suivi quotidien (eau, sommeil)" defaultOpen>
         <div className="grid gap-3 sm:grid-cols-2">
           <WaterWidget />
           <SleepWidget />

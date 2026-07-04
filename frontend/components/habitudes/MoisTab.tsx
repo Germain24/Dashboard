@@ -102,9 +102,9 @@ export default function MoisTab() {
                 title={s}
                 className={`flex aspect-square items-center justify-center rounded-md text-xs transition-colors ${
                   isToday ? 'ring-1 ring-[var(--ring)]' : ''
-                }`}
+                } ${isDone ? 'text-white font-semibold' : ''}`}
                 style={isDone
-                  ? { background: accent, color: '#fff', fontWeight: 600 }
+                  ? { background: accent }
                   : { background: 'var(--muted)', color: 'var(--muted-foreground)' }}
               >
                 {c.getDate()}

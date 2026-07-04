@@ -11,11 +11,10 @@ import { ProjectionTool } from "./ProjectionTool";
 import { CashTaxPanel } from "./CashTaxPanel";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { StaggerGroup, StaggerItem } from "@/lib/motion/Stagger";
-import { INK } from "@/lib/design/colors";
 
-// Couleur de série du benchmark CW8 (demande explicite : orange — la teinte la
-// plus chaude de la palette DESIGN.md est utilisée en l'absence d'orange dédié)
-const CW8_COLOR = INK.brass;
+// Couleur de série du benchmark CW8 — token thémé, identique au chart et au
+// tableau (cellule "text-[var(--warning)]" ci-dessous) dans les deux thèmes.
+const CW8_COLOR = "var(--warning)";
 
 const formatCAD = (v: number) =>
   new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(v);
