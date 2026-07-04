@@ -286,7 +286,7 @@
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
   --color-info: var(--info);
-  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+  --font-mono: var(--font-jetbrains-mono), "Cascadia Code", Consolas, ui-monospace, monospace;
 }
 
 body {

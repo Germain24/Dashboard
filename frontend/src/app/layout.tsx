@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Public_Sans, Libre_Caslon_Text } from "next/font/google";
+import { Public_Sans, Libre_Caslon_Text, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Dock, MainShell } from "@/components/layout";
 
@@ -18,6 +18,14 @@ const libreCaslon = Libre_Caslon_Text({
   weight: ["400", "700"],
   style: ["normal", "italic"],
   variable: "--font-libre-caslon",
+  display: "swap",
+});
+
+// Chiffres tabulaires / code : JetBrains Mono → --font-mono.
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 import { MobileNav } from "@/components/MobileNav";
@@ -50,7 +58,7 @@ export default function RootLayout({
     // data-density sur <html> avant l'hydratation → écart serveur/client attendu
     // et volontaire (sinon flash de thème). Ne supprime l'avertissement que pour
     // les attributs de <html>, rien d'autre.
-    <html lang="fr-CA" className={`${publicSans.variable} ${libreCaslon.variable}`} suppressHydrationWarning>
+    <html lang="fr-CA" className={`${publicSans.variable} ${libreCaslon.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         {/* Anti-flash : applique le thème choisi avant le premier paint. */}
         <script

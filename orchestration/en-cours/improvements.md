@@ -117,6 +117,9 @@ Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data
     traquer les barrels `index.ts` qui importent tout un module.
 4.3 [S](\*\*) Fonts via `next/font` (Libre Caslon Text, Public Sans, JetBrains Mono)
     si ce n'est pas déjà le cas — zéro FOUT, zéro requête externe.
+    ← FINIS ✓ (2026-07-04) JetBrains Mono manquait (simple fallback CSS jamais déclenché) ;
+    chargée via next/font/google, --font-mono branché sur --font-jetbrains-mono,
+    garde mono-font.test.ts
 4.4 [S](\*) Images (pixel art garde-robe, couvertures livres) : `next/image` +
     dimensions explicites partout.
 4.5 [M](\*\*) Prefetch ciblé : conserver le prefetch des liens visibles, précharger les
