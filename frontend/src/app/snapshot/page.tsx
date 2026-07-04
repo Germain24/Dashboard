@@ -181,7 +181,7 @@ function EnergyBudget() {
         <span className="text-sm font-semibold tabular-nums" style={{ color }}>{data.restant} / {data.capacite}</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+        <div className="h-full rounded-full bar-fill" style={{ width: `${pct}%`, background: color }} />
       </div>
       <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
         Coût prévu {data.cout_prevu} ({data.n_activites} activités){data.statut === 'dépassé' ? ' — journée trop chargée, allège.' : data.statut === 'serré' ? ' — peu de marge.' : ''}

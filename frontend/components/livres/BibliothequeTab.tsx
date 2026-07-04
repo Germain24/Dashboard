@@ -218,7 +218,7 @@ export default function BibliothequeTab() {
                             <span>Page {current} / {total}</span><span>{pct}%</span>
                           </div>
                           <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: cfg.color }} />
+                            <div className="h-full rounded-full bar-fill" style={{ width: `${pct}%`, background: cfg.color }} />
                           </div>
                         </div>
                       )}

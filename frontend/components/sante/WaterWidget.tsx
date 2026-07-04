@@ -22,7 +22,7 @@ export function WaterWidget() {
         </span>
       </div>
       <div className="h-2 rounded-full bg-[var(--muted)] overflow-hidden">
-        <div className="h-full rounded-full bg-[var(--ring)] transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-[var(--ring)] bar-fill" style={{ width: `${pct}%` }} />
       </div>
       <div className="flex gap-2">
         {[250, 500, 750].map((ml) => (

@@ -49,7 +49,7 @@ export default function StatsTab() {
           </span>
         </div>
         <div className="h-2.5 overflow-hidden rounded-full bg-[var(--muted)]">
-          <div className="h-full rounded-full transition-all duration-500"
+          <div className="h-full rounded-full bar-fill"
             style={{ width: `${ch.pct}%`, background: ch.atteint ? 'var(--success)' : 'var(--ring)' }} />
         </div>
         <p className="mt-2 text-xs text-[var(--muted-foreground)]">
@@ -85,7 +85,7 @@ export default function StatsTab() {
               <div key={g} className="flex items-center gap-2">
                 <span className="w-28 shrink-0 truncate text-xs text-[var(--muted-foreground)]">{g}</span>
                 <div className="h-4 flex-1 overflow-hidden rounded bg-[var(--muted)]">
-                  <div className="h-full rounded bg-[var(--ring)]" style={{ width: `${(n / maxGenre) * 100}%` }} />
+                  <div className="h-full rounded bg-[var(--ring)] bar-fill" style={{ width: `${(n / maxGenre) * 100}%` }} />
                 </div>
                 <span className="w-6 shrink-0 text-right text-xs font-mono">{n}</span>
               </div>

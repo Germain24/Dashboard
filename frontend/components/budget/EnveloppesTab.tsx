@@ -37,7 +37,7 @@ export default function EnveloppesTab() {
                 </div>
                 <div className="h-2 rounded-full bg-[var(--muted)] overflow-hidden mb-2">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full bar-fill"
                     style={{ width: `${pct}%`, background: couleur }}
                   />
                 </div>

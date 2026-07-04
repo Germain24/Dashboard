@@ -35,7 +35,7 @@ export function MacroBar({ label, unit = "", current, target, isMax = false }: P
         </span>
       </div>
       <div className="h-2 rounded bg-[var(--muted)] overflow-hidden">
-        <div className="h-full transition-all" style={{ width: `${clipped}%`, ...barStyle }} />
+        <div className="h-full bar-fill" style={{ width: `${clipped}%`, ...barStyle }} />
       </div>
     </div>
   );

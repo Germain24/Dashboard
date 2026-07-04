@@ -47,7 +47,7 @@ export function MacrosModule() {
           </p>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded bg-[var(--muted)]">
-          <div className="h-full bg-[var(--ring)]" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-[var(--ring)] bar-fill" style={{ width: `${pct}%` }} />
         </div>
         {waterPct != null && (
           <p className="mt-3 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">

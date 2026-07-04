@@ -37,7 +37,7 @@ function FlatTreemap({ nodes }: { nodes: TreemapNode[] }) {
               <span className="text-xs text-[var(--muted-foreground)]">{pct}% — {fmt(root.valeur)} €</span>
             </div>
             <div className="w-full h-2 rounded-full bg-[var(--muted)] overflow-hidden">
-              <div className="h-full rounded-full bg-[var(--ring)]"
+              <div className="h-full rounded-full bg-[var(--ring)] bar-fill"
                 style={{ width: `${pct}%` }} />
             </div>
             {kids.length > 0 && (

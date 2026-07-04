@@ -91,7 +91,7 @@ function ScoreContent() {
                 </span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-                <div className="h-full rounded-full transition-all"
+                <div className="h-full rounded-full bar-fill"
                   style={{ width: `${v ?? 0}%`, background: color }} />
               </div>
             </div>

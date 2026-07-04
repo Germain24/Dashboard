@@ -115,7 +115,7 @@ function Section({ title, entries }: { title: string; entries: { label: string; 
           <div key={e.label} className="flex items-center gap-2 text-sm">
             <div className="w-24 truncate" title={e.label}>{e.label}</div>
             <div className="flex-1 h-2 bg-[var(--muted)] rounded overflow-hidden">
-              <div className="h-full bg-[var(--ring)]" style={{ width: `${(e.count / total) * 100}%` }} />
+              <div className="h-full bg-[var(--ring)] bar-fill" style={{ width: `${(e.count / total) * 100}%` }} />
             </div>
             <div className="w-8 text-right text-xs text-[var(--muted-foreground)]">{e.count}</div>
           </div>

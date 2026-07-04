@@ -53,7 +53,7 @@ export function TrendsTab() {
           {t.tags_freq.map((f) => (
             <div key={f.tag} className="flex items-center gap-2 text-xs">
               <span className="w-24">{f.tag}</span>
-              <div className="h-2 rounded-full bg-[var(--ring)]" style={{ width: `${(f.count / maxTag) * 160}px` }} />
+              <div className="h-2 rounded-full bg-[var(--ring)] bar-fill" style={{ width: `${(f.count / maxTag) * 160}px` }} />
               <span className="text-[var(--muted-foreground)]">{f.count}</span>
             </div>
           ))}

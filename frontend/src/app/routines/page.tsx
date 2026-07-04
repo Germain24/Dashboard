@@ -533,7 +533,7 @@ function CorrelationsSection() {
               </span>
               <div className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-[var(--muted)] sm:block">
                 <div
-                  className={`h-full ${pos ? 'bg-[var(--success-foreground)]' : 'bg-[var(--warning-foreground)]'}`}
+                  className={`h-full bar-fill ${pos ? 'bg-[var(--success-foreground)]' : 'bg-[var(--warning-foreground)]'}`}
                   style={{ width: `${Math.round(Math.abs(c.r) * 100)}%` }}
                 />
               </div>

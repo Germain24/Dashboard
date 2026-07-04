@@ -211,7 +211,7 @@ function MuscleVolumePanel() {
                 <span className="w-28 shrink-0 capitalize">{v.muscle}</span>
                 <div className="relative h-2 flex-1 overflow-hidden rounded bg-[var(--muted)]">
                   <div
-                    className="absolute inset-y-0 left-0 rounded bg-current opacity-70"
+                    className="absolute inset-y-0 left-0 rounded bg-current opacity-70 bar-fill"
                     style={{ width: `${pct}%` }}
                   />
                 </div>

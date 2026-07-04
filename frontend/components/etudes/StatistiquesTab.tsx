@@ -60,7 +60,7 @@ export function StatistiquesTab() {
           </div>
           <div className="h-2 rounded-full bg-[var(--border)] overflow-hidden">
             <div
-              className="h-full rounded-full transition-all"
+              className="h-full rounded-full bar-fill"
               style={{ width: `${stats.goal.progress_pct}%`, backgroundColor: stats.goal.progress_pct >= 100 ? "var(--success)" : "var(--ring)" }}
             />
           </div>
@@ -111,7 +111,7 @@ export function StatistiquesTab() {
               <div key={String(c.cours_id)} className="flex items-center gap-2 text-sm">
                 <div className="w-24 truncate" title={c.label}>{c.label}</div>
                 <div className="flex-1 h-3 bg-[var(--border)] rounded overflow-hidden">
-                  <div className="h-full bg-[var(--ring)]" style={{ width: `${(c.minutes / maxCourse) * 100}%` }} />
+                  <div className="h-full bg-[var(--ring)] bar-fill" style={{ width: `${(c.minutes / maxCourse) * 100}%` }} />
                 </div>
                 <div className="w-16 text-right text-xs text-[var(--muted-foreground)] tabular-nums">{fmtH(c.minutes)}</div>
               </div>

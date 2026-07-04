@@ -540,6 +540,12 @@ ol[data-sonner-toaster] {
   cursor: pointer;
 }
 
+/* Remplissage des barres de progression : quand la donnée revalide (TanStack),
+   le delta glisse au lieu de sauter. La largeur inline vient du composant. */
+.bar-fill {
+  transition: width 0.45s var(--ease-out), background-color 0.45s var(--ease-out);
+}
+
 /* Item de navigation actif (« vous êtes ici »).
    Trois indices cumulés : lavis plein (fond présent vs transparent — indice
    non chromatique perceptible en daltonisme), teinte marine/laiton du texte

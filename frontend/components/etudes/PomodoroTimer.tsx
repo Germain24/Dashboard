@@ -85,7 +85,7 @@ export function PomodoroTimer({ cours, onLogged }: { cours: Cours[]; onLogged: (
       <div className="text-center">
         <div className="text-4xl font-bold tabular-nums">{mm}:{ss}</div>
         <div className="mt-2 h-1.5 rounded-full bg-[var(--border)] overflow-hidden">
-          <div className="h-full bg-[var(--ring)] transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-[var(--ring)] bar-fill" style={{ width: `${pct}%` }} />
         </div>
       </div>
 

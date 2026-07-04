@@ -152,7 +152,7 @@ export default function BookDetailModal({
               <span>{estimate.pct}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-[var(--muted)]">
-              <div className="h-full rounded-full bg-[var(--ring)] transition-all" style={{ width: `${estimate.pct}%` }} />
+              <div className="h-full rounded-full bg-[var(--ring)] bar-fill" style={{ width: `${estimate.pct}%` }} />
             </div>
             <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
               <Clock className="h-3.5 w-3.5" />

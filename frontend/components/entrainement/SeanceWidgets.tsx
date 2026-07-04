@@ -44,7 +44,7 @@ export function MesocycleBanner({ meso, onStart, onStop }: {
         </button>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-        <div className="h-full rounded-full transition-all"
+        <div className="h-full rounded-full bar-fill"
           style={{ width: `${(wk / len) * 100}%`, backgroundColor: isDeload ? "var(--warning)" : "var(--ring)" }} />
       </div>
       <p className="text-xs text-[var(--muted-foreground)]">
@@ -104,7 +104,7 @@ export function RestTimer({
 
       {active && (
         <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-          <div className="h-full bg-[var(--ring)] transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-[var(--ring)] bar-fill" style={{ width: `${pct}%` }} />
         </div>
       )}
 

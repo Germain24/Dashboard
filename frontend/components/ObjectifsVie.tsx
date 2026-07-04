@@ -56,7 +56,7 @@ export function ObjectifsVie() {
               </div>
               {g.pct_global != null && (
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-                  <div className="h-full rounded-full bg-[var(--ring)]" style={{ width: `${g.pct_global}%` }} />
+                  <div className="h-full rounded-full bg-[var(--ring)] bar-fill" style={{ width: `${g.pct_global}%` }} />
                 </div>
               )}
               <ul className="mt-2 space-y-1.5 pl-1">

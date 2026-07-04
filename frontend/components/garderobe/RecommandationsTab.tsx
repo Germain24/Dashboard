@@ -31,7 +31,7 @@ export function RecommandationsTab({ recs }: { recs: ConseilsAchat }) {
             </div>
             <div className="mt-2 h-1.5 bg-[var(--muted)] rounded overflow-hidden">
               <div
-                className="h-full bg-[var(--ring)]"
+                className="h-full bg-[var(--ring)] bar-fill"
                 style={{ width: `${(c.debloque / maxGain) * 100}%` }}
               />
             </div>

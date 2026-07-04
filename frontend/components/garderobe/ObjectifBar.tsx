@@ -33,7 +33,7 @@ export function ObjectifBar({ slot, excedent = false }: { slot: Emplacement; exc
       <div className="relative h-2 flex-1 rounded-full bg-[var(--muted)]">
         {!empty && (
           <div
-            className={`absolute top-0 left-0 h-2 rounded-full ${barClass}`}
+            className={`absolute top-0 left-0 h-2 rounded-full bar-fill ${barClass}`}
             style={{ width: `${Math.max(pos, 2)}%` }}
           />
         )}

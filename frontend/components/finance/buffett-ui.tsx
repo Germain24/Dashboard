@@ -18,7 +18,7 @@ export function StatusBadge({ s }: { s: string }) {
 export function ProgressBar({ pct }: { pct: number }) {
   return (
     <div className="w-full h-2 rounded-full bg-[var(--muted)] overflow-hidden">
-      <div className="h-full rounded-full bg-[var(--ring)] transition-all"
+      <div className="h-full rounded-full bg-[var(--ring)] bar-fill"
         style={{ width: `${Math.min(100, pct)}%` }} />
     </div>
   );

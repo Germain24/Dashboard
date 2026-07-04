@@ -38,7 +38,7 @@ function ObjectifWidget() {
         </div>
         <div className="mt-1 h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-500"
+            className="h-full rounded-full bar-fill"
             style={{ width: `${pct}%`, background: color }}
           />
         </div>

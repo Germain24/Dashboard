@@ -64,7 +64,7 @@ export function SlotCard({
       {setsTarget && (
         <div className="mt-1 h-1 rounded-full bg-[var(--muted)] overflow-hidden">
           <div
-            className="h-full bg-[var(--ring)] transition-all"
+            className="h-full bg-[var(--ring)] bar-fill"
             style={{ width: `${progress}%` }}
           />
         </div>

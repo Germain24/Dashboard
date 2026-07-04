@@ -51,6 +51,9 @@ continuité entre pages : chaque navigation « clignote ». `motion` v12 est dé
     springs.soft ; le Dock n'a qu'un seul lien de nav (Accueil), rien à animer
 1.8 [M](\*\*) Transitions de données : lorsqu'une requête TanStack revalide, animer les
     deltas de valeurs (compteurs, barres) plutôt que remplacer brutalement.
+    ← FINIS ✓ (2026-07-04) compteurs déjà couverts (AnimatedNumber anime chaque changement) ;
+    recette .bar-fill (width/background-color 0.45 s --ease-out) posée sur les 29 barres
+    inline, transition-all ad hoc supprimées, garde bar-motion.test.ts
 
 ## 2. Design « quiet luxury » — combler l'écart avec Verre Clair (P1)
 

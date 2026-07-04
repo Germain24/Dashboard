@@ -147,7 +147,7 @@ export default function MoisTab() {
                 <span className="text-xs text-[var(--muted-foreground)]">/ {formatCAD(savings.objectif)} · {savings.progress_pct}%</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]">
-                <div className="h-full rounded-full transition-all duration-500"
+                <div className="h-full rounded-full bar-fill"
                   style={{ width: `${Math.min(100, savings.progress_pct)}%`, background: savings.progress_pct >= 100 ? 'var(--success)' : 'var(--ring)' }} />
               </div>
             </>
@@ -318,7 +318,7 @@ export default function MoisTab() {
                   </div>
                   <div className="h-1.5 rounded-full bg-[var(--muted)] overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className="h-full rounded-full bar-fill"
                       style={{ width: `${pct}%`, background: barColor }}
                     />
                   </div>
