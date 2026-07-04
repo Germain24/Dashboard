@@ -113,6 +113,10 @@ Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data
 
 4.1 [S](\*\*) Import dynamique (`next/dynamic`, `ssr: false`) pour Leaflet et les
     composants lourds du deck — vérifier qu'aucun n'atterrit dans le bundle commun.
+    ← FINIS ✓ (2026-07-04) déjà en place (ItineraryMap.tsx, seul importeur leaflet/
+    react-leaflet, chargé via dynamic({ssr:false}) dans PlanifierTab.tsx) ; pas d'autre
+    lib lourde dans le deck (charts = SVG custom, pas de recharts/three/monaco) ;
+    garde heavy-deps-code-split.test.ts (vérifiée : détecte bien une régression)
 4.2 [S](\*\*) `@next/bundle-analyzer` en script `analyze` + budget de taille par route ;
     traquer les barrels `index.ts` qui importent tout un module.
 4.3 [S](\*\*) Fonts via `next/font` (Libre Caslon Text, Public Sans, JetBrains Mono)
