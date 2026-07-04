@@ -30,6 +30,23 @@ continuité entre pages : chaque navigation « clignote ». `motion` v12 est dé
 1.2 [M](\*\*\*) Étudier la **View Transitions API** (supportée par Next 15 via
     `experimental.viewTransition`) pour les éléments partagés : titre de module,
     stat-cards du hub → page détail. Fallback automatique = comportement actuel.
+    ← ÉTUDIÉ, NON ADOPTÉ (2026-07-04). `experimental.viewTransition` déclenche
+    `needsExperimentalReact()` (next/dist/lib/needs-experimental-react.js) : Next
+    substitue **tout le runtime React/ReactDOM de l'app** (client + SSR, toutes
+    routes) par ses builds expérimentaux internes (`next/dist/compiled/react-experimental`),
+    pas seulement pour les composants qui utilisent `unstable_ViewTransition`. Testé
+    en conditions réelles (`next build` avec le flag) : le JS partagé passe de 103 kB
+    à 115 kB (+12 %) sur *toutes* les routes, avant même d'écrire le moindre transition —
+    un coût qui va à l'encontre des gains perf du §4 pour un confort visuel [M](\*\*\*)
+    sur seulement 2 points d'entrée (titre de module, stat-cards hub→détail). API elle-même
+    non documentée/stable (`unstable_` prefix), et invisible aux tests (vitest résout
+    `react` stable, pas l'alias webpack de Next → tout composant qui l'utiliserait
+    planterait silencieusement en test sans garde `'unstable_ViewTransition' in React`).
+    Décision : fallback actuel (`PageTransition` motion, item 1.1) conservé — le
+    ratio risque/bénéfice ne justifie pas de faire tourner tout le dashboard sur un
+    canal React expérimental pour 2 transitions. À revisiter si Next stabilise le flag
+    hors `experimental` (sans swap global de runtime) ou si React ship `ViewTransition`
+    en stable.
 1.3 [S](\*\*) Étendre `.stagger` (limité à 6 enfants en CSS nth-child) par un vrai
     stagger déclaratif `motion` (`staggerChildren`) sur les grilles de cartes.
     ← FINIS ✓ (2026-07-03) 8 usages CSS migrés StaggerGroup/Item, bloc .stagger supprimé de globals.css
