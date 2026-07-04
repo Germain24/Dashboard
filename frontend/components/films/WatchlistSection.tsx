@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { toast } from 'sonner'
 import { Plus, Star, Search, X, Clapperboard, Tv, Check, Clock, Bookmark, Eye } from 'lucide-react'
 import type { WatchItem, WatchStatut, MediaType, TmdbResult } from '@/lib/films'
@@ -131,7 +132,7 @@ function AddModal({
                 className="w-full flex gap-3 p-2 rounded-lg hover:bg-[var(--muted)] text-left transition-colors"
               >
                 {r.poster_url ? (
-                  <img src={r.poster_url} alt={r.titre} className="w-10 h-14 object-cover rounded" />
+                  <Image src={r.poster_url} alt={r.titre} width={40} height={56} className="h-14 w-10 rounded object-cover" />
                 ) : (
                   <div className="w-10 h-14 bg-[var(--muted)] rounded flex items-center justify-center">
                     {mediaType === 'film' ? <Clapperboard size={16} /> : <Tv size={16} />}
@@ -222,7 +223,7 @@ function ItemCard({
   return (
     <div className="flex gap-3 p-3 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-[var(--muted-foreground)] transition-colors">
       {item.poster_url ? (
-        <img src={item.poster_url} alt={item.titre} className="w-12 h-16 object-cover rounded-lg flex-shrink-0" />
+        <Image src={item.poster_url} alt={item.titre} width={48} height={64} className="h-16 w-12 rounded-lg object-cover flex-shrink-0" />
       ) : (
         <div className="w-12 h-16 bg-[var(--muted)] rounded-lg flex items-center justify-center flex-shrink-0">
           {item.type === 'film' ? <Clapperboard size={18} className="text-[var(--muted-foreground)]" /> : <Tv size={18} className="text-[var(--muted-foreground)]" />}

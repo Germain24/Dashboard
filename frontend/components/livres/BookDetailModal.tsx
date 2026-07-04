@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { toast } from 'sonner'
 import { X, Trash2, Quote as QuoteIcon, StickyNote, Clock } from 'lucide-react'
 import type { Book, Statut, Estimate, BookNote, BookQuote } from '@/lib/livres'
@@ -122,7 +123,7 @@ export default function BookDetailModal({
         className="w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-xl">
         <div className="mb-4 flex items-start gap-3">
           {book.couverture_url ? (
-            <img src={book.couverture_url} alt="" className="h-20 w-14 shrink-0 rounded object-cover" />
+            <Image src={book.couverture_url} alt="" width={56} height={80} className="h-20 w-14 shrink-0 rounded object-cover" />
           ) : null}
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold leading-tight">{book.titre}</h2>

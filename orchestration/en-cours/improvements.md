@@ -149,6 +149,12 @@ Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data
     garde mono-font.test.ts
 4.4 [S](\*) Images (pixel art garde-robe, couvertures livres) : `next/image` +
     dimensions explicites partout.
+    ← FINIS ✓ (2026-07-04) 13 balises `<img>` migrées sur 10 fichiers (posters TMDB,
+    couvertures Open Library, pixel art garde-robe, covers musique, photos progression
+    santé en `fill`) ; `next.config.ts` : `remotePatterns` pour `image.tmdb.org`,
+    `covers.openlibrary.org` + backend local (127.0.0.1/localhost, tout port — dashboard
+    perso, pas d'hôte distant non maîtrisé) ; garde `next-image.test.ts` (vérifiée :
+    détecte une régression) ; build de production réel validé (36 routes prerendues).
 4.5 [M](\*\*) Prefetch ciblé : conserver le prefetch des liens visibles, précharger les
     requêtes TanStack du module au survol du Dock (`queryClient.prefetchQuery`).
     ← FINIS ✓ (2026-07-04) router.prefetch(href) au survol des NavLink de la Sidebar :

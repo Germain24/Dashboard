@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import type { Vetement, SlotInfo } from "@/lib/garderobe";
 import { emojiForCategorie, imageUrl } from "@/lib/garderobe";
 
@@ -74,9 +75,11 @@ function SlotPreview({ item, slot }: { item: Vetement | null; slot: SlotInfo }) 
   return (
     <div className={"flex-1 min-h-[110px] min-w-0 overflow-hidden rounded-md border " + border + " bg-[var(--card)] flex flex-col items-center justify-center gap-1 p-2 text-center"}>
       {!pngFailed ? (
-        <img
+        <Image
           src={imageUrl(item)}
           alt={item.nom}
+          width={60}
+          height={60}
           onError={() => setPngFailed(true)}
           style={{ imageRendering: "pixelated" }}
           className="max-h-[60px] w-auto max-w-full object-contain shrink-0"

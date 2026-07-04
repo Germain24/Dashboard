@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { toast } from 'sonner'
 import { BookOpen, Clock, CheckCircle2, Bookmark, XCircle, Plus, Search, X, RefreshCw } from 'lucide-react'
 import type { Book, Statut, SearchResult } from '@/lib/livres'
@@ -186,7 +187,7 @@ export default function BibliothequeTab() {
                 >
                   <div className="flex items-start gap-3">
                     {livre.couverture_url ? (
-                      <img src={livre.couverture_url} alt="" className="h-14 w-10 shrink-0 rounded object-cover" />
+                      <Image src={livre.couverture_url} alt="" width={40} height={56} className="h-14 w-10 shrink-0 rounded object-cover" />
                     ) : (
                       <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded" style={{ background: cfg.bg }}>
                         <BookOpen size={16} style={{ color: cfg.color }} />
@@ -329,7 +330,7 @@ function AddBookDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () 
             <button key={i} onClick={() => void add(r)}
               className="flex w-full items-center gap-2 rounded-lg border border-[var(--border)] p-2 text-left hover:bg-[var(--muted)]">
               {r.couverture_url ? (
-                <img src={r.couverture_url} alt="" className="h-12 w-8 shrink-0 rounded object-cover" />
+                <Image src={r.couverture_url} alt="" width={32} height={48} className="h-12 w-8 shrink-0 rounded object-cover" />
               ) : (
                 <div className="flex h-12 w-8 shrink-0 items-center justify-center rounded bg-[var(--muted)]"><BookOpen size={14} /></div>
               )}

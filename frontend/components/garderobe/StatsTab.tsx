@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import type { StatsResponse, WearFrequency, Vetement } from "@/lib/garderobe";
 import { emojiForCategorie, assetUrl } from "@/lib/garderobe";
 import { useWearFrequence } from "@/lib/queries/garderobe";
@@ -131,7 +132,14 @@ function LavanderieRow({ v }: { v: any }) {
     <div className="flex items-center gap-3 p-2 rounded border border-[var(--destructive)]/50 bg-[var(--destructive)]/10">
       <div className="w-10 flex justify-center">
         {!failed ? (
-          <img src={assetUrl(v.id)} alt={v.nom} onError={() => setFailed(true)} style={{ imageRendering: "pixelated", height: "28px" }} />
+          <Image
+            src={assetUrl(v.id)}
+            alt={v.nom}
+            width={28}
+            height={28}
+            onError={() => setFailed(true)}
+            style={{ imageRendering: "pixelated", height: "28px", width: "auto" }}
+          />
         ) : (
           <span className="text-lg">{emojiForCategorie(v.categorie)}</span>
         )}

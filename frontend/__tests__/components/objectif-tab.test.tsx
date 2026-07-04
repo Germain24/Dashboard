@@ -57,8 +57,10 @@ describe("ObjectifTab", () => {
   it("affiche la vignette pixel art d'un emplacement rempli", () => {
     mockData = { ...baseData };
     render(<ObjectifTab />, { wrapper });
+    // next/image réécrit `src` vers son optimiseur (/_next/image?url=...) : on
+    // vérifie que le chemin d'origine y est bien encodé, pas une égalité brute.
     const img = screen.getByAltText("Tee") as HTMLImageElement;
-    expect(img.getAttribute("src")).toBe("/garderobe/assets/Haut/tee.png");
+    expect(img.getAttribute("src")).toContain(encodeURIComponent("/garderobe/assets/Haut/tee.png"));
   });
 
   it("affiche un avertissement quand des pièces sont non rattachées", () => {

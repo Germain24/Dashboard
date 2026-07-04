@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import type { Vetement } from "@/lib/garderobe";
 import { emojiForCategorie, imageUrl, mediaUrl } from "@/lib/garderobe";
 import { useObjectif, useUpdateVetement, useUploadVetementPhoto } from "@/lib/queries/garderobe";
@@ -135,9 +136,22 @@ function VetementCard({ v, onReload, typeNames }: { v: Vetement; onReload?: () =
       </button>
       <input ref={fileRef} type="file" accept="image/*" onChange={(e) => void onPick(e)} className="hidden" />
       {photoUrl ? (
-        <img src={mediaUrl(photoUrl)} alt={v.nom} style={{ height: "56px", width: "auto", objectFit: "cover", borderRadius: "6px" }} />
+        <Image
+          src={mediaUrl(photoUrl)}
+          alt={v.nom}
+          width={56}
+          height={56}
+          style={{ height: "56px", width: "auto", objectFit: "cover", borderRadius: "6px" }}
+        />
       ) : !failed ? (
-        <img src={imageUrl(v)} alt={v.nom} onError={() => setFailed(true)} style={{ imageRendering: "pixelated", height: "56px", width: "auto" }} />
+        <Image
+          src={imageUrl(v)}
+          alt={v.nom}
+          width={56}
+          height={56}
+          onError={() => setFailed(true)}
+          style={{ imageRendering: "pixelated", height: "56px", width: "auto" }}
+        />
       ) : (
         <div className="text-2xl">{emojiForCategorie(v.categorie)}</div>
       )}

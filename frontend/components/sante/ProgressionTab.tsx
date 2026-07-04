@@ -3,6 +3,7 @@
 /** Photos de progression avant/après stockées localement (#69). */
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { mediaUrl, todayKey, type ProgressPhoto } from "@/lib/sante";
 import { useProgressPhotos, useUploadProgressPhoto } from "@/lib/queries/sante";
 import { Button } from "@/components/ui/button";
@@ -130,11 +131,14 @@ function PhotoPane({
         </select>
       </div>
       {photo && (
-        <img
-          src={mediaUrl(photo.photo_url)}
-          alt={`Progression ${title} ${photo.date}`}
-          className="w-full aspect-[3/4] object-cover bg-[var(--muted)]"
-        />
+        <div className="relative w-full aspect-[3/4] bg-[var(--muted)]">
+          <Image
+            src={mediaUrl(photo.photo_url)}
+            alt={`Progression ${title} ${photo.date}`}
+            fill
+            className="object-cover"
+          />
+        </div>
       )}
     </div>
   );

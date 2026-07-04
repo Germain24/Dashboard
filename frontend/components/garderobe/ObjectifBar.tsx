@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { type Emplacement } from "@/lib/garderobe";
 
 /** Une ligne d'emplacement : vignette + nom de marque + barre 0→100 (Q/P → Qualité Max). */
@@ -18,9 +19,11 @@ export function ObjectifBar({ slot, excedent = false }: { slot: Emplacement; exc
     <div className={`flex items-center gap-3 ${excedent ? "text-[var(--destructive)]" : ""}`}>
       <div className="h-6 w-6 shrink-0 flex items-center justify-center">
         {!empty && slot.image && !imgFailed && (
-          <img
+          <Image
             src={`/garderobe/assets/${slot.image}`}
             alt={slot.vetement_nom ?? ""}
+            width={24}
+            height={24}
             onError={() => setImgFailed(true)}
             style={{ imageRendering: "pixelated" }}
             className="max-h-6 max-w-6 object-contain"

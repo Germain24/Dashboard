@@ -16,6 +16,17 @@ const nextConfig: NextConfig = {
   // Sortie autonome pour une image de production minimale (#200) : .next/standalone
   // embarque un server.js + le strict nécessaire (pas besoin de tout node_modules).
   output: "standalone",
+  images: {
+    remotePatterns: [
+      // Posters films/séries (TMDB) et couvertures livres (Open Library).
+      { protocol: "https", hostname: "image.tmdb.org" },
+      { protocol: "https", hostname: "covers.openlibrary.org" },
+      // Médias servis par le backend local (garde-robe, musique, photos de
+      // progression) : dashboard perso, jamais un hôte distant non maîtrisé.
+      { protocol: "http", hostname: "127.0.0.1" },
+      { protocol: "http", hostname: "localhost" },
+    ],
+  },
   // Le lint tourne en étape CI dédiée (#196) ; on ne bloque pas le build dessus
   // (dette lint pré-existante suivie séparément). Les erreurs de type restent
   // bloquantes (tsc).

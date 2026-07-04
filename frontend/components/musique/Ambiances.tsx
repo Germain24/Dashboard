@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { mediaUrl, musiqueApi, type AmbianceCount, type Track } from "@/lib/musique";
 import { useAddAmbiance, useAmbiances, usePlaylist, usePlaylistReco } from "@/lib/queries/musique";
 
@@ -32,7 +33,7 @@ export function Ambiances() {
       <div className="space-y-1">
         {tracks.map((t) => (
           <div key={t.id} className="flex items-center gap-3 rounded-lg border border-[var(--border)] p-2">
-            {t.cover && <img src={mediaUrl(t.cover)} alt="" className="h-10 w-10 rounded object-cover" />}
+            {t.cover && <Image src={mediaUrl(t.cover)} alt="" width={40} height={40} className="h-10 w-10 rounded object-cover" />}
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm">{t.title} — <span className="text-[var(--muted-foreground)]">{t.artist}</span></div>
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}

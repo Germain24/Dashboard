@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { mediaUrl, musiqueApi, type Track } from "@/lib/musique";
 import {
@@ -83,7 +84,7 @@ export function Bibliotheque() {
         {tracks.map((t) => (
           <div key={t.id} className="flex items-center gap-3 rounded-lg border border-[var(--border)] p-2">
             {t.cover
-              ? <img src={mediaUrl(t.cover)} alt="" className="h-12 w-12 rounded object-cover" />
+              ? <Image src={mediaUrl(t.cover)} alt="" width={48} height={48} className="h-12 w-12 rounded object-cover" />
               : <div className="h-12 w-12 rounded bg-[var(--muted)]" />}
             <div className="min-w-0">
               <div className="truncate text-sm font-medium">{t.title}</div>
