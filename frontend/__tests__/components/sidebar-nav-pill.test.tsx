@@ -4,7 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Sidebar } from '@/components/layout/Sidebar'
 
 const usePathname = vi.fn()
-vi.mock('next/navigation', () => ({ usePathname: () => usePathname() }))
+vi.mock('next/navigation', () => ({
+  usePathname: () => usePathname(),
+  useRouter: () => ({ prefetch: vi.fn() }),
+}))
 
 function renderSidebar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })

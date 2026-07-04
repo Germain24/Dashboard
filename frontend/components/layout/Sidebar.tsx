@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Home, CircleHelp, ChevronRight } from 'lucide-react'
 import { motion } from 'motion/react'
 import { springs } from '@/lib/motion/tokens'
@@ -136,10 +136,12 @@ function NavLink({
   icon: React.ComponentType<{ className?: string }>
   active: boolean
 }) {
+  const router = useRouter()
   return (
     <Link
       href={href}
       aria-current={active ? 'page' : undefined}
+      onMouseEnter={() => router.prefetch(href)}
       className={cn(
         'relative flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors duration-200',
         active

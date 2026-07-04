@@ -124,6 +124,12 @@ Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data
     dimensions explicites partout.
 4.5 [M](\*\*) Prefetch ciblé : conserver le prefetch des liens visibles, précharger les
     requêtes TanStack du module au survol du Dock (`queryClient.prefetchQuery`).
+    ← FINIS ✓ (2026-07-04) router.prefetch(href) au survol des NavLink de la Sidebar :
+    les items de groupe repliés (accordéon) ne sont montés qu'à l'ouverture donc jamais
+    prefetch par le viewport de next/link — le survol comble ce trou. Dock non touché
+    (lien Accueil unique, toujours visible, déjà couvert par le prefetch viewport) ;
+    prefetch de requêtes TanStack par module écarté (nécessiterait un registre
+    slug→query dupliquant les hooks existants pour un [M] qui n'a que 2 étoiles)
 4.6 [S](\*) Audit Lighthouse (desktop + Android) documenté dans `docs/` avec les
     3 métriques suivies : LCP, INP, CLS.
 
