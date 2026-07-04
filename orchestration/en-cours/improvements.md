@@ -159,6 +159,12 @@ Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data
     slug→query dupliquant les hooks existants pour un [M] qui n'a que 2 étoiles)
 4.6 [S](\*) Audit Lighthouse (desktop + Android) documenté dans `docs/` avec les
     3 métriques suivies : LCP, INP, CLS.
+    ← FINIS ✓ (2026-07-04) rapport dans `orchestration/finis/2026-07-04-audit-lighthouse.md`
+    (`docs/` n'existe plus depuis 3.1). Build prod réel, / + /finance, mobile+desktop,
+    3 runs médianés. Desktop bon partout (LCP<1,1s, TBT<140ms, INP≤237ms). Mobile :
+    LCP et TBT constamment mauvais (LCP~4,5-4,6s, TBT~1,3-1,5s) même sur le hub —
+    coût d'hydratation client à creuser (hors scope de cet audit). Script réutilisable
+    `npm run audit:lighthouse` (lighthouse+chrome-launcher+puppeteer-core en devDeps).
 
 ## 5. Modules « automatisation de vie » — enrichir l'existant (P2)
 
