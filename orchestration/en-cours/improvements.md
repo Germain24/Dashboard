@@ -41,9 +41,10 @@ continuité entre pages : chaque navigation « clignote ». `motion` v12 est dé
 1.6 [M](\*\*) Micro-interactions systématiques sur les primitives `components/ui/` :
     press-scale des boutons, élévation douce des cards au survol, apparition
     spring des dialogs, entrée/sortie des toasts sonner alignées sur les tokens.
-    ← PARTIEL (2026-07-02) dialog spring+sortie, tabs pastille layoutId, StatCard count-up
-    (boutons/cards avaient déjà press-scale et hover ; toasts sonner restants)
-    ; header jamais masqué pendant chargement (Sante/Garderobe) (2026-07-03)
+    ← FINIS ✓ (2026-07-04) dialog spring+sortie, tabs pastille layoutId, StatCard count-up
+    (boutons/cards avaient déjà press-scale et hover) ; header jamais masqué pendant
+    chargement (Sante/Garderobe) (2026-07-03) ; toasts sonner alignés --ease-out/0.45 s
+    (surcharge globals.css + garde sonner-motion.test.ts, drag préservé) (2026-07-04)
 1.7 [S](\*\*) Navigation Dock/Sidebar : indicateur actif animé (layoutId partagé) au
     lieu d'un changement d'état sec.
     ← FINIS ✓ (2026-07-04) pastille motion layoutId sidebar-nav-pill (recette .nav-active),

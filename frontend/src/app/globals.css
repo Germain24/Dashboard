@@ -494,6 +494,18 @@ html {
   animation: shimmer 1.5s infinite;
 }
 
+/* Toasts sonner : entrée/sortie/empilement sur la courbe de l'app (--ease-out,
+   durée base 0.45 s) au lieu du `ease` par défaut de la lib.
+   :not([data-swiping='true']) laisse sonner couper la transition pendant le
+   drag ; sa media query prefers-reduced-motion (!important) reste prioritaire. */
+[data-sonner-toast]:not([data-swiping='true']) {
+  transition: transform 0.45s var(--ease-out), opacity 0.45s var(--ease-out),
+    height 0.45s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+ol[data-sonner-toaster] {
+  transition: transform 0.45s var(--ease-out);
+}
+
 /* Accessibilité : anneau de focus clavier cohérent sur tous les interactifs.
    :where() garde une spécificité nulle -> un composant peut surcharger. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
