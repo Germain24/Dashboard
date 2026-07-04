@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "gen:types": "openapi-typescript http://127.0.0.1:8000/openapi.json -o lib/types.ts",
-    "gen:types:file": "openapi-typescript openapi.json -o lib/types.ts"
+    "gen:types:file": "openapi-typescript openapi.json -o lib/types.ts",
+    "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@next/bundle-analyzer": "^16.2.10",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
@@ -49,6 +51,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.2",
     "concurrently": "^9.0.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",

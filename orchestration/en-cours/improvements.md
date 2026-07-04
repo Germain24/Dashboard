@@ -119,6 +119,12 @@ Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data
     garde heavy-deps-code-split.test.ts (vérifiée : détecte bien une régression)
 4.2 [S](\*\*) `@next/bundle-analyzer` en script `analyze` + budget de taille par route ;
     traquer les barrels `index.ts` qui importent tout un module.
+    ← FINIS ✓ (2026-07-04) `npm run analyze` (ANALYZE=true, cross-env) génère
+    .next/analyze/{client,nodejs,edge}.html ; désactivé par défaut (build normal
+    vérifié inchangé), garde bundle-analyzer.test.ts. Barrels `components/ui/index.ts`
+    et `layout/index.ts` : re-exports nommés ciblés (pas de `export *`), 2 seuls existants —
+    pas de budget de taille par route automatisé (nécessiterait un script CI dédié,
+    hors scope [S] ; l'analyzer suffit pour l'audit manuel)
 4.3 [S](\*\*) Fonts via `next/font` (Libre Caslon Text, Public Sans, JetBrains Mono)
     si ce n'est pas déjà le cas — zéro FOUT, zéro requête externe.
     ← FINIS ✓ (2026-07-04) JetBrains Mono manquait (simple fallback CSS jamais déclenché) ;
