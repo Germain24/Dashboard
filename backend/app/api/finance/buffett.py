@@ -336,18 +336,12 @@ def backtest_allocation(periode: str = "2y", session: Session = Depends(get_sess
     prices: dict[str, list[float]] = {}
     try:
         import yfinance as yf
-        import pandas as pd
         from app.services.finance.yf_session import yf_session
+        from app.services.finance.buffett.allocation import close_prices_from_download
         t_list = list(weights.keys())
         raw = yf.download(t_list, period=periode, interval="1d", progress=False, group_by="ticker", session=yf_session())
         if not raw.empty:
-            if len(t_list) == 1:
-                cd = raw["Close"].to_frame(); cd.columns = t_list
-            else:
-                cd = pd.DataFrame({
-                    t: raw[t]["Close"] for t in t_list
-                    if t in raw.columns.get_level_values(0)
-                })
+            cd = close_prices_from_download(raw, t_list)
             cd = cd.dropna(how="all").ffill().dropna()
             dates = [d.strftime("%Y-%m-%d") for d in cd.index]
             prices = {t: [float(x) for x in cd[t].tolist()] for t in cd.columns}
@@ -422,7 +416,7 @@ def portfolio_create(
     def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
         from app.services.finance.buffett.config import Config
         from app.services.finance.buffett.optimizer import optimize_portfolio_de, prepare_optimization
-        from app.services.finance.buffett.allocation import discretize_allocation, latest_prices
+        from app.services.finance.buffett.allocation import close_prices_from_download, discretize_allocation, latest_prices
         from app.services.finance.buffett.broker_availability import merge_broker_columns
         from app.services.finance.buffett.reporting import update_allocations
         from app.services.finance.buffett.dedup import deduplicate_tickers
@@ -498,14 +492,7 @@ def portfolio_create(
             if raw.empty:
                 opt_prog.finish(message="Cours indisponibles.")
                 return
-            if len(t_list) == 1:
-                cd = raw["Close"].to_frame()
-                cd.columns = t_list
-            else:
-                cd = pd.DataFrame({
-                    t: raw[t]["Close"] for t in t_list
-                    if t in raw.columns.get_level_values(0)
-                })
+            cd = close_prices_from_download(raw, t_list)
             cd = cd.dropna(axis=1, thresh=len(cd) * 0.01).ffill()
             rets = cd.pct_change().dropna().clip(-0.5, 0.5)
 

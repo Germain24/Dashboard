@@ -50,6 +50,21 @@ def is_fractional_broker(broker_name: str) -> bool:
     return "TRADING212" in c or "TRADDING212" in c or c == "T212"
 
 
+def close_prices_from_download(raw, tickers: list[str]):
+    """Extrait les prix de clôture d'un ``yf.download(tickers, group_by="ticker")``.
+
+    yfinance renvoie des colonnes MultiIndex ``(Ticker, Price)`` même pour un
+    **seul** ticker (contrairement à l'ancienne hypothèse de colonnes aplaties
+    ``raw["Close"]``, qui lève ``KeyError: 'Close'``) : on indexe toujours par
+    ``raw[t]["Close"]``. Les tickers absents du téléchargement (échec réseau,
+    delisting) sont simplement ignorés.
+    """
+    import pandas as pd
+    level0 = set(raw.columns.get_level_values(0))
+    cols = {t: raw[t]["Close"] for t in tickers if t in level0}
+    return pd.DataFrame(cols)
+
+
 def latest_prices(close_df, tickers: list[str]) -> dict[str, float]:
     """Dernier prix de clôture connu par ticker depuis un DataFrame de prix."""
     prices: dict[str, float] = {}

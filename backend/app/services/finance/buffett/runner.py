@@ -440,7 +440,7 @@ def run_buffett_analysis(
     try:
         from .dedup import deduplicate_correlated, deduplicate_tickers
         from .optimizer import optimize_portfolio_de, prepare_optimization
-        from .allocation import discretize_allocation, latest_prices
+        from .allocation import close_prices_from_download, discretize_allocation, latest_prices
         from .broker_availability import merge_broker_columns
         from .broker_budgets import apply_live_broker_budgets
         import pandas as pd
@@ -478,13 +478,7 @@ def run_buffett_analysis(
             from app.services.finance.yf_session import yf_session
             raw = yf.download(t_list, period="5y", interval="1d", progress=False, group_by="ticker", session=yf_session())
             if not raw.empty:
-                if len(t_list) == 1:
-                    cd = raw["Close"].to_frame(); cd.columns = t_list
-                else:
-                    cd = pd.DataFrame({
-                        t: raw[t]["Close"] for t in t_list
-                        if t in raw.columns.get_level_values(0)
-                    })
+                cd = close_prices_from_download(raw, t_list)
                 cd = cd.dropna(axis=1, thresh=len(cd) * 0.01).ffill()
                 rets = cd.pct_change().dropna().clip(-0.5, 0.5)
                 df_m = pd.DataFrame([{
