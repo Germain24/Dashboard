@@ -11,6 +11,15 @@ Usage :
 
 `yf_session()` renvoie `None` si `curl_cffi` est indisponible — dans ce cas
 yfinance retombe sur son comportement par défaut (pas de régression).
+
+Thread-local, PAS un singleton process-wide : l'analyse Buffett complète
+lance jusqu'à 10 workers (`ThreadPoolExecutor`) qui appellent `yf_session()`
+concurremment. `curl_cffi` (bindings natifs autour de libcurl) n'est pas
+garanti thread-safe pour un usage concurrent du MÊME objet Session — un
+singleton partagé provoquait un crash natif intermittent du process (aucune
+trace Python : `job_monthly_buffett` catch déjà toute Exception avec
+exc_info=True, donc un crash sans traceback loggé n'est pas une exception
+Python). Une session par thread élimine le partage.
 """
 
 from __future__ import annotations
@@ -18,9 +27,7 @@ from __future__ import annotations
 import random
 import threading
 
-_lock = threading.Lock()
-_session = None
-_init_done = False
+_local = threading.local()
 
 # Empreinte de navigateur à usurper (curl_cffi). Chrome récent = profil le plus sûr.
 IMPERSONATE = "chrome"
@@ -54,25 +61,26 @@ def _new_session():
 
 
 def yf_session():
-    """Retourne une session curl_cffi impersonée (singleton), ou None si indispo."""
-    global _session, _init_done
-    if _init_done:
-        return _session
-    with _lock:
-        if _init_done:
-            return _session
-        _session = _new_session()
-        _init_done = True
-    return _session
+    """Retourne la session curl_cffi impersonée du THREAD COURANT (créée au
+    premier appel, réutilisée ensuite dans ce thread), ou None si indispo."""
+    if not getattr(_local, "init_done", False):
+        _local.session = _new_session()
+        _local.init_done = True
+    return _local.session
 
 
 def rotate_session():
-    """Force la prochaine `yf_session()` à recréer une session (nouvelle IP si un
-    pool de proxys est configuré). À appeler quand Yahoo bloque l'IP courante."""
-    global _session, _init_done
-    with _lock:
-        _session = None
-        _init_done = False
+    """Force le prochain `yf_session()` du thread courant à recréer une session
+    (nouvelle IP si un pool de proxys est configuré). À appeler quand Yahoo
+    bloque l'IP courante."""
+    _local.session = None
+    _local.init_done = False
+
+
+def reset_sessions() -> None:
+    """Réinitialise la session du thread courant (isolation des tests)."""
+    _local.session = None
+    _local.init_done = False
 
 
 def fast_last_price(ticker_obj) -> float:
