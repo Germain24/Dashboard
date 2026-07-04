@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, CircleHelp, ChevronRight } from 'lucide-react'
+import { motion } from 'motion/react'
+import { springs } from '@/lib/motion/tokens'
 import { MODULE_GROUPS } from '@/lib/modules'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -139,14 +141,23 @@ function NavLink({
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors duration-200',
+        'relative flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors duration-200',
         active
-          ? 'nav-active'
+          ? 'text-[var(--nav-active-fg)]'
           : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]',
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span className="truncate">{label}</span>
+      {active && (
+        <motion.span
+          layoutId="sidebar-nav-pill"
+          transition={springs.soft}
+          data-testid="nav-pill"
+          aria-hidden
+          className="nav-active absolute inset-0 rounded-[var(--radius)]"
+        />
+      )}
+      <Icon className="relative z-10 h-4 w-4 shrink-0" aria-hidden="true" />
+      <span className="relative z-10 truncate">{label}</span>
     </Link>
   )
 }

@@ -46,6 +46,8 @@ continuité entre pages : chaque navigation « clignote ». `motion` v12 est dé
     ; header jamais masqué pendant chargement (Sante/Garderobe) (2026-07-03)
 1.7 [S](\*\*) Navigation Dock/Sidebar : indicateur actif animé (layoutId partagé) au
     lieu d'un changement d'état sec.
+    ← FINIS ✓ (2026-07-04) pastille motion layoutId sidebar-nav-pill (recette .nav-active),
+    springs.soft ; le Dock n'a qu'un seul lien de nav (Accueil), rien à animer
 1.8 [M](\*\*) Transitions de données : lorsqu'une requête TanStack revalide, animer les
     deltas de valeurs (compteurs, barres) plutôt que remplacer brutalement.
 
