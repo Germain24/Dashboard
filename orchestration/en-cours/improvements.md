@@ -32,7 +32,7 @@ continuité entre pages : chaque navigation « clignote ». `motion` v12 est dé
     stat-cards du hub → page détail. Fallback automatique = comportement actuel.
 1.3 [S](\*\*) Étendre `.stagger` (limité à 6 enfants en CSS nth-child) par un vrai
     stagger déclaratif `motion` (`staggerChildren`) sur les grilles de cartes.
-    ← PARTIEL (2026-07-02) StaggerGroup/StaggerItem livrés ; migration des 9 usages CSS → P1
+    ← FINIS ✓ (2026-07-03) 8 usages CSS migrés StaggerGroup/Item, bloc .stagger supprimé de globals.css
 1.4 [S](\*\*) Harmoniser les courbes : une seule source de vérité pour les easings/springs
     (tokens `--ease-*` de globals.css ↔ constantes `motion` partagées dans `lib/motion.ts`).
     ← FINIS ✓ (2026-07-02) lib/motion/tokens.ts seule source ; MotionConfig reducedMotion global
@@ -43,6 +43,7 @@ continuité entre pages : chaque navigation « clignote ». `motion` v12 est dé
     spring des dialogs, entrée/sortie des toasts sonner alignées sur les tokens.
     ← PARTIEL (2026-07-02) dialog spring+sortie, tabs pastille layoutId, StatCard count-up
     (boutons/cards avaient déjà press-scale et hover ; toasts sonner restants)
+    ; header jamais masqué pendant chargement (Sante/Garderobe) (2026-07-03)
 1.7 [S](\*\*) Navigation Dock/Sidebar : indicateur actif animé (layoutId partagé) au
     lieu d'un changement d'état sec.
 1.8 [M](\*\*) Transitions de données : lorsqu'une requête TanStack revalide, animer les
@@ -57,6 +58,7 @@ l'application **inégale** de ce système à travers les 29 modules.
 2.1 [M](\*\*\*) Passe de conformité module par module : typographie display (Libre
     Caslon) réservée aux titres, palette restreinte (navy = seule voix interactive),
     espacements 4/8/16/24 — corriger les écarts hérités des différents chantiers.
+    ← FINIS ✓ (2026-07-03) passe par lots de catégorie, garde conformity.test.ts (0 hex hors lib/design/colors.ts)
 2.2 [M](\*\*) **Backgrounds structurés et sobres** : texture papier très subtile (grain
     SVG inline < 2 Ko, opacité ≤ 3 %), dégradé marin discret derrière le hub,
     variation par module via une teinte d'accent unique — jamais de gradients criards.
@@ -72,6 +74,7 @@ l'application **inégale** de ce système à travers les 29 modules.
     ← FINIS ✓ (2026-07-03) EmptyState serif italique + ornement laiton
 2.6 [S](\*) Densité : hiérarchiser les pages très denses (finance, santé) avec des
     sections repliables et un rythme vertical constant.
+    ← FINIS ✓ (2026-07-03) CollapsibleSection (ui/) sur finance + santé
 2.7 [S](\*\*) Skeletons (`loading.tsx` par segment) calqués sur la géométrie réelle des
     pages pour éliminer les layout shifts au chargement.
     ← FINIS ✓ (2026-07-03) blocs composables + 6 loading.tsx sur mesure

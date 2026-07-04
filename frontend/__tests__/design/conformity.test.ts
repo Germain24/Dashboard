@@ -31,3 +31,12 @@ it("aucune couleur hex/rgb hardcodée hors whitelist", () => {
   );
   expect(offenders, `couleurs hardcodées hors whitelist:\n${offenders.join("\n")}`).toEqual([]);
 });
+
+it("la whitelist de couleurs est vide (dette résorbée)", () => {
+  expect(HEX_WHITELIST).toEqual([]);
+});
+
+it("classe CSS .stagger disparue (migrée vers StaggerGroup)", () => {
+  const offenders = gitGrepFiles(`["' ]stagger["' ]`);
+  expect(offenders, `usages .stagger restants:\n${offenders.join("\n")}`).toEqual([]);
+});
