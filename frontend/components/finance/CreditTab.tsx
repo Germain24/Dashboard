@@ -158,7 +158,7 @@ function ScoreChart({ real, projected }: { real: CreditScorePoint[]; projected: 
         <p className="mt-2 text-xs text-[var(--muted-foreground)]">Ajoute au moins 2 points de score pour voir la courbe.</p>
       </div>
     );
-  const { all, min, max, realCoords, projCoords } = built;
+  const { all, realCoords, projCoords } = built;
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
       <p className="mb-2 text-xs font-semibold text-[var(--muted-foreground)]">Cote de crédit dans le temps</p>
@@ -168,9 +168,12 @@ function ScoreChart({ real, projected }: { real: CreditScorePoint[]; projected: 
           <polyline points={projCoords} fill="none" stroke="var(--muted-foreground)" strokeWidth={0.8} strokeDasharray="2,1.5" vectorEffect="non-scaling-stroke" />
         )}
       </svg>
+      {/* Le score n'est pas monotone (il baisse de SCORE_IMPACT_PAR_ACTION à chaque action
+          déclenchée) : on affiche les valeurs aux deux extrémités de la période, pas le
+          min/max global, pour ne pas associer une date à une valeur atteinte ailleurs. */}
       <div className="mt-1 flex justify-between text-[10px] tabular-nums text-[var(--muted-foreground)]">
-        <span>{fmtMonthYear(all[0].date)} · {min}</span>
-        <span>{fmtMonthYear(all[all.length - 1].date)} · {max}</span>
+        <span>{fmtMonthYear(all[0].date)} · {all[0].score}</span>
+        <span>{fmtMonthYear(all[all.length - 1].date)} · {all[all.length - 1].score}</span>
       </div>
     </div>
   );
