@@ -1,4 +1,4 @@
-"""Intégration API : CRUD marge de crédit + calcul du plan."""
+"""Intégration API : CRUD marge de crédit + calcul du plan (v2, règles à seuils)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,12 @@ from sqlmodel.pool import StaticPool
 
 from app.core.db import get_session
 from app.main import create_app
+
+
+def _add_months(d: dt.date, months: int) -> dt.date:
+    total = d.year * 12 + (d.month - 1) + months
+    year, month = divmod(total, 12)
+    return dt.date(year, month + 1, 1)
 
 
 @pytest.fixture(name="client")
@@ -31,11 +37,11 @@ def client_fixture():
 def test_profile_get_and_patch(client):
     r = client.get("/finance/credit/profile")
     assert r.status_code == 200
-    assert r.json()["revenu_annuel"] == 0.0
+    assert "date_cible" in r.json()
 
-    r = client.patch("/finance/credit/profile", json={"revenu_annuel": 40000})
+    r = client.patch("/finance/credit/profile", json={"date_cible": "2028-09-01"})
     assert r.status_code == 200
-    assert r.json()["revenu_annuel"] == 40000.0
+    assert r.json()["date_cible"] == "2028-09-01"
 
 
 def test_account_crud(client):
@@ -68,34 +74,45 @@ def test_score_crud(client):
     assert client.delete(f"/finance/credit/scores/{entry_id}").status_code == 204
 
 
-def test_plan_endpoint_returns_current_margin(client):
-    client.patch("/finance/credit/profile", json={
-        "revenu_annuel": 40000, "date_arrivee_canada": "2025-09-01", "date_cible": "2025-12-01",
-    })
+def test_rule_crud(client):
+    r = client.post("/finance/credit/rules", json={"seuil_score": 720, "type": "hausse", "montant_estime": 1000})
+    assert r.status_code == 201
+    rule_id = r.json()["id"]
+    assert client.get("/finance/credit/rules").json()[0]["seuil_score"] == 720
+    assert client.delete(f"/finance/credit/rules/{rule_id}").status_code == 204
+    assert client.delete(f"/finance/credit/rules/{rule_id}").status_code == 404
+
+
+def test_plan_endpoint_produces_roadmap_and_growing_margin(client):
+    today = dt.date.today()
+    six_months_ago = _add_months(today, -6)
+    date_cible = _add_months(today, 12)
+
+    client.patch("/finance/credit/profile", json={"date_cible": date_cible.isoformat()})
     client.post("/finance/credit/accounts", json={
         "institution": "Desjardins", "produit": "Carte Mastercard",
         "limite_actuelle": 700, "date_ouverture": "2025-09-01",
     })
+    client.post("/finance/credit/scores", json={"date": six_months_ago.isoformat(), "score": 650, "source": "Credit Karma"})
+    client.post("/finance/credit/scores", json={"date": today.isoformat(), "score": 680, "source": "Credit Karma"})
+    client.post("/finance/credit/rules", json={"seuil_score": 685, "type": "hausse", "montant_estime": 1000})
+
     r = client.get("/finance/credit/plan")
     assert r.status_code == 200
     body = r.json()
+    assert body["projection_possible"] is True
     assert body["marge_actuelle"] == 700.0
-    assert "actions" in body and "projection" in body
+    assert len(body["projection_score"]) > 1
+    margins = [p["marge_totale"] for p in body["projection_marge"]]
+    assert margins == sorted(margins)
+    assert len(body["actions"]) >= 1
+    assert body["actions"][0]["type"] == "hausse"
 
 
-def test_plan_endpoint_produces_roadmap_and_growing_projection(client):
-    today = dt.date.today()
-    date_cible = today.replace(year=today.year + 1)
-    client.patch("/finance/credit/profile", json={
-        "revenu_annuel": 40000,
-        "date_arrivee_canada": today.isoformat(),
-        "date_cible": date_cible.isoformat(),
-    })
+def test_plan_endpoint_without_enough_score_history_has_no_projection(client):
     r = client.get("/finance/credit/plan")
     assert r.status_code == 200
     body = r.json()
-    assert len(body["projection"]) > 1
-    margins = [p["marge_totale"] for p in body["projection"]]
-    assert margins == sorted(margins)  # la marge totale ne diminue jamais dans cette simulation
-    assert len(body["actions"]) > 0
-    assert any(a["type"] == "ouverture" for a in body["actions"])
+    assert body["projection_possible"] is False
+    assert body["projection_score"] == []
+    assert body["actions"] == []

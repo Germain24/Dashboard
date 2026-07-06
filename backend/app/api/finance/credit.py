@@ -1,4 +1,4 @@
-"""Marge de crédit : profil, comptes, historique de pointage, feuille de route."""
+"""Marge de crédit : profil, comptes, historique de pointage, règles de seuils, feuille de route."""
 
 from __future__ import annotations
 
@@ -15,8 +15,6 @@ router = APIRouter()
 
 
 class CreditProfilePatch(BaseModel):
-    revenu_annuel: float | None = None
-    date_arrivee_canada: dt.date | None = None
     date_cible: dt.date | None = None
     nom: str | None = None
 
@@ -45,6 +43,12 @@ class CreditScoreEntryIn(BaseModel):
     date: dt.date
     score: int
     source: str = ""
+
+
+class CreditActionRuleIn(BaseModel):
+    seuil_score: int
+    type: str
+    montant_estime: float = 0.0
 
 
 @router.get("/credit/profile")
@@ -97,6 +101,22 @@ def create_credit_score(body: CreditScoreEntryIn, session: Session = Depends(get
 def delete_credit_score(entry_id: int, session: Session = Depends(get_session)):
     if not svc.delete_score_entry(session, entry_id):
         raise HTTPException(404, f"Pointage {entry_id} introuvable")
+
+
+@router.get("/credit/rules")
+def get_credit_rules(session: Session = Depends(get_session)):
+    return [r.model_dump() for r in svc.list_rules(session)]
+
+
+@router.post("/credit/rules", status_code=201)
+def create_credit_rule(body: CreditActionRuleIn, session: Session = Depends(get_session)):
+    return svc.create_rule(session, **body.model_dump()).model_dump()
+
+
+@router.delete("/credit/rules/{rule_id}", status_code=204)
+def delete_credit_rule(rule_id: int, session: Session = Depends(get_session)):
+    if not svc.delete_rule(session, rule_id):
+        raise HTTPException(404, f"Règle {rule_id} introuvable")
 
 
 @router.get("/credit/plan")
