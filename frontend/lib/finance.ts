@@ -61,6 +61,69 @@ export interface NetWorthBreakdown {
   total: number[];
 }
 
+// Marge de crédit
+export interface CreditProfile {
+  id: number;
+  revenu_annuel: number;
+  date_arrivee_canada: string;
+  date_cible: string;
+  nom: string | null;
+}
+export interface CreditProfilePatch {
+  revenu_annuel?: number;
+  date_arrivee_canada?: string;
+  date_cible?: string;
+  nom?: string | null;
+}
+export interface CreditAccount {
+  id: number;
+  institution: string;
+  produit: string;
+  limite_actuelle: number;
+  date_ouverture: string;
+  derniere_augmentation: string | null;
+  statut: "actif" | "ferme";
+  notes: string | null;
+}
+export interface CreditAccountCreate {
+  institution: string;
+  produit: string;
+  limite_actuelle: number;
+  date_ouverture: string;
+  derniere_augmentation?: string | null;
+  statut?: "actif" | "ferme";
+  notes?: string | null;
+}
+export interface CreditScoreEntry {
+  id: number;
+  date: string;
+  score: number;
+  source: string;
+}
+export interface CreditScoreEntryCreate {
+  date: string;
+  score: number;
+  source?: string;
+}
+export interface CreditPlanAction {
+  date: string;
+  type: "hausse" | "ouverture";
+  institution: string;
+  produit: string;
+  delta_limite: number;
+  justification: string;
+}
+export interface CreditPlanPoint {
+  date: string;
+  marge_totale: number;
+}
+export interface CreditPlan {
+  marge_actuelle: number;
+  marge_projetee_a_date_cible: number;
+  actions: CreditPlanAction[];
+  projection: CreditPlanPoint[];
+}
+
 export interface HistoryPoint {
   date: string;
   valeur: number;
@@ -408,4 +471,17 @@ export const financeApi = {
   patrimoineUpdate: (id: number, patch_: Partial<PatrimoineItemCreate>) =>
     patch<PatrimoineItem>(`/patrimoine/${id}`, patch_),
   patrimoineDelete: (id: number) => del(`/patrimoine/${id}`),
+
+  // Marge de crédit
+  creditProfile: () => get<CreditProfile>("/credit/profile"),
+  creditProfileUpdate: (data: CreditProfilePatch) => patch<CreditProfile>("/credit/profile", data),
+  creditAccounts: () => get<CreditAccount[]>("/credit/accounts"),
+  creditAccountCreate: (data: CreditAccountCreate) => post<CreditAccount>("/credit/accounts", data),
+  creditAccountUpdate: (id: number, data: Partial<CreditAccountCreate>) =>
+    patch<CreditAccount>(`/credit/accounts/${id}`, data),
+  creditAccountDelete: (id: number) => del(`/credit/accounts/${id}`),
+  creditScores: () => get<CreditScoreEntry[]>("/credit/scores"),
+  creditScoreCreate: (data: CreditScoreEntryCreate) => post<CreditScoreEntry>("/credit/scores", data),
+  creditScoreDelete: (id: number) => del(`/credit/scores/${id}`),
+  creditPlan: () => get<CreditPlan>("/credit/plan"),
 };
