@@ -1,69 +1,95 @@
-"""Planner marge de crédit : simulation de hausses/ouvertures dans le temps."""
+"""Planner marge de crédit v2 : simulation par seuils de score."""
 
 import datetime as dt
 
-from app.models.credit import CreditAccount, CreditProfile, CreditScoreEntry
-from app.services.finance.credit.catalog import CreditProduct
+from app.models.credit import CreditAccount, CreditActionRule, CreditScoreEntry
 from app.services.finance.credit.planner import build_plan
 
 
-def _profile(date_cible):
-    return CreditProfile(revenu_annuel=40000, date_arrivee_canada=dt.date(2025, 9, 1), date_cible=date_cible)
+def _account(limite=700, statut="actif"):
+    return CreditAccount(
+        institution="Desjardins", produit="Carte Mastercard", limite_actuelle=limite,
+        date_ouverture=dt.date(2025, 9, 1), statut=statut,
+    )
 
 
-def test_existing_account_gets_increase_after_default_threshold():
-    accounts = [
-        CreditAccount(
-            institution="Desjardins", produit="Carte Mastercard", limite_actuelle=700,
-            date_ouverture=dt.date(2025, 9, 1), derniere_augmentation=None, statut="actif",
-        )
-    ]
-    profile = _profile(dt.date(2026, 12, 1))
-    plan = build_plan(accounts, [], profile, [], today=dt.date(2026, 7, 1))
-    hausses = [a for a in plan["actions"] if a["type"] == "hausse" and a["institution"] == "Desjardins"]
-    assert len(hausses) == 1
-    assert hausses[0]["date"] == dt.date(2026, 9, 1)  # 12 mois après l'ouverture (règle par défaut)
-    assert hausses[0]["delta_limite"] == 350.0  # +50% de 700
-
-
-def test_new_product_opened_once_eligible():
-    catalog = [CreditProduct("Newcomer Bank", "Carte Débutant", "programme_newcomer", 500, 2000, 0, None, 6, 12)]
-    profile = _profile(dt.date(2026, 7, 1))
-    plan = build_plan([], [], profile, catalog, today=dt.date(2026, 1, 1))
-    ouvertures = [a for a in plan["actions"] if a["type"] == "ouverture"]
-    assert len(ouvertures) == 1
-    assert ouvertures[0]["institution"] == "Newcomer Bank"
-    assert ouvertures[0]["date"] == dt.date(2026, 1, 1)  # anciennete_min_mois=0 -> éligible immédiatement
-
-
-def test_score_gate_blocks_product_requiring_score():
-    gated = [CreditProduct("Prime Bank", "Carte Premium", "carte_standard", 3000, 8000, 0, 700, 6, 12)]
-    profile = _profile(dt.date(2026, 12, 1))
-
-    plan_no_score = build_plan([], [], profile, gated, today=dt.date(2026, 1, 1))
-    assert not [a for a in plan_no_score["actions"] if a["institution"] == "Prime Bank"]
-
-    scores = [CreditScoreEntry(date=dt.date(2026, 1, 1), score=720, source="Test")]
-    plan_with_score = build_plan([], scores, profile, gated, today=dt.date(2026, 1, 1))
-    assert [a for a in plan_with_score["actions"] if a["institution"] == "Prime Bank"]
-
-
-def test_anti_inquiry_cooldown_limits_new_accounts_per_window():
-    catalog = [
-        CreditProduct("Bank A", "Carte A", "programme_newcomer", 500, 1000, 0, None, 6, 12),
-        CreditProduct("Bank B", "Carte B", "programme_newcomer", 500, 1000, 0, None, 6, 12),
-    ]
-    profile = _profile(dt.date(2026, 3, 1))
-    plan = build_plan([], [], profile, catalog, today=dt.date(2026, 1, 1))
-    ouvertures = [a for a in plan["actions"] if a["type"] == "ouverture"]
-    # cooldown anti-inquiry = 4 mois -> une seule ouverture possible sur une fenêtre de 3 mois (jan-mar)
-    assert len(ouvertures) == 1
-
-
-def test_empty_state_still_returns_full_projection():
-    profile = _profile(dt.date(2026, 9, 1))
-    plan = build_plan([], [], profile, [], today=dt.date(2026, 7, 1))
+def test_less_than_two_score_points_returns_no_projection():
+    plan = build_plan([_account()], [], [], date_cible=dt.date(2026, 9, 1), today=dt.date(2026, 7, 1))
+    assert plan["projection_possible"] is False
+    assert plan["projection_score"] == []
+    assert plan["projection_marge"] == []
     assert plan["actions"] == []
-    assert len(plan["projection"]) == 3  # juillet, août, septembre 2026
-    assert plan["marge_actuelle"] == 0.0
-    assert plan["marge_projetee_a_date_cible"] == 0.0
+    assert plan["historique_marge"] == [{"date": dt.date(2026, 7, 1), "marge_totale": 700.0}]
+
+    one_score = [CreditScoreEntry(date=dt.date(2026, 1, 1), score=650, source="x")]
+    plan2 = build_plan([_account()], one_score, [], date_cible=dt.date(2026, 9, 1), today=dt.date(2026, 7, 1))
+    assert plan2["projection_possible"] is False
+
+
+def test_closed_accounts_excluded_from_marge_actuelle():
+    accounts = [_account(limite=700, statut="actif"), _account(limite=5000, statut="ferme")]
+    plan = build_plan(accounts, [], [], date_cible=dt.date(2026, 9, 1), today=dt.date(2026, 7, 1))
+    assert plan["marge_actuelle"] == 700.0
+
+
+def test_no_rules_defined_still_projects_score_and_margin():
+    scores = [
+        CreditScoreEntry(date=dt.date(2026, 1, 1), score=650, source="x"),
+        CreditScoreEntry(date=dt.date(2026, 7, 1), score=680, source="y"),
+    ]
+    plan = build_plan([_account()], scores, [], date_cible=dt.date(2026, 9, 1), today=dt.date(2026, 7, 1))
+    assert plan["actions"] == []
+    assert plan["projection_possible"] is True
+    assert len(plan["projection_score"]) == 3  # juillet, août, septembre 2026
+    assert plan["projection_marge"][-1]["marge_totale"] == 700.0  # jamais modifiée sans règle
+
+
+def test_single_rule_triggers_at_correct_month_and_updates_margin_and_score():
+    scores = [
+        CreditScoreEntry(date=dt.date(2026, 1, 1), score=650, source="x"),
+        CreditScoreEntry(date=dt.date(2026, 7, 1), score=680, source="y"),
+    ]
+    # pente = (680-650)/6 = 5 pts/mois. Juillet: 685 (pas de trigger). Août: 690 (trigger).
+    rules = [CreditActionRule(seuil_score=690, type="hausse", montant_estime=1000)]
+    plan = build_plan([_account()], scores, rules, date_cible=dt.date(2026, 9, 1), today=dt.date(2026, 7, 1))
+
+    assert plan["actions"] == [
+        {"date": dt.date(2026, 8, 1), "type": "hausse", "seuil_score": 690, "montant_estime": 1000.0},
+    ]
+    aout = next(p for p in plan["projection_marge"] if p["date"] == dt.date(2026, 8, 1))
+    assert aout["marge_totale"] == 1700.0  # 700 + 1000
+    aout_score = next(p for p in plan["projection_score"] if p["date"] == dt.date(2026, 8, 1))
+    assert aout_score["score"] == 680.0  # 690 - 10 (impact de l'action)
+    sept = next(p for p in plan["projection_marge"] if p["date"] == dt.date(2026, 9, 1))
+    assert sept["marge_totale"] == 1700.0  # règle déjà consommée, ne se redéclenche pas
+
+
+def test_multiple_rules_can_trigger_same_month_when_score_jumps_fast():
+    scores = [
+        CreditScoreEntry(date=dt.date(2026, 1, 1), score=600, source="x"),
+        CreditScoreEntry(date=dt.date(2026, 3, 1), score=700, source="y"),
+    ]
+    # pente = (700-600)/2 = 50 pts/mois. Mars: 700+50=750 -> franchit 720 ET 740 le même mois.
+    rules = [
+        CreditActionRule(seuil_score=720, type="hausse", montant_estime=500),
+        CreditActionRule(seuil_score=740, type="nouvelle_carte", montant_estime=1000),
+    ]
+    plan = build_plan([_account()], scores, rules, date_cible=dt.date(2026, 4, 1), today=dt.date(2026, 3, 1))
+
+    assert [a["seuil_score"] for a in plan["actions"]] == [720, 740]
+    assert all(a["date"] == dt.date(2026, 3, 1) for a in plan["actions"])
+    mars = next(p for p in plan["projection_marge"] if p["date"] == dt.date(2026, 3, 1))
+    assert mars["marge_totale"] == 2200.0  # 700 + 500 + 1000
+
+
+def test_rules_consumed_in_ascending_threshold_order_regardless_of_input_order():
+    scores = [
+        CreditScoreEntry(date=dt.date(2026, 1, 1), score=600, source="x"),
+        CreditScoreEntry(date=dt.date(2026, 3, 1), score=700, source="y"),
+    ]
+    rules = [
+        CreditActionRule(seuil_score=740, type="nouvelle_carte", montant_estime=1000),
+        CreditActionRule(seuil_score=720, type="hausse", montant_estime=500),
+    ]
+    plan = build_plan([_account()], scores, rules, date_cible=dt.date(2026, 4, 1), today=dt.date(2026, 3, 1))
+    assert [a["seuil_score"] for a in plan["actions"]] == [720, 740]
