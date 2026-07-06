@@ -7,8 +7,13 @@ import {
   financeApi,
   type CreditAccount,
   type CreditAccountCreate,
+  type CreditActionRule,
+  type CreditActionRuleCreate,
+  type CreditMarginPoint,
+  type CreditPlanAction,
   type CreditProfile,
   type CreditScoreEntry,
+  type CreditScorePoint,
 } from "@/lib/finance";
 
 const cad = (n: number) =>
@@ -27,6 +32,7 @@ export function CreditTab() {
   const profile = useQuery({ queryKey: [...KEY, "profile"], queryFn: financeApi.creditProfile });
   const accounts = useQuery({ queryKey: [...KEY, "accounts"], queryFn: financeApi.creditAccounts });
   const scores = useQuery({ queryKey: [...KEY, "scores"], queryFn: financeApi.creditScores });
+  const rules = useQuery({ queryKey: [...KEY, "rules"], queryFn: financeApi.creditRules });
 
   const updateProfile = useMutation({ mutationFn: financeApi.creditProfileUpdate, onSuccess: invalidate });
   const createAccount = useMutation({ mutationFn: financeApi.creditAccountCreate, onSuccess: invalidate });
@@ -38,18 +44,23 @@ export function CreditTab() {
   const deleteAccount = useMutation({ mutationFn: financeApi.creditAccountDelete, onSuccess: invalidate });
   const createScore = useMutation({ mutationFn: financeApi.creditScoreCreate, onSuccess: invalidate });
   const deleteScore = useMutation({ mutationFn: financeApi.creditScoreDelete, onSuccess: invalidate });
+  const createRule = useMutation({ mutationFn: financeApi.creditRuleCreate, onSuccess: invalidate });
+  const deleteRule = useMutation({ mutationFn: financeApi.creditRuleDelete, onSuccess: invalidate });
 
-  const anyError = plan.isError || profile.isError || accounts.isError || scores.isError;
+  const anyError = plan.isError || profile.isError || accounts.isError || scores.isError || rules.isError;
   const anyLoading =
-    plan.isLoading || profile.isLoading || accounts.isLoading || scores.isLoading ||
-    !plan.data || !profile.data || !accounts.data || !scores.data;
+    plan.isLoading || profile.isLoading || accounts.isLoading || scores.isLoading || rules.isLoading ||
+    !plan.data || !profile.data || !accounts.data || !scores.data || !rules.data;
 
   if (anyError)
     return (
       <div className="text-sm text-[var(--warning-foreground)]">
         Impossible de charger la marge de crédit.{" "}
         <button
-          onClick={() => { void plan.refetch(); void profile.refetch(); void accounts.refetch(); void scores.refetch(); }}
+          onClick={() => {
+            void plan.refetch(); void profile.refetch(); void accounts.refetch();
+            void scores.refetch(); void rules.refetch();
+          }}
           className="underline hover:text-[var(--foreground)]"
         >
           Réessayer
@@ -58,22 +69,24 @@ export function CreditTab() {
     );
   if (anyLoading) return <p className="text-sm text-[var(--muted-foreground)]">Chargement…</p>;
 
+  const dernierScore = plan.data.historique_score.length
+    ? plan.data.historique_score[plan.data.historique_score.length - 1].score
+    : null;
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Marge totale actuelle" value={cad(plan.data.marge_actuelle)} strong />
-        <Stat
-          label={`Marge projetée au ${fmtMonthYear(profile.data.date_cible)}`}
-          value={cad(plan.data.marge_projetee_a_date_cible)}
-          strong
-        />
+        <Stat label="Score le plus récent" value={dernierScore === null ? "—" : String(dernierScore)} strong />
       </div>
 
       <p className="text-xs text-[var(--muted-foreground)]">
-        La marge projetée est une estimation heuristique, pas une garantie d&apos;approbation bancaire.
+        La portion projetée (pointillée) est une estimation basée sur tes règles de seuils et la progression
+        passée de ton score — pas une garantie bancaire.
       </p>
 
-      <ProjectionChart points={plan.data.projection} />
+      <ScoreChart real={plan.data.historique_score} projected={plan.data.projection_score} />
+      <MarginChart real={plan.data.historique_marge} projected={plan.data.projection_marge} />
 
       <ProfileForm profile={profile.data} onSave={(patch) => updateProfile.mutate(patch)} />
 
@@ -90,7 +103,13 @@ export function CreditTab() {
         onDelete={(id) => deleteScore.mutate(id)}
       />
 
-      <RoadmapSection actions={plan.data.actions} />
+      <RulesSection
+        rules={rules.data}
+        onCreate={(body) => createRule.mutate(body)}
+        onDelete={(id) => deleteRule.mutate(id)}
+      />
+
+      <RoadmapSection actions={plan.data.actions} projectionPossible={plan.data.projection_possible} />
     </div>
   );
 }
@@ -104,82 +123,104 @@ function Stat({ label, value, strong }: { label: string; value: string; strong?:
   );
 }
 
-function ProjectionChart({ points }: { points: { date: string; marge_totale: number }[] }) {
-  if (points.length < 2) return null;
-  const values = points.map((p) => p.marge_totale);
+/** Construit une polyline pour la portion "réelle" et une pour la portion
+ *  "projetée" (reliée au dernier point réel), sur un même axe X d'indices
+ *  0..total-1 partagé entre les deux séries. */
+function buildDualSeries<T>(real: T[], projected: T[], getValue: (p: T) => number, W: number, H: number) {
+  const all = [...real, ...projected];
+  if (all.length < 2) return null;
+  const values = all.map(getValue);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = max - min || 1;
-  const W = 100, H = 32;
-  const coords = values
-    .map((v, i) => `${((i / (values.length - 1)) * W).toFixed(2)},${(H - ((v - min) / span) * H).toFixed(2)}`)
-    .join(" ");
+  const total = all.length;
+  const x = (i: number) => (i / (total - 1)) * W;
+  const y = (v: number) => H - ((v - min) / span) * H;
 
+  const realCoords = real.map((p, i) => `${x(i).toFixed(2)},${y(getValue(p)).toFixed(2)}`).join(" ");
+  const projCoords = projected.length
+    ? [
+        `${x(Math.max(real.length - 1, 0)).toFixed(2)},${y(real.length ? getValue(real[real.length - 1]) : getValue(projected[0])).toFixed(2)}`,
+        ...projected.map((p, i) => `${x(real.length + i).toFixed(2)},${y(getValue(p)).toFixed(2)}`),
+      ].join(" ")
+    : "";
+
+  return { all, min, max, realCoords, projCoords };
+}
+
+function ScoreChart({ real, projected }: { real: CreditScorePoint[]; projected: CreditScorePoint[] }) {
+  const W = 100, H = 32;
+  const built = buildDualSeries(real, projected, (p) => p.score, W, H);
+  if (!built)
+    return (
+      <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Cote de crédit dans le temps</p>
+        <p className="mt-2 text-xs text-[var(--muted-foreground)]">Ajoute au moins 2 points de score pour voir la courbe.</p>
+      </div>
+    );
+  const { all, min, max, realCoords, projCoords } = built;
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
-      <p className="mb-2 text-xs font-semibold text-[var(--muted-foreground)]">Marge de crédit totale projetée</p>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-24 w-full" role="img" aria-label="Projection de la marge de crédit totale">
-        <polyline points={coords} fill="none" stroke="var(--ring)" strokeWidth={0.8} vectorEffect="non-scaling-stroke" />
+      <p className="mb-2 text-xs font-semibold text-[var(--muted-foreground)]">Cote de crédit dans le temps</p>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-24 w-full" role="img" aria-label="Cote de credit dans le temps">
+        {realCoords && <polyline points={realCoords} fill="none" stroke="var(--ring)" strokeWidth={0.8} vectorEffect="non-scaling-stroke" />}
+        {projCoords && (
+          <polyline points={projCoords} fill="none" stroke="var(--muted-foreground)" strokeWidth={0.8} strokeDasharray="2,1.5" vectorEffect="non-scaling-stroke" />
+        )}
       </svg>
       <div className="mt-1 flex justify-between text-[10px] tabular-nums text-[var(--muted-foreground)]">
-        <span>{fmtMonthYear(points[0].date)} · {cad(min)}</span>
-        <span>{fmtMonthYear(points[points.length - 1].date)} · {cad(max)}</span>
+        <span>{fmtMonthYear(all[0].date)} · {min}</span>
+        <span>{fmtMonthYear(all[all.length - 1].date)} · {max}</span>
       </div>
     </div>
   );
 }
 
-function ProfileForm({
-  profile,
-  onSave,
-}: {
-  profile: CreditProfile;
-  onSave: (patch: { revenu_annuel?: number; date_arrivee_canada?: string; date_cible?: string }) => void;
-}) {
-  const [revenu, setRevenu] = useState(String(profile.revenu_annuel));
-  const [arrivee, setArrivee] = useState(profile.date_arrivee_canada);
+function MarginChart({ real, projected }: { real: CreditMarginPoint[]; projected: CreditMarginPoint[] }) {
+  const W = 100, H = 32;
+  const built = buildDualSeries(real, projected, (p) => p.marge_totale, W, H);
+  if (!built)
+    return (
+      <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+        <p className="text-xs font-semibold text-[var(--muted-foreground)]">Marge de crédit totale dans le temps</p>
+        <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+          Ajoute au moins 2 points de score (dans la section pointage) pour voir la projection de marge.
+        </p>
+      </div>
+    );
+  const { all, min, max, realCoords, projCoords } = built;
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
+      <p className="mb-2 text-xs font-semibold text-[var(--muted-foreground)]">Marge de crédit totale dans le temps</p>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-24 w-full" role="img" aria-label="Marge de credit totale dans le temps">
+        {realCoords && <polyline points={realCoords} fill="none" stroke="var(--ring)" strokeWidth={0.8} vectorEffect="non-scaling-stroke" />}
+        {projCoords && (
+          <polyline points={projCoords} fill="none" stroke="var(--muted-foreground)" strokeWidth={0.8} strokeDasharray="2,1.5" vectorEffect="non-scaling-stroke" />
+        )}
+      </svg>
+      <div className="mt-1 flex justify-between text-[10px] tabular-nums text-[var(--muted-foreground)]">
+        <span>{fmtMonthYear(all[0].date)} · {cad(min)}</span>
+        <span>{fmtMonthYear(all[all.length - 1].date)} · {cad(max)}</span>
+      </div>
+    </div>
+  );
+}
+
+function ProfileForm({ profile, onSave }: { profile: CreditProfile; onSave: (patch: { date_cible?: string }) => void }) {
   const [cible, setCible] = useState(profile.date_cible);
-
-  const commitRevenu = () => {
-    const n = Number(revenu);
-    if (!Number.isNaN(n) && n !== profile.revenu_annuel) onSave({ revenu_annuel: n });
-  };
-
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-4">
       <p className="mb-2 text-xs font-semibold text-[var(--muted-foreground)]">Profil</p>
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <label className="flex items-center gap-1.5">
-          Revenu annuel
-          <input
-            value={revenu}
-            onChange={(e) => setRevenu(e.target.value)}
-            onBlur={commitRevenu}
-            type="number"
-            className="w-24 rounded border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-right tabular-nums"
-          />
-        </label>
-        <label className="flex items-center gap-1.5">
-          Arrivée au Canada
-          <input
-            value={arrivee}
-            onChange={(e) => setArrivee(e.target.value)}
-            onBlur={() => arrivee !== profile.date_arrivee_canada && onSave({ date_arrivee_canada: arrivee })}
-            type="date"
-            className="rounded border border-[var(--border)] bg-[var(--background)] px-2 py-1"
-          />
-        </label>
-        <label className="flex items-center gap-1.5">
-          Date cible
-          <input
-            value={cible}
-            onChange={(e) => setCible(e.target.value)}
-            onBlur={() => cible !== profile.date_cible && onSave({ date_cible: cible })}
-            type="date"
-            className="rounded border border-[var(--border)] bg-[var(--background)] px-2 py-1"
-          />
-        </label>
-      </div>
+      <label className="flex items-center gap-1.5 text-sm">
+        Date cible
+        <input
+          value={cible}
+          onChange={(e) => setCible(e.target.value)}
+          onBlur={() => cible !== profile.date_cible && onSave({ date_cible: cible })}
+          type="date"
+          className="rounded border border-[var(--border)] bg-[var(--background)] px-2 py-1"
+        />
+      </label>
     </div>
   );
 }
@@ -327,30 +368,86 @@ function ScoresSection({
   );
 }
 
-function RoadmapSection({
-  actions,
+function RulesSection({
+  rules,
+  onCreate,
+  onDelete,
 }: {
-  actions: { date: string; type: "hausse" | "ouverture"; institution: string; produit: string; delta_limite: number; justification: string }[];
+  rules: CreditActionRule[];
+  onCreate: (body: CreditActionRuleCreate) => void;
+  onDelete: (id: number) => void;
 }) {
+  const [seuil, setSeuil] = useState("");
+  const [type, setType] = useState<"hausse" | "nouvelle_carte">("hausse");
+  const [montant, setMontant] = useState("");
+
+  const submit = () => {
+    if (!seuil || !montant) return;
+    onCreate({ seuil_score: Number(seuil), type, montant_estime: Number(montant) });
+    setSeuil(""); setMontant("");
+  };
+
+  const sorted = [...rules].sort((a, b) => a.seuil_score - b.seuil_score);
+
   return (
     <div>
-      <p className="mb-1.5 text-xs font-semibold text-[var(--muted-foreground)]">Feuille de route recommandée</p>
+      <p className="mb-1.5 text-xs font-semibold text-[var(--muted-foreground)]">Règles de seuils</p>
       <p className="mb-2 text-xs text-[var(--muted-foreground)]">
-        Estimations heuristiques — ajuste le catalogue si tu connais les vraies politiques d'une banque.
+        À partir de quel score demander une augmentation ou ouvrir une nouvelle carte, et pour combien.
       </p>
-      {actions.length === 0 ? (
-        <p className="text-xs text-[var(--muted-foreground)]">Aucune action recommandée pour l'instant.</p>
+      {sorted.length === 0 ? (
+        <p className="text-xs text-[var(--muted-foreground)]">Aucune règle définie.</p>
+      ) : (
+        <ul className="divide-y divide-[var(--glass-border)] rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)]">
+          {sorted.map((r) => (
+            <li key={r.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+              <span className="w-20 shrink-0 tabular-nums text-[var(--foreground)]">Score {r.seuil_score}</span>
+              <span className="flex-1 text-[var(--muted-foreground)]">
+                {r.type === "hausse" ? "Demander une augmentation" : "Ouvrir une nouvelle carte"}
+              </span>
+              <span className="shrink-0 tabular-nums text-[var(--success-foreground)]">+{cad(r.montant_estime)}</span>
+              <button onClick={() => onDelete(r.id)} aria-label="Supprimer" className="p-1 text-[var(--muted-foreground)] hover:text-[var(--destructive)]">
+                <Trash2 size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-3 rounded-[var(--radius-lg)] border border-dashed border-[var(--border)] p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <input value={seuil} onChange={(e) => setSeuil(e.target.value)} type="number" placeholder="Score seuil" className="w-28 rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm tabular-nums" />
+          <select value={type} onChange={(e) => setType(e.target.value as "hausse" | "nouvelle_carte")} className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm">
+            <option value="hausse">Demander une augmentation</option>
+            <option value="nouvelle_carte">Ouvrir une nouvelle carte</option>
+          </select>
+          <input value={montant} onChange={(e) => setMontant(e.target.value)} type="number" placeholder="Montant estimé" className="w-32 rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm tabular-nums" />
+          <button onClick={submit} className="flex items-center gap-1.5 rounded-lg bg-[var(--ring)] px-3 py-1.5 text-sm font-medium text-white">
+            <Plus size={14} /> Ajouter
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RoadmapSection({ actions, projectionPossible }: { actions: CreditPlanAction[]; projectionPossible: boolean }) {
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-semibold text-[var(--muted-foreground)]">Prochaines actions prévues</p>
+      {!projectionPossible ? (
+        <p className="text-xs text-[var(--muted-foreground)]">Ajoute au moins 2 points de score pour voir les actions prévues.</p>
+      ) : actions.length === 0 ? (
+        <p className="text-xs text-[var(--muted-foreground)]">Aucune action prévue avant la date cible avec les règles actuelles.</p>
       ) : (
         <ol className="space-y-2">
           {actions.map((a, i) => (
             <li key={i} className="rounded-[var(--radius-lg)] border border-[var(--glass-border)] bg-[var(--card)] p-3 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-[var(--foreground)]">
-                  {fmtMonthYear(a.date)} · {a.type === "hausse" ? "Demander une augmentation" : "Ouvrir un compte"} — {a.institution} ({a.produit})
+                  {fmtMonthYear(a.date)} · {a.type === "hausse" ? "Demander une augmentation" : "Ouvrir une nouvelle carte"} (score {a.seuil_score})
                 </span>
-                <span className="shrink-0 tabular-nums text-[var(--success-foreground)]">+{cad(a.delta_limite)}</span>
+                <span className="shrink-0 tabular-nums text-[var(--success-foreground)]">+{cad(a.montant_estime)}</span>
               </div>
-              <p className="mt-1 text-xs text-[var(--muted-foreground)]">{a.justification}</p>
             </li>
           ))}
         </ol>
