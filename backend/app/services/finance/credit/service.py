@@ -7,11 +7,10 @@ import datetime as dt
 from sqlmodel import Session, select
 
 from app.core.timeutil import utcnow
-from app.models.credit import CreditAccount, CreditProfile, CreditScoreEntry
-from app.services.finance.credit.catalog import load_catalog
+from app.models.credit import CreditAccount, CreditActionRule, CreditProfile, CreditScoreEntry
 from app.services.finance.credit.planner import build_plan
 
-DEFAULT_DATE_CIBLE_ANNEES = 3  # par défaut, 3 ans après l'arrivée au Canada
+DEFAULT_DATE_CIBLE_ANNEES = 3
 
 
 def get_or_create_profile(session: Session) -> CreditProfile:
@@ -19,11 +18,7 @@ def get_or_create_profile(session: Session) -> CreditProfile:
     if profile:
         return profile
     today = dt.date.today()
-    profile = CreditProfile(
-        revenu_annuel=0.0,
-        date_arrivee_canada=today,
-        date_cible=today.replace(year=today.year + DEFAULT_DATE_CIBLE_ANNEES),
-    )
+    profile = CreditProfile(date_cible=today.replace(year=today.year + DEFAULT_DATE_CIBLE_ANNEES))
     session.add(profile)
     session.commit()
     session.refresh(profile)
@@ -98,9 +93,30 @@ def delete_score_entry(session: Session, entry_id: int) -> bool:
     return True
 
 
+def list_rules(session: Session) -> list[CreditActionRule]:
+    return list(session.exec(select(CreditActionRule).order_by(CreditActionRule.seuil_score)).all())
+
+
+def create_rule(session: Session, **kwargs) -> CreditActionRule:
+    rule = CreditActionRule(**kwargs)
+    session.add(rule)
+    session.commit()
+    session.refresh(rule)
+    return rule
+
+
+def delete_rule(session: Session, rule_id: int) -> bool:
+    rule = session.get(CreditActionRule, rule_id)
+    if not rule:
+        return False
+    session.delete(rule)
+    session.commit()
+    return True
+
+
 def compute_plan(session: Session) -> dict:
     profile = get_or_create_profile(session)
     accounts = list_accounts(session)
     scores = list_score_entries(session)
-    catalog = load_catalog()
-    return build_plan(accounts, scores, profile, catalog, today=dt.date.today())
+    rules = list_rules(session)
+    return build_plan(accounts, scores, rules, date_cible=profile.date_cible, today=dt.date.today())
