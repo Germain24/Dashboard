@@ -18,8 +18,6 @@ from app.core.timeutil import utcnow
 class CreditProfile(SQLModel, table=True):
     __tablename__ = "credit_profile"
     id: int | None = Field(default=None, primary_key=True)
-    revenu_annuel: float = 0.0
-    date_arrivee_canada: dt.date = Field(default_factory=lambda: dt.date.today())
     date_cible: dt.date = Field(default_factory=lambda: dt.date.today())
     nom: str | None = None
     updated_at: dt.datetime = Field(default_factory=utcnow)
@@ -45,4 +43,17 @@ class CreditScoreEntry(SQLModel, table=True):
     date: dt.date = Field(index=True)
     score: int
     source: str = ""
+    created_at: dt.datetime = Field(default_factory=utcnow)
+
+
+class CreditActionRule(SQLModel, table=True):
+    """Règle définie par l'utilisateur : à partir de quel score déclencher
+    quelle action (hausse de limite ou nouvelle carte), pour quel montant
+    estimé. Aucune notion de banque/produit — c'est l'utilisateur qui sait
+    quelle institution il visera."""
+    __tablename__ = "credit_action_rule"
+    id: int | None = Field(default=None, primary_key=True)
+    seuil_score: int
+    type: str  # "hausse" | "nouvelle_carte"
+    montant_estime: float = 0.0
     created_at: dt.datetime = Field(default_factory=utcnow)
