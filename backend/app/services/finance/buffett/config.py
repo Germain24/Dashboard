@@ -64,6 +64,29 @@ class Config:
     # (ex. 20/broker → 40 lignes à 2 brokers, 60 à 3 quand IBKR sera ajouté).
     STARR_MAX_LINES_PER_BROKER: int = 20
     STARR_CARD_BETA: float = 0.15
+    # Arrêt du Differential Evolution : PAS de plafond de générations comme critère
+    # normal — le DE s'arrête quand sa population converge (écart-type des scores
+    # <= tol, cf. DifferentialEvolutionSolver.converged()), avec un minimum de
+    # générations pour éviter une convergence prématurée (population encore peu
+    # diversifiée après quelques générations seulement). STARR_DE_MAX_GENERATIONS
+    # n'est qu'un garde-fou anti-boucle-infinie ; s'il est atteint, c'est loggé
+    # comme une anomalie (le DE n'a pas convergé naturellement).
+    STARR_DE_MIN_GENERATIONS: int = 30
+    STARR_DE_MAX_GENERATIONS: int = 2000
+    # Tolérance de convergence (écart-type des scores de la population / |moyenne|
+    # <= tol). Choix délibéré de garder 1e-6 (précision maximale) malgré le coût :
+    # sur un cas de test à 29 titres, la convergence naturelle demande ~730
+    # générations (~144s/seed) — cf. STARR_DE_N_SEEDS ci-dessous pour le budget total.
+    STARR_DE_TOL: float = 1e-6
+    # Nombre de redémarrages (seeds différentes) du DE : sert à vérifier qu'on ne
+    # retombe pas sur un optimum local isolé — si les seeds convergent vers des
+    # scores très proches, c'est un plateau robuste ; si ça varie fort, le paysage
+    # a plusieurs optima locaux comparables (on garde alors le meilleur des N).
+    # 10 seeds x tol=1e-6 (~144s/seed) ≈ 24 min rien que pour le DE (avant polish
+    # et le reste du pipeline) — coût assumé pour maximiser la confiance robustesse.
+    STARR_DE_N_SEEDS: int = 10
+    # Budget d'itérations du polish local gradient-free (Nelder-Mead) en fin de DE.
+    STARR_DE_POLISH_MAXITER: int = 300
     # Plafond de poids par ACTION (filet anti « tout sur un titre »). Les ETF en sont
     # EXEMPTÉS : un ETF est déjà diversifié, donc un gros poids n'est pas un risque de
     # concentration sur un sous-jacent unique.

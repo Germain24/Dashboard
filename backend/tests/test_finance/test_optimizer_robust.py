@@ -15,6 +15,11 @@ def test_de_returns_feasible_finite_weights(monkeypatch):
     from app.services.finance.buffett.config import Config
 
     monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 600.0, "BoursDirect": 400.0})
+    # Réglages DE allégés pour le test (la prod utilise tol=1e-6 et 10 seeds,
+    # ~144s/seed sur un problème de cette taille -> beaucoup trop lent en CI).
+    monkeypatch.setattr(Config, "STARR_DE_N_SEEDS", 1)
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
+    monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
     rng = np.random.default_rng(0)
     n = 30
     R = rng.normal(0.0006, 0.02, (700, n))

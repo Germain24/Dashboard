@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy import stats
-from scipy.optimize import minimize
+from scipy.optimize import LinearConstraint, minimize
 
 from .config import Config
 
@@ -238,6 +238,70 @@ def cap_stock_weights(w, is_etf, cap: float) -> np.ndarray:
     return w
 
 
+def project_lookthrough_hard(
+    w0, d_vec, C_mat, min_def: float, max_country: float, is_etf, max_position: float,
+) -> np.ndarray:
+    """Projette ``w0`` (poids DE, simplexe) sur le portefeuille le plus proche
+    (moindres carrés) qui respecte STRICTEMENT, simultanément :
+    - Σw = 1, 0 ≤ wᵢ (ETF non plafonnés, actions ≤ ``max_position``) ;
+    - défensif : Σ wᵢ·défensifᵢ ≥ ``min_def`` ;
+    - pays : Σ wᵢ·paysᵢ,X ≤ ``max_country`` pour chaque pays X.
+
+    Remplace ``cap_stock_weights`` + la pénalité douce de ``constraint_penalty``
+    comme mécanisme d'application final : contrairement à un malus quadratique
+    dans l'objectif DE (que l'optimiseur peut « payer » si le gain STARR le
+    justifie), ici la contrainte est vérifiée exactement sur le résultat retenu.
+
+    Si le polytope est infaisable (ex. bornes par action incompatibles avec
+    Σw=1, ou pays trop stricts) on relâche d'abord la contrainte pays, puis
+    en dernier recours on retombe sur ``cap_stock_weights`` (comportement
+    précédent, sans garantie défensif/pays — même repli que l'ancien code
+    quand aucun actif défensif n'est disponible).
+    """
+    w0 = np.asarray(w0, dtype=float)
+    n = len(w0)
+    s0 = float(w0.sum())
+    w0 = w0 / s0 if s0 > 0 else np.full(n, 1.0 / n)
+
+    caps = np.where(np.asarray(is_etf, dtype=bool), 1.0, float(max_position))
+    caps = np.maximum(caps, 1e-6)
+    bounds = [(0.0, float(c)) for c in caps]
+
+    has_def = d_vec is not None and len(d_vec) and float(np.max(d_vec)) > 0
+    has_country = C_mat is not None and getattr(C_mat, "size", 0)
+
+    def _solve(with_country: bool) -> np.ndarray | None:
+        cons = [LinearConstraint(np.ones(n), 1.0, 1.0)]
+        if has_def:
+            cons.append(LinearConstraint(np.asarray(d_vec, dtype=float), min_def, np.inf))
+        if with_country and has_country:
+            cons.append(LinearConstraint(np.asarray(C_mat, dtype=float).T, -np.inf, max_country))
+        res = minimize(
+            lambda w: float(np.sum((w - w0) ** 2)),
+            w0,
+            jac=lambda w: 2.0 * (w - w0),
+            bounds=bounds,
+            constraints=cons,
+            method="SLSQP",
+            options={"maxiter": 200, "ftol": 1e-10},
+        )
+        if not res.success:
+            return None
+        w = np.clip(np.asarray(res.x, dtype=float), 0.0, None)
+        s = float(w.sum())
+        return w / s if s > 0 else None
+
+    if not has_def and not has_country:
+        return cap_stock_weights(w0, is_etf, max_position)
+
+    w = _solve(with_country=True)
+    if w is None and has_country:
+        w = _solve(with_country=False)   # relâche pays, garde le défensif (prioritaire)
+    if w is None:
+        return cap_stock_weights(w0, is_etf, max_position)   # infaisable -> repli
+    return w
+
+
 def split_budget_to_brokers(w, access, b_ratios, min_position: float = 0.0) -> np.ndarray:
     """Répartit le budget de chaque broker sur SES titres disponibles, au prorata du
     poids optimiseur ``w`` (somme 1). Retourne W [n_tickers × n_brokers, fraction du
@@ -298,7 +362,12 @@ def optimize_portfolio_de(
     amont (éligibilité). Retourne (W [n_tickers × n_brokers, fraction du capital
     total], STARR_final).
     """
-    from scipy.optimize import differential_evolution
+    # Classe semi-privée mais stable de scipy : nécessaire pour piloter le DE
+    # génération par génération (arrêt sur convergence naturelle avec un minimum
+    # de générations), ce que la fonction publique differential_evolution() ne
+    # permet pas (elle n'expose qu'un maxiter dur + un callback qui ne peut
+    # qu'arrêter plus tôt, jamais empêcher un arrêt prématuré).
+    from scipy.optimize._differentialevolution import DifferentialEvolutionSolver
 
     from .starr import neg_starr, simulate_scenarios
 
@@ -385,34 +454,92 @@ def optimize_portfolio_de(
 
     _iter = {"n": 0}
 
-    def _de_callback(xk, convergence=0.0):
+    def _report(convergence: float) -> None:
         _iter["n"] += 1
         if progress_cb is not None:
             try:
                 progress_cb(_iter["n"], float(convergence))
             except Exception:
                 pass  # la progression ne doit jamais casser l'optimisation
-        return False
 
-    result = differential_evolution(
-        neg_obj,
-        bounds=bounds,
-        seed=seed,
-        maxiter=200,          # objectif STARR coûteux (MC) -> moins d'itérations
-        tol=1e-6,
-        mutation=(0.5, 1.5),
-        recombination=0.9,
-        popsize=12,
-        polish=False,         # CVaR non lisse -> pas de polish gradient
-        workers=1,
-        updating="deferred",
-        callback=_de_callback if progress_cb is not None else None,
+    min_gen = int(Config.STARR_DE_MIN_GENERATIONS)
+    max_gen = int(Config.STARR_DE_MAX_GENERATIONS)   # garde-fou, pas l'arrêt normal
+    n_seeds = max(1, int(Config.STARR_DE_N_SEEDS))
+    de_tol = float(Config.STARR_DE_TOL)
+
+    # ── Multi-seed : chaque run s'arrête sur convergence naturelle de la
+    # population (pas sur un plafond de générations), avec un minimum de
+    # générations pour éviter un arrêt prématuré. On garde le meilleur des N
+    # seeds et on logge l'écart entre elles (mesure de robustesse : si les
+    # scores divergent fort d'une seed à l'autre, le paysage a plusieurs
+    # optima locaux comparables et il ne faut pas se fier à un seul run).
+    runs = []   # (energie, x, nit, convergence_naturelle)
+    for k in range(n_seeds):
+        solver = DifferentialEvolutionSolver(
+            neg_obj,
+            bounds=bounds,
+            rng=seed + k,
+            maxiter=max_gen,
+            tol=de_tol,
+            mutation=(0.5, 1.5),
+            recombination=0.9,
+            popsize=12,
+            polish=False,      # CVaR non lisse -> pas de polish gradient ici (fait après, cf. plus bas)
+            workers=1,
+            updating="deferred",
+        )
+        nit = 0
+        converged_naturally = False
+        for _ in solver:
+            nit += 1
+            _report(solver.convergence)
+            if nit >= min_gen and solver.converged():
+                converged_naturally = True
+                break
+            if nit >= max_gen:
+                break
+        runs.append((float(solver.population_energies[0]), solver.x.copy(), nit, converged_naturally))
+
+    energies = [r[0] for r in runs]
+    best_idx = int(np.argmin(energies))
+    best_energy, best_x, best_nit, best_converged = runs[best_idx]
+    spread = float(np.std(energies))
+    print(f"    * DE multi-seed ({n_seeds} depart(s)) : energies={[round(e, 4) for e in energies]}, "
+          f"retenu=seed#{best_idx} (nit={best_nit}/{max_gen}, "
+          f"{'convergence naturelle' if best_converged else 'PLAFOND atteint'}), "
+          f"ecart-type inter-seeds={spread:.4f}")
+    if not best_converged:
+        print(f"    * ATTENTION : le meilleur run a atteint le plafond de securite "
+              f"({max_gen} generations) sans converger naturellement -> resultat "
+              "potentiellement encore ameliorable (augmenter STARR_DE_MAX_GENERATIONS).")
+
+    # ── Polish local gradient-free (CVaR non lisse -> pas de gradient exploitable,
+    # Nelder-Mead n'en a pas besoin) autour du meilleur point trouvé.
+    polish = minimize(
+        neg_obj, best_x, method="Nelder-Mead", bounds=bounds,
+        options={"maxiter": int(Config.STARR_DE_POLISH_MAXITER), "xatol": 1e-6, "fatol": 1e-9},
     )
+    if polish.success and float(polish.fun) < best_energy:
+        print(f"    * Polish (Nelder-Mead) : amelioration {best_energy:.5f} -> {float(polish.fun):.5f}")
+        best_x = np.asarray(polish.x, dtype=float)
+    else:
+        print(f"    * Polish (Nelder-Mead) : aucune amelioration "
+              f"({float(polish.fun):.5f} >= {best_energy:.5f})")
 
-    raw = np.maximum(result.x, 0.0)
+    raw = np.maximum(best_x, 0.0)
     s = raw.sum()
     w_inv = raw / s if s > 0 else raw
-    # STARR PUR (sans le malus de cardinalité, qui ne sert qu'à orienter l'optimiseur).
+
+    # Contrainte DURE : projette sur le portefeuille faisable le plus proche qui
+    # respecte exactement défensif/pays/plafond par action (remplace le plafond
+    # + la pénalité douce, qui ne servaient qu'à guider la recherche DE).
+    is_etf_inv = is_etf_full[inv_idx]
+    w_inv = project_lookthrough_hard(
+        w_inv, d_vec, C_mat, min_def, max_country, is_etf_inv, max_position,
+    )
+
+    # STARR PUR (sans le malus de cardinalité, qui ne sert qu'à orienter l'optimiseur)
+    # — mesuré sur le portefeuille final déjà projeté (contraintes garanties).
     starr = -neg_starr(w_inv, sim_rets, mean_daily, alpha, downside_weight)
     if not np.isfinite(starr):
         starr = 0.0
@@ -422,9 +549,6 @@ def optimize_portfolio_de(
     w = np.zeros(num_t)
     for k, i in enumerate(inv_idx):
         w[i] = w_inv[k]
-
-    # Plafond de poids par ACTION (ETF exemptés) : filet anti-concentration.
-    w = cap_stock_weights(w, is_etf_full, max_position)
 
     # Répartition par broker (cf. split_budget_to_brokers) : déploiement du budget
     # parmi les titres disponibles ; les positions < min_position restent en cash

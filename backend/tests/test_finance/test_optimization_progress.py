@@ -47,6 +47,10 @@ def test_optimize_portfolio_de_reports_progress(monkeypatch):
     from app.services.finance.buffett.config import Config
 
     monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
+    # Réglages DE allégés pour le test (la prod utilise tol=1e-6 et 10 seeds).
+    monkeypatch.setattr(Config, "STARR_DE_N_SEEDS", 1)
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
+    monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
     rng = np.random.default_rng(0)
     rets = pd.DataFrame(rng.normal(0.001, 0.02, (300, 3)), columns=["A", "B", "C"])
     matrix = [[True], [True], [True]]

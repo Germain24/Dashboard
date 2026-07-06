@@ -472,6 +472,26 @@ def run_buffett_analysis(
         if before_liq != len(eligible):
             print(f"[runner] Liquidité: {before_liq - len(eligible)} titres écartés "
                   f"(< {Config.MIN_VOLUME_EUR:,.0f} €/j)")
+        # Filtre ETF à effet de levier / inverse : rebalancement quotidien ->
+        # performance qui diverge de N×l'indice sur la durée (volatility decay).
+        # Détruisent la fiabilité du backtest STARR sans apporter de vraie
+        # diversification long terme. Cf. leverage_filter.is_leveraged_product.
+        # Une ACTION ne peut pas être "à effet de levier" (c'est une notion de
+        # produit/fonds) -> le filtre ne s'applique qu'aux tickers classés ETF.
+        from .leverage_filter import is_leveraged_product
+        from .broker_availability import load_etf_tickers
+        etf_set = load_etf_tickers()
+        before_lev = len(eligible)
+        excluded_lev = [
+            t for t, v in eligible.items()
+            if t.upper() not in _forced
+            and t.upper() in etf_set
+            and is_leveraged_product(v[1].get("Nom", ""))
+        ]
+        eligible = {t: v for t, v in eligible.items() if t not in excluded_lev}
+        if excluded_lev:
+            print(f"[runner] Effet de levier/inverse: {before_lev - len(eligible)} titres "
+                  f"ecartes ({', '.join(excluded_lev)})")
         t_list = list(eligible.keys())
 
         if t_list:
