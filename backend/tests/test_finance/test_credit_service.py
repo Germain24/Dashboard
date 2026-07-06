@@ -45,7 +45,7 @@ def test_score_entry_crud_roundtrip(mem_session):
     assert svc.delete_score_entry(mem_session, entry.id) is False
 
 
-def test_compute_plan_uses_current_db_state(mem_session):
+def test_compute_plan_returns_current_margin(mem_session):
     svc.update_profile(mem_session, {
         "revenu_annuel": 40000.0,
         "date_arrivee_canada": dt.date(2025, 9, 1),
@@ -58,3 +58,18 @@ def test_compute_plan_uses_current_db_state(mem_session):
     plan = svc.compute_plan(mem_session)
     assert plan["marge_actuelle"] == 700.0
     assert "projection" in plan and "actions" in plan
+
+
+def test_compute_plan_produces_roadmap_and_growing_projection(mem_session):
+    today = dt.date.today()
+    svc.update_profile(mem_session, {
+        "revenu_annuel": 40000.0,
+        "date_arrivee_canada": today,
+        "date_cible": today.replace(year=today.year + 1),
+    })
+    plan = svc.compute_plan(mem_session)
+    assert len(plan["projection"]) > 1
+    margins = [p["marge_totale"] for p in plan["projection"]]
+    assert margins == sorted(margins)
+    assert len(plan["actions"]) > 0
+    assert any(a["type"] == "ouverture" for a in plan["actions"])

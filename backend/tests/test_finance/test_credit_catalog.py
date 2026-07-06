@@ -37,3 +37,12 @@ def test_load_catalog_with_override_file_replaces_default(tmp_path, monkeypatch)
         score_min_requis=None, anciennete_min_avant_1ere_hausse_mois=6,
         cooldown_hausse_mois=6,
     )]
+
+
+def test_load_catalog_with_malformed_json_falls_back_to_default(tmp_path, monkeypatch):
+    import app.services.finance.credit.catalog as catalog_mod
+    bad_path = tmp_path / "credit_catalog.json"
+    bad_path.write_text("not valid json{", encoding="utf-8")
+    monkeypatch.setattr(catalog_mod, "CATALOG_OVERRIDE_FILE", str(bad_path))
+    result = load_catalog()
+    assert result == DEFAULT_CATALOG

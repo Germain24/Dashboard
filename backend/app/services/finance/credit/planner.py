@@ -81,6 +81,7 @@ def build_plan(accounts, score_history, profile, catalog: list[CreditProduct], t
             score_ok = rule.score_min_requis is None or (score is not None and score >= rule.score_min_requis)
             if months_since >= seuil and score_ok:
                 delta = round(acc["limite"] * HAUSSE_PCT, 2)
+                reference_label = "la dernière hausse" if acc["derniere_hausse"] else "l'ouverture"
                 actions.append({
                     "date": month,
                     "type": "hausse",
@@ -88,7 +89,7 @@ def build_plan(accounts, score_history, profile, catalog: list[CreditProduct], t
                     "produit": acc["produit"],
                     "delta_limite": delta,
                     "justification": (
-                        f"{months_since} mois depuis la dernière hausse (seuil {seuil}), "
+                        f"{months_since} mois depuis {reference_label} (seuil {seuil}), "
                         f"score {'inconnu' if score is None else score} (minimum {rule.score_min_requis or 'aucun'})"
                     ),
                 })

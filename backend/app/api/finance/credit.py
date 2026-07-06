@@ -73,14 +73,14 @@ def patch_credit_account(account_id: int, body: CreditAccountPatch, session: Ses
     patch = {k: v for k, v in body.model_dump().items() if v is not None}
     account = svc.update_account(session, account_id, patch)
     if not account:
-        raise HTTPException(404)
+        raise HTTPException(404, f"Compte {account_id} introuvable")
     return account.model_dump()
 
 
 @router.delete("/credit/accounts/{account_id}", status_code=204)
 def delete_credit_account(account_id: int, session: Session = Depends(get_session)):
     if not svc.delete_account(session, account_id):
-        raise HTTPException(404)
+        raise HTTPException(404, f"Compte {account_id} introuvable")
 
 
 @router.get("/credit/scores")
@@ -96,7 +96,7 @@ def create_credit_score(body: CreditScoreEntryIn, session: Session = Depends(get
 @router.delete("/credit/scores/{entry_id}", status_code=204)
 def delete_credit_score(entry_id: int, session: Session = Depends(get_session)):
     if not svc.delete_score_entry(session, entry_id):
-        raise HTTPException(404)
+        raise HTTPException(404, f"Pointage {entry_id} introuvable")
 
 
 @router.get("/credit/plan")

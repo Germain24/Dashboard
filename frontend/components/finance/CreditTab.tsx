@@ -69,6 +69,10 @@ export function CreditTab() {
         />
       </div>
 
+      <p className="text-xs text-[var(--muted-foreground)]">
+        La marge projetée est une estimation heuristique, pas une garantie d&apos;approbation bancaire.
+      </p>
+
       <ProjectionChart points={plan.data.projection} />
 
       <ProfileForm profile={profile.data} onSave={(patch) => updateProfile.mutate(patch)} />
@@ -256,6 +260,14 @@ function AccountRow({
         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
         className="w-24 rounded border border-transparent bg-transparent px-1 py-0.5 text-right tabular-nums hover:border-[var(--border)] focus:border-[var(--ring)] focus:outline-none"
       />
+      <select
+        value={account.statut}
+        onChange={(e) => onUpdate(account.id, { statut: e.target.value as "actif" | "ferme" })}
+        className="rounded bg-transparent text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+      >
+        <option value="actif">Actif</option>
+        <option value="ferme">Fermé</option>
+      </select>
       <button onClick={() => onDelete(account.id)} aria-label="Supprimer" className="p-1 text-[var(--muted-foreground)] hover:text-[var(--destructive)]">
         <Trash2 size={14} />
       </button>

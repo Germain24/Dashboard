@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime as dt
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
@@ -66,7 +68,7 @@ def test_score_crud(client):
     assert client.delete(f"/finance/credit/scores/{entry_id}").status_code == 204
 
 
-def test_plan_endpoint_returns_projection(client):
+def test_plan_endpoint_returns_current_margin(client):
     client.patch("/finance/credit/profile", json={
         "revenu_annuel": 40000, "date_arrivee_canada": "2025-09-01", "date_cible": "2025-12-01",
     })
@@ -79,3 +81,21 @@ def test_plan_endpoint_returns_projection(client):
     body = r.json()
     assert body["marge_actuelle"] == 700.0
     assert "actions" in body and "projection" in body
+
+
+def test_plan_endpoint_produces_roadmap_and_growing_projection(client):
+    today = dt.date.today()
+    date_cible = today.replace(year=today.year + 1)
+    client.patch("/finance/credit/profile", json={
+        "revenu_annuel": 40000,
+        "date_arrivee_canada": today.isoformat(),
+        "date_cible": date_cible.isoformat(),
+    })
+    r = client.get("/finance/credit/plan")
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["projection"]) > 1
+    margins = [p["marge_totale"] for p in body["projection"]]
+    assert margins == sorted(margins)  # la marge totale ne diminue jamais dans cette simulation
+    assert len(body["actions"]) > 0
+    assert any(a["type"] == "ouverture" for a in body["actions"])
