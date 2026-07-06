@@ -64,14 +64,10 @@ export interface NetWorthBreakdown {
 // Marge de crédit
 export interface CreditProfile {
   id: number;
-  revenu_annuel: number;
-  date_arrivee_canada: string;
   date_cible: string;
   nom: string | null;
 }
 export interface CreditProfilePatch {
-  revenu_annuel?: number;
-  date_arrivee_canada?: string;
   date_cible?: string;
   nom?: string | null;
 }
@@ -105,23 +101,39 @@ export interface CreditScoreEntryCreate {
   score: number;
   source?: string;
 }
-export interface CreditPlanAction {
-  date: string;
-  type: "hausse" | "ouverture";
-  institution: string;
-  produit: string;
-  delta_limite: number;
-  justification: string;
+export interface CreditActionRule {
+  id: number;
+  seuil_score: number;
+  type: "hausse" | "nouvelle_carte";
+  montant_estime: number;
 }
-export interface CreditPlanPoint {
+export interface CreditActionRuleCreate {
+  seuil_score: number;
+  type: "hausse" | "nouvelle_carte";
+  montant_estime?: number;
+}
+export interface CreditScorePoint {
+  date: string;
+  score: number;
+}
+export interface CreditMarginPoint {
   date: string;
   marge_totale: number;
 }
+export interface CreditPlanAction {
+  date: string;
+  type: "hausse" | "nouvelle_carte";
+  seuil_score: number;
+  montant_estime: number;
+}
 export interface CreditPlan {
   marge_actuelle: number;
-  marge_projetee_a_date_cible: number;
+  historique_score: CreditScorePoint[];
+  historique_marge: CreditMarginPoint[];
+  projection_score: CreditScorePoint[];
+  projection_marge: CreditMarginPoint[];
   actions: CreditPlanAction[];
-  projection: CreditPlanPoint[];
+  projection_possible: boolean;
 }
 
 export interface HistoryPoint {
@@ -483,5 +495,8 @@ export const financeApi = {
   creditScores: () => get<CreditScoreEntry[]>("/credit/scores"),
   creditScoreCreate: (data: CreditScoreEntryCreate) => post<CreditScoreEntry>("/credit/scores", data),
   creditScoreDelete: (id: number) => del(`/credit/scores/${id}`),
+  creditRules: () => get<CreditActionRule[]>("/credit/rules"),
+  creditRuleCreate: (data: CreditActionRuleCreate) => post<CreditActionRule>("/credit/rules", data),
+  creditRuleDelete: (id: number) => del(`/credit/rules/${id}`),
   creditPlan: () => get<CreditPlan>("/credit/plan"),
 };
