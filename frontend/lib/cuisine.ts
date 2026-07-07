@@ -109,7 +109,15 @@ export const generateMealPlan = (semaine: string, cibles: Record<string, number>
     body: JSON.stringify({ semaine, cibles }),
   }).then((r) => r.json())
 
-export type ShoppingItem = { ingredient: string; quantite: number; unite: string; rayon: string }
+export type ShoppingItem = {
+  ingredient: string
+  quantite: number
+  unite: string
+  rayon: string
+  magasin_recommande?: string
+  prix_estime?: number
+  promo?: boolean
+}
 
 /** Liste de courses calculée (non persistée), scopable sur des jours du plan. */
 export async function fetchShoppingPreview(week: string, jours?: number[]): Promise<ShoppingItem[]> {

@@ -131,6 +131,18 @@ export default function CoursesTab() {
                         <span className="shrink-0 text-xs tabular-nums text-[var(--muted-foreground)]">
                           {fmtQte(it)}
                         </span>
+                        {it.magasin_recommande && (
+                          <span
+                            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                              it.promo
+                                ? 'bg-[var(--warning-bg,#fef3c7)] text-[var(--warning-fg,#92400e)]'
+                                : 'bg-[var(--muted)] text-[var(--muted-foreground)]'
+                            }`}
+                          >
+                            {it.magasin_recommande}
+                            {it.prix_estime != null ? ` · ${it.prix_estime.toFixed(2)}$` : ''}
+                          </span>
+                        )}
                       </button>
                     )
                   })}
