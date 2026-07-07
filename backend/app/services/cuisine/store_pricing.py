@@ -153,7 +153,39 @@ def _cache_age_seconds(store: str) -> float:
         return float("inf")
 
 
-def refresh_if_stale(store: str, max_age_h: float) -> bool:
+def _current_week_search_terms() -> list[str]:
+    """Mots-clés de recherche EN pour la semaine courante, dérivés de la liste
+    de courses (compute_shopping) via store_categories.search_keywords.
+
+    Best-effort : toute erreur (DB indisponible au démarrage, etc.) retourne
+    une liste vide plutôt que de lever — le rafraîchissement au démarrage ne
+    doit jamais dépendre d'un état applicatif spécifique."""
+    try:
+        import datetime as dt
+
+        from sqlmodel import Session
+
+        from app.core.db import engine
+        from app.services.cuisine.shopping_list import compute_shopping
+
+        today = dt.date.today()
+        monday = today - dt.timedelta(days=today.weekday())
+        with Session(engine) as session:
+            items = compute_shopping(session, monday.isoformat())
+        terms: list[str] = []
+        seen: set[str] = set()
+        for item in items:
+            for kw in store_categories.search_keywords(item.get("ingredient", "")):
+                if kw not in seen:
+                    seen.add(kw)
+                    terms.append(kw)
+        return terms
+    except Exception as exc:
+        logger.warning("[store_pricing] _current_week_search_terms: %s", exc)
+        return []
+
+
+def refresh_if_stale(store: str, max_age_h: float, terms: list[str] | None = None) -> bool:
     """Relance le scraper `store` si son cache est périmé. True si relancé.
 
     Best-effort : node/Edge/réseau absents ou scrape en échec -> cache conservé."""
@@ -163,9 +195,12 @@ def refresh_if_stale(store: str, max_age_h: float) -> bool:
     script = repo_root / "frontend" / _SCRAPERS[store]
     if not script.exists():
         return False
+    cmd = ["node", script.name, str(_cache_path(store))]
+    if terms:
+        cmd.extend(terms)
     try:
         subprocess.run(
-            ["node", script.name, str(_cache_path(store))],
+            cmd,
             cwd=str(script.parent),
             timeout=float(os.getenv("STORE_SCRAPE_TIMEOUT_SEC", "150")),
             capture_output=True,
@@ -183,8 +218,9 @@ def refresh_all_if_stale(max_age_h: float = 12.0) -> None:
     bloquant, jamais fatal. Désactivable via STORE_PRICING_REFRESH=0."""
     if os.getenv("STORE_PRICING_REFRESH", "1") not in ("1", "true", "True"):
         return
+    terms = _current_week_search_terms()
     for store in _SCRAPERS:
         try:
-            refresh_if_stale(store, max_age_h)
+            refresh_if_stale(store, max_age_h, terms=terms if store != "superc_flyer" else None)
         except Exception as exc:
             logger.warning("[store_pricing] refresh_all_if_stale(%s): %s", store, exc)

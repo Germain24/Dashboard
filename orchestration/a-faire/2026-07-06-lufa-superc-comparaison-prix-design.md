@@ -90,6 +90,16 @@ courses) affiche un badge magasin + prix par ligne, avec un indicateur visuel si
 - Intégration au catalogue `aliments.csv` / optimiseur nutrition.
 - Circulaires Costco (le catalogue nutrition reste Costco-only, hors scope).
 - Historique de prix / tendance dans le temps.
+- Le cache Adonis réutilisé (`adonis_fruits_legumes.json`, produit par
+  `.adonis_scrape.mjs`) ne couvre que les fruits/légumes — c'est un réemploi
+  tel quel, pas une extension. Pour les catégories `pantry`, `viande_volume`
+  et `tofu_proteines`, le côté « vs Adonis » de la comparaison ne trouvera
+  donc structurellement jamais de match ; `recommend_store` retombe
+  correctement sur le seul côté disponible (Super C), ce n'est pas un crash
+  ni une impasse, mais les prix Adonis ne seront simplement jamais présents
+  pour ces 3 catégories tant que les termes de recherche d'`.adonis_scrape.mjs`
+  ne sont pas étendus au-delà des fruits/légumes — un suivi séparé, non
+  cadré ici.
 
 ## Tests
 

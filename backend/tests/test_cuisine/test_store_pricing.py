@@ -87,3 +87,76 @@ def test_apply_recommendations_skips_item_on_error(monkeypatch):
     items = [{"ingredient": "Riz basmati (sec)", "quantite": 500, "unite": "g", "rayon": "Épicerie"}]
     out = store_pricing.apply_recommendations(items)
     assert "magasin_recommande" not in out[0]   # best-effort : pas de crash
+
+
+# ── _current_week_search_terms / refresh_if_stale(terms) ─────────────────────
+
+def test_current_week_search_terms_dedup_from_shopping_list(monkeypatch):
+    from app.services.cuisine import shopping_list
+
+    def fake_compute_shopping(session, semaine, jours=None, csv_path=None):
+        return [
+            {"ingredient": "Riz basmati (sec)"},
+            {"ingredient": "Banane"},
+            {"ingredient": "Fromage cheddar"},   # non classifié -> pas de mots-clés
+        ]
+
+    monkeypatch.setattr(shopping_list, "compute_shopping", fake_compute_shopping)
+    terms = store_pricing._current_week_search_terms()
+    assert terms == ["basmati rice", "banana"]
+
+
+def test_current_week_search_terms_empty_on_error(monkeypatch):
+    from app.services.cuisine import shopping_list
+
+    def boom(session, semaine, jours=None, csv_path=None):
+        raise RuntimeError("DB indisponible")
+
+    monkeypatch.setattr(shopping_list, "compute_shopping", boom)
+    assert store_pricing._current_week_search_terms() == []
+
+
+def test_refresh_if_stale_passes_terms_to_subprocess(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        class Result:
+            returncode = 0
+        return Result()
+
+    # settings.data_dir.parent doit pointer vers un dossier contenant frontend/<script>
+    (tmp_path / "frontend").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "frontend" / ".superc_scrape.mjs").write_text("// fake")
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+
+    class _FakeSettings:
+        data_dir = tmp_path / "data"
+        imports_dir = tmp_path / "data" / "imports"
+
+    monkeypatch.setattr(store_pricing, "_cache_age_seconds", lambda store: float("inf"))
+    monkeypatch.setattr(store_pricing.subprocess, "run", fake_run)
+    monkeypatch.setattr(store_pricing, "settings", _FakeSettings())
+
+    result = store_pricing.refresh_if_stale("superc", 1.0, terms=["basmati rice", "ground turkey"])
+    assert result is True
+    assert "basmati rice" in captured["cmd"]
+    assert "ground turkey" in captured["cmd"]
+
+
+def test_refresh_all_if_stale_passes_none_terms_to_superc_flyer(monkeypatch):
+    calls = {}
+
+    def fake_refresh_if_stale(store, max_age_h, terms=None):
+        calls[store] = terms
+        return True
+
+    monkeypatch.setattr(store_pricing, "_current_week_search_terms", lambda: ["basmati rice"])
+    monkeypatch.setattr(store_pricing, "refresh_if_stale", fake_refresh_if_stale)
+    monkeypatch.setenv("STORE_PRICING_REFRESH", "1")
+
+    store_pricing.refresh_all_if_stale()
+
+    assert calls["superc"] == ["basmati rice"]
+    assert calls["lufa"] == ["basmati rice"]
+    assert calls["superc_flyer"] is None

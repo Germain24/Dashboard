@@ -81,6 +81,17 @@ try {
 await ctx.close();
 
 const out = [...byKey.values()].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+if (out.length === 0 && fs.existsSync(OUT)) {
+  try {
+    const prev = JSON.parse(fs.readFileSync(OUT, 'utf-8'));
+    if (Array.isArray(prev.items) && prev.items.length > 0) {
+      console.error(`[lufa] 0 items ce run, cache existant (${prev.items.length}) conservé, pas d'écrasement`);
+      process.exit(0);
+    }
+  } catch { /* cache illisible, on écrase normalement */ }
+}
+
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ source: 'lufa.com/marketplace (session persistante)', scraped_at: new Date().toISOString(), count: out.length, items: out }, null, 2));
 console.error(`[lufa] ${out.length} items écrits dans ${OUT}`);
