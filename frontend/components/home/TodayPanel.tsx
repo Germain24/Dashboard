@@ -31,11 +31,16 @@ type State =
 
 /** Toute la journée planifiée : événements prévus + blocs générés par le
  *  planificateur (sport, batch cooking, révision, repas…) + séance d'entraînement.
- *  Triés par heure ; les blocs passés sont gardés (affichés estompés). */
+ *  Triés par heure ; les blocs passés sont gardés (affichés estompés).
+ *
+ *  Une séance planifiée mais pas encore loggée (`fin` null) est un bloc
+ *  flexible « horaire libre » sans heure réelle (cf. entrainement_bridge.py) —
+ *  on ne l'affiche pas dans la timeline, sinon elle apparaît à "00 h 00"
+ *  (même garde que JourTab.tsx). */
 function dayEvents(data: AgendaJour): Evenement[] {
   return [
     ...data.evenements,
-    ...(data.seance_entrainement ? [data.seance_entrainement] : []),
+    ...(data.seance_entrainement?.fin ? [data.seance_entrainement] : []),
   ].sort((a, b) => a.debut.localeCompare(b.debut));
 }
 

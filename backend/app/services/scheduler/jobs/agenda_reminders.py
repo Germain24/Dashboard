@@ -23,7 +23,10 @@ def run(session) -> str:
     if get_preferences().get("mode_vacances"):
         return "Mode vacances actif — rappels suspendus"
 
-    from app.services.agenda.entrainement_bridge import get_training_block_for_date
+    from app.services.agenda.entrainement_bridge import (
+        dedupe_sport_events,
+        get_training_block_for_date,
+    )
     from app.services.agenda.events import get_full_calendar
 
     now = dt.datetime.now().replace(second=0, microsecond=0)
@@ -34,6 +37,7 @@ def run(session) -> str:
     events = get_full_calendar(session, from_dt, to_dt)
     blk = get_training_block_for_date(session, today)
     if blk:
+        events = dedupe_sport_events(events, blk)
         events.append(blk)
 
     due = due_events(events, now)

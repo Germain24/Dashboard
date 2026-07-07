@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.models.agenda import Evenement
 from app.services.agenda import (
     create_event,
+    dedupe_sport_events,
     get_event,
     get_full_calendar,
     get_training_block_for_date,
@@ -112,8 +113,10 @@ def export_ical(
     items = get_full_calendar(session, from_dt, to_dt)
     for single_date in dates_in_range(from_dt.date(), to_dt.date()):
         blk = get_training_block_for_date(session, single_date)
-        if blk and blk.get("fin"):  # n'exporte que les séances à horaire réel
-            items.append(blk)
+        if blk:
+            items = dedupe_sport_events(items, blk)
+            if blk.get("fin"):  # n'exporte que les séances à horaire réel
+                items.append(blk)
     ics = serialize_ics(items)
     return Response(
         content=ics,

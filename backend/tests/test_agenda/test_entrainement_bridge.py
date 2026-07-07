@@ -99,3 +99,77 @@ def test_dedupe_keeps_non_sport_events_regardless():
     result = dedupe_sport_events(events, training)
 
     assert result == events
+
+
+def _gcal_event(titre="Musculation", date=dt.date(2026, 6, 30), h=8, source="gcal"):
+    """Événement synchronisé (Google Calendar / import .ics) : jamais de
+    `categorie` — c'est tout le problème (#doublon muscu)."""
+    return {
+        "id": None,
+        "titre": titre,
+        "debut": dt.datetime.combine(date, dt.time(h, 30)),
+        "fin": dt.datetime.combine(date, dt.time(h + 1, 30)),
+        "lieu": None,
+        "description": None,
+        "source": source,
+        "source_id": "abc123",
+        "categorie": None,
+        "couleur": None,
+        "recurrence_id": None,
+        "is_virtual": False,
+    }
+
+
+def test_dedupe_drops_gcal_synced_workout_without_categorie():
+    """Un événement importé de Google Calendar n'a jamais `categorie == 'sport'`
+    (gcal_to_evenement ne renseigne pas ce champ) : le dédoublonnage doit
+    quand même le reconnaître via son titre + le même jour que le bloc."""
+    date = dt.date(2026, 6, 30)
+    events = [_gcal_event(date=date)]
+    training = {
+        "titre": "Entraînement — Lower",
+        "categorie": "sport",
+        "source": "entrainement",
+        "debut": dt.datetime.combine(date, dt.time.min),
+        "fin": None,
+    }
+
+    result = dedupe_sport_events(events, training)
+
+    assert result == []
+
+
+def test_dedupe_drops_ical_imported_workout_without_categorie():
+    """Même scénario via import .ics (parse_ics ne renseigne pas non plus
+    `categorie`)."""
+    date = dt.date(2026, 6, 30)
+    events = [_gcal_event(titre="Gym", date=date, source="ical")]
+    training = {
+        "titre": "Entraînement — Lower",
+        "categorie": "sport",
+        "source": "entrainement",
+        "debut": dt.datetime.combine(date, dt.time(17, 0)),
+        "fin": dt.datetime.combine(date, dt.time(18, 0)),
+    }
+
+    result = dedupe_sport_events(events, training)
+
+    assert result == []
+
+
+def test_dedupe_keeps_workout_titled_event_on_a_different_day():
+    """Le titre seul ne suffit pas : un événement « Musculation » un autre
+    jour que le bloc Entraînement ne doit pas être retiré (évite la
+    sur-suppression quand `list_events` boucle sur plusieurs jours)."""
+    events = [_gcal_event(date=dt.date(2026, 7, 1))]
+    training = {
+        "titre": "Entraînement — Lower",
+        "categorie": "sport",
+        "source": "entrainement",
+        "debut": dt.datetime(2026, 6, 30, 0, 0),
+        "fin": None,
+    }
+
+    result = dedupe_sport_events(events, training)
+
+    assert result == events

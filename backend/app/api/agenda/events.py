@@ -10,6 +10,7 @@ from app.api.agenda.common import SessionDep, dates_in_range, ev_to_read
 from app.api.agenda.schemas import EvenementCreate, EvenementRead, EvenementUpdate
 from app.services.agenda import (
     create_event,
+    dedupe_sport_events,
     delete_event,
     get_full_calendar,
     get_training_block_for_date,
@@ -35,10 +36,14 @@ def list_events(
     if include_training:
         for single_date in dates_in_range(from_dt.date(), to_dt.date()):
             blk = get_training_block_for_date(session, single_date)
-            # Seules les séances loggées (horaire réel) sont des événements ;
-            # une séance planifiée (fin=None) reste flexible, hors timeline.
-            if blk and blk.get("fin"):
-                items.append(blk)
+            if blk:
+                # Retire les doublons (récurrence "sport" manuelle, événement
+                # gcal/ical synchronisé) avant d'ajouter le bloc du bridge.
+                items = dedupe_sport_events(items, blk)
+                # Seules les séances loggées (horaire réel) sont des événements ;
+                # une séance planifiée (fin=None) reste flexible, hors timeline.
+                if blk.get("fin"):
+                    items.append(blk)
     items.sort(key=lambda x: x["debut"])
     return [ev_to_read(e) for e in items]
 

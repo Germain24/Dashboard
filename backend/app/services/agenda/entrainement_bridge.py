@@ -94,23 +94,66 @@ def get_training_block_for_date(
     return None
 
 
+_WORKOUT_KEYWORDS = (
+    "entraînement", "entrainement", "musculation", "muscu",
+    "gym", "workout", "fitness", "cardio", "séance", "seance",
+)
+
+
+def _looks_like_workout(titre: Optional[str]) -> bool:
+    """Vrai si le titre évoque une séance de sport/muscu, quel que soit le
+    vocabulaire exact (l'utilisateur peut avoir nommé sa récurrence Google
+    Calendar « Musculation », « Gym », etc. — pas forcément « Entraînement »)."""
+    if not titre:
+        return False
+    lowered = titre.lower()
+    return any(kw in lowered for kw in _WORKOUT_KEYWORDS)
+
+
+def _same_day(a: Optional[Any], b: Optional[Any]) -> bool:
+    """Vrai si `a` et `b` tombent le même jour. Permissif (True) quand l'une
+    des deux dates manque : les tests historiques passent des dicts
+    minimalistes sans `debut`, et en production `get_training_block_for_date`
+    fournit toujours un `debut`, donc ce cas ne se présente pas réellement."""
+    if a is None or b is None:
+        return True
+    da = a.date() if isinstance(a, dt.datetime) else a
+    db = b.date() if isinstance(b, dt.datetime) else b
+    return da == db
+
+
 def dedupe_sport_events(
     events: list[dict[str, Any]],
     training: Optional[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Retire les événements « sport » (récurrence/ponctuel) redondants avec
-    le bloc Entraînement du jour.
+    """Retire les événements « sport » (récurrence/ponctuel/import externe)
+    redondants avec le bloc Entraînement du jour.
 
     Avant le module Entraînement, l'utilisateur avait ses propres événements/
     récurrences « catégorie sport » (ex. une règle hebdo « Musculation »).
     Une fois un programme actif, le bridge produit un bloc plus précis
     (« Entraînement — Pull/Push/Legs ») pour le même jour : sans ce filtre,
     les deux coexistent et la séance apparaît deux fois dans l'agenda.
+
+    Un événement est retiré s'il tombe le même jour que le bloc ET que :
+      - il porte `categorie == "sport"` (tag manuel), OU
+      - son titre évoque un entraînement (import Google Calendar / .ics —
+        ces sources ne renseignent jamais `categorie`, donc le tag seul ne
+        suffit pas à les détecter, #doublon muscu).
     """
     if not training:
         return events
-    return [
-        e
-        for e in events
-        if not (e.get("categorie") == "sport" and e.get("source") != "entrainement")
-    ]
+    training_debut = training.get("debut")
+    result: list[dict[str, Any]] = []
+    for e in events:
+        if e.get("source") == "entrainement":
+            result.append(e)
+            continue
+        same_day = _same_day(e.get("debut"), training_debut)
+        redundant = same_day and (
+            e.get("categorie") == "sport" or _looks_like_workout(e.get("titre"))
+        )
+        if redundant:
+            continue
+        result.append(e)
+    return result

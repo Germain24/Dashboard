@@ -209,3 +209,59 @@ def test_today_endpoint(client):
     assert "evenements" in data
     assert "slots_libres" in data
     assert "taches_urgentes" in data
+
+
+# ── Dédoublonnage entraînement ↔ événement synchronisé (#doublon muscu) ───────
+# GET /events (Semaine/Mois) et GET /export-ical combinent get_full_calendar()
+# + get_training_block_for_date() indépendamment de /today — sans dédoublonnage
+# ils laissaient passer un événement "Musculation" synchronisé (gcal/.ics, donc
+# sans `categorie`) en plus du bloc "Entraînement — X" généré par le bridge.
+
+def test_list_events_dedupes_gcal_synced_workout(client, session):
+    from app.services.agenda import create_event
+    from app.services.entrainement import ensure_active_program, update_program_day
+
+    date = dt.date(2026, 10, 5)  # lundi
+    prog = ensure_active_program(session)
+    update_program_day(session, prog.id, date.weekday(), label="Push", slots=[])
+
+    # Événement synchronisé depuis Google Calendar : jamais de `categorie`
+    # (cf. gcal_to_evenement), donc invisible à l'ancien filtre `categorie == "sport"`.
+    create_event(session, {
+        "titre": "Musculation",
+        "debut": dt.datetime.combine(date, dt.time(8, 30)),
+        "fin": dt.datetime.combine(date, dt.time(9, 30)),
+        "source": "gcal",
+        "source_id": "gcal-evt-1",
+    })
+
+    r = client.get(
+        f"/agenda/events?from={date.isoformat()}T00:00:00&to={date.isoformat()}T23:59:59"
+        "&include_training=true"
+    )
+    assert r.status_code == 200
+    titres = [e["titre"] for e in r.json()]
+    assert "Musculation" not in titres, f"doublon Musculation non retiré : {titres}"
+
+
+def test_export_ical_dedupes_gcal_synced_workout(client, session):
+    from app.services.agenda import create_event
+    from app.services.entrainement import ensure_active_program, update_program_day
+
+    date = dt.date(2026, 10, 6)  # mardi
+    prog = ensure_active_program(session)
+    update_program_day(session, prog.id, date.weekday(), label="Pull", slots=[])
+
+    create_event(session, {
+        "titre": "Musculation",
+        "debut": dt.datetime.combine(date, dt.time(8, 30)),
+        "fin": dt.datetime.combine(date, dt.time(9, 30)),
+        "source": "gcal",
+        "source_id": "gcal-evt-2",
+    })
+
+    r = client.get(
+        f"/agenda/export-ical?from={date.isoformat()}T00:00:00&to={date.isoformat()}T23:59:59"
+    )
+    assert r.status_code == 200
+    assert "SUMMARY:Musculation" not in r.text, "doublon Musculation non retiré de l'export .ics"
