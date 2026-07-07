@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 from sqlmodel import Session, select
 from app.models.cuisine import MealPlanEntry, RecipeIngredient, ShoppingListItem
+from app.services.cuisine import store_pricing
 
 RAYON_MAP = {"g": "Épicerie", "kg": "Épicerie", "ml": "Liquides", "L": "Liquides", "unité": "Fruits & Légumes"}
 
@@ -154,7 +155,9 @@ def compute_shopping(
 
     Déduit ce qu'on possède déjà : la ligne 'QuantiteDispo' d'aliments.csv ET le
     garde-manger (data/cuisine_pantry.json) — un ingrédient présent au garde-manger
-    réduit (ou supprime) la quantité à acheter.
+    réduit (ou supprime) la quantité à acheter. Annote ensuite chaque item restant
+    avec un magasin recommandé (Super C/Adonis/Lufa) + prix estimé, en best-effort
+    (voir store_pricing.py) : un échec de comparaison n'empêche jamais la liste.
     """
     q = select(MealPlanEntry).where(MealPlanEntry.semaine == semaine)
     if jours is not None:
@@ -167,7 +170,12 @@ def compute_shopping(
             inventaire[nom] = inventaire.get(nom, 0.0) + qte
     except Exception:
         pass  # best-effort : le garde-manger ne casse jamais la liste
-    return apply_inventaire(items, inventaire)
+    items = apply_inventaire(items, inventaire)
+    try:
+        items = store_pricing.apply_recommendations(items)
+    except Exception:
+        pass  # best-effort : la comparaison magasin ne casse jamais la liste
+    return items
 
 
 def mark_done(session: Session, semaine: str) -> dict:
