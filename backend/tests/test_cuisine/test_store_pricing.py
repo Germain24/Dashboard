@@ -1,4 +1,4 @@
-"""TDD — comparaison de prix Super C / Adonis / Lufa pour la liste de courses.
+"""TDD — comparaison de prix Super C / Adonis pour la liste de courses.
 
 Seule la logique pure (catégorisation, matching, règle de comparaison) est
 testée ; le rafraîchissement (scrape navigateur) est best-effort, comme pour
@@ -25,23 +25,41 @@ def test_pantry_compares_superc_vs_adonis_cheapest_wins(monkeypatch):
 
 
 def test_viande_noble_excludes_superc_even_if_cheapest(monkeypatch):
+    # Lufa retiré (2026-07-07) : viande_noble ne compare plus rien, Adonis
+    # seul reste la source (Super C = éviter pour cette catégorie, design).
     monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
         "superc": [{"name": "Atlantic Salmon", "price": 1.0}],   # jamais comparé pour cette catégorie
         "adonis": [{"name": "Atlantic Salmon", "price": 9.0}],
-        "lufa": [{"name": "Atlantic Salmon", "price": 8.5}],
     }))
     rec = store_pricing.recommend_store("Saumon atlantique")
-    assert rec == {"magasin": "Lufa", "prix_estime": 8.5, "promo": False}
+    assert rec == {"magasin": "Adonis", "prix_estime": 9.0, "promo": False}
+
+
+def test_viande_noble_no_recommendation_when_adonis_has_no_match(monkeypatch):
+    monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
+        "superc": [{"name": "Atlantic Salmon", "price": 1.0}],   # jamais comparé
+        "adonis": [],
+    }))
+    assert store_pricing.recommend_store("Saumon atlantique") is None
 
 
 def test_fruits_legumes_exception_items_always_superc_no_comparison(monkeypatch):
     monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
         "superc": [{"name": "Sweet Potato", "price": 5.0}],
         "adonis": [{"name": "Sweet Potato", "price": 0.5}],
-        "lufa": [{"name": "Sweet Potato", "price": 0.4}],
     }))
     rec = store_pricing.recommend_store("Patate douce")
     assert rec == {"magasin": "Super C", "prix_estime": 5.0, "promo": False}
+
+
+def test_fruits_legumes_non_exception_uses_adonis_alone(monkeypatch):
+    # Lufa retiré : le reste des fruits/légumes (hors patate douce/oignon)
+    # retombe sur Adonis seul, sans comparaison.
+    monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
+        "adonis": [{"name": "Banana", "price": 0.31}],
+    }))
+    rec = store_pricing.recommend_store("Banane")
+    assert rec == {"magasin": "Adonis", "prix_estime": 0.31, "promo": False}
 
 
 def test_superc_flyer_price_beats_regular_and_flags_promo(monkeypatch):
@@ -158,5 +176,5 @@ def test_refresh_all_if_stale_passes_none_terms_to_superc_flyer(monkeypatch):
     store_pricing.refresh_all_if_stale()
 
     assert calls["superc"] == ["basmati rice"]
-    assert calls["lufa"] == ["basmati rice"]
     assert calls["superc_flyer"] is None
+    assert "lufa" not in calls

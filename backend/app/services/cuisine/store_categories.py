@@ -1,7 +1,7 @@
 """Classification des ingrédients de la liste de courses en catégories
-d'achat, avec mots-clés de recherche EN (vitrines Instacart/Lufa en anglais),
-pour la comparaison de prix Super C / Adonis / Lufa. Voir
-orchestration/a-faire/2026-07-06-lufa-superc-comparaison-prix-design.md.
+d'achat, avec mots-clés de recherche EN (vitrine Instacart en anglais), pour
+la comparaison de prix Super C / Adonis. Voir
+orchestration/finis/2026-07-06-lufa-superc-comparaison-prix-design.md.
 
 Première version : seed manuel à corriger/étendre au fil de l'usage réel,
 même philosophie que PRODUCE_MAP dans adonis_pricing.py (édite directement

@@ -1,9 +1,14 @@
-"""Comparaison de prix Super C / Adonis / Lufa pour la liste de courses hebdo.
+"""Comparaison de prix Super C / Adonis pour la liste de courses hebdo.
 
 Pour chaque item, détermine sa catégorie d'achat (store_categories.py) puis
-compare le prix entre les 2 magasins pertinents pour cette catégorie (le 3e
-est exclu, "éviter" dans la spec). Voir
-orchestration/a-faire/2026-07-06-lufa-superc-comparaison-prix-design.md.
+compare le prix entre les magasins pertinents pour cette catégorie. Voir
+orchestration/finis/2026-07-06-lufa-superc-comparaison-prix-design.md.
+
+Lufa a été retiré (2026-07-07, décision user) : impossible de créer un compte
+sans passer une commande, donc pas de scraping automatisable sans achat forcé.
+Les catégories qui comparaient contre Lufa (`viande_noble`, `fruits_legumes`)
+retombent sur leur seul magasin restant (Adonis), sans comparaison — même
+mécanique que l'exception Fruits/Légumes (Patate douce/Oignon → Super C seul).
 
 Best-effort partout : un cache manquant, un item non catégorisé, ou une
 erreur inattendue ne casse jamais la liste de courses — l'item reste juste
@@ -25,32 +30,31 @@ from app.services.cuisine import store_categories
 
 logger = logging.getLogger(__name__)
 
-# {categorie: (magasin_a, magasin_b)} — le 3e magasin de la table de priorité
-# (design doc) est exclu ("éviter") pour cette catégorie.
-CATEGORY_STORES: dict[str, tuple[str, str]] = {
+# {categorie: (magasin_a, magasin_b)} pour comparer 2 magasins, ou {categorie:
+# magasin} pour un seul magasin sans comparaison (le 3e/2e magasin de la table
+# de priorité — design doc — est exclu "éviter" ou n'existe plus, cf. Lufa).
+CATEGORY_STORES: dict[str, tuple[str, str] | str] = {
     "pantry": ("superc", "adonis"),
     "viande_volume": ("adonis", "superc"),
-    "viande_noble": ("lufa", "adonis"),
+    "viande_noble": "adonis",  # Super C = éviter (design) ; Lufa retiré -> Adonis seul
     "tofu_proteines": ("adonis", "superc"),
-    "fruits_legumes": ("adonis", "lufa"),
+    "fruits_legumes": "adonis",  # Lufa retiré -> Adonis seul (hors exception ci-dessous)
 }
 
 # Exception Fruits/Légumes : ces aliments restent toujours Super C, jamais
 # comparés (produits de base bon marché, cf. tableau du user).
 FRUITS_LEGUMES_SUPERC_ONLY = {"Patate douce", "Oignon"}
 
-_STORE_LABELS = {"superc": "Super C", "adonis": "Adonis", "lufa": "Lufa"}
+_STORE_LABELS = {"superc": "Super C", "adonis": "Adonis"}
 
 _CACHE_FILES = {
     "superc": "superc.json",
     "superc_flyer": "superc_flyer.json",
-    "lufa": "lufa.json",
 }
 
 _SCRAPERS = {
     "superc": ".superc_scrape.mjs",
     "superc_flyer": ".superc_flyer_scrape.mjs",
-    "lufa": ".lufa_scrape.mjs",
 }
 
 
@@ -59,9 +63,8 @@ def _cache_path(store: str) -> Path:
 
 
 def load_cached_items(store: str) -> list[dict]:
-    """Items en cache pour `store` ("superc", "superc_flyer", "lufa"), ou
-    liste vide si absent/illisible. "adonis" réutilise le cache existant
-    d'adonis_pricing.py."""
+    """Items en cache pour `store` ("superc", "superc_flyer"), ou liste vide
+    si absent/illisible. "adonis" réutilise le cache existant d'adonis_pricing.py."""
     if store == "adonis":
         from app.services.sante.adonis_pricing import load_cached_items as _adonis_load
         return _adonis_load()
@@ -112,7 +115,14 @@ def recommend_store(ingredient: str) -> dict | None:
     categorie = store_categories.categorie_achat(ingredient)
     if categorie is None or categorie not in CATEGORY_STORES:
         return None
-    store_a, store_b = CATEGORY_STORES[categorie]
+    stores = CATEGORY_STORES[categorie]
+    if isinstance(stores, str):
+        result = _best_price(stores, ingredient)
+        if result is None:
+            return None
+        price, promo = result
+        return {"magasin": _STORE_LABELS[stores], "prix_estime": round(price, 2), "promo": promo}
+    store_a, store_b = stores
     result_a = _best_price(store_a, ingredient)
     result_b = _best_price(store_b, ingredient)
     if result_a is None and result_b is None:
@@ -212,7 +222,7 @@ def refresh_if_stale(store: str, max_age_h: float, terms: list[str] | None = Non
 
 
 def refresh_all_if_stale(max_age_h: float = 12.0) -> None:
-    """Rafraîchit les 3 caches magasin (superc/superc_flyer/lufa) si périmés.
+    """Rafraîchit les caches magasin (superc/superc_flyer) si périmés.
 
     Appelé en tâche de fond au démarrage du backend (Task 4) — jamais
     bloquant, jamais fatal. Désactivable via STORE_PRICING_REFRESH=0."""
