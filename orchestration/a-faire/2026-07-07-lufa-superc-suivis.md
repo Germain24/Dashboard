@@ -39,3 +39,14 @@ donc jamais de prix côté Adonis — `recommend_store` retombe correctement sur
 disponible (Super C), ce n'est pas un crash, mais la comparaison "vs Adonis" pour ces 3
 catégories est un no-op tant qu'`.adonis_scrape.mjs` n'est pas étendu au-delà des
 fruits/légumes (termes de recherche EN pantry/viande/tofu à ajouter, si souhaité).
+
+## 5. Scraper Lufa : mauvais pattern d'URL (à corriger)
+
+Diagnostic du 2026-07-07 : `.lufa_scrape.mjs` construit l'URL de recherche comme
+`${MARKET_URL}?search=${term}`, mais le vrai site n'utilise pas ce paramètre. La structure
+réelle est par **catégorie** : `montreal.lufa.com/en/marketplace/category/{slug}` (ex.
+`seafood`, `meat`, `pantry`, `veggies`, `fruit`, `dairy-eggs`, `plant-based-alternatives`,
+etc. — liste complète trouvée en inspectant les liens de nav). Il faudra soit mapper les
+mots-clés EN existants vers ces slugs de catégorie plutôt que vers un terme de recherche
+libre, soit trouver le vrai mécanisme de recherche du site (pas encore identifié). À refaire
+avant que ce scraper retourne de vraies données, même une fois connecté.
