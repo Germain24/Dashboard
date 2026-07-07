@@ -20,5 +20,6 @@ def test_register_all_jobs_includes_expected():
     for expected in (
         "portfolio_snapshot", "nutrition_plan", "backup_db", "weather_refresh",
         "agenda_reminders", "habit_reminders", "purge_old", "auto_plan",
+        "credit_reminders",
     ):
         assert expected in ids, f"job manquant : {expected}"
