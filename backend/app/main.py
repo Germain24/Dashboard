@@ -69,6 +69,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
         threading.Thread(target=_start_ollama, daemon=True).start()
 
+    # Rafraîchir les prix Super C/Adonis/Lufa si périmés — en arrière-plan,
+    # ne bloque pas le boot (STORE_PRICING_REFRESH=0 désactive, cf. tests).
+    import threading
+
+    def _refresh_store_pricing() -> None:
+        try:
+            from app.services.cuisine.store_pricing import refresh_all_if_stale
+            refresh_all_if_stale()
+        except Exception as exc:  # pragma: no cover — défensif
+            log.warning("Rafraîchissement prix magasins: %s", exc)
+
+    threading.Thread(target=_refresh_store_pricing, daemon=True).start()
+
     # Démarrer APScheduler
     try:
         from app.services.scheduler.scheduler import get_scheduler, register_all_jobs

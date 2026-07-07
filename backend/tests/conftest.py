@@ -21,6 +21,7 @@ def _isolate_external_side_effects(monkeypatch, tmp_path):
       vrai data/account_balances.json et fausse les tests patrimoine).
     Le code de prod reste actif par défaut."""
     monkeypatch.setenv("ADONIS_PRODUCE_PRICING", "0")
+    monkeypatch.setenv("STORE_PRICING_REFRESH", "0")
     from app.services.finance import account_balances as _ab
     monkeypatch.setattr(_ab, "_default_path", lambda: tmp_path / "account_balances.json")
     # L'historique par compte scanne/parse les vrais relevés (PDF) → désactivé en
