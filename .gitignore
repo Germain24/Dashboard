@@ -56,6 +56,9 @@ backend/data/cache_status.json
 data/account_balances.json
 backend/data/account_balances.json
 
+# --- Scrapers : profils navigateur persistants (sessions connectées) ---
+frontend/.lufa_profile/
+
 # --- OS ---
 .DS_Store
 Thumbs.db
