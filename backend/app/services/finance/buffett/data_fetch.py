@@ -25,6 +25,29 @@ def fetch_data(symbol: str, rate_limiter=None) -> dict | None:
         return None
 
 
+def fetch_info_only(symbol: str, rate_limiter=None) -> dict | None:
+    """Télécharge UNIQUEMENT `.info` (pas financials/balance/cashflow).
+
+    Un ETF n'a pas de comptes annuels : son Score est figé par convention
+    (200, cf. runner._etf_result) et ne dépend jamais de income/balance/
+    cashflow -- seul `.info` sert à peupler Nom/Pays/Prix/Volume. Utilisé pour
+    un ETF connu (`_check_is_etf`) sans cache ni fichier local exploitable :
+    évite 3 des 4 appels yfinance de `fetch_data()` (financials/balance/
+    cashflow sont inutiles et téléchargés en pure perte pour un ETF).
+    """
+    try:
+        import yfinance as yf
+
+        from app.services.finance.yf_session import yf_session
+        if rate_limiter:
+            rate_limiter.wait_for_slot()
+        t = yf.Ticker(symbol, session=yf_session())
+        return {"info": t.info}
+    except Exception as e:
+        print(f"[data_fetch] Erreur info {symbol}: {e}")
+        return None
+
+
 def load_local_data(ticker: str) -> dict | None:
     """Charge les données financières depuis le cache local (Excel par ticker)."""
     file_path = Config.output_dir() / f"{ticker.replace(':', '_')}.xlsx"
@@ -34,7 +57,10 @@ def load_local_data(ticker: str) -> dict | None:
         import pandas as pd
         xl = pd.ExcelFile(file_path)
         sheets = [s for s in ["income", "balance", "cashflow"] if s in xl.sheet_names]
-        data = pd.read_excel(file_path, sheet_name=sheets, index_col=0)
+        # Un ETF persisté via le fetch allégé ".info seul" (cf. fetch_info_only)
+        # n'a AUCUNE de ces 3 feuilles -- pd.read_excel(sheet_name=[]) lève
+        # "Sheet name is an empty list" si on l'appelle quand meme.
+        data = pd.read_excel(file_path, sheet_name=sheets, index_col=0) if sheets else {}
         for k in data:
             data[k].index = pd.to_datetime(data[k].index)
         if "info" in xl.sheet_names:
@@ -48,7 +74,14 @@ def load_local_data(ticker: str) -> dict | None:
 
 
 def save_local_data(ticker: str, data: dict) -> bool:
-    """Sauvegarde les données dans un Excel local par ticker."""
+    """Sauvegarde les données dans un Excel local par ticker.
+
+    "Exploitable" = au moins un DataFrame financier non-vide OU un `.info`
+    non-vide. Un vrai ETF yfinance a income/balance/cashflow VIDES (ce n'est
+    pas une entreprise) -- sans le `or info non-vide`, un ETF ne serait
+    JAMAIS persisté localement, empêchant le court-circuit "fichier local"
+    (cf. runner._analyze_one, étape 2) de jouer son rôle pour les ETF.
+    """
     if not data:
         return False
     import pandas as pd
@@ -56,7 +89,7 @@ def save_local_data(ticker: str, data: dict) -> bool:
         isinstance(v, pd.DataFrame) and not v.empty
         for v in data.values()
         if v is not None
-    )
+    ) or bool(data.get("info"))
     if not has_real:
         return False
     file_path = Config.output_dir() / f"{ticker.replace(':', '_')}.xlsx"

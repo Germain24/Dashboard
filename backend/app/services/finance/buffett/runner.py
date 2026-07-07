@@ -6,6 +6,8 @@ Flow exact (conforme au diagramme + regles utilisateur) :
     1. Charger donnees locales
     2. Si ETF (peu importe l'age) -> Score=200, Achat=True
     3. Si non-ETF ET trop frais (< MIN_AGE_YEARS) -> skip
+    3bis. Si ETF connu sans cache/local exploitable -> fetch ".info" seul
+       (1 appel yfinance au lieu de 4) -> Score=200, JAMAIS de financials
     4. Telecharger yfinance si necessaire. Si internet est coupe -> attendre
        puis retenter LE MEME ticker (jamais le suivant) ; si yfinance echoue
        alors qu'internet est present -> garder le ticker pour un prochain run.
@@ -32,7 +34,13 @@ RETRY_WAIT_SEC = 30
 
 from .cache_manager import CacheManager, infer_country
 from .config import Config
-from .data_fetch import fetch_data, load_local_data, merge_data, save_local_data
+from .data_fetch import (
+    fetch_data,
+    fetch_info_only,
+    load_local_data,
+    merge_data,
+    save_local_data,
+)
 from .etf_detect import is_empty_financials as _is_empty_financials
 from .rate_limiter import RateLimiter
 from .scoring import analyze_financials
@@ -158,6 +166,26 @@ def _fetch_with_retry(
         time.sleep(RETRY_WAIT_SEC)
 
 
+def _fetch_info_with_retry(
+    ticker: str,
+    rate_limiter: RateLimiter,
+    stop_flag: "threading.Event | None" = None,
+) -> dict | None:
+    """Version allegee de `_fetch_with_retry` : ne telecharge que `.info`
+    (cf. `fetch_info_only`) au lieu des 4 appels de `fetch_data`. Meme
+    politique de reprise sur coupure reseau (retente LE MEME ticker)."""
+    while True:
+        if stop_flag is not None and stop_flag.is_set():
+            return None
+        data = fetch_info_only(ticker, rate_limiter)
+        if data is not None:
+            return data
+        if _internet_available():
+            return None
+        print(f"[runner] {ticker}: internet coupe, attente {RETRY_WAIT_SEC}s puis nouvelle tentative (info)...")
+        time.sleep(RETRY_WAIT_SEC)
+
+
 def _analyze_one(
     ticker: str,
     results: dict,
@@ -211,6 +239,24 @@ def _analyze_one(
     # 3. Non-ETF trop frais -> skip (pas de nouveau rapport annuel possible)
     if status == "too_fresh":
         return False
+
+    # 3bis. ETF connu (ou ticker force) sans cache ni fichier local exploitable
+    # (cache-froid) : le Score=200 est fige par convention, JAMAIS derive des
+    # financials -- inutile de telecharger income/balance/cashflow (3 des 4
+    # appels yfinance de fetch_data()). Un fetch allege ".info" seul suffit
+    # (Nom/Prix/Volume) et epargne le budget rate-limiter pour les actions,
+    # dont les fondamentaux doivent reellement etre reverifies.
+    if _check_is_etf(ticker) or _is_forced(ticker):
+        info_data = _fetch_info_with_retry(ticker, rate_limiter, stop_flag) or {"info": {}}
+        info_data.setdefault("info", {})
+        score, metrics = _etf_result(ticker, info_data)
+        age = _get_data_age(info_data)
+        yr = datetime.now().year - age if age >= 0 else datetime.now().year
+        cache.update(ticker, yr, score, metrics)
+        save_local_data(ticker, info_data)
+        _emit(ticker, score, metrics)
+        print(f"[runner] {ticker} ETF (info seul) -> Score=200")
+        return True
 
     # 4. Telecharger / fusionner. Si internet coupe -> attendre et retenter CE ticker.
     data = local_data

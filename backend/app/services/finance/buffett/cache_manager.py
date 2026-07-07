@@ -158,17 +158,23 @@ class CacheManager:
             if not info or info.get("status") != "success":
                 return None
             try:
-                last_update = datetime.fromisoformat(info["last_update"])
-                age_days = (datetime.now() - last_update).days
-                if age_days >= 60 or not info.get("metrics"):
+                if not info.get("metrics"):
                     return None
                 score = float(info.get("score") or 0.0)
                 metrics = dict(info.get("metrics", {}))
                 if metrics.get("Pays") == "Inconnu":
                     metrics["Pays"] = infer_country(ticker)
-                # ETF (score=200) : pas de restriction d'age financier
+                # ETF (score=200) : cache permanent, AUCUNE restriction d'age
+                # (ni TTL 60 jours, ni fenetre d'age financier) -- un ETF n'a
+                # pas de fondamentaux qui changent d'un run a l'autre. La
+                # reclassification (ETF -> action) est geree en amont par
+                # purge_misclassified_etf_cache, appele a chaque run.
                 if score >= 200:
                     return score, metrics
+                last_update = datetime.fromisoformat(info["last_update"])
+                age_days = (datetime.now() - last_update).days
+                if age_days >= 60:
+                    return None
                 # Action normale : verifier la fenetre d'age
                 cached_year = info.get("latest_year", 0)
                 age_fin = datetime.now().year - cached_year
