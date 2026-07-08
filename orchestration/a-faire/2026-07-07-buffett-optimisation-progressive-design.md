@@ -28,7 +28,14 @@ par le run précédent, ré-étiquetée comme si elle appartenait au run en cour
    automatique, comme celle qui existe déjà pour le bouton manuel.
 2. Le portefeuille affiché pour un run en cours reflète le **meilleur trouvé jusqu'ici, toutes
    seeds DE confondues**, avec le détail complet (actions/pies par broker), mis à jour à chaque
-   nouveau meilleur — pas une donnée périmée du run précédent.
+   nouveau meilleur — pas une donnée périmée du run précédent. **Portée réelle (précisée après
+   revue finale) : ce correctif s'applique à partir du début de la phase DE.** Pendant la phase de
+   scoring qui précède (peut durer ~55 min, cf. session de debug antérieure), `upsert_result`
+   réassigne déjà le `run_id` des lignes `BuffettRunResult` sans effacer leur `allocation_pct` —
+   la fenêtre décrite dans Contexte existe donc encore pendant tout le scoring, seule la phase
+   d'optimisation qui suit est couverte par ce projet. Fermer aussi la fenêtre côté scoring
+   (nettoyer `allocation_pct`/`broker_cible`/`secteurs_extra['allocations']` dans `upsert_result`
+   quand le `run_id` change) est un chantier séparé, non fait ici.
 3. Cette donnée est persistée en base (survit à un refresh de page), pas seulement en mémoire.
 4. Corollaire : plus besoin de rester sur la page pour que l'analyse avance — elle tourne déjà
    en tâche de fond côté serveur ; on rend simplement visible où elle en est à tout moment.
@@ -72,8 +79,18 @@ par le run précédent, ré-étiquetée comme si elle appartenait au run en cour
 `GET /finance/buffett/runs/{run_id}` (existant) filtre déjà `allocation_cible` par `run_id` +
 `allocation_pct is not None` → reflète automatiquement les mises à jour progressives.
 `GET /finance/portfolio/progress` (existant) reflète déjà génération/convergence → le run
-automatique les alimente désormais aussi. Un seul run/optimisation actif à la fois
-(`is_analysis_running()`), donc pas d'ambiguïté sur quelle optimisation la barre représente.
+automatique les alimente désormais aussi.
+
+**Correction post-revue finale** : l'affirmation initiale « un seul run/optimisation actif à la
+fois donc pas d'ambiguïté » était fausse au moment d'écrire ce paragraphe — `is_analysis_running()`
+ne protège que le run automatique (`job_monthly_buffett`), pas le bouton manuel « Créer le
+portefeuille optimal » (`POST /finance/portfolio/create`), qui pouvait démarrer une optimisation
+concurrente écrivant sur le même état `optimization_progress` partagé et les mêmes lignes
+`BuffettRunResult` (uniques par ticker, cf. Contexte). Avant cette feature c'était cosmétique
+(barre confuse) ; depuis que le run automatique persiste son allocation en direct, c'était devenu
+un risque réel de corruption de données. Corrigé par la revue finale de branche : `portfolio_create`
+vérifie désormais `is_analysis_running()` et renvoie 409 si une analyse tourne déjà — l'invariant
+« un seul actif à la fois » est maintenant réellement vrai.
 
 ### 4. Frontend — `BuffettTab.tsx`
 
@@ -106,3 +123,5 @@ polling dès que `statut` passe à `"termine"`.
 - Ne cherche pas à rendre `BuffettRunResult` réellement versionné par run (le bug contourné ici
   est un effet de bord du modèle actuel « une ligne par ticker » ; le refonte du modèle de
   données est un chantier séparé si jugé utile).
+- Ne ferme pas la fenêtre d'allocation périmée pendant la phase de **scoring** (avant que la phase
+  DE ne démarre) — voir la précision ajoutée à l'Objectif #2 après revue finale.
