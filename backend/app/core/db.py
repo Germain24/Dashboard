@@ -31,6 +31,12 @@ if _IS_SQLITE:
         cur.execute("PRAGMA busy_timeout=5000")  # attend jusqu'à 5 s un verrou
         cur.execute("PRAGMA synchronous=NORMAL")  # bon compromis durabilité/perf en WAL
         cur.execute("PRAGMA foreign_keys=ON")
+        # Checkpoint automatique tous les 200 pages (~800 Ko) au lieu du défaut
+        # ~1000 : sur un run Buffett de plusieurs heures qui écrit en continu
+        # (progression DE), un WAL qui grossit sans être purgé dégrade
+        # progressivement chaque lecture/écriture SQLite (mesuré : 815 pages/
+        # ~3,2 Mo non checkpointées après quelques heures -> ralentissement 7x).
+        cur.execute("PRAGMA wal_autocheckpoint=200")
         cur.close()
 
 
