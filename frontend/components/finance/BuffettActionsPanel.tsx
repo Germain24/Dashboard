@@ -6,16 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { financeApi } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
-import { fmt, ScoreChip } from "./buffett-ui";
-
-type OptProgress = Awaited<ReturnType<typeof financeApi.portfolioProgress>>;
-
-const PHASE_LABEL: Record<OptProgress["phase"], string> = {
-  idle: "",
-  preparation: "Préparation…",
-  optimisation: "Optimisation (Differential Evolution)…",
-  finalisation: "Finalisation…",
-};
+import { fmt, ScoreChip, DeProgressBar, type OptProgress } from "./buffett-ui";
 
 export function BuffettActionsPanel({
   starting, progressActive, interrupted, onStartRun, onError,
@@ -179,38 +170,7 @@ export function BuffettActionsPanel({
       </div>
 
       {/* Barre de progression de l'optimisation DE */}
-      {optProgress && (
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-[var(--muted-foreground)]">
-              {optProgress.active
-                ? (PHASE_LABEL[optProgress.phase] || "En cours…")
-                : (optProgress.message || "Terminé")}
-              {optProgress.active && optProgress.phase === "optimisation" && optProgress.iteration > 0
-                ? ` · génération ${optProgress.iteration}` : ""}
-            </span>
-            {optProgress.active && optProgress.phase === "optimisation" && (
-              <span className="font-mono text-[var(--muted-foreground)]">
-                {fmt(optProgress.progress_pct, 0)}%
-              </span>
-            )}
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--muted)]">
-            <div
-              className={`h-full rounded-full bg-[var(--primary)] transition-[width] duration-500 ${
-                optProgress.active && optProgress.phase !== "optimisation" ? "animate-pulse" : ""
-              }`}
-              style={{
-                width: !optProgress.active
-                  ? "100%"
-                  : optProgress.phase === "optimisation"
-                    ? `${Math.max(optProgress.progress_pct, 2)}%`
-                    : "100%",
-              }}
-            />
-          </div>
-        </div>
-      )}
+      <DeProgressBar optProgress={optProgress} />
     </div>
   );
 }
