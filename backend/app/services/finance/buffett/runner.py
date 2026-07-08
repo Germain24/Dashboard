@@ -611,10 +611,14 @@ def run_buffett_analysis(
                     opt_prog.finish(message="Optimisation terminée.")
 
                 alloc = discretize_allocation(t_opt, weights, active_b, prices, total_cap)
-                # Persister l'allocation finale en DB
+                # Persister l'allocation finale en DB. Attend un éventuel écriture
+                # progressive encore en vol (meme verrou que _on_new_best) pour
+                # garantir que cette écriture finale est bien la DERNIERE -- sinon
+                # une écriture progressive lente pourrait se terminer APRES celle-ci
+                # et ecraser le resultat final avec une allocation plus ancienne.
                 if run_id is not None:
                     try:
-                        with session_factory() as session:
+                        with _write_lock, session_factory() as session:
                             update_allocations(session, run_id, alloc)
                         print(f"[runner] Allocations persistees ({len(alloc)} lignes)")
                     except Exception as e:
