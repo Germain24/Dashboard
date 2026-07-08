@@ -565,20 +565,36 @@ def run_buffett_analysis(
                 # Discrétisation : actions entières (hors Trading212) / pies (Trading212)
                 prices = latest_prices(cd, t_opt)
 
+                _write_lock = threading.Lock()
+
                 def _on_new_best(w_matrix) -> None:
                     """Persiste le meilleur portefeuille trouvé jusqu'ici (toutes seeds
                     DE confondues) pendant l'optimisation -- affichage en direct au lieu
-                    d'attendre la fin (peut durer des heures)."""
+                    d'attendre la fin (peut durer des heures). Écriture DB dans un
+                    thread séparé : ne bloque JAMAIS la boucle DE (avant ce correctif,
+                    une écriture synchrone ici ralentissait progressivement chaque
+                    génération à mesure que le WAL SQLite grossissait -- mesuré : 0.4s
+                    -> 2.9s/génération sur plusieurs heures). Si une écriture précédente
+                    est encore en cours, on ignore ce nouveau meilleur (la suivante,
+                    quand elle arrivera, écrira de toute façon un état plus récent)."""
                     if run_id is None:
                         return
-                    try:
-                        partial_alloc = discretize_allocation(
-                            t_opt, w_matrix, active_b, prices, total_cap,
-                        )
-                        with session_factory() as session:
-                            update_allocations(session, run_id, partial_alloc)
-                    except Exception as e:
-                        print(f"[runner] Erreur allocation progressive: {e}")
+                    if not _write_lock.acquire(blocking=False):
+                        return
+
+                    def _write() -> None:
+                        try:
+                            partial_alloc = discretize_allocation(
+                                t_opt, w_matrix, active_b, prices, total_cap,
+                            )
+                            with session_factory() as session:
+                                update_allocations(session, run_id, partial_alloc)
+                        except Exception as e:
+                            print(f"[runner] Erreur allocation progressive: {e}")
+                        finally:
+                            _write_lock.release()
+
+                    threading.Thread(target=_write, daemon=True).start()
 
                 opt_prog.start(run_id=run_id, message="Préparation de l'optimisation…")
                 opt_prog.set_phase(
@@ -589,6 +605,7 @@ def run_buffett_analysis(
                     weights, metric = optimize_portfolio_de(
                         t_opt, rets, mat_access, active_b,
                         progress_cb=opt_prog.update_de, on_new_best=_on_new_best,
+                        should_stop=lambda: opt_prog.snapshot()["stop_requested"],
                     )
                 finally:
                     opt_prog.finish(message="Optimisation terminée.")
