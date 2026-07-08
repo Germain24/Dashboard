@@ -77,6 +77,7 @@ export function BuffettTab() {
     const scoringDone = (progress?.progress_pct ?? 0) >= 100;
     if (progress?.active && scoringDone && runId != null) {
       stopOptPolling();
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- même schéma que loadRuns() ci-dessus (l.39) : sonde fire-and-forget qui met à jour l'état une fois résolue.
       void pollOptProgress(runId);
       optPollRef.current = setInterval(() => { void pollOptProgress(runId); }, 3000);
     } else {
@@ -95,6 +96,7 @@ export function BuffettTab() {
       void financeApi.buffettRun(id).catch(() => null).then(fresh => { if (fresh) setSelected(fresh); });
     }, 5000);
     return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `selected` est volontairement exclu : chaque poll produit un nouvel objet (setSelected(fresh)), l'inclure relancerait l'intervalle en boucle.
   }, [selected?.run.id, selected?.run.statut]);
 
   const openRun = async (id: number) => {
