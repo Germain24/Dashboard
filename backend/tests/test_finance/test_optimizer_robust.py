@@ -15,9 +15,8 @@ def test_de_returns_feasible_finite_weights(monkeypatch):
     from app.services.finance.buffett.config import Config
 
     monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 600.0, "BoursDirect": 400.0})
-    # Réglages DE allégés pour le test (la prod utilise tol=1e-6 et 10 seeds,
-    # ~144s/seed sur un problème de cette taille -> beaucoup trop lent en CI).
-    monkeypatch.setattr(Config, "STARR_DE_N_SEEDS", 1)
+    # Réglages DE allégés pour le test (la prod utilise tol=1e-6, ~144s/seed sur
+    # un problème de cette taille -> beaucoup trop lent en CI).
     monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
     monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
     rng = np.random.default_rng(0)
@@ -68,7 +67,6 @@ def test_de_calls_on_new_best_with_decreasing_energy(monkeypatch):
     from app.services.finance.buffett.config import Config
 
     monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
-    monkeypatch.setattr(Config, "STARR_DE_N_SEEDS", 1)
     monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
     monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
     rng = np.random.default_rng(1)
@@ -98,7 +96,6 @@ def test_de_without_on_new_best_is_unaffected(monkeypatch):
     from app.services.finance.buffett.config import Config
 
     monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
-    monkeypatch.setattr(Config, "STARR_DE_N_SEEDS", 1)
     monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
     monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
     rng = np.random.default_rng(2)
@@ -112,3 +109,82 @@ def test_de_without_on_new_best_is_unaffected(monkeypatch):
     )
     assert np.isfinite(W).all()
     assert abs(W.sum() - 1.0) < 1e-6
+
+
+def test_de_stops_after_should_stop_true(monkeypatch):
+    """should_stop() verifie uniquement ENTRE deux seeds : avec should_stop qui
+    renvoie True des le debut, on ne fait qu'UN SEUL seed puis on s'arrete."""
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+    from app.services.finance.buffett.config import Config
+
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
+    monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
+    rng = np.random.default_rng(3)
+    n = 10
+    R = rng.normal(0.0006, 0.02, (500, n))
+    rets = pd.DataFrame(R, columns=[f"T{i}" for i in range(n)])
+    access = [[True] for _ in range(n)]
+
+    seeds_seen: set[int] = set()
+    W, starr = optimize_portfolio_de(
+        list(rets.columns), rets, access, ["IBKR"], n_sim=3000,
+        progress_cb=lambda seed_num, it, conv: seeds_seen.add(seed_num),
+        should_stop=lambda: True,
+    )
+    assert seeds_seen == {1}   # un seul seed a tourne
+    assert np.isfinite(W).all()
+    assert abs(W.sum() - 1.0) < 1e-6
+
+
+def test_de_without_should_stop_runs_exactly_one_seed(monkeypatch):
+    """Sans should_stop (defaut None) : exactement 1 seed, jamais de boucle
+    infinie -- comportement sur qui remplace l'ancien STARR_DE_N_SEEDS=1 des
+    tests existants."""
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+    from app.services.finance.buffett.config import Config
+
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
+    monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
+    rng = np.random.default_rng(4)
+    n = 10
+    R = rng.normal(0.0006, 0.02, (500, n))
+    rets = pd.DataFrame(R, columns=[f"T{i}" for i in range(n)])
+    access = [[True] for _ in range(n)]
+
+    seeds_seen: set[int] = set()
+    optimize_portfolio_de(
+        list(rets.columns), rets, access, ["IBKR"], n_sim=3000,
+        progress_cb=lambda seed_num, it, conv: seeds_seen.add(seed_num),
+    )
+    assert seeds_seen == {1}
+
+
+def test_de_continues_past_first_seed_when_not_stopped(monkeypatch):
+    """should_stop qui renvoie False les 2 premieres fois puis True : verifie
+    qu'on fait bien plusieurs seeds avant de s'arreter (pas bloque au 1er)."""
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+    from app.services.finance.buffett.config import Config
+
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
+    monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
+    rng = np.random.default_rng(5)
+    n = 10
+    R = rng.normal(0.0006, 0.02, (500, n))
+    rets = pd.DataFrame(R, columns=[f"T{i}" for i in range(n)])
+    access = [[True] for _ in range(n)]
+
+    calls = {"n": 0}
+    def should_stop():
+        calls["n"] += 1
+        return calls["n"] >= 3   # False, False, True -> 3 seeds
+
+    seeds_seen: set[int] = set()
+    optimize_portfolio_de(
+        list(rets.columns), rets, access, ["IBKR"], n_sim=3000,
+        progress_cb=lambda seed_num, it, conv: seeds_seen.add(seed_num),
+        should_stop=should_stop,
+    )
+    assert seeds_seen == {1, 2, 3}

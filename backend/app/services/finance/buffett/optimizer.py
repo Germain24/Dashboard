@@ -344,8 +344,10 @@ def optimize_portfolio_de(
     matrix_access: list,
     active_brokers: list[str],
     seed: int = 42,
-    progress_cb=None,   # callable(iteration:int, convergence:float) | None
+    progress_cb=None,   # callable(seed_num:int, iteration:int, convergence:float) | None
     on_new_best=None,   # callable(W: np.ndarray[n_tickers x n_brokers]) | None
+    should_stop=None,   # callable() -> bool | None -- verifie ENTRE deux seeds seulement.
+                         # Sans callback : s'arrete apres exactement 1 seed (defaut sur).
     n_sim: int | None = None,
     alpha: float | None = None,
     downside_weight: float | None = None,
@@ -455,19 +457,15 @@ def optimize_portfolio_de(
             base += constraint_penalty(w_, d_vec, C_mat, min_def, max_country, pen_k)
         return base
 
-    _iter = {"n": 0}
-
-    def _report(convergence: float) -> None:
-        _iter["n"] += 1
+    def _report(seed_num: int, iteration: int, convergence: float) -> None:
         if progress_cb is not None:
             try:
-                progress_cb(_iter["n"], float(convergence))
+                progress_cb(seed_num, iteration, float(convergence))
             except Exception:
                 pass  # la progression ne doit jamais casser l'optimisation
 
     min_gen = int(Config.STARR_DE_MIN_GENERATIONS)
     max_gen = int(Config.STARR_DE_MAX_GENERATIONS)   # garde-fou, pas l'arrêt normal
-    n_seeds = max(1, int(Config.STARR_DE_N_SEEDS))
     de_tol = float(Config.STARR_DE_TOL)
 
     # ── Conversion vecteur DE brut -> allocation par broker, réutilisée pour le
@@ -506,16 +504,19 @@ def optimize_portfolio_de(
         except Exception:
             pass  # la progression ne doit jamais casser l'optimisation
 
-    global_best_energy = float("inf")   # partagé entre les 10 seeds (pas remis à zéro à chaque seed)
+    global_best_energy = float("inf")   # partagé entre TOUS les seeds (jamais remis à zéro)
 
-    # ── Multi-seed : chaque run s'arrête sur convergence naturelle de la
-    # population (pas sur un plafond de générations), avec un minimum de
-    # générations pour éviter un arrêt prématuré. On garde le meilleur des N
-    # seeds et on logge l'écart entre elles (mesure de robustesse : si les
-    # scores divergent fort d'une seed à l'autre, le paysage a plusieurs
-    # optima locaux comparables et il ne faut pas se fier à un seul run).
+    # ── Seeds illimités : chaque nouveau départ (rng=seed+k, toujours distinct)
+    # explore le paysage différemment. On garde le meilleur de tous les seeds
+    # faits et on logge l'écart entre elles (mesure de robustesse : si les
+    # scores divergent fort d'un seed à l'autre, le paysage a plusieurs optima
+    # locaux comparables). S'arrête quand should_stop() renvoie True, vérifié
+    # UNIQUEMENT entre deux seeds (jamais au milieu) -- un seed interrompu ne
+    # doit jamais compter dans les stats de robustesse. Sans should_stop : 1
+    # seul seed (comportement par défaut sûr, jamais de boucle infinie).
     runs = []   # (energie, x, nit, convergence_naturelle)
-    for k in range(n_seeds):
+    k = 0
+    while True:
         solver = DifferentialEvolutionSolver(
             neg_obj,
             bounds=bounds,
@@ -533,7 +534,7 @@ def optimize_portfolio_de(
         converged_naturally = False
         for _ in solver:
             nit += 1
-            _report(solver.convergence)
+            _report(k + 1, nit, solver.convergence)
             if solver.population_energies[0] < global_best_energy:
                 global_best_energy = float(solver.population_energies[0])
                 _maybe_emit_progress(solver.x)
@@ -543,12 +544,15 @@ def optimize_portfolio_de(
             if nit >= max_gen:
                 break
         runs.append((float(solver.population_energies[0]), solver.x.copy(), nit, converged_naturally))
+        k += 1
+        if should_stop is None or should_stop():
+            break
 
     energies = [r[0] for r in runs]
     best_idx = int(np.argmin(energies))
     best_energy, best_x, best_nit, best_converged = runs[best_idx]
     spread = float(np.std(energies))
-    print(f"    * DE multi-seed ({n_seeds} depart(s)) : energies={[round(e, 4) for e in energies]}, "
+    print(f"    * DE multi-seed ({len(runs)} depart(s)) : energies={[round(e, 4) for e in energies]}, "
           f"retenu=seed#{best_idx} (nit={best_nit}/{max_gen}, "
           f"{'convergence naturelle' if best_converged else 'PLAFOND atteint'}), "
           f"ecart-type inter-seeds={spread:.4f}")

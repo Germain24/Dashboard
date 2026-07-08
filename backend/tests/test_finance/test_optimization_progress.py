@@ -68,27 +68,28 @@ def test_request_stop_sets_flag_reset_by_start():
 
 
 def test_optimize_portfolio_de_reports_progress(monkeypatch):
-    """optimize_portfolio_de doit appeler progress_cb(iteration, convergence)
-    à chaque génération du Differential Evolution."""
+    """optimize_portfolio_de doit appeler progress_cb(seed_num, iteration,
+    convergence) à chaque génération du Differential Evolution."""
     from app.services.finance.buffett.optimizer import optimize_portfolio_de
     from app.services.finance.buffett.config import Config
 
     monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
-    # Réglages DE allégés pour le test (la prod utilise tol=1e-6 et 10 seeds).
-    monkeypatch.setattr(Config, "STARR_DE_N_SEEDS", 1)
+    # Reglages DE allegés pour le test (la prod utilise tol=1e-6). Pas de
+    # should_stop -> exactement 1 seed (comportement par defaut).
     monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
     monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
     rng = np.random.default_rng(0)
     rets = pd.DataFrame(rng.normal(0.001, 0.02, (300, 3)), columns=["A", "B", "C"])
     matrix = [[True], [True], [True]]
 
-    calls: list[tuple[int, float]] = []
+    calls: list[tuple[int, int, float]] = []
     weights, sharpe = optimize_portfolio_de(
         ["A", "B", "C"], rets, matrix, ["IBKR"], n_sim=2000,
-        progress_cb=lambda it, conv: calls.append((it, conv)),
+        progress_cb=lambda seed_num, it, conv: calls.append((seed_num, it, conv)),
     )
     assert len(calls) > 0
-    # itérations strictement croissantes
-    iters = [c[0] for c in calls]
+    assert all(c[0] == 1 for c in calls)   # un seul seed
+    # itérations (dans ce seed) strictement croissantes
+    iters = [c[1] for c in calls]
     assert iters == sorted(iters)
     assert weights.shape == (3, 1)
