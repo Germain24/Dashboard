@@ -489,6 +489,8 @@ def run_buffett_analysis(
         from .allocation import close_prices_from_download, discretize_allocation, latest_prices
         from .broker_availability import merge_broker_columns
         from .broker_budgets import apply_live_broker_budgets
+        from .reporting import update_allocations
+        from . import optimization_progress as opt_prog
         import pandas as pd
         import numpy as np
         import yfinance as yf
@@ -559,15 +561,42 @@ def run_buffett_analysis(
                 rets = deduplicate_correlated(rets, df_m, ticker_col)
                 t_opt = list(rets.columns)
                 mat_access, active_b = prepare_optimization(t_opt, df_m)
-                weights, metric = optimize_portfolio_de(t_opt, rets, mat_access, active_b)
                 total_cap = sum(Config.BUDGET_BROKERS.values())
                 # Discrétisation : actions entières (hors Trading212) / pies (Trading212)
                 prices = latest_prices(cd, t_opt)
+
+                def _on_new_best(w_matrix) -> None:
+                    """Persiste le meilleur portefeuille trouvé jusqu'ici (toutes seeds
+                    DE confondues) pendant l'optimisation -- affichage en direct au lieu
+                    d'attendre la fin (peut durer des heures)."""
+                    if run_id is None:
+                        return
+                    try:
+                        partial_alloc = discretize_allocation(
+                            t_opt, w_matrix, active_b, prices, total_cap,
+                        )
+                        with session_factory() as session:
+                            update_allocations(session, run_id, partial_alloc)
+                    except Exception as e:
+                        print(f"[runner] Erreur allocation progressive: {e}")
+
+                opt_prog.start(run_id=run_id, message="Préparation de l'optimisation…")
+                opt_prog.set_phase(
+                    "optimisation",
+                    f"Optimisation Differential Evolution ({len(t_opt)} titres)…",
+                )
+                try:
+                    weights, metric = optimize_portfolio_de(
+                        t_opt, rets, mat_access, active_b,
+                        progress_cb=opt_prog.update_de, on_new_best=_on_new_best,
+                    )
+                finally:
+                    opt_prog.finish(message="Optimisation terminée.")
+
                 alloc = discretize_allocation(t_opt, weights, active_b, prices, total_cap)
-                # Persister les allocations en DB
+                # Persister l'allocation finale en DB
                 if run_id is not None:
                     try:
-                        from .reporting import update_allocations
                         with session_factory() as session:
                             update_allocations(session, run_id, alloc)
                         print(f"[runner] Allocations persistees ({len(alloc)} lignes)")
