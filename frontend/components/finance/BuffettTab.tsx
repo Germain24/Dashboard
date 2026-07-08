@@ -11,7 +11,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { fmt, ProgressBar, StatusBadge } from "./buffett-ui";
+import { fmt, ProgressBar, StatusBadge, DeProgressBar, type OptProgress } from "./buffett-ui";
 import { BuffettRunDetailView } from "./BuffettRunDetailView";
 import { BuffettActionsPanel } from "./BuffettActionsPanel";
 
@@ -19,11 +19,13 @@ export function BuffettTab() {
   const [runs, setRuns] = useState<BuffettRunOut[]>([]);
   const [selected, setSelected] = useState<BuffettRunDetail | null>(null);
   const [progress, setProgress] = useState<BuffettProgress | null>(null);
+  const [optProgress, setOptProgress] = useState<OptProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const optPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadRuns = useCallback(async () => {
     try {
@@ -52,6 +54,48 @@ export function BuffettTab() {
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [progress?.active, loadRuns]);
+
+  const stopOptPolling = useCallback(() => {
+    if (optPollRef.current) { clearInterval(optPollRef.current); optPollRef.current = null; }
+  }, []);
+
+  const pollOptProgress = useCallback(async (runId: number) => {
+    const p = await financeApi.portfolioProgress().catch(() => null);
+    if (p && p.run_id === runId) {
+      setOptProgress(p);
+      if (!p.active) stopOptPolling();
+    } else if (!p?.active) {
+      stopOptPolling();
+    }
+  }, [stopOptPolling]);
+
+  // Une fois le scoring des tickers à 100 %, le run automatique enchaîne sur la
+  // phase d'optimisation DE (peut durer des heures) : on relaie la même barre de
+  // progression que le bouton manuel "Créer le portefeuille optimal".
+  useEffect(() => {
+    const runId = progress?.run_id;
+    const scoringDone = (progress?.progress_pct ?? 0) >= 100;
+    if (progress?.active && scoringDone && runId != null) {
+      stopOptPolling();
+      void pollOptProgress(runId);
+      optPollRef.current = setInterval(() => { void pollOptProgress(runId); }, 3000);
+    } else {
+      stopOptPolling();
+      setOptProgress(null);
+    }
+    return () => stopOptPolling();
+  }, [progress?.active, progress?.progress_pct, progress?.run_id, pollOptProgress, stopOptPolling]);
+
+  // Rafraîchit le détail d'un run "en_cours" pour afficher l'allocation
+  // progressive (meilleur portefeuille trouvé jusqu'ici) sans action utilisateur.
+  useEffect(() => {
+    if (!selected || selected.run.statut !== "en_cours") return;
+    const id = selected.run.id;
+    const iv = setInterval(() => {
+      void financeApi.buffettRun(id).catch(() => null).then(fresh => { if (fresh) setSelected(fresh); });
+    }, 5000);
+    return () => clearInterval(iv);
+  }, [selected?.run.id, selected?.run.statut]);
 
   const openRun = async (id: number) => {
     try { setSelected(await financeApi.buffettRun(id)); }
@@ -128,7 +172,9 @@ export function BuffettTab() {
                 ? "⏸ Analyse interrompue"
                 : paused
                   ? "⏳ En pause (limite API atteinte)"
-                  : "Analyse en cours..."}
+                  : optProgress?.active
+                    ? "Scoring terminé — optimisation du portefeuille en cours..."
+                    : "Analyse en cours..."}
             </span>
             <Badge variant={interrupted || paused ? "warning" : "info"}>{fmt(progress?.progress_pct)}%</Badge>
           </div>
@@ -138,6 +184,7 @@ export function BuffettTab() {
               {progress.n_done} / {progress.n_total} tickers analysés
             </p>
           )}
+          <DeProgressBar optProgress={optProgress} />
           {paused && (
             <p className="text-xs text-[var(--warning-foreground)]">
               Limite de l&apos;API Yahoo atteinte — l&apos;analyse reprend automatiquement

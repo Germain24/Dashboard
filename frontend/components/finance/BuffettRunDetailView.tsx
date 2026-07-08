@@ -119,6 +119,11 @@ export function BuffettRunDetailView({
           </Button>
         </div>
       </div>
+      {selected.run.statut === "en_cours" && (
+        <p className="text-xs rounded-[var(--radius)] bg-[var(--info-muted)] text-[var(--info-foreground)] px-3 py-2">
+          🔄 Optimisation en cours — ce portefeuille s&apos;améliore en direct, actualisation automatique.
+        </p>
+      )}
       {backtest && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm flex items-center gap-3 flex-wrap">
           <span className="text-[var(--muted-foreground)]">Backtest buy-and-hold (2 ans) de l&apos;allocation cible :</span>
