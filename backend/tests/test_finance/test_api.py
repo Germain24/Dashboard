@@ -274,3 +274,17 @@ def test_rebalancing_diff_no_run(client):
     r = client.get("/finance/rebalancing/diff")
     assert r.status_code == 200
     assert r.json() is None
+
+
+# ── optimization stop ────────────────────────────────────────────────────────
+
+def test_optimization_stop_sets_flag(client):
+    from app.services.finance.buffett import optimization_progress as opt_prog
+
+    opt_prog.reset()
+    try:
+        res = client.post("/finance/buffett/optimization/stop")
+        assert res.status_code == 200
+        assert opt_prog.snapshot()["stop_requested"] is True
+    finally:
+        opt_prog.reset()

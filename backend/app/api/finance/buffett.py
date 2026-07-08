@@ -101,6 +101,18 @@ def portfolio_progress():
     return snap
 
 
+@router.post("/buffett/optimization/stop")
+def optimization_stop():
+    """Demande l'arrêt de l'optimisation DE en cours (run automatique OU bouton
+    manuel « Créer le portefeuille optimal » -- un seul DE actif à la fois,
+    cf. is_analysis_running()). Pris en compte à la fin du seed en cours, jamais
+    au milieu -- pas d'arrêt instantané, mais jamais de seed interrompu compté
+    dans les stats de robustesse."""
+    from app.services.finance.buffett import optimization_progress as opt_prog
+    opt_prog.request_stop()
+    return {"message": "Arrêt demandé — pris en compte à la fin du seed en cours."}
+
+
 @router.get("/buffett/runs/{run_id}", response_model=BuffettRunDetailOut)
 def buffett_run_detail(run_id: int, session: Session = Depends(get_session)):
     run = session.get(BuffettRun, run_id)
@@ -524,6 +536,7 @@ def portfolio_create(
             opt_prog.set_phase("optimisation", f"Optimisation Differential Evolution ({len(t_opt)} titres)…")
             weights, sharpe = optimize_portfolio_de(
                 t_opt, rets, mat_access, active_b, progress_cb=opt_prog.update_de,
+                should_stop=lambda: opt_prog.snapshot()["stop_requested"],
             )
 
             opt_prog.set_phase("finalisation", "Calcul de l'allocation…")
