@@ -248,6 +248,26 @@ def test_buffett_run_detail_404(client):
     assert r.status_code == 404
 
 
+def test_portfolio_create_409_when_analysis_already_running(client, monkeypatch):
+    """Bouton 3 ('Créer le portefeuille optimal') doit refuser de démarrer si
+    une analyse/optimisation tourne déjà dans ce process (même garde que
+    buffett_run_start), sinon les deux runs corrompent le même état partagé
+    (BuffettRunResult + optimization_progress)."""
+    from app.services.finance import scheduler_stub
+    monkeypatch.setattr(scheduler_stub, "is_analysis_running", lambda: True)
+    r = client.post("/finance/portfolio/create")
+    assert r.status_code == 409
+
+
+def test_portfolio_create_proceeds_when_no_analysis_running(client):
+    """Chemin heureux : quand aucune analyse ne tourne, la garde ne doit pas
+    bloquer — l'endpoint continue vers sa logique normale (ici 404 car aucun
+    run Buffett terminé n'existe dans la base de test)."""
+    r = client.post("/finance/portfolio/create")
+    assert r.status_code == 404
+    assert "Aucun run Buffett" in r.json()["detail"]
+
+
 # ── rebalancing ──────────────────────────────────────────────────────────────
 
 def test_rebalancing_diff_no_run(client):

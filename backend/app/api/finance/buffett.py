@@ -405,6 +405,10 @@ def portfolio_create(
     session: Session = Depends(get_session),
 ):
     """Filtre les eligibles, re-verifie les scores, optimise avec DE."""
+    from app.services.finance.scheduler_stub import is_analysis_running
+    if is_analysis_running():
+        raise HTTPException(409, "Une analyse ou optimisation est deja en cours.")
+
     latest_run = session.exec(
         select(BuffettRun)
         .where(BuffettRun.statut == "termine")
