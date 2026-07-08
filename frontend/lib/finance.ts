@@ -450,12 +450,16 @@ export const financeApi = {
     get<{
       active: boolean;
       phase: "idle" | "preparation" | "optimisation" | "finalisation";
+      seed_num: number;
       iteration: number;
       convergence: number;
       progress_pct: number;
       message: string;
       run_id: number | null;
     }>("/portfolio/progress"),
+  /** Arrête l'optimisation DE en cours (run auto ou bouton manuel) */
+  optimizationStop: () =>
+    post<{ message: string }>("/buffett/optimization/stop"),
 
   // Rebalancing
   rebalancing: () => get<RebalancingDiff | null>("/rebalancing/diff"),

@@ -82,12 +82,20 @@ export function BuffettActionsPanel({
     setCreatingPortfolio(true);
     try {
       await financeApi.portfolioCreate();
-      setOptProgress({ active: true, phase: "preparation", iteration: 0,
+      setOptProgress({ active: true, phase: "preparation", seed_num: 0, iteration: 0,
         convergence: 0, progress_pct: 0, message: "Démarrage…", run_id: null });
       startPolling();
     } catch (e: unknown) {
       onError(e instanceof Error ? e.message : "Erreur création portefeuille");
     } finally { setCreatingPortfolio(false); }
+  };
+
+  const stopOptimization = async () => {
+    try {
+      await financeApi.optimizationStop();
+    } catch (e: unknown) {
+      onError(e instanceof Error ? e.message : "Erreur arrêt optimisation");
+    }
   };
 
   return (
@@ -170,7 +178,7 @@ export function BuffettActionsPanel({
       </div>
 
       {/* Barre de progression de l'optimisation DE */}
-      <DeProgressBar optProgress={optProgress} />
+      <DeProgressBar optProgress={optProgress} onStop={stopOptimization} />
     </div>
   );
 }

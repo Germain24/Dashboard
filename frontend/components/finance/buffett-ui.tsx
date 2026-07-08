@@ -2,6 +2,7 @@
 
 /** Petits composants partagés de l'onglet Buffett (extraits de BuffettTab, #532). */
 
+import { useEffect, useState } from "react";
 import { financeApi } from "@/lib/finance";
 import { Badge } from "@/components/ui/badge";
 
@@ -46,8 +47,26 @@ const PHASE_LABEL: Record<OptProgress["phase"], string> = {
   finalisation: "Finalisation…",
 };
 
-export function DeProgressBar({ optProgress }: { optProgress: OptProgress | null }) {
+export function DeProgressBar({
+  optProgress, onStop,
+}: {
+  optProgress: OptProgress | null;
+  onStop?: () => void;
+}) {
+  const [stopping, setStopping] = useState(false);
+
+  useEffect(() => {
+    if (!optProgress?.active) setStopping(false);
+  }, [optProgress?.active]);
+
   if (!optProgress) return null;
+
+  const handleStop = () => {
+    if (!onStop || stopping) return;
+    setStopping(true);
+    onStop();
+  };
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
@@ -55,14 +74,29 @@ export function DeProgressBar({ optProgress }: { optProgress: OptProgress | null
           {optProgress.active
             ? (PHASE_LABEL[optProgress.phase] || "En cours…")
             : (optProgress.message || "Terminé")}
-          {optProgress.active && optProgress.phase === "optimisation" && optProgress.iteration > 0
-            ? ` · génération ${optProgress.iteration}` : ""}
+          {optProgress.active && optProgress.phase === "optimisation"
+            ? ` · seed ${optProgress.seed_num || 1}${
+                optProgress.iteration > 0 ? ` · génération ${optProgress.iteration}` : ""
+              }`
+            : ""}
         </span>
-        {optProgress.active && optProgress.phase === "optimisation" && (
-          <span className="font-mono text-[var(--muted-foreground)]">
-            {fmt(optProgress.progress_pct, 0)}%
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {optProgress.active && optProgress.phase === "optimisation" && onStop && (
+            <button
+              type="button"
+              onClick={handleStop}
+              disabled={stopping}
+              className="text-[var(--destructive)] hover:underline disabled:opacity-50 disabled:no-underline"
+            >
+              {stopping ? "Arrêt demandé…" : "⏹ Arrêter"}
+            </button>
+          )}
+          {optProgress.active && optProgress.phase === "optimisation" && (
+            <span className="font-mono text-[var(--muted-foreground)]">
+              {fmt(optProgress.progress_pct, 0)}%
+            </span>
+          )}
+        </div>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--muted)]">
         <div

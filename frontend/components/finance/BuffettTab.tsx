@@ -99,6 +99,14 @@ export function BuffettTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `selected` est volontairement exclu : chaque poll produit un nouvel objet (setSelected(fresh)), l'inclure relancerait l'intervalle en boucle.
   }, [selected?.run.id, selected?.run.statut]);
 
+  const stopOptimization = async () => {
+    try {
+      await financeApi.optimizationStop();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erreur arrêt optimisation");
+    }
+  };
+
   const openRun = async (id: number) => {
     try { setSelected(await financeApi.buffettRun(id)); }
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Erreur"); }
@@ -186,7 +194,7 @@ export function BuffettTab() {
               {progress.n_done} / {progress.n_total} tickers analysés
             </p>
           )}
-          <DeProgressBar optProgress={optProgress} />
+          <DeProgressBar optProgress={optProgress} onStop={stopOptimization} />
           {paused && (
             <p className="text-xs text-[var(--warning-foreground)]">
               Limite de l&apos;API Yahoo atteinte — l&apos;analyse reprend automatiquement
