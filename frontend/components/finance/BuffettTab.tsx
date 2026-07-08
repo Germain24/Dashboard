@@ -194,6 +194,7 @@ export function BuffettTab() {
               {progress.n_done} / {progress.n_total} tickers analysés
             </p>
           )}
+          {/* eslint-disable-next-line @typescript-eslint/no-misused-promises -- même schéma que openRun/deleteRun ci-dessous : handler async passé tel quel en prop d'événement. */}
           <DeProgressBar optProgress={optProgress} onStop={stopOptimization} />
           {paused && (
             <p className="text-xs text-[var(--warning-foreground)]">

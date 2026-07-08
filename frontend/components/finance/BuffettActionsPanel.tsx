@@ -178,6 +178,7 @@ export function BuffettActionsPanel({
       </div>
 
       {/* Barre de progression de l'optimisation DE */}
+      {/* eslint-disable-next-line @typescript-eslint/no-misused-promises -- même schéma que createPortfolio/analyzeTicker ci-dessus : handler async passé tel quel en prop d'événement. */}
       <DeProgressBar optProgress={optProgress} onStop={stopOptimization} />
     </div>
   );

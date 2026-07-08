@@ -56,6 +56,7 @@ export function DeProgressBar({
   const [stopping, setStopping] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- même schéma que pollOptProgress dans BuffettTab.tsx : réinitialise l'état local une fois l'optimisation terminée (prop externe).
     if (!optProgress?.active) setStopping(false);
   }, [optProgress?.active]);
 
