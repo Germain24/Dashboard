@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 import numpy as np
 from scipy import stats
 from scipy.optimize import LinearConstraint, minimize
@@ -343,6 +345,7 @@ def optimize_portfolio_de(
     active_brokers: list[str],
     seed: int = 42,
     progress_cb=None,   # callable(iteration:int, convergence:float) | None
+    on_new_best=None,   # callable(W: np.ndarray[n_tickers x n_brokers]) | None
     n_sim: int | None = None,
     alpha: float | None = None,
     downside_weight: float | None = None,
@@ -467,6 +470,44 @@ def optimize_portfolio_de(
     n_seeds = max(1, int(Config.STARR_DE_N_SEEDS))
     de_tol = float(Config.STARR_DE_TOL)
 
+    # ── Conversion vecteur DE brut -> allocation par broker, réutilisée pour le
+    # résultat final ET les mises à jour progressives (on_new_best). Applique la
+    # contrainte DURE (projette sur le portefeuille faisable le plus proche qui
+    # respecte exactement défensif/pays/plafond par action -- remplace le plafond
+    # + la pénalité douce, qui ne servaient qu'à guider la recherche DE).
+    is_etf_inv = is_etf_full[inv_idx]
+
+    def _to_broker_matrix(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        raw = np.maximum(x, 0.0)
+        s = raw.sum()
+        w_inv = raw / s if s > 0 else raw
+        w_inv = project_lookthrough_hard(
+            w_inv, d_vec, C_mat, min_def, max_country, is_etf_inv, max_position,
+        )
+        w = np.zeros(num_t)
+        for k2, i2 in enumerate(inv_idx):
+            w[i2] = w_inv[k2]
+        W = split_budget_to_brokers(w, access, b_ratios, min_position)
+        return w_inv, W
+
+    _last_emit_t = 0.0
+
+    def _maybe_emit_progress(x: np.ndarray) -> None:
+        nonlocal _last_emit_t
+        if on_new_best is None:
+            return
+        now = time.time()
+        if now - _last_emit_t < 2.0:   # throttle : évite le spam DB en tout début de DE
+            return
+        _last_emit_t = now
+        try:
+            _, w_matrix = _to_broker_matrix(x)
+            on_new_best(w_matrix)
+        except Exception:
+            pass  # la progression ne doit jamais casser l'optimisation
+
+    global_best_energy = float("inf")   # partagé entre les 10 seeds (pas remis à zéro à chaque seed)
+
     # ── Multi-seed : chaque run s'arrête sur convergence naturelle de la
     # population (pas sur un plafond de générations), avec un minimum de
     # générations pour éviter un arrêt prématuré. On garde le meilleur des N
@@ -493,6 +534,9 @@ def optimize_portfolio_de(
         for _ in solver:
             nit += 1
             _report(solver.convergence)
+            if solver.population_energies[0] < global_best_energy:
+                global_best_energy = float(solver.population_energies[0])
+                _maybe_emit_progress(solver.x)
             if nit >= min_gen and solver.converged():
                 converged_naturally = True
                 break
@@ -526,17 +570,7 @@ def optimize_portfolio_de(
         print(f"    * Polish (Nelder-Mead) : aucune amelioration "
               f"({float(polish.fun):.5f} >= {best_energy:.5f})")
 
-    raw = np.maximum(best_x, 0.0)
-    s = raw.sum()
-    w_inv = raw / s if s > 0 else raw
-
-    # Contrainte DURE : projette sur le portefeuille faisable le plus proche qui
-    # respecte exactement défensif/pays/plafond par action (remplace le plafond
-    # + la pénalité douce, qui ne servaient qu'à guider la recherche DE).
-    is_etf_inv = is_etf_full[inv_idx]
-    w_inv = project_lookthrough_hard(
-        w_inv, d_vec, C_mat, min_def, max_country, is_etf_inv, max_position,
-    )
+    w_inv, W = _to_broker_matrix(best_x)
 
     # STARR PUR (sans le malus de cardinalité, qui ne sert qu'à orienter l'optimiseur)
     # — mesuré sur le portefeuille final déjà projeté (contraintes garanties).
@@ -545,13 +579,10 @@ def optimize_portfolio_de(
         starr = 0.0
     print(f"    * STARR final : {starr:.3f}")
 
-    # Remappage vers la liste complète des tickers (non-investissables = 0).
-    w = np.zeros(num_t)
-    for k, i in enumerate(inv_idx):
-        w[i] = w_inv[k]
+    if on_new_best is not None:
+        try:
+            on_new_best(W)
+        except Exception:
+            pass  # la progression ne doit jamais casser le retour du résultat final
 
-    # Répartition par broker (cf. split_budget_to_brokers) : déploiement du budget
-    # parmi les titres disponibles ; les positions < min_position restent en cash
-    # (on ne force pas le 100 %).
-    W = split_budget_to_brokers(w, access, b_ratios, min_position)
     return W, starr

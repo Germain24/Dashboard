@@ -58,3 +58,57 @@ def test_de_all_degenerate_returns_zeros(monkeypatch):
     W, sharpe = optimize_portfolio_de(["A", "B", "C"], rets, [[True]] * 3, ["IBKR"])
     assert np.isfinite(W).all()
     assert W.sum() == 0.0
+
+
+def test_de_calls_on_new_best_with_decreasing_energy(monkeypatch):
+    """on_new_best doit être appelé au moins une fois (résultat final garanti),
+    et la matrice W qu'il reçoit à chaque appel doit correspondre à une
+    allocation faisable (même contrat que la valeur de retour finale)."""
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+    from app.services.finance.buffett.config import Config
+
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
+    monkeypatch.setattr(Config, "STARR_DE_N_SEEDS", 1)
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
+    monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
+    rng = np.random.default_rng(1)
+    n = 20
+    R = rng.normal(0.0006, 0.02, (700, n))
+    rets = pd.DataFrame(R, columns=[f"T{i}" for i in range(n)])
+    access = [[True] for _ in range(n)]
+
+    calls: list[np.ndarray] = []
+    W_final, starr = optimize_portfolio_de(
+        list(rets.columns), rets, access, ["IBKR"], n_sim=3000,
+        on_new_best=lambda W: calls.append(W.copy()),
+    )
+
+    assert len(calls) >= 1
+    for W in calls:
+        assert np.isfinite(W).all()
+        assert abs(W.sum() - 1.0) < 1e-6   # capital total investi = 100%, même contrat que le retour final
+    # Le dernier appel (post-polish) doit correspondre exactement au résultat final retourné.
+    assert np.allclose(calls[-1], W_final)
+
+
+def test_de_without_on_new_best_is_unaffected(monkeypatch):
+    """on_new_best=None (défaut) : comportement 100% identique à avant -- même
+    résultat que test_de_returns_feasible_finite_weights, juste sans callback."""
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+    from app.services.finance.buffett.config import Config
+
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
+    monkeypatch.setattr(Config, "STARR_DE_N_SEEDS", 1)
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
+    monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
+    rng = np.random.default_rng(2)
+    n = 10
+    R = rng.normal(0.0006, 0.02, (500, n))
+    rets = pd.DataFrame(R, columns=[f"T{i}" for i in range(n)])
+    access = [[True] for _ in range(n)]
+
+    W, starr = optimize_portfolio_de(
+        list(rets.columns), rets, access, ["IBKR"], n_sim=3000,
+    )
+    assert np.isfinite(W).all()
+    assert abs(W.sum() - 1.0) < 1e-6
