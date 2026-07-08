@@ -16,8 +16,9 @@ def test_optimization_progress_lifecycle():
     assert s["run_id"] == 5
     assert s["message"] == "Préparation"
 
-    op.update_de(iteration=3, convergence=0.4)
+    op.update_de(seed_num=1, iteration=3, convergence=0.4)
     s = op.snapshot()
+    assert s["seed_num"] == 1
     assert s["iteration"] == 3
     assert abs(s["convergence"] - 0.4) < 1e-9
     assert s["phase"] == "optimisation"
@@ -33,10 +34,36 @@ def test_optimization_progress_convergence_clamped_0_1():
 
     op.reset()
     op.start(run_id=1)
-    op.update_de(iteration=1, convergence=5.0)  # scipy peut dépasser 1
+    op.update_de(seed_num=1, iteration=1, convergence=5.0)  # scipy peut dépasser 1
     assert op.snapshot()["convergence"] == 1.0
-    op.update_de(iteration=2, convergence=-0.2)
+    op.update_de(seed_num=1, iteration=2, convergence=-0.2)
     assert op.snapshot()["convergence"] == 0.0
+    op.reset()
+
+
+def test_update_de_tracks_seed_num():
+    from app.services.finance.buffett import optimization_progress as op
+
+    op.reset()
+    op.start(run_id=1)
+    op.update_de(seed_num=1, iteration=5, convergence=0.1)
+    assert op.snapshot()["seed_num"] == 1
+    op.update_de(seed_num=4, iteration=12, convergence=0.3)
+    assert op.snapshot()["seed_num"] == 4
+    assert op.snapshot()["iteration"] == 12
+    op.reset()
+
+
+def test_request_stop_sets_flag_reset_by_start():
+    from app.services.finance.buffett import optimization_progress as op
+
+    op.reset()
+    assert op.snapshot()["stop_requested"] is False
+    op.request_stop()
+    assert op.snapshot()["stop_requested"] is True
+    # Un nouveau start() (nouveau run) doit remettre le flag a zero.
+    op.start(run_id=2)
+    assert op.snapshot()["stop_requested"] is False
     op.reset()
 
 
