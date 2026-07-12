@@ -8,7 +8,7 @@
  *  un refresh de page / remount tant que le DE tourne toujours côté serveur. */
 
 import { useEffect, useRef, useState } from "react";
-import type { OptProgress } from "./buffett-ui";
+import { fmt, type OptProgress } from "./buffett-ui";
 
 const STORAGE_PREFIX = "buffett-de-history-";
 
@@ -72,7 +72,7 @@ export function DeStarrChart({ optProgress }: { optProgress: OptProgress | null 
           Meilleur score d&apos;optimisation (STARR pénalisé) — en direct
         </p>
         <span className="shrink-0 text-xs tabular-nums text-[var(--muted-foreground)]">
-          {history[history.length - 1].toLocaleString('fr-CA', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
+          {fmt(history[history.length - 1], 4)}
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-20 w-full"
@@ -81,8 +81,8 @@ export function DeStarrChart({ optProgress }: { optProgress: OptProgress | null 
                   vectorEffect="non-scaling-stroke" />
       </svg>
       <div className="mt-1 flex justify-between text-[10px] tabular-nums text-[var(--muted-foreground)]">
-        <span>min {min.toLocaleString('fr-CA', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</span>
-        <span>max {max.toLocaleString('fr-CA', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</span>
+        <span>min {fmt(min, 4)}</span>
+        <span>max {fmt(max, 4)}</span>
       </div>
     </div>
   );
