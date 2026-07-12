@@ -101,10 +101,55 @@ def _invalidate_state() -> None:
 
 # ── Parseurs CSV broker ────────────────────────────────────────────────────
 
+def _parse_trading212_cash_row(row: dict, type_: str) -> Optional[dict]:
+    """Ligne de mouvement de cash pur (Deposit/Withdrawal/Interest on cash) --
+    pas de ticker/quantité, le montant est dans la colonne "Total". `ticker`
+    "CASH" est la convention déjà utilisée par `portfolio_state.py` pour
+    exclure ces lignes du lookup de cours (cf. `get_portfolio_state`).
+    `quantite=1.0` (et non 0) car `import_csv` écarte les lignes à quantité
+    nulle, et `_montant()` (portfolio_state.py) attend soit quantite=1 +
+    prix_unitaire=montant, soit quantite=0 + prix_unitaire=montant -- les
+    deux marchent, on choisit la forme documentée dans son docstring."""
+    return {
+        "date": dt.datetime.fromisoformat(row.get("Time", "").replace("Z", "")),
+        "ticker": "CASH",
+        "broker": "Trading212",
+        "type": type_,
+        "quantite": 1.0,
+        "prix_unitaire": abs(float(row.get("Total", 0) or 0)),
+        "devise": str(row.get("Currency (Total)", "EUR")),
+        "frais": 0.0,
+    }
+
+
 def _parse_trading212_row(row: dict) -> Optional[dict]:
-    """Ligne CSV Trading 212 → dict Transaction."""
+    """Ligne CSV Trading 212 → dict Transaction.
+
+    Reconnaît aussi les mouvements de cash purs (Deposit/Withdrawal/Interest
+    on cash) -- sans eux, `cash_total`/`investi_net` (portfolio_state.py) ne
+    voient jamais l'argent réellement déposé et ne comptent que les achats/
+    ventes, ce qui fait dériver le cash très négatif (argent "dépensé" sans
+    jamais avoir été "reçu").
+
+    Le prix unitaire des achats/ventes/dividendes est dérivé de la colonne
+    "Total" (déjà convertie par Trading212 dans la devise du compte, EUR ici)
+    plutôt que de "Price / share" (souvent dans la devise NATIVE du titre --
+    CAD, USD, DKK…). Utiliser "Price / share" tel quel comme s'il était en EUR
+    fait dériver `cash_total`/`pl_latent` de dizaines de milliers d'euros pour
+    tout titre non-EUR (ex. Dollarama 206 CAD ≈ 128 EUR/action au vrai taux).
+    """
     try:
         action = str(row.get("Action", "")).lower()
+        if "deposit" in action:
+            return _parse_trading212_cash_row(row, "depot")
+        if "withdrawal" in action:
+            return _parse_trading212_cash_row(row, "retrait")
+        if "interest" in action:
+            # Pas un vrai dividende, mais le modèle n'a pas de type "intérêt"
+            # dédié -- traité comme un revenu de cash (compte dans
+            # dividendes_total / base d'impôt dividendes, approximation
+            # raisonnable pour de petits montants d'intérêt sur cash).
+            return _parse_trading212_cash_row(row, "dividende")
         if "buy" in action:
             type_ = "achat"
         elif "sell" in action:
@@ -113,15 +158,27 @@ def _parse_trading212_row(row: dict) -> Optional[dict]:
             type_ = "dividende"
         else:
             return None
+
+        ticker = str(row.get("Ticker", "")).strip().upper()
+        total_eur = abs(float(row.get("Total", 0) or 0))
+        date = dt.datetime.fromisoformat(row.get("Time", "").replace("Z", ""))
+        frais = float(row.get("Currency conversion fee", 0) or 0)
+
+        if type_ == "dividende":
+            # Montant reçu = Total (EUR) ; quantite=1 pour éviter de mélanger
+            # le compte de titres (devise native) avec le montant en EUR.
+            return {
+                "date": date, "ticker": ticker or "CASH", "broker": "Trading212",
+                "type": "dividende", "quantite": 1.0, "prix_unitaire": total_eur,
+                "devise": "EUR", "frais": frais,
+            }
+
+        qte = float(row.get("No. of shares", 0) or 0)
+        prix_unitaire_eur = total_eur / qte if qte else 0.0
         return {
-            "date": dt.datetime.fromisoformat(row.get("Time", "").replace("Z", "")),
-            "ticker": str(row.get("Ticker", "")).strip().upper(),
-            "broker": "Trading212",
-            "type": type_,
-            "quantite": float(row.get("No. of shares", 0) or 0),
-            "prix_unitaire": float(row.get("Price / share", 0) or 0),
-            "devise": str(row.get("Currency (Price / share)", "EUR")),
-            "frais": float(row.get("Currency conversion fee", 0) or 0),
+            "date": date, "ticker": ticker, "broker": "Trading212", "type": type_,
+            "quantite": qte, "prix_unitaire": prix_unitaire_eur,
+            "devise": "EUR", "frais": frais,
         }
     except Exception:
         return None
@@ -156,6 +213,24 @@ def _parse_boursedirect_row(row: dict) -> Optional[dict]:
         return None
 
 
+def _is_duplicate(session: Session, parsed: dict) -> bool:
+    """Une transaction est consideree deja importee si broker+ticker+type+date+
+    quantite+prix_unitaire correspondent exactement -- evite de dupliquer
+    gains/pertes et impot calcule quand un export deja traite est reimporte
+    (cas plausible : reexport "tout l'historique" depuis un broker)."""
+    existing = session.exec(
+        select(Transaction).where(
+            Transaction.broker == parsed.get("broker"),
+            Transaction.ticker == parsed.get("ticker"),
+            Transaction.type == parsed.get("type"),
+            Transaction.date == parsed.get("date"),
+            Transaction.quantite == parsed.get("quantite"),
+            Transaction.prix_unitaire == parsed.get("prix_unitaire"),
+        )
+    ).first()
+    return existing is not None
+
+
 def import_csv(session: Session, content: str, broker_hint: str = "auto") -> dict:
     """Importe des transactions depuis un CSV broker.
 
@@ -187,6 +262,9 @@ def import_csv(session: Session, content: str, broker_hint: str = "auto") -> dic
             skipped += 1
             continue
         if not parsed.get("ticker") or not parsed.get("quantite") or parsed["quantite"] == 0:
+            skipped += 1
+            continue
+        if _is_duplicate(session, parsed):
             skipped += 1
             continue
         tx = Transaction(**parsed)
