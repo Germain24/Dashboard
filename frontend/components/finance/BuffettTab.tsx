@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { fmt, ProgressBar, StatusBadge, DeProgressBar, type OptProgress } from "./buffett-ui";
 import { BuffettRunDetailView } from "./BuffettRunDetailView";
 import { BuffettActionsPanel } from "./BuffettActionsPanel";
+import { DeStarrChart } from "./DeStarrChart";
 
 export function BuffettTab() {
   const [runs, setRuns] = useState<BuffettRunOut[]>([]);
@@ -92,10 +93,16 @@ export function BuffettTab() {
   useEffect(() => {
     if (!selected || selected.run.statut !== "en_cours") return;
     const id = selected.run.id;
+    let annule = false;
     const iv = setInterval(() => {
-      void financeApi.buffettRun(id).catch(() => null).then(fresh => { if (fresh) setSelected(fresh); });
+      void financeApi.buffettRun(id).catch(() => null).then(fresh => {
+        // Sans ce garde, un poll déjà en vol qui répond APRÈS un clic sur
+        // "Retour" (setSelected(null)) rouvrait le run malgré tout -- l'écran
+        // détail se remettait en boucle (#bug rapporté).
+        if (fresh && !annule) setSelected(fresh);
+      });
     }, 5000);
-    return () => clearInterval(iv);
+    return () => { annule = true; clearInterval(iv); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `selected` est volontairement exclu : chaque poll produit un nouvel objet (setSelected(fresh)), l'inclure relancerait l'intervalle en boucle.
   }, [selected?.run.id, selected?.run.statut]);
 
@@ -196,6 +203,7 @@ export function BuffettTab() {
           )}
           {/* eslint-disable-next-line @typescript-eslint/no-misused-promises -- même schéma que openRun/deleteRun ci-dessous : handler async passé tel quel en prop d'événement. */}
           <DeProgressBar optProgress={optProgress} onStop={stopOptimization} />
+          {optProgress?.active && <DeStarrChart optProgress={optProgress} />}
           {paused && (
             <p className="text-xs text-[var(--warning-foreground)]">
               Limite de l&apos;API Yahoo atteinte — l&apos;analyse reprend automatiquement

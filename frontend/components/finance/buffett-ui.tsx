@@ -53,18 +53,23 @@ export function DeProgressBar({
   optProgress: OptProgress | null;
   onStop?: () => void;
 }) {
-  const [stopping, setStopping] = useState(false);
+  // "Arrêt demandé" doit venir du serveur (`stop_requested`, persistant) et pas
+  // d'un seul state local : sinon un changement de page démonte le composant,
+  // l'état local retombe à false et le bouton réapparaît comme si le clic
+  // précédent n'avait jamais eu lieu (l'utilisateur croit devoir recliquer).
+  const [clickedLocally, setClickedLocally] = useState(false);
+  const stopping = clickedLocally || !!optProgress?.stop_requested;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- même schéma que pollOptProgress dans BuffettTab.tsx : réinitialise l'état local une fois l'optimisation terminée (prop externe).
-    if (!optProgress?.active) setStopping(false);
+    if (!optProgress?.active) setClickedLocally(false);
   }, [optProgress?.active]);
 
   if (!optProgress) return null;
 
   const handleStop = () => {
     if (!onStop || stopping) return;
-    setStopping(true);
+    setClickedLocally(true);
     onStop();
   };
 

@@ -83,7 +83,8 @@ export function BuffettActionsPanel({
     try {
       await financeApi.portfolioCreate();
       setOptProgress({ active: true, phase: "preparation", seed_num: 0, iteration: 0,
-        convergence: 0, progress_pct: 0, message: "Démarrage…", run_id: null });
+        convergence: 0, progress_pct: 0, message: "Démarrage…", run_id: null, stop_requested: false,
+        best_score: null });
       startPolling();
     } catch (e: unknown) {
       onError(e instanceof Error ? e.message : "Erreur création portefeuille");
