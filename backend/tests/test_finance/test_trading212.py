@@ -2,7 +2,21 @@
 
 from __future__ import annotations
 
-from app.services.finance.trading212 import parse_trading212_statement
+import datetime as dt
+import time
+
+import pytest
+from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel.pool import StaticPool
+
+import app.models  # noqa: F401
+from app.services.finance.trading212 import (
+    _all_statements,
+    _latest_statement,
+    import_trading212_trades,
+    parse_trading212_statement,
+    parse_trading212_trades,
+)
 
 # Extrait fidèle du texte pypdf (mode plain) d'un Activity Statement Trading212.
 _TEXT = """CUSTOMER ID9262934 CUSTOMER NAMEGermain De Sousa
@@ -56,3 +70,145 @@ def test_parse_empty_text():
     out = parse_trading212_statement("rien d'utile")
     assert out["account_value"] is None
     assert out["positions"] == []
+
+
+# ─── Trades exécutés (#? auto-import transactions) ──────────────────────────
+
+# Extrait fidèle du texte pypdf (mode plain) de la table "Invest account -
+# executed trades" -- les colonnes après VALUE (order type/venue/session/fx…)
+# sont de largeur variable, on n'ancre que le préfixe fixe jusqu'à VALUE inclus.
+_TRADES_TEXT = """Invest account - executed trades
+EXECUTION TIME INSTRUMENT ISIN INSTRUMENTCURRENCY ORDER ID DIRECTION QUANTITY EXECUTIONPRICE VALUE ORDER TYPE EXECUTIONVENUE SESSION FX RATE TRANSACTION CURRENCY FX FEE EXCHANGE &GOVT FEES RETURN VALUE
+2026-07-06 13:58:54 BAH US0995021062 USD 53752835227 Sell 2.06925832 61.68 127.6319 Market OTC Regular hours 1.1412004 EUR 0.17 - -34.25 111.67
+2026-07-06 13:58:59 BAG GB00B6XZKY75 GBX 53752835228 Sell 33.51679975 630 21115.5838 Market OTC Regular hours 85.51935459 EUR 0.37 - -5.63 246.54
+2026-07-06 13:59:02 SGLN IE00B4ND3602 GBX 53764498564 Buy 5.98924166 6019 36049.2456 Market OTC Regular hours 85.51999988 EUR 0.63 - - 422.16
+"""
+
+_EMPTY_TRADES_TEXT = """Invest account - executed trades
+EXECUTION TIME INSTRUMENT ISIN INSTRUMENTCURRENCY ORDER ID DIRECTION QUANTITY EXECUTIONPRICE VALUE ORDER TYPE EXECUTIONVENUE SESSION FX RATE TRANSACTION CURRENCY FX FEE EXCHANGE &GOVT FEES RETURN VALUE
+No data available
+"""
+
+
+def test_parse_trades_extracts_core_fields():
+    trades = parse_trading212_trades(_TRADES_TEXT)
+    assert trades == [
+        {"date": dt.datetime(2026, 7, 6, 13, 58, 54), "ticker": "BAH", "isin": "US0995021062",
+         "order_id": "53752835227", "direction": "Sell", "quantity": 2.06925832,
+         "execution_price": 61.68, "devise": "USD"},
+        {"date": dt.datetime(2026, 7, 6, 13, 58, 59), "ticker": "BAG", "isin": "GB00B6XZKY75",
+         "order_id": "53752835228", "direction": "Sell", "quantity": 33.51679975,
+         "execution_price": 630.0, "devise": "GBX"},
+        {"date": dt.datetime(2026, 7, 6, 13, 59, 2), "ticker": "SGLN", "isin": "IE00B4ND3602",
+         "order_id": "53764498564", "direction": "Buy", "quantity": 5.98924166,
+         "execution_price": 6019.0, "devise": "GBX"},
+    ]
+
+
+def test_parse_trades_no_data_available():
+    assert parse_trading212_trades(_EMPTY_TRADES_TEXT) == []
+
+
+@pytest.fixture(name="session")
+def session_fixture():
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        yield s
+
+
+def test_all_statements_matches_both_naming_conventions(tmp_path, monkeypatch):
+    (tmp_path / "Activity-Statement-2026-06-01-2026-06-16.pdf").write_bytes(b"%PDF-old")
+    (tmp_path / "ActivityStatement9262934-2026-07-06.pdf").write_bytes(b"%PDF-new")
+    found = {p.name for p in _all_statements(tmp_path)}
+    assert found == {"Activity-Statement-2026-06-01-2026-06-16.pdf", "ActivityStatement9262934-2026-07-06.pdf"}
+
+
+def test_latest_statement_uses_mtime_not_lexicographic_order(tmp_path):
+    """Issue réelle : "ActivityStatement9262934-…" trié après
+    "Activity-Statement-…" par nom, mais peut être plus ANCIEN -- seule la
+    date de modification dit lequel est vraiment le plus récent."""
+    old = tmp_path / "ActivityStatement9262934-2026-01-01.pdf"   # trie APRÈS lexicographiquement
+    new = tmp_path / "Activity-Statement-2026-06-01-2026-06-16.pdf"
+    old.write_bytes(b"%PDF-a")
+    time.sleep(0.01)
+    new.write_bytes(b"%PDF-b")
+    assert _latest_statement(tmp_path).name == new.name
+
+
+def test_import_trading212_trades_is_idempotent(session, tmp_path, monkeypatch):
+    import app.services.finance.trading212 as t212
+
+    pdf_path = tmp_path / "Activity-Statement-2026-07-01-2026-07-06.pdf"
+    pdf_path.write_bytes(b"%PDF-fake")
+    state_path = tmp_path / "state.json"
+
+    monkeypatch.setattr(t212, "_all_statements", lambda: [pdf_path])
+    monkeypatch.setattr(t212, "_trades_state_path", lambda: state_path)
+    monkeypatch.setattr(t212, "extract_pdf_text", lambda data: _TRADES_TEXT, raising=False)
+    import app.services.budget.desjardins_pdf as desjardins_pdf
+    monkeypatch.setattr(desjardins_pdf, "extract_pdf_text", lambda data: _TRADES_TEXT)
+
+    res1 = import_trading212_trades(session, compte="trading212")
+    assert res1 == {"imported": 3, "skipped": 0, "parsed": 3}
+
+    # Deuxième appel, fichier inchangé (mtime identique) -> aucun re-parse.
+    res2 = import_trading212_trades(session, compte="trading212")
+    assert res2 == {"imported": 0, "skipped": 0, "parsed": 0}
+
+    from app.models.finance import Transaction
+    from sqlmodel import select
+    txs = session.exec(select(Transaction).where(Transaction.broker == "trading212")).all()
+    assert len(txs) == 3
+    assert {t.type for t in txs} == {"achat", "vente"}
+
+
+def test_import_trading212_trades_converts_native_price_to_eur(session, tmp_path, monkeypatch):
+    """`execution_price` est dans la devise NATIVE de l'instrument (USD, ou
+    GBX = pence sterling / 100). L'import doit le convertir en EUR (comme le
+    fait le chemin CSV via le Total déjà en EUR) plutôt que de stocker le prix
+    natif tel quel avec `devise` natif -- sinon `compute_portfolio_state`
+    (qui traite tout `prix_unitaire` comme déjà en EUR) dérive de dizaines de
+    milliers d'euros sur les instruments non-EUR (BAG/SGLN ici, cotés en GBX)."""
+    import app.services.finance.trading212 as t212
+
+    pdf_path = tmp_path / "Activity-Statement-2026-07-01-2026-07-06.pdf"
+    pdf_path.write_bytes(b"%PDF-fake")
+    state_path = tmp_path / "state.json"
+
+    monkeypatch.setattr(t212, "_all_statements", lambda: [pdf_path])
+    monkeypatch.setattr(t212, "_trades_state_path", lambda: state_path)
+    import app.services.budget.desjardins_pdf as desjardins_pdf
+    monkeypatch.setattr(desjardins_pdf, "extract_pdf_text", lambda data: _TRADES_TEXT)
+
+    def fake_convert(amount, base, quote, **kw):
+        if base == "USD" and quote == "EUR":
+            return amount * 1.1
+        if base == "GBP" and quote == "EUR":
+            return amount * 1.15
+        raise AssertionError(f"unexpected pair {base}->{quote}")
+
+    monkeypatch.setattr("app.services.finance.fx.convert", fake_convert)
+
+    res = import_trading212_trades(session, compte="trading212")
+    assert res == {"imported": 3, "skipped": 0, "parsed": 3}
+
+    from app.models.finance import Transaction
+    from sqlmodel import select
+    txs = {
+        t.ticker: t for t in session.exec(
+            select(Transaction).where(Transaction.broker == "trading212")
+        ).all()
+    }
+
+    # BAH : USD, prix natif 61.68 -> converti en EUR (pas de division par 100).
+    assert txs["BAH"].devise == "EUR"
+    assert txs["BAH"].prix_unitaire == pytest.approx(61.68 * 1.1)
+
+    # BAG : GBX (pence), prix natif 630 -> /100 en GBP puis converti en EUR.
+    assert txs["BAG"].devise == "EUR"
+    assert txs["BAG"].prix_unitaire == pytest.approx((630.0 / 100) * 1.15)
+
+    # SGLN : GBX (pence), prix natif 6019 -> /100 en GBP puis converti en EUR.
+    assert txs["SGLN"].devise == "EUR"
+    assert txs["SGLN"].prix_unitaire == pytest.approx((6019.0 / 100) * 1.15)
