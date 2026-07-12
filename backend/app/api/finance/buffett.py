@@ -499,10 +499,9 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
         ticker_col = "Ticker Yahoo Finance"
         try:
             opt_prog.set_phase("preparation", "Téléchargement des cours…")
-            from app.services.finance.yf_session import download_with_timeout, yf_session
-            raw = download_with_timeout(
-                tickers=t_list, period="5y", interval="1d", progress=False,
-                group_by="ticker", session=yf_session(),
+            from app.services.finance.yf_session import download_prices_bulk_with_retry
+            raw = download_prices_bulk_with_retry(
+                t_list, period="5y", interval="1d", progress=False, group_by="ticker",
             )
             if raw.empty:
                 opt_prog.finish(message="Cours indisponibles.")

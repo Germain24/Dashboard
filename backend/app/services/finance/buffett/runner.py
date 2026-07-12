@@ -32,6 +32,11 @@ from typing import Callable
 # Attente entre deux tentatives quand internet est coupe (secondes)
 RETRY_WAIT_SEC = 30
 
+# Pause avant le telechargement groupe des cours (avant l'optimisation DE),
+# juste apres la rafale de scoring individuel -- laisse le rate-limit Yahoo
+# Finance se calmer (secondes).
+POST_SCORING_COOLDOWN_S = 30.0
+
 from .cache_manager import CacheManager, infer_country
 from .config import Config
 from .data_fetch import (
@@ -550,10 +555,16 @@ def run_buffett_analysis(
             # contrairement au bouton manuel "Créer le portefeuille optimal" qui
             # le fait déjà (cf. app/api/finance/buffett.py `_run_portfolio_creation`).
             opt_prog.start(run_id=run_id, message="Téléchargement des cours…")
-            from app.services.finance.yf_session import download_with_timeout, yf_session
-            raw = download_with_timeout(
-                tickers=t_list, period="5y", interval="1d", progress=False,
-                group_by="ticker", session=yf_session(),
+            # Pause apres la rafale de scoring individuel (jusqu'a des dizaines
+            # de milliers de requetes) -- laisse le rate-limit Yahoo Finance se
+            # calmer avant le telechargement groupe qui suit immediatement,
+            # sinon celui-ci peut echouer vide en quelques secondes (#bug
+            # rapporte : run marque erreur ~40s apres la fin du scoring, bien
+            # avant le timeout de download_with_timeout).
+            time.sleep(POST_SCORING_COOLDOWN_S)
+            from app.services.finance.yf_session import download_prices_bulk_with_retry
+            raw = download_prices_bulk_with_retry(
+                t_list, period="5y", interval="1d", progress=False, group_by="ticker",
             )
             if raw.empty:
                 opt_prog.finish(message="Cours indisponibles.")

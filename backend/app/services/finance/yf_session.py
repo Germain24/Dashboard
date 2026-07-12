@@ -109,6 +109,38 @@ def download_with_timeout(timeout_s: float = DOWNLOAD_TIMEOUT_S, **kwargs):
         ex.shutdown(wait=False)
 
 
+def download_prices_bulk_with_retry(
+    tickers: list[str], *, retries: int = 2, cooldown_s: float = 30.0, **download_kwargs,
+):
+    """`download_with_timeout` avec une nouvelle tentative si le premier essai
+    revient vide.
+
+    Un rate-limit Yahoo Finance transitoire (frequent juste apres une rafale de
+    milliers de requetes individuelles de scoring -- cf. `runner.py`) peut faire
+    echouer TOUT le telechargement groupe en quelques secondes, bien avant le
+    timeout de `download_with_timeout` (#bug rapporte : le run finissait en
+    erreur ~40s apres la fin du scoring, pas apres 180s). Sans retry, cet echec
+    etait auparavant invisible (portefeuille jamais calcule, run silencieusement
+    marque "termine") ; desormais il ne devient une vraie erreur que si TOUTES
+    les tentatives echouent -- on laisse d'abord une chance au rate-limit de se
+    calmer.
+    """
+    import time
+
+    def _attempt():
+        return download_with_timeout(tickers=tickers, session=yf_session(), **download_kwargs)
+
+    raw = _attempt()
+    attempt = 0
+    while raw.empty and attempt < retries:
+        attempt += 1
+        print(f"[yf_session] Telechargement groupe vide (tentative {attempt}/{retries}), "
+              f"pause {cooldown_s:.0f}s avant nouvel essai...")
+        time.sleep(cooldown_s)
+        raw = _attempt()
+    return raw
+
+
 def rotate_session():
     """Force le prochain `yf_session()` du thread courant à recréer une session
     (nouvelle IP si un pool de proxys est configuré). À appeler quand Yahoo

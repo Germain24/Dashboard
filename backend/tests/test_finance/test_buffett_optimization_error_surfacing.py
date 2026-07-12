@@ -122,26 +122,12 @@ def test_run_buffett_analysis_no_tickers_returns_explicit_error(tmp_path, monkey
     assert result.get("error") == "Aucun ticker dans tickers.csv"
 
 
-def test_run_buffett_analysis_empty_download_surfaces_error(tmp_path, monkeypatch):
-    """Si le telechargement groupe des cours revient vide (timeout ou echec de
-    download_with_timeout), le run ne doit PAS etre rapporte comme un succes
-    silencieux -- avant ce correctif, opt_error restait None sur cette branche
-    et job_monthly_buffett marquait le run "termine" sans aucun portefeuille
-    calcule et sans erreur visible (meme bug que Task 1, chemin different :
-    un DataFrame vide n'est pas une exception, donc le try/except seul ne
-    suffisait pas a le detecter)."""
-    import pandas as pd
-    from app.services.finance import yf_session as yf_session_module
+def _seed_one_eligible_ticker(monkeypatch, tmp_path):
+    """Ticker "score" via un cache-hit canned (pas de reseau) avec un score
+    eligible (> SCORE_THRESHOLD, Achat=True, liquide) -> t_list non vide ->
+    le code atteint bien l'appel de telechargement groupe."""
     from app.services.finance.buffett.cache_manager import CacheManager as RealCacheManager
 
-    _isolate_buffett_paths(monkeypatch, tmp_path)
-
-    tickers_csv = tmp_path / "tickers.csv"
-    tickers_csv.write_text("AAPL;Apple;NASDAQ;Action\n")
-
-    # Le ticker est "score" via un cache-hit canned (pas de reseau) avec un
-    # score eligible (> SCORE_THRESHOLD, Achat=True, liquide) -> t_list non
-    # vide -> le code atteint bien l'appel de telechargement groupe.
     cache_path = tmp_path / "cache_status.json"
     isolated_cache = RealCacheManager(str(cache_path))
     monkeypatch.setattr(
@@ -150,7 +136,31 @@ def test_run_buffett_analysis_empty_download_surfaces_error(tmp_path, monkeypatc
     )
     monkeypatch.setattr(runner, "CacheManager", lambda: isolated_cache)
     monkeypatch.setattr(broker_budgets, "apply_live_broker_budgets", lambda: {"IBKR": 1000.0})
-    monkeypatch.setattr(yf_session_module, "download_with_timeout", lambda **kwargs: pd.DataFrame())
+
+
+def test_run_buffett_analysis_empty_download_surfaces_error(tmp_path, monkeypatch):
+    """Si le telechargement groupe des cours revient vide apres toutes les
+    tentatives (download_prices_bulk_with_retry), le run ne doit PAS etre
+    rapporte comme un succes silencieux -- avant ce correctif, opt_error
+    restait None sur cette branche et job_monthly_buffett marquait le run
+    "termine" sans aucun portefeuille calcule et sans erreur visible (meme bug
+    que Task 1, chemin different : un DataFrame vide n'est pas une exception,
+    donc le try/except seul ne suffisait pas a le detecter)."""
+    import pandas as pd
+    from app.services.finance import yf_session as yf_session_module
+
+    _isolate_buffett_paths(monkeypatch, tmp_path)
+    _seed_one_eligible_ticker(monkeypatch, tmp_path)
+
+    tickers_csv = tmp_path / "tickers.csv"
+    tickers_csv.write_text("AAPL;Apple;NASDAQ;Action\n")
+
+    # Court-circuite la pause pre-telechargement + les retries (testes a part
+    # dans test_download_with_timeout.py) : ce test ne verifie que le
+    # comportement de bout en bout "toujours vide -> erreur surfacee".
+    monkeypatch.setattr(runner.time, "sleep", lambda s: None)
+    monkeypatch.setattr(yf_session_module, "download_prices_bulk_with_retry",
+                         lambda tickers, **kwargs: pd.DataFrame())
 
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     SQLModel.metadata.create_all(engine)
@@ -163,3 +173,49 @@ def test_run_buffett_analysis_empty_download_surfaces_error(tmp_path, monkeypatc
     )
 
     assert result.get("error") is not None
+
+
+def test_run_buffett_analysis_pauses_then_retries_before_giving_up(tmp_path, monkeypatch):
+    """Le telechargement groupe doit etre precede d'une pause (laisser le
+    rate-limit Yahoo se calmer apres la rafale de scoring) et passer par
+    download_prices_bulk_with_retry (pas download_with_timeout directement),
+    qui retente automatiquement si le premier essai revient vide -- #bug
+    rapporte : un run marque en erreur ~40s apres la fin du scoring, bien
+    avant le timeout de download_with_timeout (donc pas un vrai timeout
+    reseau, plutot un rate-limit transitoire qu'une nouvelle tentative peut
+    resoudre)."""
+    import pandas as pd
+    from app.services.finance import yf_session as yf_session_module
+
+    _isolate_buffett_paths(monkeypatch, tmp_path)
+    _seed_one_eligible_ticker(monkeypatch, tmp_path)
+
+    tickers_csv = tmp_path / "tickers.csv"
+    tickers_csv.write_text("AAPL;Apple;NASDAQ;Action\n")
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(runner.time, "sleep", lambda s: sleeps.append(s))
+
+    attempts = {"n": 0}
+
+    def fake_download_with_retry(tickers, **kwargs):
+        attempts["n"] += 1
+        return pd.DataFrame()  # peu importe le resultat pour ce test
+
+    monkeypatch.setattr(yf_session_module, "download_prices_bulk_with_retry", fake_download_with_retry)
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+
+    runner.run_buffett_analysis(
+        session_factory=lambda: Session(engine),
+        csv_path=str(tickers_csv),
+        max_workers=1,
+        run_id=None,
+    )
+
+    # Une pause a bien eu lieu AVANT le telechargement (meme s'il reussit du
+    # premier coup), et download_prices_bulk_with_retry (pas
+    # download_with_timeout) a bien ete appele.
+    assert runner.POST_SCORING_COOLDOWN_S in sleeps
+    assert attempts["n"] == 1
