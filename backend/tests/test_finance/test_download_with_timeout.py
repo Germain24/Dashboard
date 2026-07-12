@@ -9,7 +9,11 @@ import time
 import pandas as pd
 import pytest
 
-from app.services.finance.yf_session import download_with_timeout, download_prices_bulk_with_retry
+from app.services.finance.yf_session import (
+    download_with_timeout, download_prices_bulk_with_retry,
+    _wrap_session_with_throttle, _wait_for_global_slot,
+)
+import app.services.finance.yf_session as yf_session_module
 
 
 def test_returns_the_download_result_when_fast_enough(monkeypatch):
@@ -104,3 +108,64 @@ def test_bulk_retry_gives_up_after_exhausting_retries(monkeypatch):
     assert result.empty
     assert attempts["n"] == 3  # 1 essai initial + 2 retries
     assert sleeps == [1.0, 1.0]
+
+
+# ── Throttle global au niveau session (2000 requetes/minute Yahoo Finance) ──
+
+class _FakeSession:
+    def __init__(self):
+        self.calls = []
+
+    def get(self, *args, **kwargs):
+        self.calls.append(("get", args, kwargs))
+        return "get-result"
+
+    def post(self, *args, **kwargs):
+        self.calls.append(("post", args, kwargs))
+        return "post-result"
+
+
+@pytest.fixture(autouse=True)
+def _reset_global_throttle():
+    """Isole le crenau global entre les tests (etat partage module-level)."""
+    yf_session_module._global_next_slot = 0.0
+    yield
+    yf_session_module._global_next_slot = 0.0
+
+
+def test_wrap_session_with_throttle_returns_none_for_none():
+    assert _wrap_session_with_throttle(None) is None
+
+
+def test_wrap_session_with_throttle_preserves_call_and_return_value():
+    session = _FakeSession()
+    wrapped = _wrap_session_with_throttle(session)
+    assert wrapped is session  # modifie en place
+    result = wrapped.get("https://example.com", timeout=5)
+    assert result == "get-result"
+    assert session.calls == [("get", ("https://example.com",), {"timeout": 5})]
+
+
+def test_wrap_session_with_throttle_spaces_out_consecutive_calls():
+    """N'utilise PAS de time.sleep mocke : GLOBAL_MIN_INTERVAL_S (0.03s) est
+    assez petit pour dormir reellement dans un test sans le ralentir de facon
+    perceptible, et un sleep mocke casserait le modele de "prochain crenau"
+    (la file virtuelle avancerait plus vite que le temps reel, faussant les
+    durees attendues entre appels)."""
+    session = _wrap_session_with_throttle(_FakeSession())
+
+    start = time.time()
+    session.get()
+    session.get()
+    session.post()
+    elapsed = time.time() - start
+
+    # 3 appels -> 2 intervalles a respecter au minimum (le 1er ne dort jamais).
+    assert elapsed >= 2 * yf_session_module.GLOBAL_MIN_INTERVAL_S
+
+
+def test_wait_for_global_slot_does_not_sleep_when_slot_already_free(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("time.sleep", lambda s: sleeps.append(s))
+    _wait_for_global_slot()
+    assert sleeps == []  # premier appel, aucun crenau precedent -> pas d'attente

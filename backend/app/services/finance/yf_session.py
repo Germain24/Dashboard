@@ -26,8 +26,58 @@ from __future__ import annotations
 
 import random
 import threading
+import time
 
 _local = threading.local()
+
+# Yahoo Finance limite a 2000 requetes/minute -- espace CHAQUE requete HTTP
+# sortante d'au moins cet intervalle, PEU IMPORTE l'appelant (scoring par
+# ticker, telechargement groupe pour l'optimisation DE, conversion FX, cours
+# de portefeuille, snapshots...). #bug rapporte : un telechargement groupe de
+# ~900 tickers d'un coup (ou une rafale d'appels FX) declenchait un rate-limit
+# meme si le volume total sur l'heure restait sous un plafond plus large (le
+# RateLimiter de buffett/rate_limiter.py ne couvre QUE le scoring par ticker).
+GLOBAL_MIN_INTERVAL_S = 60.0 / 2000  # 0.03s
+
+_global_lock = threading.Lock()
+_global_next_slot = 0.0
+
+
+def _wait_for_global_slot() -> None:
+    """Bloque jusqu'a ce qu'au moins GLOBAL_MIN_INTERVAL_S se soit ecoule
+    depuis la derniere requete HTTP Yahoo Finance (thread-safe, file d'attente
+    "prochain crenau disponible" -- des appels concurrents sont mis en fille
+    et espaces plutot que de tous passer en meme temps des que le verrou se
+    libere)."""
+    global _global_next_slot
+    with _global_lock:
+        now = time.monotonic()
+        wait = _global_next_slot - now
+        _global_next_slot = (now + GLOBAL_MIN_INTERVAL_S) if wait <= 0 else (_global_next_slot + GLOBAL_MIN_INTERVAL_S)
+    if wait > 0:
+        time.sleep(wait)
+
+
+def _wrap_session_with_throttle(session):
+    """Enveloppe les methodes HTTP sortantes d'une session (`.get`/`.post`/
+    `.request`, celles que `curl_cffi.requests.Session` expose) pour appeler
+    `_wait_for_global_slot()` juste avant chaque requete reelle. Modifie la
+    session EN PLACE (retourne la meme instance) -- toutes ses autres methodes/
+    attributs (cookies, headers, mount...) restent intacts."""
+    if session is None:
+        return None
+    for method_name in ("get", "post", "request"):
+        original = getattr(session, method_name, None)
+        if original is None:
+            continue
+
+        def _throttled(*args, __original=original, **kwargs):
+            _wait_for_global_slot()
+            return __original(*args, **kwargs)
+
+        setattr(session, method_name, _throttled)
+    return session
+
 
 # Empreinte de navigateur à usurper (curl_cffi). Chrome récent = profil le plus sûr.
 IMPERSONATE = "chrome"
@@ -54,7 +104,8 @@ def _proxy_pool() -> list[str]:
 
 def _new_session():
     """Crée une session curl_cffi impersonée, derrière un proxy au hasard si
-    configuré (rotation d'IP). None si curl_cffi est indisponible."""
+    configuré (rotation d'IP), et throttlée (cf. `_wrap_session_with_throttle`).
+    None si curl_cffi est indisponible."""
     try:
         from curl_cffi import requests as cffi_requests
 
@@ -63,7 +114,7 @@ def _new_session():
         if pool:
             proxy = random.choice(pool)
             kwargs["proxies"] = {"http": proxy, "https": proxy}
-        return cffi_requests.Session(**kwargs)
+        return _wrap_session_with_throttle(cffi_requests.Session(**kwargs))
     except Exception:
         return None
 
