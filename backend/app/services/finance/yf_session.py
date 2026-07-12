@@ -160,36 +160,72 @@ def download_with_timeout(timeout_s: float = DOWNLOAD_TIMEOUT_S, **kwargs):
         ex.shutdown(wait=False)
 
 
+def _split_by_availability(raw, requested: list[str]):
+    """Depuis un DataFrame `yf.download(group_by='ticker')` (colonnes MultiIndex
+    (ticker, champ)), separe `requested` en (tickers obtenus, tickers encore
+    manquants). Un ticker est "obtenu" s'il est present dans les colonnes ET a
+    au moins une valeur non-NaN (absent des colonnes OU entierement NaN =
+    manquant -- c'est ainsi que `yf.download` signale un ticker en echec au
+    sein d'un lot par ailleurs reussi)."""
+    import pandas as pd
+
+    if raw is None or raw.empty:
+        return pd.DataFrame(), list(requested)
+    level0 = set(raw.columns.get_level_values(0))
+    obtained, missing = [], []
+    for t in requested:
+        if t in level0 and not raw[t].isna().all().all():
+            obtained.append(t)
+        else:
+            missing.append(t)
+    if not obtained:
+        return pd.DataFrame(), missing
+    return raw[obtained], missing
+
+
 def download_prices_bulk_with_retry(
     tickers: list[str], *, retries: int = 2, cooldown_s: float = 30.0, **download_kwargs,
 ):
-    """`download_with_timeout` avec une nouvelle tentative si le premier essai
-    revient vide.
+    """`download_with_timeout` avec une nouvelle tentative PAR TICKER : seuls
+    les tickers encore sans donnees sont redemandes (ceux deja obtenus ne sont
+    pas re-telecharges) ; un ticker toujours sans donnees apres `retries`
+    tentatives est ignore (absent du resultat final) SANS faire echouer les
+    autres.
 
     Un rate-limit Yahoo Finance transitoire (frequent juste apres une rafale de
     milliers de requetes individuelles de scoring -- cf. `runner.py`) peut faire
-    echouer TOUT le telechargement groupe en quelques secondes, bien avant le
-    timeout de `download_with_timeout` (#bug rapporte : le run finissait en
-    erreur ~40s apres la fin du scoring, pas apres 180s). Sans retry, cet echec
-    etait auparavant invisible (portefeuille jamais calcule, run silencieusement
-    marque "termine") ; desormais il ne devient une vraie erreur que si TOUTES
-    les tentatives echouent -- on laisse d'abord une chance au rate-limit de se
-    calmer.
-    """
+    echouer une partie ou la totalite d'un telechargement groupe en quelques
+    secondes, bien avant le timeout de `download_with_timeout` (#bug rapporte :
+    le run finissait en erreur ~40s apres la fin du scoring, pas apres 180s ;
+    et un run pouvait s'arreter en erreur a cause d'une poignee de tickers
+    persistants alors que le reste du lot etait disponible). Le resultat
+    n'est vide QUE si aucun ticker n'a jamais pu etre obtenu."""
     import time
 
-    def _attempt():
-        return download_with_timeout(tickers=tickers, session=yf_session(), **download_kwargs)
+    import pandas as pd
 
-    raw = _attempt()
+    remaining = list(tickers)
+    frames = []
     attempt = 0
-    while raw.empty and attempt < retries:
+    while remaining:
+        raw = download_with_timeout(tickers=remaining, session=yf_session(), **download_kwargs)
+        obtained_df, remaining = _split_by_availability(raw, remaining)
+        if not obtained_df.empty:
+            frames.append(obtained_df)
+        if not remaining:
+            break
         attempt += 1
-        print(f"[yf_session] Telechargement groupe vide (tentative {attempt}/{retries}), "
+        if attempt > retries:
+            print(f"[yf_session] {len(remaining)} ticker(s) sans donnees apres {retries} "
+                  f"tentative(s) -- ignores : {remaining}")
+            break
+        print(f"[yf_session] {len(remaining)} ticker(s) sans donnees (tentative {attempt}/{retries}), "
               f"pause {cooldown_s:.0f}s avant nouvel essai...")
         time.sleep(cooldown_s)
-        raw = _attempt()
-    return raw
+
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, axis=1)
 
 
 def rotate_session():

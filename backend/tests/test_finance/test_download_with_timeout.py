@@ -60,7 +60,7 @@ def test_bulk_retry_returns_first_result_without_sleeping_when_non_empty(monkeyp
 
     def fake_download(**kwargs):
         calls["download"] += 1
-        return pd.DataFrame({"Close": [1.0]})
+        return _fake_raw(["AAPL"])
 
     monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
                          lambda **kw: fake_download(**kw))
@@ -80,7 +80,7 @@ def test_bulk_retry_retries_once_then_succeeds(monkeypatch):
         attempts["n"] += 1
         if attempts["n"] == 1:
             return pd.DataFrame()
-        return pd.DataFrame({"Close": [1.0]})
+        return _fake_raw(["AAPL"])
 
     monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
                          lambda **kw: fake_download(**kw))
@@ -169,3 +169,88 @@ def test_wait_for_global_slot_does_not_sleep_when_slot_already_free(monkeypatch)
     monkeypatch.setattr("time.sleep", lambda s: sleeps.append(s))
     _wait_for_global_slot()
     assert sleeps == []  # premier appel, aucun crenau precedent -> pas d'attente
+
+
+# ── Retry PAR TICKER -- seuls les tickers encore sans donnees sont retentes ;
+# un ticker qui reste sans donnees apres `retries` tentatives est ignore
+# (absent du resultat) sans faire echouer les autres ──
+
+def _fake_raw(tickers: list[str]) -> pd.DataFrame:
+    """DataFrame MultiIndex (ticker, champ) comme un vrai yf.download(group_by='ticker').
+    Liste vide -> DataFrame vide (aucun ticker n'a de donnees)."""
+    if not tickers:
+        return pd.DataFrame()
+    return pd.concat(
+        {t: pd.DataFrame({"Close": [100.0, 101.0]}) for t in tickers}, axis=1,
+    )
+
+
+def test_bulk_retry_per_ticker_returns_all_when_everything_succeeds(monkeypatch):
+    calls = []
+
+    def fake_download(**kwargs):
+        chunk = list(kwargs["tickers"])
+        calls.append(chunk)
+        return _fake_raw(chunk)
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    result = download_prices_bulk_with_retry(["A", "B", "C"], retries=2, cooldown_s=0.01)
+
+    assert calls == [["A", "B", "C"]]  # un seul appel, rien a retenter
+    assert set(result.columns.get_level_values(0)) == {"A", "B", "C"}
+
+
+def test_bulk_retry_per_ticker_only_retries_the_missing_ones(monkeypatch):
+    """B echoue au 1er essai (absent du DataFrame retourne) ; le 2e essai ne
+    redemande QUE B (A et C, deja obtenus, ne sont pas re-telecharges)."""
+    calls = []
+
+    def fake_download(**kwargs):
+        chunk = list(kwargs["tickers"])
+        calls.append(chunk)
+        if chunk == ["A", "B", "C"]:
+            return _fake_raw(["A", "C"])  # B manquant
+        return _fake_raw(chunk)
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    result = download_prices_bulk_with_retry(["A", "B", "C"], retries=2, cooldown_s=0.01)
+
+    assert calls == [["A", "B", "C"], ["B"]]
+    assert set(result.columns.get_level_values(0)) == {"A", "B", "C"}
+
+
+def test_bulk_retry_per_ticker_drops_ticker_still_missing_after_retries_but_keeps_others(monkeypatch):
+    """B ne revient jamais, meme apres retries=2 (3 tentatives) -- il est ignore,
+    mais A et C (obtenus des le 1er essai) sont bien dans le resultat final."""
+    calls = []
+
+    def fake_download(**kwargs):
+        chunk = list(kwargs["tickers"])
+        calls.append(chunk)
+        if "B" in chunk:
+            return _fake_raw([t for t in chunk if t != "B"])
+        return _fake_raw(chunk)
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    result = download_prices_bulk_with_retry(["A", "B", "C"], retries=2, cooldown_s=0.01)
+
+    assert calls == [["A", "B", "C"], ["B"], ["B"]]  # 1 essai initial + 2 retries pour B
+    assert set(result.columns.get_level_values(0)) == {"A", "C"}  # B ignore, pas d'exception
+
+
+def test_bulk_retry_per_ticker_returns_empty_when_nothing_ever_succeeds(monkeypatch):
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: pd.DataFrame())
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    result = download_prices_bulk_with_retry(["A", "B"], retries=1, cooldown_s=0.01)
+    assert result.empty
