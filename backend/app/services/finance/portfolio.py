@@ -72,17 +72,23 @@ def get_title_detail(session: Session, ticker: str) -> dict:
     Fonctionne même si le titre n'est pas détenu (vue analyse).
     """
     ticker = ticker.upper().strip()
-    positions = [p for p in session.exec(select(Position)).all() if p.ticker.upper() == ticker]
-    qte = sum(p.quantite for p in positions)
-    cost = sum((p.pmu or 0) * p.quantite for p in positions)
+    all_positions = get_positions(session)
+    matching = [p for p in all_positions if p["ticker"].upper() == ticker]
+
+    qte = sum(p["quantite"] for p in matching)
+    cost = sum((p["pmu"] or 0) * p["quantite"] for p in matching)
     pmu = cost / qte if qte > 0 else 0.0
+    valeur = sum(p["valeur_actuelle"] for p in matching)
 
-    from app.services.finance.prices import get_prices
-    prix = float(get_prices([ticker]).get(ticker, 0) or 0)
-    valeur = prix * qte
+    if matching:
+        prix = matching[0]["prix_actuel"]
+    else:
+        # Vue analyse : titre pas detenu, on veut quand meme le prix courant.
+        from app.services.finance.prices import get_prices
+        prix = float(get_prices([ticker]).get(ticker, 0) or 0)
+
     pl_pct = ((prix / pmu) - 1) * 100 if pmu > 0 else 0.0
-
-    total = sum(p["valeur_actuelle"] for p in get_positions(session))
+    total = sum(p["valeur_actuelle"] for p in all_positions)
     poids_pct = (valeur / total * 100) if total > 0 else 0.0
 
     from app.models.finance import BuffettRunResult

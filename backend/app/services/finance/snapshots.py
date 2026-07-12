@@ -77,29 +77,17 @@ def drop_alert_pct(prev_valeur: float, new_valeur: float, seuil_pct: float = 5.0
 
 
 def take_snapshot_now(session: Session) -> SnapshotPortefeuille | None:
-    """Prend un snapshot live depuis yfinance (positions DB + prix courants).
-
-    Requiert des positions dans la table `position`. Si vide, retourne None.
-    """
+    """Prend un snapshot depuis les positions actuelles (ledger si des
+    transactions existent, sinon la table Position manuelle -- meme source
+    que get_positions(), qui gere deja le cache de prix quotidien)."""
     try:
-        import yfinance as yf
-
-        from app.models.finance import Position
-        positions = list(session.exec(select(Position)).all())
+        from app.services.finance.portfolio import get_positions
+        positions = get_positions(session)
         if not positions:
             return None
 
-        total_valeur = 0.0
-        total_investit = 0.0
-        for pos in positions:
-            try:
-                from app.services.finance.yf_session import fast_last_price, yf_session
-                prix = fast_last_price(yf.Ticker(pos.ticker, session=yf_session()))
-            except Exception:
-                prix = 0.0
-            total_valeur += prix * pos.quantite
-            if pos.pmu:
-                total_investit += pos.pmu * pos.quantite
+        total_valeur = sum(p["valeur_actuelle"] for p in positions)
+        total_investit = sum((p["pmu"] or 0) * p["quantite"] for p in positions)
 
         if total_valeur == 0:
             return None

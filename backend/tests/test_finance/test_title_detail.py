@@ -6,11 +6,11 @@ import datetime as dt
 from app.core.timeutil import utcnow
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 from sqlmodel.pool import StaticPool
 
-from app.models.finance import Position, BuffettRunResult
-from app.services.finance import prices
+from app.models.finance import Position, BuffettRunResult, Transaction
+from app.services.finance import prices, portfolio_state
 from app.services.finance.portfolio import get_title_detail
 
 
@@ -59,3 +59,38 @@ def test_detail_not_held_title(session):
     assert d["quantite"] == 0
     assert d["score_buffett"] == 95.0
     assert d["pl_pct"] == 0.0
+
+
+def test_detail_held_title_from_ledger(session):
+    """Régression : quand le suivi passe par le ledger (Transaction), la table
+    Position manuelle reste vide -- get_title_detail doit quand meme refleter
+    la quantite/cout/poids derives des transactions (get_positions())."""
+    portfolio_state.invalidate_state()
+    session.add(Transaction(
+        ticker="MSFT", broker="t212", type="achat",
+        quantite=8, prix_unitaire=200.0, frais=0.0,
+        date=dt.datetime(2026, 1, 1),
+    ))
+    session.add(Transaction(
+        ticker="MSFT", broker="t212", type="achat",
+        quantite=2, prix_unitaire=250.0, frais=0.0,
+        date=dt.datetime(2026, 2, 1),
+    ))
+    session.add(BuffettRunResult(ticker="MSFT", nom="Microsoft", secteur="Tech",
+                                  per=30.0, chance_moat=80.0))
+    session.commit()
+    _seed_price("MSFT", 300.0)
+
+    d = get_title_detail(session, "msft")
+    assert d["ticker"] == "MSFT"
+    assert d["nom"] == "Microsoft"
+    assert d["prix"] == 300.0
+    assert d["quantite"] == 10  # 8 + 2, dérivé du ledger, pas de la table Position
+    # cout total = 8*200 + 2*250 = 2100 ; pmu = 210
+    assert d["pmu"] == 210.0
+    assert d["valeur"] == 3000.0  # 300 * 10
+    assert d["poids_pct"] == 100.0  # seul titre détenu
+    assert d["detenu"] is True
+
+    # La table Position manuelle est bien restée vide (pas de double-comptage).
+    assert len(list(session.exec(select(Position)).all())) == 0

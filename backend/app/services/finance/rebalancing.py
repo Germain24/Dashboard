@@ -16,11 +16,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-import yfinance as yf
 from sqlmodel import Session, select
 
-from app.models.finance import BuffettRun, BuffettRunResult, Position
+from app.models.finance import BuffettRun, BuffettRunResult
 from app.services.finance.buffett.config import Config
+from app.services.finance.portfolio import get_positions
 
 
 @dataclass
@@ -102,8 +102,10 @@ def _fetch_prices(tickers: list[str]) -> dict[str, float]:
     if not tickers:
         return prices
     try:
-        from app.services.finance.yf_session import yf_session
-        data = yf.download(tickers, period="5d", auto_adjust=True, progress=False, session=yf_session())
+        from app.services.finance.yf_session import download_with_timeout, yf_session
+        data = download_with_timeout(
+            tickers=tickers, period="5d", auto_adjust=True, progress=False, session=yf_session(),
+        )
         close = data["Close"] if "Close" in getattr(data, "columns", []) else data
         for t in tickers:
             try:
@@ -155,19 +157,19 @@ def compute_rebalancing_diff(session: Session) -> RebalancingDiff | None:
         return None
 
     run_results = _get_run_results(session, run.id)
-    positions = list(session.exec(select(Position)).all())
+    positions = get_positions(session)
     budget_total = float(sum(Config.BUDGET_BROKERS.values())) or 0.0
 
-    all_tickers = {r.ticker for r in run_results} | {p.ticker for p in positions}
+    all_tickers = {r.ticker for r in run_results} | {p["ticker"] for p in positions}
     prices = _fetch_prices(list(all_tickers))
 
     # Valeur actuelle par (ticker, broker normalisé)
-    pos_map: dict[tuple[str, str], tuple[Position, float]] = {}
+    pos_map: dict[tuple[str, str], tuple[dict, float]] = {}
     for p in positions:
-        price = prices.get(p.ticker) or (p.pmu or 0.0)
-        pos_map[(p.ticker, _norm_broker(p.broker))] = (p, price)
+        price = prices.get(p["ticker"]) or (p["pmu"] or 0.0)
+        pos_map[(p["ticker"], _norm_broker(p["broker"]))] = (p, price)
 
-    valeur_totale = sum(price * (p.quantite or 0) for p, price in pos_map.values())
+    valeur_totale = sum(price * (p["quantite"] or 0) for p, price in pos_map.values())
     if valeur_totale <= 0:
         from app.models.finance import SnapshotPortefeuille
         snap = session.exec(
@@ -190,7 +192,7 @@ def compute_rebalancing_diff(session: Session) -> RebalancingDiff | None:
             prix = float(a.get("prix") or prices.get(r.ticker) or 0)
 
             pos, price = pos_map.get(key, (None, prices.get(r.ticker) or prix or 0))
-            qte = float(pos.quantite) if pos else 0.0
+            qte = float(pos["quantite"]) if pos else 0.0
             val_act = (price or prix) * qte
             delta_eur = cible_eur - val_act
             delta_shares = (int(cible_shares) - round(qte)) if cible_shares is not None else None
@@ -221,7 +223,7 @@ def compute_rebalancing_diff(session: Session) -> RebalancingDiff | None:
     for (ticker, brk), (pos, price) in pos_map.items():
         if (ticker, brk) in seen:
             continue
-        val_act = price * (pos.quantite or 0)
+        val_act = price * (pos["quantite"] or 0)
         if val_act <= 0:
             continue
         alloc_actuelle = round(val_act / denom_actuel * 100, 2)
@@ -229,8 +231,8 @@ def compute_rebalancing_diff(session: Session) -> RebalancingDiff | None:
         lignes.append(RebalancingLine(
             ticker=ticker,
             nom=ticker,
-            broker=pos.broker or "—",
-            quantite_actuelle=round(float(pos.quantite or 0), 4),
+            broker=pos["broker"] or "—",
+            quantite_actuelle=round(float(pos["quantite"] or 0), 4),
             valeur_actuelle_eur=round(val_act, 2),
             allocation_actuelle_pct=alloc_actuelle,
             cible_type="shares",
@@ -239,7 +241,7 @@ def compute_rebalancing_diff(session: Session) -> RebalancingDiff | None:
             valeur_cible_eur=0.0,
             allocation_cible_pct=0.0,
             delta_eur=round(-val_act, 2),
-            delta_shares=-round(float(pos.quantite or 0)),
+            delta_shares=-round(float(pos["quantite"] or 0)),
             action="VENDRE",
             ecart_pct=ecart,
             alerte=alerte,
