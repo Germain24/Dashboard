@@ -20,17 +20,40 @@ def compute_max_drawdown(valeurs: list[float]) -> float:
     return round(mdd, 2)
 
 
-def compute_volatility(valeurs: list[float]) -> float:
-    """Volatilité annualisée des rendements quotidiens (std × √252)."""
-    if len(valeurs) < 2:
-        return 0.0
-    rets = [(valeurs[i] / valeurs[i-1]) - 1 for i in range(1, len(valeurs))]
-    n = len(rets)
+def compute_volatility(valeurs: list[float] | None = None, rendements: list[float] | None = None) -> float:
+    """Volatilité annualisée des rendements quotidiens (std × √252).
+
+    Accepte soit des valeurs brutes (rendements calculés en interne, comportement
+    historique), soit des rendements déjà calculés (ex. ajustés des apports).
+    """
+    if rendements is None:
+        if valeurs is None or len(valeurs) < 2:
+            return 0.0
+        rendements = [(valeurs[i] / valeurs[i-1]) - 1 for i in range(1, len(valeurs))]
+    n = len(rendements)
     if n < 2:
         return 0.0
-    mean = sum(rets) / n
-    variance = sum((r - mean) ** 2 for r in rets) / (n - 1)
+    mean = sum(rendements) / n
+    variance = sum((r - mean) ** 2 for r in rendements) / (n - 1)
     return round(math.sqrt(variance) * math.sqrt(252) * 100, 2)
+
+
+def _cashflow_adjusted_returns(snapshots: list[dict]) -> list[float]:
+    """Rendements journaliers neutralisant l'effet des apports/retraits (même
+    formule que portfolio.time_weighted_return) -- un jour de dépôt ne doit
+    pas s'enregistrer comme un rendement massif et fausser volatilité/Sharpe."""
+    rets: list[float] = []
+    prev: dict | None = None
+    for s in snapshots:
+        v = s.get("valeur")
+        inv = s.get("investit", 0) or 0
+        if v is None:
+            continue
+        if prev is not None and prev["valeur"] > 0:
+            apport = inv - prev["investit"]
+            rets.append(((v - apport) / prev["valeur"]) - 1)
+        prev = {"valeur": v, "investit": inv}
+    return rets
 
 
 def compute_hhi(poids: list[float]) -> float:
@@ -70,9 +93,14 @@ def get_risk_metrics(
         return {"max_drawdown_pct": 0, "volatilite_pct": 0, "hhi": 0, "sharpe": 0,
                 "n_positions": 0, "concentration": "inconnu"}
 
-    rets = [(valeurs[i] / valeurs[i-1]) - 1 for i in range(1, len(valeurs))]
+    has_investit = all("investit" in s for s in snapshots)
+    if has_investit:
+        rets = _cashflow_adjusted_returns(snapshots)
+    else:
+        rets = [(valeurs[i] / valeurs[i-1]) - 1 for i in range(1, len(valeurs))]
+
     mdd = compute_max_drawdown(valeurs)
-    vol = compute_volatility(valeurs)
+    vol = compute_volatility(rendements=rets)
     sharpe = compute_sharpe(rets)
 
     # HHI sur les valeurs actuelles des positions

@@ -53,7 +53,7 @@ _risk_cache = TTLCache(ttl_seconds=300.0)
 @router.get("/risk", response_model=RiskMetricsOut)
 def risk(session: Session = Depends(get_session)):
     rows = get_history(session, limit=365)
-    snapshots = [{"date": str(r.date), "valeur": r.valeur} for r in rows]
+    snapshots = [{"date": str(r.date), "valeur": r.valeur, "investit": r.investit} for r in rows]
     positions = get_positions(session)
     # Cache 5 min : la signature (nb points + dernière date + nb positions) suffit
     # à invalider dès qu'un snapshot ou une position change.
