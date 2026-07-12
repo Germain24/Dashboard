@@ -70,10 +70,44 @@ def test_run_buffett_analysis_surfaces_optimization_exception(tmp_path, monkeypa
 
 
 def test_run_buffett_analysis_error_is_none_on_success(tmp_path, monkeypatch):
-    """Non-regression : un run sans ticker eligible (aucune optimisation a
-    tenter) reste un succes normal (`error` a None), pas un echec."""
+    """Non-regression : quand aucune exception ne survient dans le bloc
+    d'optimisation (ici parce qu'aucun ticker n'est finalement eligible apres
+    le scoring), le retour final reste un succes explicite (`error` a None) --
+    ce test exerce reellement le `return` final modifie par ce correctif,
+    contrairement a l'ancien test qui ne passait jamais par le bloc
+    d'optimisation (chemin "aucun ticker dans tickers.csv", inchange)."""
     _isolate_buffett_paths(monkeypatch, tmp_path)
 
+    tickers_csv = tmp_path / "tickers.csv"
+    tickers_csv.write_text("AAPL;Apple;NASDAQ;Action\n")
+
+    # Le ticker existe mais echoue a etre score (pas de cache, pas de reseau)
+    # -> results reste vide -> aucun ticker eligible -> t_list vide -> le bloc
+    # d'optimisation ne leve aucune exception (apply_live_broker_budgets reste
+    # mocke pour ne jamais toucher les vrais soldes de comptes).
+    monkeypatch.setattr(runner, "_internet_available", lambda timeout=4.0: True)
+    monkeypatch.setattr(runner, "fetch_data", lambda ticker, rl: None)
+    monkeypatch.setattr(broker_budgets, "apply_live_broker_budgets", lambda: {"IBKR": 1000.0})
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+
+    result = runner.run_buffett_analysis(
+        session_factory=lambda: Session(engine),
+        csv_path=str(tickers_csv),
+        max_workers=1,
+        run_id=None,
+    )
+
+    assert result.get("error") is None
+    assert result.get("n_analyzed") == 0
+
+
+def test_run_buffett_analysis_no_tickers_returns_explicit_error(tmp_path):
+    """Non-regression du chemin existant (inchange par ce correctif) : un
+    tickers.csv vide retourne un dict d'erreur explicite AVANT meme d'atteindre
+    le bloc d'optimisation -- ce chemin garde son propre message, distinct de
+    la cle 'error' generique introduite par ce correctif."""
     tickers_csv = tmp_path / "tickers.csv"
     tickers_csv.write_text("")  # aucun ticker
 
@@ -83,7 +117,4 @@ def test_run_buffett_analysis_error_is_none_on_success(tmp_path, monkeypatch):
         max_workers=1,
         run_id=None,
     )
-    # Chemin "aucun ticker dans tickers.csv" : dict d'erreur explicite existant,
-    # pas de cle "error" a valider ici (cf. runner.py:364-365) -- ce test verifie
-    # juste qu'il ne plante pas et reste explicite.
     assert result.get("error") == "Aucun ticker dans tickers.csv"

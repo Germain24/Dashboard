@@ -656,6 +656,7 @@ def run_buffett_analysis(
                     "n_optimized": len(t_opt), "metric": metric,
                     "alloc": alloc, "duree_sec": round(time.time() - start_t, 1),
                     "n_deleted": len(deleted_tickers),
+                    "error": None,
                 }
     except Exception as e:
         print(f"[runner] Erreur optimisation: {e}")
