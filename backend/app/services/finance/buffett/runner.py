@@ -57,16 +57,17 @@ def _refresh_bond_yields() -> None:
 
 
 def load_tickers(csv_path: str = Config.TICKERS_CSV) -> list[str]:
-    """Lit la liste des tickers depuis tickers.csv."""
+    """Lit la liste des tickers depuis tickers.csv (headerless, séparateur `;`,
+    colonnes Ticker;Nom;Bourse;Type -- ex. certains libellés Bourse contiennent
+    une virgule, ex. "Euronext Amsterdam, Brussels", d'où `sep=";"` obligatoire
+    (un `pd.read_csv` sans séparateur explicite lève une ParserError dès la
+    première virgule rencontrée -> tickers.csv silencieusement vide)."""
     if not Path(csv_path).exists():
         return []
     try:
         import pandas as pd
-        df = pd.read_csv(csv_path)
-        col = df.columns[0]
-        tickers = df[col].dropna().astype(str).str.strip().unique().tolist()
-        if len(col) <= 5 and col.isupper() and col != "TICKER":
-            tickers.insert(0, col)
+        df = pd.read_csv(csv_path, sep=";", header=None)
+        tickers = df[0].dropna().astype(str).str.strip().unique().tolist()
         return [t for t in tickers if t.upper() not in ("TICKER", "NAN", "")]
     except Exception as e:
         print(f"[runner] Erreur lecture {csv_path}: {e}")
@@ -74,18 +75,17 @@ def load_tickers(csv_path: str = Config.TICKERS_CSV) -> list[str]:
 
 
 def remove_stale_tickers(csv_path: str, to_remove: set) -> None:
-    """Supprime les tickers delistes de tickers.csv."""
+    """Supprime les tickers delistes de tickers.csv (headerless, séparateur `;`)."""
     if not to_remove or not Path(csv_path).exists():
         return
     try:
         import pandas as pd
-        df = pd.read_csv(csv_path)
-        col = df.columns[0]
+        df = pd.read_csv(csv_path, sep=";", header=None)
         before = len(df)
-        df = df[~df[col].astype(str).str.strip().str.upper().isin(
+        df = df[~df[0].astype(str).str.strip().str.upper().isin(
             {t.upper() for t in to_remove}
         )]
-        df.to_csv(csv_path, index=False)
+        df.to_csv(csv_path, index=False, header=False, sep=";")
         print(f"[runner] {before - len(df)} tickers supprimes de {csv_path}")
     except Exception as e:
         print(f"[runner] Erreur suppression tickers: {e}")
@@ -483,6 +483,8 @@ def run_buffett_analysis(
             print(f"[runner] Ecriture ToutBroker: {e}")
 
     # Optimisation DE
+    from . import optimization_progress as opt_prog
+    opt_error: str | None = None
     try:
         from .dedup import deduplicate_correlated, deduplicate_tickers
         from .optimizer import optimize_portfolio_de, prepare_optimization
@@ -490,10 +492,8 @@ def run_buffett_analysis(
         from .broker_availability import merge_broker_columns
         from .broker_budgets import apply_live_broker_budgets
         from .reporting import update_allocations
-        from . import optimization_progress as opt_prog
         import pandas as pd
         import numpy as np
-        import yfinance as yf
 
         # Budgets par broker = soldes RÉELS des comptes (account_balances.json).
         budgets = apply_live_broker_budgets()
@@ -543,9 +543,21 @@ def run_buffett_analysis(
         t_list = list(eligible.keys())
 
         if t_list:
-            from app.services.finance.yf_session import yf_session
-            raw = yf.download(t_list, period="5y", interval="1d", progress=False, group_by="ticker", session=yf_session())
-            if not raw.empty:
+            # Signale le début de la phase de préparation AVANT le téléchargement
+            # (potentiellement long, ~600 titres) -- sans ça, `optimization_progress`
+            # reste à "idle" pendant toute cette étape et l'UI n'affiche RIEN
+            # (ni barre, ni bouton stop) jusqu'à ce que le téléchargement finisse,
+            # contrairement au bouton manuel "Créer le portefeuille optimal" qui
+            # le fait déjà (cf. app/api/finance/buffett.py `_run_portfolio_creation`).
+            opt_prog.start(run_id=run_id, message="Téléchargement des cours…")
+            from app.services.finance.yf_session import download_with_timeout, yf_session
+            raw = download_with_timeout(
+                tickers=t_list, period="5y", interval="1d", progress=False,
+                group_by="ticker", session=yf_session(),
+            )
+            if raw.empty:
+                opt_prog.finish(message="Cours indisponibles.")
+            else:
                 cd = close_prices_from_download(raw, t_list)
                 cd = cd.dropna(axis=1, thresh=len(cd) * 0.01).ffill()
                 rets = cd.pct_change().dropna().clip(-0.5, 0.5)
@@ -647,11 +659,14 @@ def run_buffett_analysis(
                 }
     except Exception as e:
         print(f"[runner] Erreur optimisation: {e}")
+        opt_prog.finish(message=f"Erreur optimisation : {e}")
+        opt_error = str(e)
 
     return {
         "n_analyzed": len(results),
         "duree_sec": round(time.time() - start_t, 1),
         "n_deleted": len(deleted_tickers),
+        "error": opt_error,
     }
 
 
