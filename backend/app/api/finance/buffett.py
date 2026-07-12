@@ -47,27 +47,24 @@ def buffett_progress(session: Session = Depends(get_session)):
 
     # Si aucune analyse ne tourne reellement dans ce process, un run encore
     # "en_cours" en base est en fait interrompu (programme ferme) -> on le marque
-    # immediatement resumable pour debloquer le bouton "Reprendre".
+    # immediatement resumable pour debloquer le bouton "Reprendre". Le scoring
+    # des tickers a 100% NE VEUT PAS DIRE que la pipeline est terminee : l'
+    # optimisation DE (seeds illimites, peut durer des heures) vient juste
+    # apres et peut avoir ete tuee en vol (crash, redemarrage --reload) sans
+    # avoir produit de portefeuille. Seul finalize_run() (appele apres la
+    # pipeline COMPLETE) a le droit de marquer "termine" -- ne jamais le faire
+    # ici, sous peine de masquer un DE jamais termine sans aucune erreur
+    # visible (et de reclasser a tort un run deja "interrompu").
     if not active:
         stuck = session.exec(
-            select(BuffettRun).where(
-                BuffettRun.statut.in_(["en_cours", "interrompu"])  # type: ignore[attr-defined]
-            )
+            select(BuffettRun).where(BuffettRun.statut == "en_cours")  # type: ignore[attr-defined]
         ).all()
         changed = False
         for sr in stuck:
-            # Analyse complète (100 %) mais process fermé avant le marquage final :
-            # on la termine au lieu de boucler indéfiniment sur "Reprendre".
-            if (sr.n_tickers_total or 0) > 0 and (sr.n_tickers_analyzed or 0) >= sr.n_tickers_total:
-                sr.statut = "termine"
-                sr.erreur = None
-                session.add(sr)
-                changed = True
-            elif sr.statut == "en_cours":
-                sr.statut = "interrompu"
-                sr.erreur = "Process interrompu (relancez pour reprendre)"
-                session.add(sr)
-                changed = True
+            sr.statut = "interrompu"
+            sr.erreur = "Process interrompu (relancez pour reprendre)"
+            session.add(sr)
+            changed = True
         if changed:
             session.commit()
 
@@ -347,11 +344,13 @@ def backtest_allocation(periode: str = "2y", session: Session = Depends(get_sess
     dates: list[str] = []
     prices: dict[str, list[float]] = {}
     try:
-        import yfinance as yf
-        from app.services.finance.yf_session import yf_session
+        from app.services.finance.yf_session import download_with_timeout, yf_session
         from app.services.finance.buffett.allocation import close_prices_from_download
         t_list = list(weights.keys())
-        raw = yf.download(t_list, period=periode, interval="1d", progress=False, group_by="ticker", session=yf_session())
+        raw = download_with_timeout(
+            tickers=t_list, period=periode, interval="1d", progress=False,
+            group_by="ticker", session=yf_session(),
+        )
         if not raw.empty:
             cd = close_prices_from_download(raw, t_list)
             cd = cd.dropna(how="all").ffill().dropna()
@@ -441,7 +440,6 @@ def portfolio_create(
         from sqlmodel import Session as S, select as sel
         import pandas as pd
         import numpy as np
-        import yfinance as yf
 
         Config.load_params()
         from app.services.finance.buffett.broker_budgets import apply_live_broker_budgets
@@ -503,8 +501,11 @@ def portfolio_create(
         ticker_col = "Ticker Yahoo Finance"
         try:
             opt_prog.set_phase("preparation", "Téléchargement des cours…")
-            from app.services.finance.yf_session import yf_session
-            raw = yf.download(t_list, period="5y", interval="1d", progress=False, group_by="ticker", session=yf_session())
+            from app.services.finance.yf_session import download_with_timeout, yf_session
+            raw = download_with_timeout(
+                tickers=t_list, period="5y", interval="1d", progress=False,
+                group_by="ticker", session=yf_session(),
+            )
             if raw.empty:
                 opt_prog.finish(message="Cours indisponibles.")
                 return
