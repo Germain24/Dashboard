@@ -557,6 +557,7 @@ def run_buffett_analysis(
             )
             if raw.empty:
                 opt_prog.finish(message="Cours indisponibles.")
+                opt_error = "Cours indisponibles (téléchargement des cours vide ou expiré)"
             else:
                 cd = close_prices_from_download(raw, t_list)
                 cd = cd.dropna(axis=1, thresh=len(cd) * 0.01).ffill()

@@ -120,3 +120,46 @@ def test_run_buffett_analysis_no_tickers_returns_explicit_error(tmp_path, monkey
         run_id=None,
     )
     assert result.get("error") == "Aucun ticker dans tickers.csv"
+
+
+def test_run_buffett_analysis_empty_download_surfaces_error(tmp_path, monkeypatch):
+    """Si le telechargement groupe des cours revient vide (timeout ou echec de
+    download_with_timeout), le run ne doit PAS etre rapporte comme un succes
+    silencieux -- avant ce correctif, opt_error restait None sur cette branche
+    et job_monthly_buffett marquait le run "termine" sans aucun portefeuille
+    calcule et sans erreur visible (meme bug que Task 1, chemin different :
+    un DataFrame vide n'est pas une exception, donc le try/except seul ne
+    suffisait pas a le detecter)."""
+    import pandas as pd
+    from app.services.finance import yf_session as yf_session_module
+    from app.services.finance.buffett.cache_manager import CacheManager as RealCacheManager
+
+    _isolate_buffett_paths(monkeypatch, tmp_path)
+
+    tickers_csv = tmp_path / "tickers.csv"
+    tickers_csv.write_text("AAPL;Apple;NASDAQ;Action\n")
+
+    # Le ticker est "score" via un cache-hit canned (pas de reseau) avec un
+    # score eligible (> SCORE_THRESHOLD, Achat=True, liquide) -> t_list non
+    # vide -> le code atteint bien l'appel de telechargement groupe.
+    cache_path = tmp_path / "cache_status.json"
+    isolated_cache = RealCacheManager(str(cache_path))
+    monkeypatch.setattr(
+        isolated_cache, "get_cached_result",
+        lambda ticker: (95.0, {"Nom": "Apple", "Achat": True, "Volume": 1e9, "Prix": 100.0}),
+    )
+    monkeypatch.setattr(runner, "CacheManager", lambda: isolated_cache)
+    monkeypatch.setattr(broker_budgets, "apply_live_broker_budgets", lambda: {"IBKR": 1000.0})
+    monkeypatch.setattr(yf_session_module, "download_with_timeout", lambda **kwargs: pd.DataFrame())
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+
+    result = runner.run_buffett_analysis(
+        session_factory=lambda: Session(engine),
+        csv_path=str(tickers_csv),
+        max_workers=1,
+        run_id=None,
+    )
+
+    assert result.get("error") is not None
