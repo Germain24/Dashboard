@@ -103,11 +103,13 @@ def test_run_buffett_analysis_error_is_none_on_success(tmp_path, monkeypatch):
     assert result.get("n_analyzed") == 0
 
 
-def test_run_buffett_analysis_no_tickers_returns_explicit_error(tmp_path):
+def test_run_buffett_analysis_no_tickers_returns_explicit_error(tmp_path, monkeypatch):
     """Non-regression du chemin existant (inchange par ce correctif) : un
     tickers.csv vide retourne un dict d'erreur explicite AVANT meme d'atteindre
     le bloc d'optimisation -- ce chemin garde son propre message, distinct de
     la cle 'error' generique introduite par ce correctif."""
+    _isolate_buffett_paths(monkeypatch, tmp_path)
+
     tickers_csv = tmp_path / "tickers.csv"
     tickers_csv.write_text("")  # aucun ticker
 
