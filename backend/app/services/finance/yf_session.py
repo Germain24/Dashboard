@@ -32,6 +32,14 @@ _local = threading.local()
 # Empreinte de navigateur à usurper (curl_cffi). Chrome récent = profil le plus sûr.
 IMPERSONATE = "chrome"
 
+# Timeout par défaut (s) de CHAQUE requête HTTP faite via cette session -- sans
+# lui, une connexion qui ne répond jamais (stall réseau, pas une erreur HTTP)
+# bloque le thread indéfiniment. Constaté en prod : un run Buffett bloqué à
+# quelques tickers de la fin, aucune progression pendant plusieurs minutes,
+# process toujours "actif" (verrou tenu) -- un simple restart ne règle rien
+# tant que la connexion suivante peut re-staller sur n'importe quel ticker.
+DEFAULT_TIMEOUT_S = 20.0
+
 
 def _proxy_pool() -> list[str]:
     """Proxys configurés (settings.yf_proxies, .env: YF_PROXIES), nettoyés."""
@@ -50,7 +58,7 @@ def _new_session():
     try:
         from curl_cffi import requests as cffi_requests
 
-        kwargs = {"impersonate": IMPERSONATE}
+        kwargs = {"impersonate": IMPERSONATE, "timeout": DEFAULT_TIMEOUT_S}
         pool = _proxy_pool()
         if pool:
             proxy = random.choice(pool)
@@ -69,6 +77,38 @@ def yf_session():
     return _local.session
 
 
+DOWNLOAD_TIMEOUT_S = 180.0  # borne dure sur l'appel `yf.download()` en entier
+
+
+def download_with_timeout(timeout_s: float = DOWNLOAD_TIMEOUT_S, **kwargs):
+    """`yf.download(**kwargs)` avec un timeout GLOBAL dur sur l'appel entier,
+    en plus du timeout par requête HTTP de la session (`DEFAULT_TIMEOUT_S`).
+
+    Le chemin "bulk download" de yfinance (utilisé pour ~600 titres avant
+    l'optimisation DE) ne respecte pas toujours ce dernier pour chaque
+    sous-requête interne -- constaté en prod : un run resté bloqué PLUS DE 2H
+    dans un unique `yf.download()`, alors que le scoring par-ticker (même
+    session) se débloquait bien après 20s. Exécuté dans un thread séparé :
+    si `timeout_s` est dépassé, ce thread continue en arrière-plan (Python ne
+    peut pas tuer un thread proprement) mais n'est plus jamais consulté --
+    fuite de thread acceptable pour éviter de bloquer TOUT le run. Renvoie un
+    DataFrame vide au timeout (mêmes appelants : `if not raw.empty: ...`).
+    """
+    import concurrent.futures
+
+    import pandas as pd
+    import yfinance as yf
+
+    ex = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    future = ex.submit(yf.download, **kwargs)
+    try:
+        return future.result(timeout=timeout_s)
+    except concurrent.futures.TimeoutError:
+        return pd.DataFrame()
+    finally:
+        ex.shutdown(wait=False)
+
+
 def rotate_session():
     """Force le prochain `yf_session()` du thread courant à recréer une session
     (nouvelle IP si un pool de proxys est configuré). À appeler quand Yahoo
@@ -83,8 +123,28 @@ def reset_sessions() -> None:
     _local.init_done = False
 
 
+def _pence_divisor(fast_info) -> float:
+    """100 si le titre est coté en pence (GBX/GBp, convention LSE), sinon 1.
+
+    Yahoo Finance cote les valeurs londoniennes en pence (ex. "GBp") tout en
+    répondant `currency="GBP"` ailleurs dans l'API -- sans cette conversion,
+    un cours en pence traité comme des livres gonfle la valeur ×100 (ex. un
+    ETC or à 59,29 £ remonte comme 5929, cf. #bug SGLN.L)."""
+    try:
+        try:
+            c = fast_info["currency"]
+        except Exception:
+            c = getattr(fast_info, "currency", None)
+        if c in ("GBp", "GBX"):  # pence -- distinct de "GBP" (livres)
+            return 100.0
+    except Exception:
+        pass
+    return 1.0
+
+
 def fast_last_price(ticker_obj) -> float:
-    """Dernier cours d'un yf.Ticker, robuste.
+    """Dernier cours d'un yf.Ticker, robuste, normalisé en unité principale de
+    la devise (jamais en pence pour les titres londoniens, cf. `_pence_divisor`).
 
     ⚠️ Dans yfinance 1.x, `FastInfo.get("last_price")` est cassé : il renvoie
     toujours le défaut (None). On accède donc par CLÉ (`fast_info["last_price"]`)
@@ -99,7 +159,7 @@ def fast_last_price(ticker_obj) -> float:
         except Exception:
             v = getattr(fi, "last_price", None)
         if v:
-            return float(v)
+            return float(v) / _pence_divisor(fi)
     except Exception:
         pass
     # 2) repli : dernier close de l'historique récent
@@ -107,7 +167,7 @@ def fast_last_price(ticker_obj) -> float:
         hist = ticker_obj.history(period="5d")
         closes = hist["Close"].dropna()
         if len(closes):
-            return float(closes.iloc[-1])
+            return float(closes.iloc[-1]) / _pence_divisor(getattr(ticker_obj, "fast_info", None))
     except Exception:
         pass
     return 0.0
