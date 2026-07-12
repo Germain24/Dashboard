@@ -46,7 +46,7 @@ export function BuffettActionsPanel({
   const startPolling = useCallback(() => {
     stopPolling();
     pollProgress();
-    pollRef.current = setInterval(pollProgress, 1500);
+    pollRef.current = setInterval(pollProgress, 60_000);
   }, [pollProgress, stopPolling]);
 
   // Reprend l'affichage si une optimisation tourne déjà (navigation/refresh) ;

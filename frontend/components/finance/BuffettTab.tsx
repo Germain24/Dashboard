@@ -51,7 +51,7 @@ export function BuffettTab() {
           if (pollRef.current) clearInterval(pollRef.current);
           loadRuns();
         }
-      }, 3000);
+      }, 60_000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [progress?.active, loadRuns]);
@@ -80,7 +80,7 @@ export function BuffettTab() {
       stopOptPolling();
       // eslint-disable-next-line react-hooks/set-state-in-effect -- même schéma que loadRuns() ci-dessus (l.39) : sonde fire-and-forget qui met à jour l'état une fois résolue.
       void pollOptProgress(runId);
-      optPollRef.current = setInterval(() => { void pollOptProgress(runId); }, 3000);
+      optPollRef.current = setInterval(() => { void pollOptProgress(runId); }, 60_000);
     } else {
       stopOptPolling();
       setOptProgress(null);
@@ -101,7 +101,7 @@ export function BuffettTab() {
         // détail se remettait en boucle (#bug rapporté).
         if (fresh && !annule) setSelected(fresh);
       });
-    }, 5000);
+    }, 60_000);
     return () => { annule = true; clearInterval(iv); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `selected` est volontairement exclu : chaque poll produit un nouvel objet (setSelected(fresh)), l'inclure relancerait l'intervalle en boucle.
   }, [selected?.run.id, selected?.run.statut]);
