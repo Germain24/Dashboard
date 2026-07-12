@@ -409,26 +409,24 @@ async def buffett_analyze_ticker(ticker: str):
 
 # --- Bouton 3 : Creer le portefeuille optimal (Differential Evolution) ---
 
-@router.post("/portfolio/create", status_code=202, dependencies=[Depends(_analysis_rl)])
-def portfolio_create(
-    background_tasks: BackgroundTasks,
-    min_score: float = 80.0,
-    session: Session = Depends(get_session),
-):
-    """Filtre les eligibles, re-verifie les scores, optimise avec DE."""
-    from app.services.finance.scheduler_stub import is_analysis_running
-    if is_analysis_running():
-        raise HTTPException(409, "Une analyse ou optimisation est deja en cours.")
+def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
+    """Corps du job d'arriere-plan lance par ``portfolio_create``.
 
-    latest_run = session.exec(
-        select(BuffettRun)
-        .where(BuffettRun.statut == "termine")
-        .order_by(BuffettRun.run_date.desc())
-    ).first()
-    if latest_run is None:
-        raise HTTPException(404, "Aucun run Buffett termine. Lancer d'abord l'analyse complete.")
-
-    def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
+    Extrait au niveau module (plutot que ferme dans ``portfolio_create``) pour
+    pouvoir etre appele/teste directement, et surtout pour pouvoir acquerir
+    ``_ANALYSIS_LOCK`` en garde reelle : le pre-check HTTP ``is_analysis_running()``
+    dans ``portfolio_create`` est fait UNE FOIS avant de planifier ce job en
+    BackgroundTask -- un double-clic ou un chevauchement avec le run automatique
+    ``job_monthly_buffett`` peut donc passer ce pre-check puis s'executer en
+    parallele d'un autre job, mutant Config.BUDGET_BROKERS / optimization_progress
+    / ToutBroker.xlsx depuis deux threads a la fois. Le verrou ici est la seule
+    garde fiable contre cette course.
+    """
+    from app.services.finance.scheduler_stub import _ANALYSIS_LOCK
+    if not _ANALYSIS_LOCK.acquire(blocking=False):
+        logger.info("[portfolio_create] Analyse deja en cours dans ce process -> job ignore")
+        return
+    try:
         from app.services.finance.buffett.config import Config
         from app.services.finance.buffett.optimizer import optimize_portfolio_de, prepare_optimization
         from app.services.finance.buffett.allocation import close_prices_from_download, discretize_allocation, latest_prices
@@ -560,6 +558,28 @@ def portfolio_create(
         except Exception as e:
             logger.error(f"[portfolio_create] Erreur optimisation: {e}")
             opt_prog.finish(message=f"Erreur optimisation : {e}")
+    finally:
+        _ANALYSIS_LOCK.release()
+
+
+@router.post("/portfolio/create", status_code=202, dependencies=[Depends(_analysis_rl)])
+def portfolio_create(
+    background_tasks: BackgroundTasks,
+    min_score: float = 80.0,
+    session: Session = Depends(get_session),
+):
+    """Filtre les eligibles, re-verifie les scores, optimise avec DE."""
+    from app.services.finance.scheduler_stub import is_analysis_running
+    if is_analysis_running():
+        raise HTTPException(409, "Une analyse ou optimisation est deja en cours.")
+
+    latest_run = session.exec(
+        select(BuffettRun)
+        .where(BuffettRun.statut == "termine")
+        .order_by(BuffettRun.run_date.desc())
+    ).first()
+    if latest_run is None:
+        raise HTTPException(404, "Aucun run Buffett termine. Lancer d'abord l'analyse complete.")
 
     background_tasks.add_task(_run_portfolio_creation, latest_run.id, min_score)
     return {

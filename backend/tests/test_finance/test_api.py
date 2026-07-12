@@ -268,6 +268,34 @@ def test_portfolio_create_proceeds_when_no_analysis_running(client):
     assert "Aucun run Buffett" in r.json()["detail"]
 
 
+def test_run_portfolio_creation_noop_when_lock_already_held(monkeypatch):
+    """Reproduit la course : meme si le pre-check HTTP passe (is_analysis_running
+    ne voit rien), le job d'arriere-plan lui-meme doit refuser de s'executer
+    si _ANALYSIS_LOCK est deja tenu (ex. par job_monthly_buffett) -- sinon
+    deux optimisations mutent Config.BUDGET_BROKERS/optimization_progress en
+    parallele. Sans le guard sur _run_portfolio_creation, cet appel se
+    poursuivrait dans opt_prog.start(...) et planterait/mutrait l'etat
+    partage au lieu de retourner immediatement."""
+    from app.services.finance import scheduler_stub
+    from app.api.finance.buffett import _run_portfolio_creation
+    from app.services.finance.buffett import optimization_progress as opt_prog
+
+    opt_prog.reset()
+    called = {"start": False}
+    monkeypatch.setattr(opt_prog, "start", lambda *a, **kw: called.__setitem__("start", True))
+
+    assert not scheduler_stub._ANALYSIS_LOCK.locked()
+    scheduler_stub._ANALYSIS_LOCK.acquire()
+    try:
+        # Ne doit lever aucune exception et ne rien faire : la fonction doit
+        # retourner immediatement sans toucher a optimization_progress.
+        _run_portfolio_creation(1, 80.0)
+    finally:
+        scheduler_stub._ANALYSIS_LOCK.release()
+
+    assert called["start"] is False
+
+
 # ── rebalancing ──────────────────────────────────────────────────────────────
 
 def test_rebalancing_diff_no_run(client):
