@@ -30,14 +30,31 @@ import time
 
 _local = threading.local()
 
-# Yahoo Finance limite a 2000 requetes/minute -- espace CHAQUE requete HTTP
-# sortante d'au moins cet intervalle, PEU IMPORTE l'appelant (scoring par
-# ticker, telechargement groupe pour l'optimisation DE, conversion FX, cours
-# de portefeuille, snapshots...). #bug rapporte : un telechargement groupe de
-# ~900 tickers d'un coup (ou une rafale d'appels FX) declenchait un rate-limit
-# meme si le volume total sur l'heure restait sous un plafond plus large (le
-# RateLimiter de buffett/rate_limiter.py ne couvre QUE le scoring par ticker).
-GLOBAL_MIN_INTERVAL_S = 60.0 / 2000  # 0.03s
+
+def _global_min_interval_s() -> float:
+    """Intervalle minimum (s) entre deux requetes HTTP Yahoo Finance, derive de
+    `BUFFETT_MAX_REQUESTS_PER_HOUR` -- LA MEME limite que le scoring par ticker
+    (`buffett/rate_limiter.py`), pas une valeur separee. #bug rapporte : ce
+    throttle etait fixe a 2000/min (0,03s) independamment de la config,
+    beaucoup plus rapide que le 1000/h vise -- le telechargement groupe pour
+    l'optimisation DE (~2900 tickers d'un coup) declenchait donc un rate-limit
+    Yahoo meme apres avoir abaisse `BUFFETT_MAX_REQUESTS_PER_HOUR`, puisque ce
+    reglage ne s'appliquait qu'a la boucle de scoring, jamais au telechargement
+    groupe."""
+    try:
+        from app.core.config import settings
+        max_per_hour = settings.buffett_max_requests_per_hour
+    except Exception:
+        max_per_hour = 1000
+    return 3600.0 / max(max_per_hour, 1)
+
+
+# Yahoo Finance : PEU IMPORTE l'appelant (scoring par ticker, telechargement
+# groupe pour l'optimisation DE, conversion FX, cours de portefeuille,
+# snapshots...), CHAQUE requete HTTP sortante est espacee d'au moins cet
+# intervalle -- calcule une seule fois au chargement du module depuis la meme
+# config que le scoring (`BUFFETT_MAX_REQUESTS_PER_HOUR`).
+GLOBAL_MIN_INTERVAL_S = _global_min_interval_s()
 
 _global_lock = threading.Lock()
 _global_next_slot = 0.0

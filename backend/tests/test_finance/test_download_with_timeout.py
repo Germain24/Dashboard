@@ -146,12 +146,15 @@ def test_wrap_session_with_throttle_preserves_call_and_return_value():
     assert session.calls == [("get", ("https://example.com",), {"timeout": 5})]
 
 
-def test_wrap_session_with_throttle_spaces_out_consecutive_calls():
-    """N'utilise PAS de time.sleep mocke : GLOBAL_MIN_INTERVAL_S (0.03s) est
-    assez petit pour dormir reellement dans un test sans le ralentir de facon
-    perceptible, et un sleep mocke casserait le modele de "prochain crenau"
-    (la file virtuelle avancerait plus vite que le temps reel, faussant les
-    durees attendues entre appels)."""
+def test_wrap_session_with_throttle_spaces_out_consecutive_calls(monkeypatch):
+    """N'utilise PAS de time.sleep mocke : un sleep mocke casserait le modele
+    de "prochain crenau" (la file virtuelle avancerait plus vite que le temps
+    reel, faussant les durees attendues entre appels). GLOBAL_MIN_INTERVAL_S
+    est fixe a une petite valeur pour ce test -- sa vraie valeur derive
+    desormais de BUFFETT_MAX_REQUESTS_PER_HOUR (#bug rapporte : le telechargement
+    groupe pour l'optimisation DE ignorait cette config, fixe a 2000/min peu
+    importe le reglage utilisateur), qui peut etre bien plus grande en prod."""
+    monkeypatch.setattr(yf_session_module, "GLOBAL_MIN_INTERVAL_S", 0.02)
     session = _wrap_session_with_throttle(_FakeSession())
 
     start = time.time()
@@ -161,7 +164,7 @@ def test_wrap_session_with_throttle_spaces_out_consecutive_calls():
     elapsed = time.time() - start
 
     # 3 appels -> 2 intervalles a respecter au minimum (le 1er ne dort jamais).
-    assert elapsed >= 2 * yf_session_module.GLOBAL_MIN_INTERVAL_S
+    assert elapsed >= 2 * 0.02
 
 
 def test_wait_for_global_slot_does_not_sleep_when_slot_already_free(monkeypatch):
