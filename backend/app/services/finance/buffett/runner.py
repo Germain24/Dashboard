@@ -241,9 +241,26 @@ def _analyze_one(
         print(f"[runner] {ticker} ETF (local) -> Score=200")
         return True
 
-    # 3. Non-ETF trop frais -> skip (pas de nouveau rapport annuel possible)
+    # 3. Non-ETF trop frais (dernier rapport annuel < MIN_AGE_YEARS) -> pas de
+    # nouveau rapport possible, donc RIEN A RETELECHARGER, mais le titre reste
+    # valide ce mois-ci : on le score depuis les donnees locales deja chargees
+    # (etape 1), sans le moindre appel reseau, au lieu de l'abandonner (#bug
+    # rapporte : le titre disparaissait purement et simplement de l'univers
+    # eligible du run tant que son rapport restait "trop frais", meme s'il
+    # avait deja un score valide).
     if status == "too_fresh":
-        return False
+        if not local_data:
+            return False
+        try:
+            score, metrics = analyze_financials(ticker, local_data)
+            income = local_data.get("income")
+            yr = income.index.max().year if income is not None and not income.empty else 0
+            cache.update(ticker, yr, score, metrics)
+            _emit(ticker, score, metrics)
+            return True
+        except Exception as e:
+            print(f"[runner] Erreur analyse (too_fresh) {ticker}: {e}")
+            return False
 
     # 3bis. ETF connu (ou ticker force) sans cache ni fichier local exploitable
     # (cache-froid) : le Score=200 est fige par convention, JAMAIS derive des

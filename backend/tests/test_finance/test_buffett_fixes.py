@@ -179,3 +179,74 @@ def test_delisted_ticker_with_stale_local_data_is_deleted(monkeypatch):
                              deleted, threading.Lock())
     assert ok is False
     assert "DEADXYZ" in deleted
+
+
+# ── Titre "trop frais" (rapport annuel < 1 an) : reutilise les donnees locales
+# au lieu de disparaitre de l'univers eligible du run (#bug rapporte) ──────────
+
+def test_too_fresh_ticker_reuses_local_data_instead_of_being_dropped(monkeypatch):
+    """Avant le fix, status == 'too_fresh' retournait False sans rien persister
+    -- le titre disparaissait purement du run (et donc de l'optimisation DE),
+    alors qu'il n'y a jamais eu d'echec, juste rien de nouveau a telecharger.
+    Le score doit maintenant etre recalcule depuis les donnees locales deja
+    chargees, SANS aucun appel reseau."""
+    import threading
+
+    from app.services.finance.buffett import runner
+
+    local = {"income": pd.DataFrame({"Total Revenue": [1.0]}, index=pd.to_datetime(["2025-12-31"])),
+             "balance": pd.DataFrame({"Total Assets": [1.0]}, index=pd.to_datetime(["2025-12-31"])),
+             "info": {"quoteType": "EQUITY", "longName": "Fresh Co"}}
+
+    class FakeCache:
+        def get_cached_result(self, t):
+            return None
+
+        def get_status(self, t, fp):
+            return "too_fresh"
+
+        def update(self, *a, **k):
+            pass
+
+    fetch_calls = []
+    monkeypatch.setattr(runner, "load_local_data", lambda t: local)
+    monkeypatch.setattr(runner, "_fetch_with_retry",
+                         lambda t, rl, sf=None: fetch_calls.append(t) or None)
+    monkeypatch.setattr(runner, "analyze_financials",
+                         lambda t, data: (77.0, {"Nom": "Fresh Co", "Achat": True}))
+
+    results: dict = {}
+    deleted: set = set()
+    ok = runner._analyze_one("FRESHXYZ", results, FakeCache(), object(),
+                             deleted, threading.Lock())
+
+    assert ok is True
+    assert results["FRESHXYZ"] == (77.0, {"Nom": "Fresh Co", "Achat": True})
+    assert fetch_calls == []  # aucun telechargement -- donnees locales reutilisees
+
+
+def test_too_fresh_ticker_without_local_data_is_skipped(monkeypatch):
+    """Si aucune donnee locale n'est chargeable (cas degenere), on abandonne
+    toujours sans planter -- rien a scorer."""
+    import threading
+
+    from app.services.finance.buffett import runner
+
+    class FakeCache:
+        def get_cached_result(self, t):
+            return None
+
+        def get_status(self, t, fp):
+            return "too_fresh"
+
+        def update(self, *a, **k):
+            pass
+
+    monkeypatch.setattr(runner, "load_local_data", lambda t: None)
+
+    results: dict = {}
+    deleted: set = set()
+    ok = runner._analyze_one("NODATA", results, FakeCache(), object(),
+                             deleted, threading.Lock())
+    assert ok is False
+    assert "NODATA" not in results
