@@ -30,12 +30,15 @@ def test_catalog_map_produce_keeps_edible_fraction():
 
 # ── plan_rebuild ──────────────────────────────────────────────────────────────
 
-def test_plan_rebuild_splits_matched_and_unmatched_in_order():
-    catalog = ["Banane", "Whey protein (Inshape)", "Poitrine de poulet"]
+def test_plan_rebuild_classifies_matched_removed_and_kept():
+    catalog = ["Banane", "Whey protein (Inshape)", "Poitrine de poulet", "Asperges"]
     overlay = {"Banane": 0.3, "Poitrine de poulet": 0.9}
-    matched, unmatched = scr.plan_rebuild(catalog, overlay)
+    # "Whey..." hors mapping (supplément), "Asperges" mappé mais sans prix ce coup-ci.
+    mappable = {"Banane", "Poitrine de poulet", "Asperges"}
+    matched, removed, kept_no_price = scr.plan_rebuild(catalog, overlay, mappable)
     assert matched == {"Banane": 0.3, "Poitrine de poulet": 0.9}
-    assert unmatched == ["Whey protein (Inshape)"]
+    assert removed == ["Whey protein (Inshape)"]      # hors mapping -> retiré
+    assert kept_no_price == ["Asperges"]              # vendu mais pas de prix -> conservé
 
 
 # ── catalog_price_overlay ─────────────────────────────────────────────────────
@@ -56,8 +59,8 @@ def test_rewrite_drops_unmatched_columns_and_updates_prix_only():
         "Proteines;1.06;77;20",
     ]
     matched = {"Banane": 0.30, "Poitrine de poulet": 0.90}
-    unmatched = ["Whey protein (Inshape)"]
-    out = scr.rewrite_catalog_csv(lines, matched, unmatched)
+    removed = ["Whey protein (Inshape)"]
+    out = scr.rewrite_catalog_csv(lines, matched, removed)
     assert out == [
         "Nutriments;Banane;Poitrine de poulet",
         "Prix;0.3;0.9",
@@ -72,5 +75,5 @@ def test_rewrite_preserves_unmatched_kept_food_untouched():
         "Nutriments;Banane;Poitrine de poulet",
         "Prix;0.26;1.76",
     ]
-    out = scr.rewrite_catalog_csv(lines, {"Banane": 0.3}, unmatched=[])
+    out = scr.rewrite_catalog_csv(lines, {"Banane": 0.3}, removed=[])
     assert out == ["Nutriments;Banane;Poitrine de poulet", "Prix;0.3;1.76"]

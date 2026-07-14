@@ -133,8 +133,14 @@ def adonis_price_per_100g_edible(item: dict, edible: float = _EDIBLE_DEFAULT) ->
 def _matches(item: dict, spec: dict) -> bool:
     # On cherche dans le nom ET le slug d'URL (le nom img est parfois un nom de
     # marchand peu fiable ; le slug porte l'identité réelle du produit).
+    # `match` = "all" (défaut) : tous les mots-clés requis (ex. bell+pepper) ;
+    # "any" : au moins un (mots-clés SYNONYMES, ex. ground beef / extra lean beef).
     n = (str(item.get("name") or "") + " " + str(item.get("href") or "")).lower()
-    if any(not re.search(r"\b" + re.escape(kw), n) for kw in spec["kw"]):
+    kws = spec["kw"]
+    if spec.get("match", "all") == "any":
+        if not any(re.search(r"\b" + re.escape(kw), n) for kw in kws):
+            return False
+    elif any(not re.search(r"\b" + re.escape(kw), n) for kw in kws):
         return False
     return not any(re.search(r"\b" + re.escape(no), n) for no in spec.get("not", []))
 

@@ -66,12 +66,15 @@ def _build_catalog_map() -> dict[str, dict]:
     Les suppléments/marques Costco sont EXCLUS (→ retirés à la reconstruction).
     """
     m: dict[str, dict] = {}
+    # NON_PRODUCE_KW + laitiers = listes de SYNONYMES -> match "any" (au moins un
+    # mot-clé), sinon un item ne peut jamais porter les 2 synonymes à la fois.
     for name, kw in NON_PRODUCE_KW.items():
         if _is_supplement(name):
             continue
-        m[name] = {"kw": kw, "edible": 1.0}
-    m.update(_DAIRY_EGGS_SPEC)
-    m.update(PRODUCE_MAP)   # produce : edible/`not` spécifiques, prioritaires
+        m[name] = {"kw": kw, "edible": 1.0, "match": "any"}
+    for name, spec in _DAIRY_EGGS_SPEC.items():
+        m[name] = {**spec, "match": "any"}
+    m.update(PRODUCE_MAP)   # produce : match "all" (ex. bell+pepper), edible/`not` propres
     return m
 
 
@@ -85,16 +88,26 @@ def catalog_price_overlay(cache_items: list[dict]) -> dict[str, float]:
 
 
 def plan_rebuild(
-    catalog_items: list[str], overlay: dict[str, float]
-) -> tuple[dict[str, float], list[str]]:
-    """Sépare les aliments du catalogue en (matchés → nouveau prix, non matchés).
+    catalog_items: list[str], overlay: dict[str, float], mappable: set[str]
+) -> tuple[dict[str, float], list[str], list[str]]:
+    """Classe les aliments du catalogue en (matchés, retirés, gardés_sans_prix).
 
-    Un aliment sans prix Super C matché est « non vendu » → à retirer. L'ordre
-    des non matchés suit l'ordre du catalogue (rapport déterministe).
+    - `matched` : {aliment: prix Super C} — re-tarifés.
+    - `removed` : aliments HORS mapping (`mappable`) = suppléments / marques que
+      Super C ne vend pas → RETIRÉS (décision user).
+    - `kept_no_price` : aliments mappés mais sans prix Super C matché cette fois
+      (produit vendu mais gap de scrape / prix non dérivable) → CONSERVÉS avec
+      leur prix actuel, à vérifier/saisir. On NE les retire PAS : supprimer un
+      aliment que Super C vend sur un simple trou de scrape serait destructeur.
+
+    Ordre = ordre du catalogue (rapports déterministes).
     """
     matched = {name: overlay[name] for name in catalog_items if name in overlay}
-    unmatched = [name for name in catalog_items if name not in overlay]
-    return matched, unmatched
+    removed = [name for name in catalog_items if name not in mappable]
+    kept_no_price = [
+        name for name in catalog_items if name in mappable and name not in overlay
+    ]
+    return matched, removed, kept_no_price
 
 
 def _fmt_price(price: float) -> str:
@@ -103,22 +116,23 @@ def _fmt_price(price: float) -> str:
 
 
 def rewrite_catalog_csv(
-    lines: list[str], matched: dict[str, float], unmatched: list[str]
+    lines: list[str], matched: dict[str, float], removed: list[str]
 ) -> list[str]:
     """Réécrit le CSV transposé (`;`) en NE touchant QUE la ligne `Prix` (aliments
-    matchés) et en RETIRANT les colonnes des aliments non matchés.
+    matchés) et en RETIRANT les colonnes des aliments `removed` (hors mapping).
 
-    `lines` : lignes du CSV d'origine (sans `\\n` final). Ligne 0 = en-tête
-    (`Nutriments;aliment1;aliment2;…`). Toutes les autres teneurs (CIQUAL) sont
+    Les aliments mappés mais sans prix Super C (kept_no_price) NE sont PAS passés
+    ici → conservés tels quels. `lines` : lignes du CSV d'origine (sans `\\n`
+    final). Ligne 0 = en-tête (`Nutriments;aliment1;…`). Les teneurs CIQUAL sont
     préservées à l'identique. Retourne les nouvelles lignes.
     """
     if not lines:
         return []
     header = lines[0].split(";")
     foods = header[1:]
-    unmatched_set = set(unmatched)
+    removed_set = set(removed)
     # Indices de colonnes à RETIRER (décalés de 1 : la colonne 0 est le libellé).
-    drop = {i + 1 for i, f in enumerate(foods) if f in unmatched_set}
+    drop = {i + 1 for i, f in enumerate(foods) if f in removed_set}
     keep = [i for i in range(len(header)) if i not in drop]
 
     out: list[str] = []

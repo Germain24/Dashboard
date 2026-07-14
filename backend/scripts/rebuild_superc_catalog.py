@@ -25,6 +25,7 @@ from pathlib import Path
 from app.core.config import settings
 from app.services.sante.adonis_pricing import load_superc_cached_items
 from app.services.sante.superc_catalog_rebuild import (
+    CATALOG_MAP,
     catalog_price_overlay,
     plan_rebuild,
     rewrite_catalog_csv,
@@ -65,23 +66,28 @@ def main() -> int:
     catalog_items = lines[0].split(";")[1:] if lines else []
 
     overlay = catalog_price_overlay(items)
-    matched, unmatched = plan_rebuild(catalog_items, overlay)
-    new_lines = rewrite_catalog_csv(lines, matched, unmatched)
+    matched, removed, kept_no_price = plan_rebuild(catalog_items, overlay, set(CATALOG_MAP))
+    new_lines = rewrite_catalog_csv(lines, matched, removed)
 
     candidate = out_dir / "aliments.candidate.csv"
     report = out_dir / "items_retires.txt"
     candidate.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
     report.write_text(
-        "Aliments retirés (aucun prix Super C matché) :\n"
-        + "\n".join(f"- {name}" for name in unmatched)
-        + f"\n\nMatchés (re-tarifés Super C) : {len(matched)} / {len(catalog_items)}\n",
+        "Aliments RETIRÉS (hors Super C : suppléments / marques Costco) :\n"
+        + "\n".join(f"- {name}" for name in removed)
+        + "\n\nAliments CONSERVÉS mais SANS prix Super C matché (vendus chez Super C "
+        "mais trou de scrape / prix non dérivable — à vérifier ou saisir à la main ; "
+        "leur prix actuel est gardé) :\n"
+        + "\n".join(f"- {name}" for name in kept_no_price)
+        + f"\n\nRe-tarifés Super C : {len(matched)} / {len(catalog_items)}"
+        + f"\nRetirés : {len(removed)}   Conservés sans prix : {len(kept_no_price)}\n",
         encoding="utf-8",
     )
 
-    print(f"[rebuild] {len(matched)}/{len(catalog_items)} aliments re-tarifés Super C, "
-          f"{len(unmatched)} retirés.")
-    print(f"[rebuild] candidat  -> {candidate}")
-    print(f"[rebuild] retirés   -> {report}")
+    print(f"[rebuild] {len(matched)}/{len(catalog_items)} re-tarifés Super C ; "
+          f"{len(removed)} retirés (suppléments) ; {len(kept_no_price)} conservés sans prix.")
+    print(f"[rebuild] candidat -> {candidate}")
+    print(f"[rebuild] rapport  -> {report}")
     print("[rebuild] aliments.csv NON modifié. Compare puis bascule le candidat toi-même.")
     return 0
 
