@@ -163,10 +163,11 @@ def generate_plan(payload: PlanGenerateRequest, session: Session = Depends(get_s
     df = load_aliments_dataframe(session)
     if df.empty:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Catalogue aliments vide.")
-    # Fruits & légumes : re-tarifés au prix Adonis (scrape auto si le cache est
-    # périmé). Best-effort — n'échoue jamais l'optimisation. Voir adonis_pricing.
-    from app.services.sante.adonis_pricing import apply_adonis_produce_prices
-    df, _adonis_changed = apply_adonis_produce_prices(df, refresh=True)
+    # Fruits & légumes : re-tarifés au prix Super C (magasin unique, cache
+    # maintenu au démarrage). Best-effort — n'échoue jamais l'optimisation.
+    # Voir adonis_pricing.apply_superc_produce_prices.
+    from app.services.sante.adonis_pricing import apply_superc_produce_prices
+    df, _produce_changed = apply_superc_produce_prices(df)
     budget = payload.budget_max_daily if payload.budget_max_daily is not None else comp.get("Prix_Max")
     # « Re-générer » (force=True) : seed aléatoire -> un plan différent à chaque
     # clic. Première génération du jour (force=False) : déterministe (seed=None).

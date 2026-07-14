@@ -232,3 +232,45 @@ def apply_adonis_produce_prices(df, *, refresh: bool = True):
     except Exception as exc:
         logger.warning("[adonis] re-tarification ignorée (%s)", exc)
         return df, []
+
+
+# ── Super C (magasin unique, Phase 2 « Super C unique ») ──────────────────────
+# Le cache superc.json est du même schéma Instacart qu'Adonis (écrit par
+# frontend/.superc_scrape.mjs via store_pricing.refresh_all_if_stale au
+# démarrage), donc build_price_overlay / adonis_price_per_100g_edible sont
+# réutilisés tels quels : seule la source du cache change.
+# NOTE Phase 3 : renommer ce module (produce_pricing) et retirer le volet Adonis.
+
+def _superc_cache_path() -> Path:
+    return settings.imports_dir / "Cuisine" / "superc.json"
+
+
+def load_superc_cached_items() -> list[dict]:
+    path = _superc_cache_path()
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("items", [])
+    except Exception:
+        return []
+
+
+def apply_superc_produce_prices(df):
+    """Re-tarife les fruits & légumes du catalogue avec les prix Super C.
+
+    Best-effort : cache absent/illisible ou toute erreur -> `df` inchangé. La
+    fraîcheur du cache superc.json est assurée par
+    `store_pricing.refresh_all_if_stale` au démarrage (scrape search-based sur
+    les termes de la semaine) — pas de scrape à la volée ici. Désactivable via
+    SUPERC_PRODUCE_PRICING=0. Retourne (df, liste des aliments re-tarifés).
+    """
+    if os.getenv("SUPERC_PRODUCE_PRICING", "1") not in ("1", "true", "True"):
+        return df, []
+    try:
+        items = load_superc_cached_items()
+        if not items:
+            return df, []
+        return apply_overlay_to_df(df, build_price_overlay(items))
+    except Exception as exc:
+        logger.warning("[superc] re-tarification produce ignorée (%s)", exc)
+        return df, []
