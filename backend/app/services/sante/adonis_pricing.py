@@ -88,20 +88,28 @@ _LB_KG = 0.453592
 _OZ_KG = 0.0283495
 
 
+def _unit_to_kg(v: float, u: str) -> float | None:
+    """Convertit `v` d'unité `u` en kg. Le volume (ml/l) suppose une densité ≈
+    1 g/ml (eau/lait/sirop/conserves liquides) — approximation raisonnable pour
+    un candidat à revoir, sinon impossible de tarifer les produits en ml/L."""
+    return {
+        "kg": v, "g": v / 1000, "lb": v * _LB_KG, "oz": v * _OZ_KG,
+        "ml": v / 1000, "l": v,
+    }.get(u)
+
+
 def _format_weight_kg(item: dict) -> float | None:
-    """Poids (kg) déduit du format Adonis ("675 g", "1.75 kg", "6 oz") ou, à
-    défaut, du slug d'URL ("blackberries-6-oz", "gala-apple-3-lbs", "...-1-75-kg")."""
-    m = re.search(r"([\d.]+)\s*(kg|g|lb|oz)\b", item.get("format") or "", re.I)
+    """Poids (kg) déduit du format ("675 g", "1.75 kg", "540 ml", "2 l") ou, à
+    défaut, du slug d'URL ("blackberries-6-oz", "gala-apple-3-lbs", "...-1-75-kg").
+    Le volume (ml/l) est ramené au poids via densité ≈ 1 (cf. `_unit_to_kg`)."""
+    m = re.search(r"([\d.]+)\s*(kg|g|lb|oz|ml|l)\b", item.get("format") or "", re.I)
     if m:
-        v, u = float(m.group(1)), m.group(2).lower()
-        return {"kg": v, "g": v / 1000, "lb": v * _LB_KG, "oz": v * _OZ_KG}[u]
+        return _unit_to_kg(float(m.group(1)), m.group(2).lower())
     # Slug : "-6-oz", "-675-g", "-3-lbs", "-1-75-kg" (le point devient tiret).
     h = re.search(r"-(\d+(?:-\d+)?)-(kg|g|lbs?|oz|ml|l)(?:[-?/]|$)", item.get("href") or "", re.I)
     if h:
         v = float(h.group(1).replace("-", "."))
-        u = h.group(2).lower().rstrip("s")
-        if u in ("kg", "g", "lb", "oz"):
-            return {"kg": v, "g": v / 1000, "lb": v * _LB_KG, "oz": v * _OZ_KG}[u]
+        return _unit_to_kg(v, h.group(2).lower().rstrip("s"))
     return None
 
 

@@ -40,6 +40,18 @@ def test_price_none_when_no_weight_info():
     assert adonis_price_per_100g_edible({"name": "Berries", "price": 3.99, "format": ""}, 1.0) is None
 
 
+def test_price_from_volume_ml_assumes_unit_density():
+    # Conserve 540 ml à 1,79 $ -> densité ≈1 -> 0,540 kg -> 3,315 $/kg -> 0,331 $/100 g
+    item = {"name": "Chick Peas", "unit_price": None, "price": 1.79, "format": "540 ml"}
+    assert adonis_price_per_100g_edible(item, 1.0) == 0.331
+
+
+def test_price_from_volume_litres():
+    # Lait 2 L à 5,29 $ -> 2,645 $/kg -> 0,265 $/100 g (densité ≈1)
+    item = {"name": "Whole Milk", "unit_price": None, "price": 5.29, "format": "2 l"}
+    assert adonis_price_per_100g_edible(item, 1.0) == 0.265
+
+
 # ── Matching FR <-> Adonis (mots entiers, pas de faux positifs) ───────────────
 
 def test_apple_keyword_does_not_match_pineapple():
