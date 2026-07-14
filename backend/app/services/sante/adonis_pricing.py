@@ -139,13 +139,17 @@ def _matches(item: dict, spec: dict) -> bool:
     return not any(re.search(r"\b" + re.escape(no), n) for no in spec.get("not", []))
 
 
-def build_price_overlay(adonis_items: list[dict]) -> dict[str, float]:
-    """{aliment FR: prix CAD/100 g comestible} pour les fruits & légumes matchés.
+def build_price_overlay(adonis_items: list[dict], item_map: dict | None = None) -> dict[str, float]:
+    """{aliment FR: prix CAD/100 g comestible} pour les aliments matchés.
 
-    En cas de plusieurs correspondances, garde la MOINS chère (meilleur prix).
+    `item_map` (défaut : PRODUCE_MAP, les fruits & légumes) mappe chaque aliment
+    FR à `{kw, edible, not?}`. Passer un autre map (ex. CATALOG_MAP) pour couvrir
+    tout le catalogue. En cas de plusieurs correspondances, garde la MOINS chère.
     """
+    if item_map is None:
+        item_map = PRODUCE_MAP
     overlay: dict[str, float] = {}
-    for fr, spec in PRODUCE_MAP.items():
+    for fr, spec in item_map.items():
         best = None
         for it in adonis_items:
             if not (it.get("name") or it.get("href")) or not _matches(it, spec):

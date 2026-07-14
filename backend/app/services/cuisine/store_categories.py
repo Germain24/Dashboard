@@ -97,6 +97,13 @@ _CATEGORY_KW: dict[str, dict[str, list[str]]] = {
     "fruits_legumes": {fr: spec["kw"] for fr, spec in PRODUCE_MAP.items()},
 }
 
+# Mots-clés EN des aliments NON fruits/légumes (viandes, épicerie, tofu/protéines),
+# exposés pour la reconstruction du catalogue Super C (superc_catalog_rebuild.py) —
+# source unique, pas de re-duplication des mots-clés.
+NON_PRODUCE_KW: dict[str, list[str]] = {
+    **_PANTRY_KW, **_VIANDE_VOLUME_KW, **_VIANDE_NOBLE_KW, **_TOFU_PROTEINES_KW,
+}
+
 
 def categorie_achat(ingredient: str) -> str | None:
     """Catégorie d'achat de `ingredient` (nom FR exact, ex. "Tofu ferme"), ou
