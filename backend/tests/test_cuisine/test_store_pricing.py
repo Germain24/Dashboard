@@ -15,58 +15,53 @@ def _fake_loader(data: dict[str, list[dict]]):
     return loader
 
 
-def test_pantry_compares_superc_vs_adonis_cheapest_wins(monkeypatch):
+def test_pantry_uses_superc(monkeypatch):
     monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
         "superc": [{"name": "Basmati Rice", "price": 3.99}],
-        "adonis": [{"name": "Basmati Rice", "price": 4.49}],
     }))
     rec = store_pricing.recommend_store("Riz basmati (sec)")
     assert rec == {"magasin": "Super C", "prix_estime": 3.99, "promo": False}
 
 
-def test_viande_noble_excludes_superc_even_if_cheapest(monkeypatch):
-    # Lufa retiré (2026-07-07) : viande_noble ne compare plus rien, Adonis
-    # seul reste la source (Super C = éviter pour cette catégorie, design).
+def test_viande_noble_now_uses_superc(monkeypatch):
+    # viande_noble comparait Adonis seul (Super C = éviter, ancien design).
+    # Désormais tout passe par Super C.
     monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
-        "superc": [{"name": "Atlantic Salmon", "price": 1.0}],   # jamais comparé pour cette catégorie
-        "adonis": [{"name": "Atlantic Salmon", "price": 9.0}],
+        "superc": [{"name": "Atlantic Salmon", "price": 9.0}],
     }))
     rec = store_pricing.recommend_store("Saumon atlantique")
-    assert rec == {"magasin": "Adonis", "prix_estime": 9.0, "promo": False}
+    assert rec == {"magasin": "Super C", "prix_estime": 9.0, "promo": False}
 
 
-def test_viande_noble_no_recommendation_when_adonis_has_no_match(monkeypatch):
+def test_viande_noble_no_recommendation_when_superc_has_no_match(monkeypatch):
     monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
-        "superc": [{"name": "Atlantic Salmon", "price": 1.0}],   # jamais comparé
-        "adonis": [],
+        "superc": [],
     }))
     assert store_pricing.recommend_store("Saumon atlantique") is None
 
 
-def test_fruits_legumes_exception_items_always_superc_no_comparison(monkeypatch):
+def test_fruits_legumes_uses_superc(monkeypatch):
+    # L'exception "patate douce/oignon toujours Super C" est supprimée :
+    # tout fruits_legumes passe par Super C de toute façon.
     monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
         "superc": [{"name": "Sweet Potato", "price": 5.0}],
-        "adonis": [{"name": "Sweet Potato", "price": 0.5}],
     }))
     rec = store_pricing.recommend_store("Patate douce")
     assert rec == {"magasin": "Super C", "prix_estime": 5.0, "promo": False}
 
 
-def test_fruits_legumes_non_exception_uses_adonis_alone(monkeypatch):
-    # Lufa retiré : le reste des fruits/légumes (hors patate douce/oignon)
-    # retombe sur Adonis seul, sans comparaison.
+def test_fruits_legumes_banana_uses_superc(monkeypatch):
     monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
-        "adonis": [{"name": "Banana", "price": 0.31}],
+        "superc": [{"name": "Banana", "price": 0.31}],
     }))
     rec = store_pricing.recommend_store("Banane")
-    assert rec == {"magasin": "Adonis", "prix_estime": 0.31, "promo": False}
+    assert rec == {"magasin": "Super C", "prix_estime": 0.31, "promo": False}
 
 
 def test_superc_flyer_price_beats_regular_and_flags_promo(monkeypatch):
     monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
         "superc": [{"name": "Ground Turkey", "price": 6.0}],
         "superc_flyer": [{"name": "Ground Turkey", "price": 3.5}],
-        "adonis": [{"name": "Ground Turkey", "price": 5.0}],
     }))
     rec = store_pricing.recommend_store("Dinde hachee")
     assert rec == {"magasin": "Super C", "prix_estime": 3.5, "promo": True}
@@ -88,7 +83,6 @@ def test_no_match_in_either_store_returns_none(monkeypatch):
 def test_apply_recommendations_annotates_without_mutating_input(monkeypatch):
     monkeypatch.setattr(store_pricing, "load_cached_items", _fake_loader({
         "superc": [{"name": "Basmati Rice", "price": 3.99}],
-        "adonis": [{"name": "Basmati Rice", "price": 4.49}],
     }))
     items = [{"ingredient": "Riz basmati (sec)", "quantite": 500, "unite": "g", "rayon": "Épicerie"}]
     out = store_pricing.apply_recommendations(items)

@@ -1,14 +1,14 @@
-"""Comparaison de prix Super C / Adonis pour la liste de courses hebdo.
+"""Prix Super C pour la liste de courses hebdo (magasin unique).
 
 Pour chaque item, détermine sa catégorie d'achat (store_categories.py) puis
-compare le prix entre les magasins pertinents pour cette catégorie. Voir
-orchestration/finis/2026-07-06-lufa-superc-comparaison-prix-design.md.
+lit le meilleur prix Super C (prix courant + circulaire). Voir
+orchestration/a-faire/2026-07-14-superc-unique-design.md (Phase 1).
 
-Lufa a été retiré (2026-07-07, décision user) : impossible de créer un compte
-sans passer une commande, donc pas de scraping automatisable sans achat forcé.
-Les catégories qui comparaient contre Lufa (`viande_noble`, `fruits_legumes`)
-retombent sur leur seul magasin restant (Adonis), sans comparaison — même
-mécanique que l'exception Fruits/Légumes (Patate douce/Oignon → Super C seul).
+Historique : le système comparait autrefois Super C / Adonis / Lufa par
+catégorie. Lufa retiré le 2026-07-07 (compte impossible sans commande), puis
+passage à Super C unique le 2026-07-14 (décision user : éviter de faire
+plusieurs magasins). Adonis n'est plus une source de prix pour les courses ;
+la branche `adonis` de `load_cached_items` reste en place mais dormante.
 
 Best-effort partout : un cache manquant, un item non catégorisé, ou une
 erreur inattendue ne casse jamais la liste de courses — l'item reste juste
@@ -30,20 +30,16 @@ from app.services.cuisine import store_categories
 
 logger = logging.getLogger(__name__)
 
-# {categorie: (magasin_a, magasin_b)} pour comparer 2 magasins, ou {categorie:
-# magasin} pour un seul magasin sans comparaison (le 3e/2e magasin de la table
-# de priorité — design doc — est exclu "éviter" ou n'existe plus, cf. Lufa).
-CATEGORY_STORES: dict[str, tuple[str, str] | str] = {
-    "pantry": ("superc", "adonis"),
-    "viande_volume": ("adonis", "superc"),
-    "viande_noble": "adonis",  # Super C = éviter (design) ; Lufa retiré -> Adonis seul
-    "tofu_proteines": ("adonis", "superc"),
-    "fruits_legumes": "adonis",  # Lufa retiré -> Adonis seul (hors exception ci-dessous)
+# Magasin unique par catégorie : tout Super C (décision user 2026-07-14, cf.
+# orchestration/a-faire/2026-07-14-superc-unique-design.md). Fin de la
+# comparaison multi-magasins ; Adonis n'est plus une source pour les courses.
+CATEGORY_STORES: dict[str, str] = {
+    "pantry": "superc",
+    "viande_volume": "superc",
+    "viande_noble": "superc",
+    "tofu_proteines": "superc",
+    "fruits_legumes": "superc",
 }
-
-# Exception Fruits/Légumes : ces aliments restent toujours Super C, jamais
-# comparés (produits de base bon marché, cf. tableau du user).
-FRUITS_LEGUMES_SUPERC_ONLY = {"Patate douce", "Oignon"}
 
 _STORE_LABELS = {"superc": "Super C", "adonis": "Adonis"}
 
@@ -105,33 +101,17 @@ def _best_price(store: str, ingredient: str) -> tuple[float, bool] | None:
 
 def recommend_store(ingredient: str) -> dict | None:
     """{"magasin": str, "prix_estime": float, "promo": bool}, ou None si la
-    catégorie est inconnue ou qu'aucun prix n'a pu être matché."""
-    if ingredient in FRUITS_LEGUMES_SUPERC_ONLY:
-        result = _best_price("superc", ingredient)
-        if result is None:
-            return None
-        return {"magasin": "Super C", "prix_estime": round(result[0], 2), "promo": result[1]}
-
+    catégorie est inconnue ou qu'aucun prix n'a pu être matché. Magasin unique :
+    tout passe par Super C (promo circulaire incluse via _best_price)."""
     categorie = store_categories.categorie_achat(ingredient)
     if categorie is None or categorie not in CATEGORY_STORES:
         return None
-    stores = CATEGORY_STORES[categorie]
-    if isinstance(stores, str):
-        result = _best_price(stores, ingredient)
-        if result is None:
-            return None
-        price, promo = result
-        return {"magasin": _STORE_LABELS[stores], "prix_estime": round(price, 2), "promo": promo}
-    store_a, store_b = stores
-    result_a = _best_price(store_a, ingredient)
-    result_b = _best_price(store_b, ingredient)
-    if result_a is None and result_b is None:
+    store = CATEGORY_STORES[categorie]
+    result = _best_price(store, ingredient)
+    if result is None:
         return None
-    if result_b is None or (result_a is not None and result_a[0] <= result_b[0]):
-        winner, (price, promo) = store_a, result_a
-    else:
-        winner, (price, promo) = store_b, result_b
-    return {"magasin": _STORE_LABELS[winner], "prix_estime": round(price, 2), "promo": promo}
+    price, promo = result
+    return {"magasin": _STORE_LABELS[store], "prix_estime": round(price, 2), "promo": promo}
 
 
 def apply_recommendations(items: list[dict]) -> list[dict]:
