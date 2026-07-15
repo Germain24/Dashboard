@@ -36,6 +36,7 @@ vi.mock("@/lib/queries/garderobe", () => ({
   }),
   useSyncObjectif: () => ({ mutate: vi.fn(), isPending: false }),
   useAutoRattacher: () => ({ mutate: autoMutate, isPending: false }),
+  useSyncInventaire: () => ({ mutate: vi.fn(), isPending: false, data: undefined }),
 }));
 
 import { ObjectifTab } from "@/components/garderobe/ObjectifTab";

@@ -18,7 +18,7 @@ vi.mock("leaflet", () => ({
 const ITINERAIRE_COMPLET: Itineraire = {
   etapes: [
     {
-      lieu_id: 1, nom: "Table Mountain", jours: 2,
+      lieu_id: 1, nom: "Table Mountain", pays: "Afrique du Sud", jours: 2,
       date_arrivee: "2026-09-02", date_depart: "2026-09-04",
       lat: -33.96, lon: 18.6,
     },

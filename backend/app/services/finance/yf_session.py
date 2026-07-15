@@ -200,35 +200,152 @@ def _split_by_availability(raw, requested: list[str]):
     return raw[obtained], missing
 
 
+# Taille des lots du telechargement groupe. Un yf.download unique de milliers
+# de tickers ne peut JAMAIS finir sous un timeout de 180s des lors que le
+# throttle global espace chaque requete (2000/h = 1,8s -> ~100 requetes max en
+# 180s). #bug rapporte : 2898 tickers eligibles -> 3 tentatives vides -> run
+# termine sans allocation ("Cours indisponibles").
+BULK_CHUNK_SIZE = 50
+
+
+def _chunk_timeout_s(n_tickers: int) -> float:
+    """Timeout d'un lot : au moins le temps que le throttle global impose de
+    toute facon (n requetes espacees de GLOBAL_MIN_INTERVAL_S, marge x1.5 pour
+    les requetes concurrentes d'autres appelants) + le timeout reseau de base."""
+    return n_tickers * GLOBAL_MIN_INTERVAL_S * 1.5 + DOWNLOAD_TIMEOUT_S
+
+
+# Cache quotidien des CLOTURES par (ticker, period, interval) --
+# uniquement la colonne "Close" (seule consommee par les deux appelants, via
+# `close_prices_from_download`) pour rester leger (~10 Ko/ticker sur 5 ans au
+# lieu de ~60 Ko en OHLCV complet). Opt-in (`use_cache=True`) : le bouton
+# "Creer le portefeuille optimal" re-telechargait les MEMES ~2900 cours 5 ans
+# que le run venait d'obtenir (~87 min sous throttle 2000/h), pour rien.
+# Deux niveaux : memoire (rapide) + disque (pickle par ticker) -- le disque
+# survit aux redemarrages d'uvicorn --reload (chaque edition de code tuait le
+# cache memoire et faisait repayer ~3h de telechargement a la reprise).
+_bulk_close_cache: dict = {}  # (ticker, period, interval) -> (date, Series Close)
+
+from pathlib import Path
+
+PRICE_CACHE_DIR = Path(__file__).resolve().parents[4] / "data" / "cache" / "price_history"
+
+
+def _cache_filename(ticker: str, key: tuple) -> str:
+    import re
+    return re.sub(r"[^A-Za-z0-9._-]", "_", f"{ticker}__{key[0]}_{key[1]}") + ".pkl"
+
+
+def _bulk_cache_get(ticker: str, key: tuple, today):
+    """Serie Close du jour pour (ticker, period, interval), memoire puis disque
+    (None si absente ou d'un jour precedent)."""
+    entry = _bulk_close_cache.get((ticker, *key))
+    if entry and entry[0] == today:
+        return entry[1]
+    try:
+        import pickle
+        path = PRICE_CACHE_DIR / _cache_filename(ticker, key)
+        if path.exists():
+            with open(path, "rb") as f:
+                day, series = pickle.load(f)
+            if day == today:
+                _bulk_close_cache[(ticker, *key)] = (today, series)
+                return series
+    except Exception:
+        pass
+    return None
+
+
+def _bulk_cache_put(ticker: str, key: tuple, today, series) -> None:
+    """Stocke la serie Close en memoire ET sur disque (best-effort)."""
+    _bulk_close_cache[(ticker, *key)] = (today, series)
+    try:
+        import pickle
+        PRICE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        with open(PRICE_CACHE_DIR / _cache_filename(ticker, key), "wb") as f:
+            pickle.dump((today, series), f)
+    except Exception:
+        pass
+
+
+def clear_bulk_cache() -> None:
+    """Vide le cache MEMOIRE des clotures (tests / rafraichissement force).
+    Le cache disque expire seul (date du jour verifiee a la lecture)."""
+    _bulk_close_cache.clear()
+
+
 def download_prices_bulk_with_retry(
-    tickers: list[str], *, retries: int = 2, cooldown_s: float = 30.0, **download_kwargs,
+    tickers: list[str], *, retries: int = 2, cooldown_s: float = 30.0,
+    chunk_size: int = BULK_CHUNK_SIZE, on_progress=None, use_cache: bool = False,
+    **download_kwargs,
 ):
-    """`download_with_timeout` avec une nouvelle tentative PAR TICKER : seuls
-    les tickers encore sans donnees sont redemandes (ceux deja obtenus ne sont
-    pas re-telecharges) ; un ticker toujours sans donnees apres `retries`
-    tentatives est ignore (absent du resultat final) SANS faire echouer les
-    autres.
+    """Telechargement groupe PAR LOTS de `chunk_size` tickers, chaque lot avec
+    un timeout proportionnel a sa taille (cf. `_chunk_timeout_s`), avec une
+    nouvelle tentative PAR TICKER : seuls les tickers encore sans donnees sont
+    redemandes (ceux deja obtenus ne sont pas re-telecharges) ; un ticker
+    toujours sans donnees apres `retries` tentatives est ignore (absent du
+    resultat final) SANS faire echouer les autres.
+
+    `on_progress(n_traites, n_total)` est appele apres chaque lot (best-effort).
 
     Un rate-limit Yahoo Finance transitoire (frequent juste apres une rafale de
     milliers de requetes individuelles de scoring -- cf. `runner.py`) peut faire
     echouer une partie ou la totalite d'un telechargement groupe en quelques
-    secondes, bien avant le timeout de `download_with_timeout` (#bug rapporte :
-    le run finissait en erreur ~40s apres la fin du scoring, pas apres 180s ;
-    et un run pouvait s'arreter en erreur a cause d'une poignee de tickers
-    persistants alors que le reste du lot etait disponible). Le resultat
-    n'est vide QUE si aucun ticker n'a jamais pu etre obtenu."""
+    secondes, bien avant le timeout du lot (#bug rapporte : le run finissait en
+    erreur ~40s apres la fin du scoring ; et un run pouvait s'arreter en erreur
+    a cause d'une poignee de tickers persistants alors que le reste du lot
+    etait disponible). Le resultat n'est vide QUE si aucun ticker n'a jamais
+    pu etre obtenu."""
+    import datetime as _dt
     import time
 
     import pandas as pd
 
     remaining = list(tickers)
+    n_total = len(remaining)
     frames = []
+
+    cache_key = (str(download_kwargs.get("period")), str(download_kwargs.get("interval")))
+    today = _dt.date.today()
+    if use_cache:
+        hits = {}
+        for t in remaining:
+            series = _bulk_cache_get(t, cache_key, today)
+            if series is not None:
+                hits[t] = pd.DataFrame({"Close": series})
+        if hits:
+            frames.append(pd.concat(hits, axis=1))
+            remaining = [t for t in remaining if t not in hits]
+            print(f"[yf_session] {len(hits)} ticker(s) servis par le cache du jour, "
+                  f"{len(remaining)} a telecharger")
+
     attempt = 0
     while remaining:
-        raw = download_with_timeout(tickers=remaining, session=yf_session(), **download_kwargs)
-        obtained_df, remaining = _split_by_availability(raw, remaining)
-        if not obtained_df.empty:
-            frames.append(obtained_df)
+        still_missing: list[str] = []
+        n_processed = n_total - len(remaining)
+        for i in range(0, len(remaining), chunk_size):
+            chunk = remaining[i:i + chunk_size]
+            raw = download_with_timeout(
+                timeout_s=_chunk_timeout_s(len(chunk)),
+                tickers=chunk, session=yf_session(), **download_kwargs,
+            )
+            obtained_df, missing = _split_by_availability(raw, chunk)
+            if not obtained_df.empty:
+                frames.append(obtained_df)
+                if use_cache:
+                    for t in set(obtained_df.columns.get_level_values(0)):
+                        try:
+                            _bulk_cache_put(t, cache_key, today, obtained_df[t]["Close"])
+                        except Exception:
+                            pass
+            still_missing.extend(missing)
+            n_processed += len(chunk)
+            if on_progress is not None:
+                try:
+                    on_progress(n_processed, n_total)
+                except Exception:
+                    pass
+        remaining = still_missing
         if not remaining:
             break
         attempt += 1

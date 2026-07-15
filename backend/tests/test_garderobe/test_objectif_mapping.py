@@ -43,3 +43,19 @@ def test_derive_non_mappable_renvoie_none():
 def test_derive_type_absent_des_noms_renvoie_none():
     # "Polos" mappé mais absent de la liste fournie -> None
     assert derive_type_objectif("Haut", "Polo", ["T-shirts"]) is None
+
+
+def test_derive_nouveaux_types_inventaire():
+    """Types du nouvel inventaire Desktop (2026-07-13) : exterieurs mappes."""
+    types = TYPES + ["Manteaux", "Coupe-vent / Imperméables"]
+    assert derive_type_objectif("Manteau", "Blouson", types) == "Vestes légères"
+    assert derive_type_objectif("Veste", "Veste", types) == "Vestes légères"
+    assert derive_type_objectif("Manteau", "Manteau", types) == "Manteaux"
+    assert derive_type_objectif("Manteau", "Coupe-vent", types) == "Coupe-vent / Imperméables"
+    assert derive_type_objectif("Pantalon", "Jogging", types) == "Jogging"
+
+
+def test_accessoires_restent_non_mappes():
+    types = TYPES + ["Manteaux", "Coupe-vent / Imperméables"]
+    for sous_cat in ("Smartwatch", "Montre Analogique", "Bracelet", "Collier", "Lunettes de Vue"):
+        assert derive_type_objectif(None, sous_cat, types) is None

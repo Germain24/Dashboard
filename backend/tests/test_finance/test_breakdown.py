@@ -47,6 +47,16 @@ def test_breakdown_unknown_lookthrough_goes_to_inconnu():
     assert abs(b["agressif"] - 1.0) < 1e-9
 
 
+def test_breakdown_unknown_lookthrough_redistributed_when_peers_known():
+    # X (or physique, pas de pays) à côté de A (pays connu) : X est
+    # réparti au prorata de A plutôt que dans "Inconnu".
+    w = {"A": 50, "X": 50}
+    paysmap = {"A": {"France": 1.0}}
+    b = portfolio_breakdown(w, {}, paysmap, {}, {})
+    assert "Inconnu" not in b["pays"]
+    assert abs(b["pays"]["France"] - 1.0) < 1e-9
+
+
 def test_breakdown_ignores_zero_and_negative_weights():
     w = {"A": 100, "B": 0, "C": -5}
     b = portfolio_breakdown(w, {"A": 1.0}, {"A": {"USA": 1.0}}, {"A": "Actions"}, {"A": "Tech"})

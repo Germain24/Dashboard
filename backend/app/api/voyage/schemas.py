@@ -19,6 +19,10 @@ class LieuVoyageOut(BaseModel):
     complet: bool
 
 
+class LieuProcheOut(LieuVoyageOut):
+    distance_km: float
+
+
 class SyncVoyageOut(BaseModel):
     lieux: int
     incomplets: list[str]
@@ -42,6 +46,7 @@ class PointItineraire(BaseModel):
 class EtapeItineraire(BaseModel):
     lieu_id: int
     nom: str
+    pays: str | None
     jours: int
     date_arrivee: dt.date
     date_depart: dt.date
@@ -60,3 +65,21 @@ class ItineraireOut(BaseModel):
 
 class ConfirmerRequest(BaseModel):
     lieu_ids: list[int]
+
+
+class PlanifierAutoRequest(BaseModel):
+    """Planification sans sélection manuelle : les candidats sont choisis
+    automatiquement par proximité de `depart_iata` (comme /suggerer). Les
+    prix de vol sont estimés localement (aucun appel réseau), donc
+    `max_lieux` peut aller jusqu'à MAX_CANDIDATS sans risque de timeout."""
+    depart_iata: str = "YUL"
+    arrivee_iata: str | None = None
+    date_debut: dt.date
+    date_fin: dt.date
+    budget_total: float
+    k: int = 10
+    max_lieux: int = 25
+
+
+class ItinerairesMultiOut(BaseModel):
+    itineraires: list[ItineraireOut]

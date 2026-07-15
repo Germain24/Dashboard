@@ -76,3 +76,38 @@ def load_lookthrough(path: str | None = None) -> tuple[dict[str, float], dict[st
         pass
 
     return defensif, pays
+
+
+def fill_unknown_countries(
+    pays: dict[str, dict[str, float]], tickers: list[str],
+) -> dict[str, dict[str, float]]:
+    """Complète, pour les `tickers` sans répartition pays connue (ex. ETC or/argent/
+    platine physiques -- pas d'émetteur national), une répartition au prorata de la
+    moyenne des répartitions CONNUES parmi `tickers`.
+
+    Sans ça, un tel ticker compte pour 0% dans CHAQUE pays vis-à-vis du plafond
+    ``MAX_COUNTRY_PCT`` (invisible à la contrainte) et son poids atterrit dans un
+    seau "Inconnu" opaque en reporting. Décision utilisateur (#buffett) : préférer
+    répartir ce poids entre les pays déjà présents plutôt que le traiter comme un
+    risque-pays nul ou un angle mort.
+
+    Si AUCUN ticker de `tickers` n'a de répartition connue, renvoie tel quel (rien
+    à répartir -- le seau "Inconnu" reste alors le seul repli sensé).
+    """
+    tickers_u = [str(t).upper() for t in tickers]
+    known = {t: pays[t] for t in tickers_u if pays.get(t)}
+    unknown = [t for t in tickers_u if not pays.get(t)]
+    if not unknown or not known:
+        return {t: pays.get(t, {}) for t in tickers_u}
+
+    agg: dict[str, float] = {}
+    for pm in known.values():
+        for c, f in pm.items():
+            agg[c] = agg.get(c, 0.0) + f
+    total = sum(agg.values())
+    avg = {c: f / total for c, f in agg.items()} if total > 0 else {}
+
+    out = {t: pays.get(t, {}) for t in tickers_u}
+    for t in unknown:
+        out[t] = avg
+    return out

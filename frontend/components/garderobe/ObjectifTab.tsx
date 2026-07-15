@@ -1,13 +1,14 @@
 "use client";
 
-import { RefreshCw, Sparkles } from "lucide-react";
-import { useObjectif, useSyncObjectif, useAutoRattacher } from "@/lib/queries/garderobe";
+import { FolderSync, RefreshCw, Sparkles } from "lucide-react";
+import { useObjectif, useSyncObjectif, useAutoRattacher, useSyncInventaire } from "@/lib/queries/garderobe";
 import { ObjectifBar } from "./ObjectifBar";
 
 export function ObjectifTab() {
   const objectifQ = useObjectif();
   const syncMut = useSyncObjectif();
   const autoMut = useAutoRattacher();
+  const invMut = useSyncInventaire();
 
   if (objectifQ.isLoading) {
     return <div className="p-2 text-[var(--muted-foreground)]">Chargement de l'objectif…</div>;
@@ -28,6 +29,19 @@ export function ObjectifTab() {
           emplacements remplis
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => invMut.mutate()}
+            disabled={invMut.isPending}
+            title="Importe Vetements.xlsx + pixel arts + photos du dossier inventaire (Desktop)"
+            className="flex items-center gap-2 rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)] disabled:opacity-50"
+          >
+            <FolderSync className={`h-4 w-4 ${invMut.isPending ? "animate-pulse" : ""}`} />
+            {invMut.isPending
+              ? "Import…"
+              : invMut.data
+                ? `Importé : ${invMut.data.crees} créées, ${invMut.data.maj} maj`
+                : "Importer l'inventaire"}
+          </button>
           <button
             onClick={() => autoMut.mutate()}
             disabled={autoMut.isPending}

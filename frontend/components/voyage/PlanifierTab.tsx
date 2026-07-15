@@ -4,7 +4,14 @@ import { useState } from "react";
 import { usePlanifier, useConfirmerVoyage } from "@/lib/queries/voyage";
 import type { Itineraire } from "@/lib/voyage";
 import { notifySuccess } from "@/lib/toast";
+import { DatePicker } from "@/components/ui/date-picker";
 import dynamic from "next/dynamic";
+
+function todayPlus(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 const ItineraryMap = dynamic(
   () => import("./ItineraryMap").then((m) => m.ItineraryMap),
@@ -57,16 +64,14 @@ export function PlanifierTab({
           <input type="number" value={budget} onChange={(e) => setBudget(Number(e.target.value))}
                  className="mt-1 w-full rounded border border-[var(--border)] p-1.5" />
         </label>
-        <label className="text-sm">
-          Date de début
-          <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)}
-                 className="mt-1 w-full rounded border border-[var(--border)] p-1.5" />
-        </label>
-        <label className="text-sm">
-          Date de fin
-          <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)}
-                 className="mt-1 w-full rounded border border-[var(--border)] p-1.5" />
-        </label>
+        <DatePicker
+          id="planifier-date-debut" label="Date de début"
+          value={dateDebut} min={todayPlus(0)} onChange={setDateDebut}
+        />
+        <DatePicker
+          id="planifier-date-fin" label="Date de fin"
+          value={dateFin} min={dateDebut || todayPlus(0)} onChange={setDateFin}
+        />
       </div>
       <button
         onClick={soumettre}

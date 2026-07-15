@@ -5,24 +5,44 @@ from __future__ import annotations
 from .config import Config
 
 
-def fetch_data(symbol: str, rate_limiter=None) -> dict | None:
-    """Télécharge income / balance / cashflow / info depuis yfinance."""
+def _rotate_session_safe() -> None:
+    """Force une session curl_cffi neuve pour le thread courant (nouvelle IP si
+    un pool de proxys est configuré). Yahoo bloque transitoirement une session
+    (401 "Invalid Crumb", "User is unable to access this feature", quoteSummary
+    None -> "argument of type 'NoneType' is not iterable") : changer de session
+    débloque souvent immédiatement, sans attendre le prochain run."""
     try:
-        import yfinance as yf
+        from app.services.finance.yf_session import rotate_session
+        rotate_session()
+    except Exception:
+        pass
 
-        from app.services.finance.yf_session import yf_session
-        if rate_limiter:
-            rate_limiter.wait_for_slot()
-        t = yf.Ticker(symbol, session=yf_session())
-        return {
-            "income": t.financials.transpose(),
-            "balance": t.balance_sheet.transpose(),
-            "cashflow": t.cashflow.transpose(),
-            "info": t.info,
-        }
-    except Exception as e:
-        print(f"[data_fetch] Erreur {symbol}: {e}")
-        return None
+
+def fetch_data(symbol: str, rate_limiter=None) -> dict | None:
+    """Télécharge income / balance / cashflow / info depuis yfinance.
+
+    Un échec (souvent un blocage transitoire Yahoo, cf. `_rotate_session_safe`)
+    est retenté UNE fois avec une session neuve avant d'abandonner le ticker.
+    """
+    for attempt in (1, 2):
+        try:
+            import yfinance as yf
+
+            from app.services.finance.yf_session import yf_session
+            if rate_limiter:
+                rate_limiter.wait_for_slot()
+            t = yf.Ticker(symbol, session=yf_session())
+            return {
+                "income": t.financials.transpose(),
+                "balance": t.balance_sheet.transpose(),
+                "cashflow": t.cashflow.transpose(),
+                "info": t.info,
+            }
+        except Exception as e:
+            print(f"[data_fetch] Erreur {symbol} (tentative {attempt}/2): {e}")
+            if attempt == 1:
+                _rotate_session_safe()
+    return None
 
 
 def fetch_info_only(symbol: str, rate_limiter=None) -> dict | None:
@@ -34,18 +54,24 @@ def fetch_info_only(symbol: str, rate_limiter=None) -> dict | None:
     un ETF connu (`_check_is_etf`) sans cache ni fichier local exploitable :
     évite 3 des 4 appels yfinance de `fetch_data()` (financials/balance/
     cashflow sont inutiles et téléchargés en pure perte pour un ETF).
-    """
-    try:
-        import yfinance as yf
 
-        from app.services.finance.yf_session import yf_session
-        if rate_limiter:
-            rate_limiter.wait_for_slot()
-        t = yf.Ticker(symbol, session=yf_session())
-        return {"info": t.info}
-    except Exception as e:
-        print(f"[data_fetch] Erreur info {symbol}: {e}")
-        return None
+    Même politique de reprise que `fetch_data` : un échec est retenté une fois
+    avec une session neuve.
+    """
+    for attempt in (1, 2):
+        try:
+            import yfinance as yf
+
+            from app.services.finance.yf_session import yf_session
+            if rate_limiter:
+                rate_limiter.wait_for_slot()
+            t = yf.Ticker(symbol, session=yf_session())
+            return {"info": t.info}
+        except Exception as e:
+            print(f"[data_fetch] Erreur info {symbol} (tentative {attempt}/2): {e}")
+            if attempt == 1:
+                _rotate_session_safe()
+    return None
 
 
 def load_local_data(ticker: str) -> dict | None:

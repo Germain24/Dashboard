@@ -30,9 +30,16 @@ _RAW_MAPPING: dict[str, str] = {
     "Jean": "Jeans",
     "Jean Ballon": "Jeans",
     "Wide-Leg": "Pantalons habillés",
+    "Jogging": "Jogging",
     "Trackpants": "Jogging",
     "Bomber": "Vestes légères",
+    "Blouson": "Vestes légères",
+    # Défaut pour les « Veste » génériques de l'inventaire -- à préciser pièce
+    # par pièce (blazer / overshirt / veste de sport) via le sélecteur manuel.
+    "Veste": "Vestes légères",
     "Veste Sport": "Vestes de sport",
+    "Manteau": "Manteaux",
+    "Coupe-vent": "Coupe-vent / Imperméables",
     "Chelsea Boots": "Bottines",
     "Bottes de Neige": "Bottines",
     "Lunettes de Soleil": "Lunettes de soleil",

@@ -2,7 +2,11 @@
 
 Pour l'évolution du patrimoine PAR COMPTE dans le temps (histogramme empilé), on
 lit la valeur de clôture de chaque relevé mensuel :
-- Trading212 : « Account value » de chaque Activity Statement (PDF).
+- Trading212 : « Account value » de chaque Activity Statement (PDF) ; si aucun
+  PDF n'est disponible (remplacés par un export CSV complet), repli sur un
+  point "aujourd'hui" dérivé du ledger de transactions (cf. `_t212_ledger_point`)
+  -- pas d'historique mois par mois reconstruit depuis le CSV (nécessiterait les
+  cours historiques de chaque titre à chaque date).
 - Desjardins (compte chèque) : dernier solde du CSV AccèsD (col 13), CAD→EUR.
 - Banque Populaire : « SOLDE CREDITEUR AU … * » de chaque Extrait de compte (PDF).
 - Wise : non géré pour l'instant (XLSX multi-devises) → repli valeur courante.
@@ -235,6 +239,33 @@ def _wise_points() -> list[tuple[dt.date, float]]:
     return aggregate_wise(per, lambda amt, d: to_eur(amt, d))
 
 
+def t212_value_from_state(state: dict, today: dt.date | None = None) -> tuple[dt.date, float]:
+    """(date du jour, cash + positions Trading212) à partir d'un état déjà
+    calculé par `get_portfolio_state` -- pur, testable sans DB."""
+    cash = state["cash_par_broker"].get("Trading212", 0.0)
+    positions_val = sum(p["valeur"] for p in state["positions"] if p["broker"] == "Trading212")
+    return (today or dt.date.today()), round(cash + positions_val, 2)
+
+
+def _t212_ledger_point() -> tuple[dt.date, float] | None:
+    """Valeur ACTUELLE du compte Trading212 (cash + positions au cours du
+    jour), dérivée du ledger de transactions -- repli quand aucun PDF Activity
+    Statement n'est disponible (le CSV complet ne permet pas de reconstruire
+    l'historique MOIS PAR MOIS sans retélécharger les cours historiques de
+    chaque titre à chaque date, coûteux et risqué côté rate-limit). Un seul
+    point "aujourd'hui", pas une série -- mieux que de faire disparaître
+    Trading212 de l'historique (report par carry-forward par `_fill`)."""
+    from sqlmodel import Session
+    from app.core.db import engine
+    from app.services.finance.portfolio_state import get_portfolio_state
+    try:
+        with Session(engine) as s:
+            state = get_portfolio_state(s)
+        return t212_value_from_state(state)
+    except Exception:
+        return None
+
+
 def _westpac_points() -> list[tuple[dt.date, float]]:
     """Solde de clôture (AUD→EUR) de chaque relevé Westpac Choice."""
     base = _releve_dir() / "Westpac"
@@ -267,12 +298,19 @@ def account_history_points(*, force: bool = False) -> dict[str, list[tuple[dt.da
         d = base / sub
         return sorted(d.rglob(pattern)) if d.exists() else []
 
-    t212 = _glob("Tradding212", "Activity-Statement-*.pdf")
+    t212_pdf = _glob("Tradding212", "Activity-Statement-*.pdf")
+    t212_csv = _glob("Tradding212", "*.csv")
     desj = _glob("Desjardins/Debit", "*.csv")
     bp = _glob("Banque populaire", "*.pdf")
     wise = _glob("Wise", "*.xlsx")
     westpac = _glob("Westpac", "*.pdf")
-    sig = [p.name for p in (*t212, *desj, *bp, *wise, *westpac)]
+    sig = [p.name for p in (*t212_pdf, *desj, *bp, *wise, *westpac)]
+    if not t212_pdf and t212_csv:
+        # Pas de PDF Activity Statement (remplacés par un export CSV complet) :
+        # le point de repli (valeur du jour dérivée du ledger, cf.
+        # `_t212_ledger_point`) doit se rafraîchir à chaque jour ET à chaque
+        # ré-import CSV, pas seulement quand la liste de fichiers change.
+        sig = sig + [p.name for p in t212_csv] + [dt.date.today().isoformat()]
 
     cache = _cache_path()
     if not force and cache.exists():
@@ -293,13 +331,17 @@ def account_history_points(*, force: bool = False) -> dict[str, list[tuple[dt.da
     out: dict[str, list[tuple[dt.date, float]]] = {}
 
     pts: list[tuple[dt.date, float]] = []
-    for pdf in t212:
+    for pdf in t212_pdf:
         try:
             p = parse_trading212_statement(extract_pdf_text(pdf.read_bytes()))
             if p["account_value"] and p["date"]:
                 pts.append((dt.date.fromisoformat(p["date"]), round(float(p["account_value"]), 2)))
         except Exception:
             pass
+    if not pts and t212_csv:
+        fallback = _t212_ledger_point()
+        if fallback:
+            pts.append(fallback)
     if pts:
         out["Trading 212"] = sorted(set(pts))
 

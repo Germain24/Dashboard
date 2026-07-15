@@ -9,11 +9,35 @@ from __future__ import annotations
 
 import datetime as dt
 import threading
+import time
 from collections.abc import Callable, Iterable
 
 # ticker -> (date du cours, prix)
 _cache: dict[str, tuple[dt.date, float]] = {}
+# Cache NEGATIF : ticker -> epoch du dernier fetch en echec. Sans lui, un ticker
+# invalide (delisted, symbole sans suffixe .PA...) etait re-telecharge a CHAQUE
+# appel (fast_info + history 1y + history 5d, avec retries yfinance), derriere
+# le throttle global Yahoo -- famine des endpoints interactifs (#ECONNRESET sur
+# /finance/state pendant un run Buffett) et spam de logs "possibly delisted".
+_failed: dict[str, float] = {}
+NEG_RETRY_S = 3600.0  # re-tenter un ticker en echec au plus 1x/heure
 _lock = threading.Lock()
+
+
+def _now() -> float:  # injectable dans les tests
+    return time.time()
+
+
+def _analysis_running() -> bool:
+    """Vrai si une analyse Buffett tourne dans ce process. Pendant un run, le
+    throttle global Yahoo est saturé par les workers de scoring : un fetch live
+    interactif ferait la queue plusieurs minutes -> proxy Next "socket hang up"
+    (#ECONNRESET sur /finance/state). On sert alors le dernier cours connu."""
+    try:
+        from app.services.finance.scheduler_stub import is_analysis_running
+        return is_analysis_running()
+    except Exception:
+        return False
 
 
 def _default_fetch(tickers: list[str]) -> dict[str, float]:
@@ -49,11 +73,17 @@ def get_prices(
 
     result: dict[str, float] = {}
     stale: list[str] = []
+    now = _now()
+    analysis = _analysis_running()
     with _lock:
         for t in ordered:
             entry = _cache.get(t)
             if entry and entry[0] == today:
                 result[t] = entry[1]
+            elif analysis or now - _failed.get(t, float("-inf")) < NEG_RETRY_S:
+                # Analyse en cours OU echec recent -> ne PAS re-frapper yfinance,
+                # servir le dernier cours connu (meme d'un jour precedent)
+                result[t] = _cache[t][1] if t in _cache else 0.0
             else:
                 stale.append(t)
 
@@ -64,11 +94,11 @@ def get_prices(
                 price = float(fetched.get(t, 0) or 0)
                 if price > 0:
                     _cache[t] = (today, price)
+                    _failed.pop(t, None)
                     result[t] = price
-                elif t in _cache:
-                    result[t] = _cache[t][1]  # fetch échoué -> dernier cours connu
                 else:
-                    result[t] = 0.0
+                    _failed[t] = now
+                    result[t] = _cache[t][1] if t in _cache else 0.0
     return result
 
 
@@ -81,3 +111,4 @@ def clear_cache() -> None:
     """Vide le cache (tests / rafraîchissement forcé)."""
     with _lock:
         _cache.clear()
+        _failed.clear()

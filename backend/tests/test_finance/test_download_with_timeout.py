@@ -257,3 +257,198 @@ def test_bulk_retry_per_ticker_returns_empty_when_nothing_ever_succeeds(monkeypa
 
     result = download_prices_bulk_with_retry(["A", "B"], retries=1, cooldown_s=0.01)
     assert result.empty
+
+
+# ── Telechargement par LOTS -- un yf.download unique de milliers de tickers ne
+# peut jamais finir sous le timeout dur de 180s des lors que le throttle global
+# espace chaque requete (2000/h = 1,8s) : ~100 requetes max par appel. #bug
+# rapporte : 2898 tickers eligibles -> 3 tentatives vides -> run termine sans
+# allocation ("Cours indisponibles"). Le telechargement doit se faire par lots
+# dont le timeout est proportionnel a la taille du lot. ──
+
+def test_bulk_download_is_chunked(monkeypatch):
+    calls = []
+
+    def fake_download(**kwargs):
+        chunk = list(kwargs["tickers"])
+        calls.append(chunk)
+        return _fake_raw(chunk)
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    result = download_prices_bulk_with_retry(
+        ["A", "B", "C", "D", "E"], retries=1, cooldown_s=0.01, chunk_size=2,
+    )
+
+    assert calls == [["A", "B"], ["C", "D"], ["E"]]
+    assert set(result.columns.get_level_values(0)) == {"A", "B", "C", "D", "E"}
+
+
+def test_bulk_download_retries_only_missing_across_chunks(monkeypatch):
+    """C (2e lot) echoue au 1er tour ; le 2e tour ne redemande QUE C."""
+    calls = []
+
+    def fake_download(**kwargs):
+        chunk = list(kwargs["tickers"])
+        calls.append(chunk)
+        if calls.count(chunk) == 1 and chunk == ["C", "D"]:
+            return _fake_raw(["D"])  # C manquant au 1er tour
+        return _fake_raw(chunk)
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    result = download_prices_bulk_with_retry(
+        ["A", "B", "C", "D"], retries=2, cooldown_s=0.01, chunk_size=2,
+    )
+
+    assert calls == [["A", "B"], ["C", "D"], ["C"]]
+    assert set(result.columns.get_level_values(0)) == {"A", "B", "C", "D"}
+
+
+def test_chunk_timeout_scales_with_chunk_size_and_throttle(monkeypatch):
+    """Le timeout d'un lot doit couvrir AU MOINS le temps que le throttle global
+    impose (n tickers x GLOBAL_MIN_INTERVAL_S), sinon le lot expire a coup sur."""
+    monkeypatch.setattr(yf_session_module, "GLOBAL_MIN_INTERVAL_S", 3.6)
+    timeouts = []
+
+    def fake_download(**kwargs):
+        timeouts.append(kwargs.get("timeout_s"))
+        return _fake_raw(list(kwargs["tickers"]))
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    download_prices_bulk_with_retry(
+        [f"T{i}" for i in range(50)], retries=0, cooldown_s=0.01, chunk_size=50,
+    )
+
+    assert len(timeouts) == 1
+    assert timeouts[0] is not None
+    assert timeouts[0] >= 50 * 3.6  # jamais moins que le temps impose par le throttle
+
+
+def test_bulk_download_reports_progress_per_chunk(monkeypatch):
+    progress = []
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: _fake_raw(list(kw["tickers"])))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    download_prices_bulk_with_retry(
+        ["A", "B", "C"], retries=0, cooldown_s=0.01, chunk_size=2,
+        on_progress=lambda done, total: progress.append((done, total)),
+    )
+
+    assert progress == [(2, 3), (3, 3)]
+
+
+# ── Cache memoire quotidien des clotures (opt-in) : le bouton "Creer le
+# portefeuille optimal" re-telechargeait les MEMES ~2900 cours 5 ans que le run
+# venait de recuperer (~87 min sous throttle 2000/h), pour rien. ──
+
+@pytest.fixture
+def _isolated_price_cache(monkeypatch, tmp_path):
+    """Cache disque isole (le vrai PRICE_CACHE_DIR persiste entre les runs)."""
+    monkeypatch.setattr(yf_session_module, "PRICE_CACHE_DIR", tmp_path / "price_cache")
+
+
+def test_bulk_cache_avoids_redownload_same_day(monkeypatch, _isolated_price_cache):
+    yf_session_module.clear_bulk_cache()
+    calls = []
+
+    def fake_download(**kwargs):
+        calls.append(list(kwargs["tickers"]))
+        return _fake_raw(list(kwargs["tickers"]))
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    r1 = download_prices_bulk_with_retry(
+        ["A", "B"], retries=0, cooldown_s=0.01, period="5y", interval="1d",
+        use_cache=True,
+    )
+    r2 = download_prices_bulk_with_retry(
+        ["A", "B"], retries=0, cooldown_s=0.01, period="5y", interval="1d",
+        use_cache=True,
+    )
+
+    assert calls == [["A", "B"]]  # 2e appel servi par le cache, zero download
+    for r in (r1, r2):
+        assert set(r.columns.get_level_values(0)) == {"A", "B"}
+        assert list(r["A"]["Close"]) == [100.0, 101.0]
+
+
+def test_bulk_cache_only_downloads_missing_tickers(monkeypatch, _isolated_price_cache):
+    yf_session_module.clear_bulk_cache()
+    calls = []
+
+    def fake_download(**kwargs):
+        calls.append(list(kwargs["tickers"]))
+        return _fake_raw(list(kwargs["tickers"]))
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    download_prices_bulk_with_retry(
+        ["A", "B"], retries=0, cooldown_s=0.01, period="5y", interval="1d",
+        use_cache=True,
+    )
+    r = download_prices_bulk_with_retry(
+        ["A", "B", "C"], retries=0, cooldown_s=0.01, period="5y", interval="1d",
+        use_cache=True,
+    )
+
+    assert calls == [["A", "B"], ["C"]]  # seul C manquait
+    assert set(r.columns.get_level_values(0)) == {"A", "B", "C"}
+
+
+def test_bulk_cache_disabled_by_default(monkeypatch, _isolated_price_cache):
+    yf_session_module.clear_bulk_cache()
+    calls = []
+
+    def fake_download(**kwargs):
+        calls.append(list(kwargs["tickers"]))
+        return _fake_raw(list(kwargs["tickers"]))
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    download_prices_bulk_with_retry(["A"], retries=0, cooldown_s=0.01,
+                                    period="5y", interval="1d")
+    download_prices_bulk_with_retry(["A"], retries=0, cooldown_s=0.01,
+                                    period="5y", interval="1d")
+
+    assert calls == [["A"], ["A"]]  # pas de cache implicite
+
+
+def test_bulk_cache_survives_process_restart_via_disk(monkeypatch, _isolated_price_cache):
+    """uvicorn --reload tue le cache memoire a chaque edition de code : le
+    niveau disque doit servir les clotures du jour sans re-telechargement."""
+    yf_session_module.clear_bulk_cache()
+    calls = []
+
+    def fake_download(**kwargs):
+        calls.append(list(kwargs["tickers"]))
+        return _fake_raw(list(kwargs["tickers"]))
+
+    monkeypatch.setattr("app.services.finance.yf_session.download_with_timeout",
+                         lambda **kw: fake_download(**kw))
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    download_prices_bulk_with_retry(["A", "B"], retries=0, cooldown_s=0.01,
+                                    period="5y", interval="1d", use_cache=True)
+    yf_session_module.clear_bulk_cache()  # simule un redemarrage du process
+    r = download_prices_bulk_with_retry(["A", "B"], retries=0, cooldown_s=0.01,
+                                        period="5y", interval="1d", use_cache=True)
+
+    assert calls == [["A", "B"]]  # 2e appel servi par le DISQUE
+    assert set(r.columns.get_level_values(0)) == {"A", "B"}
+    assert list(r["A"]["Close"]) == [100.0, 101.0]

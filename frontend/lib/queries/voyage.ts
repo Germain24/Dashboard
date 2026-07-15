@@ -3,7 +3,7 @@
 /** Couche TanStack Query du module Voyage — modèle : lib/queries/garderobe.ts. */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { voyageApi, type PlanifierRequest } from "@/lib/voyage";
+import { voyageApi, type PlanifierAutoRequest, type PlanifierRequest } from "@/lib/voyage";
 
 export const voyageKeys = {
   all: ["voyage"] as const,
@@ -20,6 +20,17 @@ export function useSyncVoyage() {
     mutationFn: voyageApi.sync,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: voyageKeys.all }),
   });
+}
+
+export function useSuggererLieux() {
+  return useMutation({
+    mutationFn: ({ departIata, limit }: { departIata: string; limit?: number }) =>
+      voyageApi.suggerer(departIata, limit),
+  });
+}
+
+export function usePlanifierAuto() {
+  return useMutation({ mutationFn: (req: PlanifierAutoRequest) => voyageApi.planifierAuto(req) });
 }
 
 export function usePlanifier() {

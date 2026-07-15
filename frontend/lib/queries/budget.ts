@@ -3,6 +3,7 @@
 /** Couche TanStack Query du module Budget (#519) — modèle : lib/queries/finance.ts. */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { financeKeys } from "@/lib/queries/finance";
 import {
   applyRules,
   fetchByCategory,
@@ -101,7 +102,13 @@ export function useBudgetRules() {
 
 function useInvalidateAll() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: budgetKeys.all });
+  return () => {
+    void qc.invalidateQueries({ queryKey: budgetKeys.all });
+    // Un import de relevé (PDF Desjardins, Wise…) met à jour account_balances.json,
+    // qui alimente les lignes "auto" du Patrimoine — sans ça le total y reste figé
+    // jusqu'au prochain rechargement de page.
+    void qc.invalidateQueries({ queryKey: financeKeys.all });
+  };
 }
 
 export function useSetSavingsGoal() {

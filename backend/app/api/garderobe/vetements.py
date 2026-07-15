@@ -127,3 +127,20 @@ async def upload_vetement_photo(
 def delete_vetement(vetement_id: str, session: Session = Depends(get_session)) -> None:
     if not VetementRepository(session).delete_by_id(vetement_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"vetement '{vetement_id}' introuvable")
+
+
+@router.post("/inventaire/sync")
+def sync_inventaire(session: Session = Depends(get_session)) -> dict:
+    """Importe l'inventaire depuis le dossier géré à la main (Vetements.xlsx +
+    Pixelisé/ + Normal/, cf. GARDEROBE_INVENTAIRE_DIR). Idempotent : à relancer
+    après chaque mise à jour du fichier ; les champs curés en base sont
+    préservés, les nouvelles pièces sont créées avec extra.a_verifier=true."""
+    from app.services.garderobe.inventaire_import import inventaire_dir, run_import
+
+    try:
+        return run_import(session)
+    except FileNotFoundError:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            f"Inventaire introuvable : {inventaire_dir() / 'Vetements.xlsx'}",
+        )

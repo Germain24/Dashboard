@@ -79,6 +79,51 @@ def test_get_lieux_incomplet_sans_cout_jour_estime(client, session):
     assert data[0]["complet"] is False
 
 
+def test_get_suggestions_sorts_by_distance(client, session, monkeypatch):
+    """L'endpoint /suggerer doit renvoyer les lieux non visités par distance
+    croissante depuis depart_iata, sans exiger de sélection manuelle."""
+    proche = LieuVoyage(nom="Bogota", aeroport_iata="BOG", jours_min=2, jours_max=4, cout_jour_estime=40.0)
+    loin = LieuVoyage(nom="Tokyo", aeroport_iata="HND", jours_min=2, jours_max=4, cout_jour_estime=100.0)
+    visite = LieuVoyage(nom="Deja vu", aeroport_iata="LIM", jours_min=2, jours_max=4,
+                         cout_jour_estime=50.0, visite=True)
+    incomplet = LieuVoyage(nom="Incomplet")
+    session.add_all([proche, loin, visite, incomplet])
+    session.commit()
+
+    coords = {
+        "YUL": (45.4706, -73.7408), "BOG": (4.7016, -74.1469),
+        "HND": (35.5494, 139.7798), "LIM": (-12.0219, -77.1143),
+    }
+    monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: coords.get(iata))
+
+    r = client.get("/voyage/suggerer", params={"depart_iata": "YUL"})
+    assert r.status_code == 200
+    data = r.json()
+    noms = [d["nom"] for d in data]
+    assert noms == ["Bogota", "Tokyo"]   # visité + incomplet exclus, trié par distance
+    assert data[0]["distance_km"] < data[1]["distance_km"]
+
+
+def test_get_suggestions_respects_limit(client, session, monkeypatch):
+    coords = {"YUL": (45.4706, -73.7408)}
+    for i in range(5):
+        lv = LieuVoyage(nom=f"L{i}", aeroport_iata=f"A{i}", jours_min=1, jours_max=1, cout_jour_estime=10.0)
+        session.add(lv)
+        coords[f"A{i}"] = (float(i), float(i))
+    session.commit()
+    monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: coords.get(iata))
+
+    r = client.get("/voyage/suggerer", params={"depart_iata": "YUL", "limit": 2})
+    assert r.status_code == 200
+    assert len(r.json()) == 2
+
+
+def test_get_suggestions_unknown_depart_iata(client, monkeypatch):
+    monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: None)
+    r = client.get("/voyage/suggerer", params={"depart_iata": "ZZZ"})
+    assert r.status_code == 404
+
+
 def test_planifier_rejects_more_than_25_candidats(client, session):
     ids = []
     for i in range(26):
@@ -134,22 +179,28 @@ def test_planifier_happy_path(client, session, monkeypatch):
     session.refresh(lv)
 
     monkeypatch.setattr(
-        voyage_routes, "fetch_offer",
-        lambda session, origine, destination, date_ref: {"prix": 500.0, "devise": "EUR", "duree_min": 600},
+        voyage_routes, "estimate_trajet",
+        lambda origine, destination: {"prix": 500.0, "duree_min": 600},
     )
 
     r = client.post("/voyage/planifier", json={
+        # date_fin pile 4 jours après date_debut (2 jours de trajet + 2 de
+        # séjour min) -- aucune marge de jours, donc le remplissage des jours
+        # restants (cf. solver._remplir_jours_restants) ne s'applique pas ici,
+        # ce test vérifie juste l'agrégation transport/séjour de base.
         "candidats": [lv.id], "depart_iata": "YUL", "arrivee_iata": "YUL",
-        "date_debut": "2026-09-01", "date_fin": "2026-09-10", "budget_total": 10000,
+        "date_debut": "2026-09-01", "date_fin": "2026-09-05", "budget_total": 10000,
     })
     assert r.status_code == 200
     data = r.json()
     assert len(data["etapes"]) == 1
     assert data["etapes"][0]["lieu_id"] == lv.id
     assert data["etapes"][0]["jours"] == 2
-    assert data["cout_transport"] == 1000.0  # aller + retour à 500 chacun
+    # aller + retour à 500 chacun (1000) + subsistance en transit (YUL a un
+    # coût/jour de 0, seul CPT compte : 2 legs x 0.5x80x1.2 = 96) = 1096.
+    assert data["cout_transport"] == 1096.0
     assert data["cout_sejour"] == 160.0  # 2 jours x 80
-    assert data["cout_total"] == 1160.0
+    assert data["cout_total"] == 1256.0
 
 
 def test_planifier_includes_coordinates(client, session, monkeypatch):
@@ -160,8 +211,8 @@ def test_planifier_includes_coordinates(client, session, monkeypatch):
     session.refresh(lv)
 
     monkeypatch.setattr(
-        voyage_routes, "fetch_offer",
-        lambda session, origine, destination, date_ref: {"prix": 500.0, "devise": "EUR", "duree_min": 600},
+        voyage_routes, "estimate_trajet",
+        lambda origine, destination: {"prix": 500.0, "duree_min": 600},
     )
     monkeypatch.setattr(
         voyage_routes, "lookup_coords",
@@ -188,8 +239,8 @@ def test_planifier_null_coordinates_when_iata_unknown(client, session, monkeypat
     session.refresh(lv)
 
     monkeypatch.setattr(
-        voyage_routes, "fetch_offer",
-        lambda session, origine, destination, date_ref: {"prix": 500.0, "devise": "EUR", "duree_min": 600},
+        voyage_routes, "estimate_trajet",
+        lambda origine, destination: {"prix": 500.0, "duree_min": 600},
     )
     monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: None)
 
@@ -211,8 +262,8 @@ def test_planifier_returns_409_when_infeasible(client, session, monkeypatch):
     session.refresh(lv)
 
     monkeypatch.setattr(
-        voyage_routes, "fetch_offer",
-        lambda session, origine, destination, date_ref: {"prix": 500.0, "devise": "EUR", "duree_min": 600},
+        voyage_routes, "estimate_trajet",
+        lambda origine, destination: {"prix": 500.0, "duree_min": 600},
     )
 
     # depart_iata != arrivee_iata : le trajet direct n'est pas gratuit (sinon,
@@ -225,49 +276,20 @@ def test_planifier_returns_409_when_infeasible(client, session, monkeypatch):
     assert r.status_code == 409
 
 
-def test_planifier_converts_prix_devise_to_eur(client, session, monkeypatch):
-    """Issue 4 (revue finale) : un prix Duffel renvoyé en devise étrangère (ex.
-    USD, comme dans les tests existants) doit être converti en EUR avant
-    d'entrer dans cout_transport/cout_total — pas sommé brut."""
+def test_planifier_returns_400_when_airport_unknown(client, session, monkeypatch):
     lv = LieuVoyage(nom="Table Mountain", aeroport_iata="CPT", jours_min=2, jours_max=2,
                      cout_jour_estime=80.0)
     session.add(lv)
     session.commit()
     session.refresh(lv)
 
-    monkeypatch.setattr(
-        voyage_routes, "fetch_offer",
-        lambda session, origine, destination, date_ref: {"prix": 500.0, "devise": "USD", "duree_min": 600},
-    )
-    # Taux fixe déterministe (pas d'appel réseau/yfinance réel) : 1 USD = 0.9 EUR.
-    monkeypatch.setattr(voyage_routes.fx, "convert", lambda amount, base, quote, **kw: amount * 0.9)
+    monkeypatch.setattr(voyage_routes, "estimate_trajet", lambda *a, **k: None)
 
     r = client.post("/voyage/planifier", json={
         "candidats": [lv.id], "depart_iata": "YUL", "arrivee_iata": "YUL",
         "date_debut": "2026-09-01", "date_fin": "2026-09-10", "budget_total": 10000,
     })
-    assert r.status_code == 200
-    data = r.json()
-    # aller + retour à 500 USD chacun -> 450 EUR chacun (taux 0.9) = 900 EUR
-    assert data["cout_transport"] == 900.0
-    assert data["cout_sejour"] == 160.0  # 2 jours x 80 (EUR, non converti)
-    assert data["cout_total"] == 1060.0
-
-
-def test_planifier_returns_502_when_duffel_unavailable(client, session, monkeypatch):
-    lv = LieuVoyage(nom="Table Mountain", aeroport_iata="CPT", jours_min=2, jours_max=2,
-                     cout_jour_estime=80.0)
-    session.add(lv)
-    session.commit()
-    session.refresh(lv)
-
-    monkeypatch.setattr(voyage_routes, "fetch_offer", lambda *a, **k: None)
-
-    r = client.post("/voyage/planifier", json={
-        "candidats": [lv.id], "depart_iata": "YUL", "arrivee_iata": "YUL",
-        "date_debut": "2026-09-01", "date_fin": "2026-09-10", "budget_total": 10000,
-    })
-    assert r.status_code == 502
+    assert r.status_code == 400
 
 
 def test_planifier_rejects_visited_lieu(client, session):
@@ -294,11 +316,11 @@ def test_planifier_defaults_depart_et_arrivee_iata_to_yul(client, session, monke
 
     appels = []
 
-    def fake_fetch_offer(session, origine, destination, date_ref):
+    def fake_estimate_trajet(origine, destination):
         appels.append((origine, destination))
-        return {"prix": 500.0, "devise": "EUR", "duree_min": 600}
+        return {"prix": 500.0, "duree_min": 600}
 
-    monkeypatch.setattr(voyage_routes, "fetch_offer", fake_fetch_offer)
+    monkeypatch.setattr(voyage_routes, "estimate_trajet", fake_estimate_trajet)
 
     r = client.post("/voyage/planifier", json={
         "candidats": [lv.id],
@@ -310,10 +332,10 @@ def test_planifier_defaults_depart_et_arrivee_iata_to_yul(client, session, monke
     assert "CPT" in origines_destinations
 
 
-def test_planifier_same_iata_pair_does_not_call_duffel(client, session, monkeypatch):
+def test_planifier_same_iata_pair_does_not_call_estimate_trajet(client, session, monkeypatch):
     """Issue 1 (revue finale) : quand depart_iata == arrivee_iata (cas par défaut,
-    YUL/YUL), la paire de même aéroport ne doit jamais être envoyée à Duffel — un
-    aéroport ne peut pas être pricé contre lui-même. `fetch_offer` ici est un mock
+    YUL/YUL), la paire de même aéroport ne doit jamais être estimée — un aéroport
+    ne peut pas être pricé contre lui-même. `estimate_trajet` ici est un mock
     strict qui échoue (assertion) si jamais appelé avec origine == destination."""
     lv = LieuVoyage(nom="Table Mountain", aeroport_iata="CPT", jours_min=2, jours_max=2,
                      cout_jour_estime=80.0)
@@ -321,11 +343,11 @@ def test_planifier_same_iata_pair_does_not_call_duffel(client, session, monkeypa
     session.commit()
     session.refresh(lv)
 
-    def strict_fetch_offer(session, origine, destination, date_ref):
-        assert origine != destination, "fetch_offer appelé avec origine == destination"
-        return {"prix": 500.0, "devise": "EUR", "duree_min": 600}
+    def strict_estimate_trajet(origine, destination):
+        assert origine != destination, "estimate_trajet appelé avec origine == destination"
+        return {"prix": 500.0, "duree_min": 600}
 
-    monkeypatch.setattr(voyage_routes, "fetch_offer", strict_fetch_offer)
+    monkeypatch.setattr(voyage_routes, "estimate_trajet", strict_estimate_trajet)
 
     # depart_iata/arrivee_iata omis -> défaut YUL/YUL (le cas le plus courant)
     r = client.post("/voyage/planifier", json={
@@ -344,11 +366,11 @@ def test_planifier_arrivee_iata_defaults_to_depart_iata_when_omitted(client, ses
 
     appels = []
 
-    def fake_fetch_offer(session, origine, destination, date_ref):
+    def fake_estimate_trajet(origine, destination):
         appels.append((origine, destination))
-        return {"prix": 500.0, "devise": "EUR", "duree_min": 600}
+        return {"prix": 500.0, "duree_min": 600}
 
-    monkeypatch.setattr(voyage_routes, "fetch_offer", fake_fetch_offer)
+    monkeypatch.setattr(voyage_routes, "estimate_trajet", fake_estimate_trajet)
 
     r = client.post("/voyage/planifier", json={
         "candidats": [lv.id], "depart_iata": "YYZ",
@@ -357,6 +379,58 @@ def test_planifier_arrivee_iata_defaults_to_depart_iata_when_omitted(client, ses
     assert r.status_code == 200
     origines_destinations = {o for pair in appels for o in pair}
     assert origines_destinations == {"YYZ", "CPT"}
+
+
+def test_planifier_auto_selects_candidates_and_returns_multiple_itineraries(client, session, monkeypatch):
+    """Bout-en-bout de /planifier-auto : aucun `candidats` fourni -- l'utilisateur
+    donne juste départ/dates/budget, et reçoit plusieurs itinéraires distincts."""
+    proche = LieuVoyage(nom="Bogota", aeroport_iata="BOG", jours_min=2, jours_max=2, cout_jour_estime=40.0)
+    loin = LieuVoyage(nom="Lima", aeroport_iata="LIM", jours_min=2, jours_max=2, cout_jour_estime=40.0)
+    session.add_all([proche, loin])
+    session.commit()
+
+    coords = {"YUL": (45.4706, -73.7408), "BOG": (4.7016, -74.1469), "LIM": (-12.0219, -77.1143)}
+    monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: coords.get(iata))
+    monkeypatch.setattr(
+        voyage_routes, "estimate_trajet",
+        lambda origine, destination: {"prix": 300.0, "duree_min": 300},
+    )
+
+    r = client.post("/voyage/planifier-auto", json={
+        "depart_iata": "YUL", "date_debut": "2026-09-01", "date_fin": "2026-09-10",
+        "budget_total": 10000, "k": 5,
+    })
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["itineraires"]) >= 1
+    # Budget/temps larges -> les deux lieux tiennent ensemble : le meilleur
+    # itinéraire doit les inclure tous les deux.
+    assert len(data["itineraires"][0]["etapes"]) == 2
+
+
+def test_planifier_auto_unknown_depart_iata(client, monkeypatch):
+    monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: None)
+    r = client.post("/voyage/planifier-auto", json={
+        "depart_iata": "ZZZ", "date_debut": "2026-09-01", "date_fin": "2026-09-10", "budget_total": 10000,
+    })
+    assert r.status_code == 404
+
+
+def test_planifier_auto_returns_409_when_infeasible(client, session, monkeypatch):
+    lv = LieuVoyage(nom="Table Mountain", aeroport_iata="CPT", jours_min=2, jours_max=2, cout_jour_estime=80.0)
+    session.add(lv)
+    session.commit()
+
+    coords = {"YUL": (45.4706, -73.7408), "CPT": (-33.9648, 18.6017)}
+    monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: coords.get(iata))
+    monkeypatch.setattr(
+        voyage_routes, "estimate_trajet",
+        lambda origine, destination: {"prix": 500.0, "duree_min": 600},
+    )
+    r = client.post("/voyage/planifier-auto", json={
+        "depart_iata": "YUL", "date_debut": "2026-09-01", "date_fin": "2026-09-01", "budget_total": 10,
+    })
+    assert r.status_code == 409
 
 
 def test_confirmer_marks_visite(client, session, monkeypatch, tmp_path):

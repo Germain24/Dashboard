@@ -51,7 +51,10 @@ data/imports/*
 # Données financières téléchargées (xlsx par société) + sauvegardes + cache : générées, jamais versionnées.
 backend/data/financials_by_company/
 data/backups/
+data/cache/
 backend/data/cache_status.json
+# Photos personnelles de vêtements (avant/arrière) — servies via /media/garderobe, jamais versionnées.
+data/garderobe_photos/
 # Soldes de comptes mémorisés à l'import (relevés) — données bancaires, jamais versionnées.
 data/account_balances.json
 backend/data/account_balances.json

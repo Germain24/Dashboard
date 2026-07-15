@@ -106,9 +106,16 @@ MATCHING_COLORS: dict[str, list[str]] = {
     "Or":               ["Bleu marine", "Vert émeraude", "Marron", "Khaki", "Bordeaux", "Noir anthracite", "Beige sable", "Beige clair"],
 }
 
-NEUTRES = ["Noir", "Blanc", "Bleu marine", "Gris anthracite", "Beige sable", "Noir anthracite", "Bleu ciel"]
-SECONDAIRES = ["Marron", "Khaki", "Vert émeraude", "Bordeaux"]
-ACCENTS = ["Or"]
+# Étendue le 2026-07-13 avec les couleurs de l'inventaire Vetements.xlsx
+# (import Desktop) : les formes canoniques suivent la casse "Bleu marine".
+NEUTRES = [
+    "Noir", "Blanc", "Bleu marine", "Gris anthracite", "Beige sable",
+    "Noir anthracite", "Bleu ciel",
+    "Beige", "Gris", "Beige taupe", "Blanc cassé", "Beige camel",
+]
+SECONDAIRES = ["Marron", "Khaki", "Vert émeraude", "Bordeaux",
+               "Vert bouteille", "Olive", "Argent"]
+ACCENTS = ["Or", "Rouge"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

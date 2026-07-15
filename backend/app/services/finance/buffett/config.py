@@ -56,6 +56,10 @@ class Config:
     # STARR (objectif d'optimisation centré sur les grosses chutes) :
     STARR_ALPHA: float = 0.05          # niveau CVaR (5 % des pires cas)
     STARR_N_SIM: int = 20_000          # scénarios Monte-Carlo (copule de Vine)
+    # Scénarios utilisés PENDANT la recherche DE (sous-échantillon des STARR_N_SIM,
+    # en float32) : suffisant pour comparer des candidats entre eux. Le score final
+    # est recalculé sur les STARR_N_SIM scénarios complets en float64.
+    STARR_N_SIM_SEARCH: int = 8_000
     STARR_DOWNSIDE_WEIGHT: float = 1.0  # λ : poids de la variance baissière (Sortino)
     # Malus exponentiel au-delà du plafond de positions : pousse l'optimiseur à
     # regrouper les ETF redondants (même indice) et limiter les micro-lignes, sans
@@ -82,6 +86,15 @@ class Config:
     STARR_DE_TOL: float = 1e-6
     # Budget d'itérations du polish local gradient-free (Nelder-Mead) en fin de DE.
     STARR_DE_POLISH_MAXITER: int = 300
+    # Taille TOTALE de la population DE (init custom passée au solver). Sans init
+    # custom, scipy multiplierait popsize par le nombre de dimensions : à 1250
+    # titres cela faisait 15 000 individus évalués PAR GÉNÉRATION. La population
+    # peut dépasser ce nombre si la couverture de l'univers l'exige (chaque titre
+    # doit apparaître dans au moins un individu, cf. build_init_population).
+    STARR_DE_POPSIZE: int = 515
+    # Ticker imposé comme individu de départ « 1 seule ligne » (ex. un ETF monde) ;
+    # vide = ETF au meilleur score standalone, à défaut meilleur titre standalone.
+    STARR_DE_SEED_TICKER: str = ""
     # Plafond de poids par ACTION (filet anti « tout sur un titre »). Les ETF en sont
     # EXEMPTÉS : un ETF est déjà diversifié, donc un gros poids n'est pas un risque de
     # concentration sur un sous-jacent unique.
@@ -92,10 +105,20 @@ class Config:
     CONSTRAINT_PENALTY: float = 100.0  # raideur des pénalités (quadratiques ; ↑ = plus strict)
     N_MULTISTART: int = settings.buffett_n_multistart
     USE_BROKER_CONSTRAINTS: bool = True
-    # Seuil de corrélation (rendements convertis EUR) au-delà duquel deux actifs sont
-    # des « jumeaux d'indice » -> on retire le moins liquide. Élevé pour ne viser que
-    # les vrais doublons (Stoxx 600 vs EURO STOXX 50 ~0,95 NE doivent PAS fusionner).
-    CORRELATION_DEDUP_THRESHOLD: float = 0.97
+    # Seuil de corrélation (rendements convertis EUR) au-delà duquel deux ETF sont
+    # des « jumeaux d'indice » -> on retire le moins liquide. Décision utilisateur
+    # 2026-07-13 : 0,95, et la règle ne s'applique QU'ENTRE ETF — une ACTION n'est
+    # jamais retirée pour cause de corrélation (ni fusionnée avec un ETF) : deux
+    # entreprises corrélées restent deux entreprises distinctes. Ajustable via
+    # params.json.
+    CORRELATION_DEDUP_THRESHOLD: float = 0.95
+    # Historique de cours minimal (jours de bourse) pour entrer dans l'optimisation.
+    # Sans ce filtre, un seul fonds récent (lancé il y a quelques semaines) tronque
+    # la fenêtre COMMUNE de rendements de tout l'univers (le dropna aligne tout le
+    # monde sur le plus jeune) -> corrélations et STARR calculés sur quelques
+    # semaines au lieu de 5 ans (#bug rapporté : ETF assurance fusionné avec
+    # l'action Adobe à corr 0,96, EEM absorbé par EWY...).
+    STARR_MIN_HISTORY_DAYS: int = 252
     BUDGET_BROKERS: dict = {
         "Trading212": 733.70,
         "BoursDirect": 0.0,
@@ -105,6 +128,15 @@ class Config:
     # Copule
     VINE_TRUNC_HIGH: float = 20.0
     VINE_FAMILY: str = "auto"
+    # Au-delà de ce nombre de titres, la copule de Vine est remplacée par une
+    # copule GAUSSIENNE sur la matrice de corrélation (Spearman) complète :
+    # l'ajustement Vine est O(n²) taus de Kendall en boucle Python (~1 h à
+    # 1250 titres, silencieux) alors que sa simulate() ne retenait de toute
+    # façon qu'une matrice de corrélation CREUSE (les n-1 arêtes du chemin
+    # D-vine) passée dans une gaussienne -- la gaussienne pleine est à la fois
+    # ~100x plus rapide et plus riche en dépendances (#bug rapporté : run figé
+    # à "seed 1, 0 générations").
+    STARR_VINE_MAX_DIM: int = 150
 
     # Deduplication
     DEDUP_FUZZY_THRESHOLD: float = settings.buffett_dedup_fuzzy_threshold

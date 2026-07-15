@@ -65,6 +65,21 @@ def close_prices_from_download(raw, tickers: list[str]):
     return pd.DataFrame(cols)
 
 
+def drop_short_history(close_df, min_days: int) -> tuple["pd.DataFrame", list[str]]:
+    """Écarte les colonnes avec moins de ``min_days`` cours non-NaN.
+
+    Sans ce filtre, un seul fonds récent tronque la fenêtre COMMUNE de rendements
+    de tout l'univers (le ``dropna()`` qui suit aligne tout le monde sur le plus
+    jeune) : corrélations et STARR calculés sur quelques semaines au lieu de 5 ans
+    (#bug rapporté). Retourne (df_filtré, tickers_écartés).
+    """
+    if close_df is None or getattr(close_df, "empty", True) or min_days <= 0:
+        return close_df, []
+    n_obs = close_df.notna().sum()
+    dropped = [t for t in close_df.columns if int(n_obs[t]) < min_days]
+    return close_df.drop(columns=dropped), dropped
+
+
 def latest_prices(close_df, tickers: list[str]) -> dict[str, float]:
     """Dernier prix de clôture connu par ticker depuis un DataFrame de prix."""
     prices: dict[str, float] = {}

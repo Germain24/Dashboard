@@ -162,27 +162,61 @@ def optimize_portfolio(
 # Differential Evolution optimizer (remplace STARR SLSQP pour le portefeuille)
 # ---------------------------------------------------------------------------
 
-def per_broker_cardinality_penalty(w, access, max_per_broker: int, beta: float,
-                                   threshold: float) -> float:
-    """Malus exponentiel quand un broker dépasse ``max_per_broker`` lignes.
+def assign_tickers_to_brokers(w, access, b_ratios, min_position: float = 0.0) -> np.ndarray:
+    """Affecte chaque titre pondéré (``w >= min_position`` et ``w > 0``) à UN SEUL
+    broker parmi ceux qui le proposent (budget > 0). Cantonnement strict.
 
-    Pour chaque broker (colonne de ``access``), compte les titres disponibles ET
-    pondérés (``w >= threshold``) — c.-à-d. les lignes qu'il portera après la
-    répartition — et pénalise l'excès : ``Σ_broker exp(β·excès)−1``. Cap PAR broker
+    Heuristique min-dérive : les titres sont traités du plus gros poids au plus
+    petit ; chacun va au broker ayant le plus de capacité € RESTANTE
+    (``b_ratios[j] − Σ w déjà affectés``). Remplir chaque broker vers son budget
+    minimise la dérive de poids ET évite de laisser un broker sans titre
+    (anti-cash-oisif : un broker à vide a la capacité restante maximale, il attire
+    donc le prochain titre disponible). Retourne un vecteur int [n] : indice de
+    broker par titre, ``-1`` si non pondéré ou non plaçable (aucun broker dispo
+    avec budget).
+    """
+    # Chemin chaud (appelé 1×/candidat × génération dans le malus DE) : on convertit
+    # en listes Python une bonne fois pour éviter l'indexation numpy scalaire
+    # (``acc[i, j]``) et ``np.argmax`` sur de petites listes, ~5-10× plus lents.
+    acc = np.asarray(access, dtype=bool)
+    n, num_b = acc.shape
+    wl = np.asarray(w, dtype=float).tolist()
+    br = np.asarray(b_ratios, dtype=float).tolist()
+    acc_rows = acc.tolist()
+    budget_ok = [br[j] > 0.0 for j in range(num_b)]
+    remaining = list(br)
+    assign = np.full(n, -1, dtype=int)
+    order = [i for i in range(n) if wl[i] >= min_position and wl[i] > 0.0]
+    order.sort(key=lambda i: wl[i], reverse=True)
+    for i in order:
+        row = acc_rows[i]
+        best_j, best_rem = -1, None            # argmax de la capacité restante
+        for j in range(num_b):                 # (1er max en cas d'égalité, comme np.argmax)
+            if row[j] and budget_ok[j] and (best_rem is None or remaining[j] > best_rem):
+                best_rem, best_j = remaining[j], j
+        if best_j >= 0:
+            assign[i] = best_j
+            remaining[best_j] -= wl[i]
+    return assign
+
+
+def per_broker_cardinality_penalty(w, access, b_ratios, max_per_broker: int,
+                                   beta: float, threshold: float) -> float:
+    """Malus exponentiel quand un broker dépasse ``max_per_broker`` lignes RÉELLES.
+
+    Compte les lignes réellement déployées par broker via
+    ``assign_tickers_to_brokers`` (chaque titre pondéré affecté à UN seul broker),
+    puis pénalise l'excès : ``Σ_broker exp(β·excès)−1``. Un titre partagé n'est plus
+    compté en double — une ligne à 0 % chez un broker compte pour 0. Cap PAR broker
     (ex. 20 dans Trading212 ET 20 dans BoursDirect), pas un total global.
     """
     if beta <= 0:
         return 0.0
-    w = np.asarray(w, dtype=float)
-    acc = np.asarray(access, dtype=bool)
-    weighted = w >= threshold
-    pen = 0.0
-    for j in range(acc.shape[1]):
-        n = int((weighted & acc[:, j]).sum())
-        excess = n - max_per_broker
-        if excess > 0:
-            pen += float(np.exp(beta * excess) - 1.0)
-    return pen
+    a = assign_tickers_to_brokers(w, access, b_ratios, threshold)
+    num_b = np.asarray(access).shape[1]
+    counts = np.bincount(a[a >= 0], minlength=num_b)
+    excess = counts - max_per_broker
+    return float(np.sum(np.where(excess > 0, np.exp(beta * excess) - 1.0, 0.0)))
 
 
 def cardinality_penalty(w, max_lines: int, beta: float, threshold: float) -> float:
@@ -304,38 +338,136 @@ def project_lookthrough_hard(
     return w
 
 
-def split_budget_to_brokers(w, access, b_ratios, min_position: float = 0.0) -> np.ndarray:
-    """Répartit le budget de chaque broker sur SES titres disponibles, au prorata du
-    poids optimiseur ``w`` (somme 1). Retourne W [n_tickers × n_brokers, fraction du
-    capital total].
+def split_budget_to_brokers(w, access, b_ratios, min_position: float = 0.0,
+                            fallback_max_lines: int | None = None) -> np.ndarray:
+    """Déploie le budget de chaque broker sur ses titres AFFECTÉS, au prorata du poids
+    optimiseur ``w`` (somme 1). Retourne W [n_tickers × n_brokers, fraction du capital
+    total].
 
-    - Pas de sous-investissement mécanique : chaque broker déploie son budget parmi
-      ses titres disponibles (la dispo inégale ne laisse pas de budget oisif).
-    - ``min_position`` : les titres dont le poids < seuil ne sont PAS achetés (évite
-      les micro-lignes), mais leur part est **redéployée sur les titres gardés** du
-      même broker (l'argent reste investi : on réduit le NOMBRE de lignes, pas le
-      montant investi). ``min_position=0`` -> tous les titres gardés.
+    Cantonnement strict : chaque titre pondéré est acheté chez UN SEUL broker
+    (cf. ``assign_tickers_to_brokers``, heuristique min-dérive) — un titre partagé
+    n'apparaît donc plus chez les deux.
+    - ``min_position`` : les titres dont le poids < seuil ne sont PAS achetés (micro-
+      lignes) ; leur part est redéployée sur les titres gardés du même broker via la
+      normalisation prorata (l'argent reste investi).
+    - Débordement : si le poids cible cumulé des titres affectés à un broker dépasse
+      son budget, la normalisation prorata plafonne et redéploie l'excédent sur ces
+      mêmes titres (dérive de poids, jamais un 2e broker).
+    - Fallback anti-cash-oisif : un broker sans titre affecté mais avec du budget et
+      des titres disponibles replie sur ses dispos, PLAFONNÉ à ``fallback_max_lines``
+      lignes (défaut : ``Config.STARR_MAX_LINES_PER_BROKER``), top-poids d'abord
+      (seule entorse au strict 1-titre-1-broker, pour ne pas laisser de budget oisif).
     """
     w = np.asarray(w, dtype=float)
     num_t = len(w)
     num_b = len(b_ratios)
+    if fallback_max_lines is None:
+        fallback_max_lines = int(Config.STARR_MAX_LINES_PER_BROKER)
     W = np.zeros((num_t, num_b))
+    assign = assign_tickers_to_brokers(w, access, b_ratios, min_position)
     for j in range(num_b):
         if b_ratios[j] <= 0:
             continue
-        kept = [i for i in range(num_t) if access[i][j] and w[i] >= min_position]
+        kept = [i for i in range(num_t) if assign[i] == j]
         tot = sum(w[i] for i in kept)
         if tot <= 0:
-            # aucun titre au-dessus du seuil : repli sur tous les dispos (équipondéré)
-            avail = [i for i in range(num_t) if access[i][j]]
-            if avail:
-                share = b_ratios[j] / len(avail)
-                for i in avail:
+            # Broker « affamé » : le cantonnement min-dérive a affecté tous les titres
+            # pondérés ailleurs (budgets inégaux), ou aucun de ses titres dispo n'est
+            # pondéré (candidat DE concentré, ex. mono-ETF chez T212 — #bug run 39).
+            # Repli sur ses dispos >= seuil, sinon tous ses dispos, TOUJOURS plafonné
+            # à fallback_max_lines lignes (top-poids d'abord) : jamais de pulvérisation
+            # équipondérée sur tout l'univers (~2000 micro-lignes « 1 action », que le
+            # malus — qui ne compte que les lignes AFFECTÉES — ne voit pas).
+            cand = [i for i in range(num_t)
+                    if access[i][j] and w[i] >= min_position]
+            if not cand:
+                cand = [i for i in range(num_t) if access[i][j]]
+            cand.sort(key=lambda i: w[i], reverse=True)
+            cand = cand[:max(1, fallback_max_lines)]
+            tot_av = sum(w[i] for i in cand)
+            if tot_av > 0:
+                for i in cand:
+                    W[i, j] = b_ratios[j] * w[i] / tot_av
+            elif cand:
+                share = b_ratios[j] / len(cand)          # poids tous nuls -> équipondéré
+                for i in cand:
                     W[i, j] = share
             continue
         for i in kept:
-            W[i, j] = b_ratios[j] * w[i] / tot   # budget redéployé sur les gardés
+            W[i, j] = b_ratios[j] * w[i] / tot   # budget redéployé sur les affectés
     return W
+
+
+def ticker_standalone_scores(sim_rets, mean_daily, alpha: float,
+                             downside_weight: float) -> np.ndarray:
+    """Score STARR de chaque titre PRIS SEUL (une colonne de ``sim_rets`` = un
+    portefeuille mono-titre), vectorisé. Sert à ordonner l'univers pour la
+    population initiale du DE (sans réduire l'univers : tous les titres restent
+    optimisables)."""
+    sim = np.asarray(sim_rets)
+    n_sim = sim.shape[0]
+    k = max(1, int(round(alpha * n_sim)))
+    tail = np.partition(sim, k - 1, axis=0)[:k]
+    cvar = -tail.mean(axis=0, dtype=np.float64)
+    downside = np.minimum(sim, 0.0).astype(np.float64)
+    dd = np.sqrt(np.mean(downside ** 2, axis=0))
+    risk = np.maximum((cvar + downside_weight * dd) * np.sqrt(252.0), 0.005)
+    return np.asarray(mean_daily, dtype=float) * 252.0 / risk
+
+
+def build_init_population(n: int, pop_size: int, rng: np.random.Generator,
+                          scores: np.ndarray, seed_idx: int | None,
+                          warm_starts: list | None = None) -> np.ndarray:
+    """Population initiale SPARSE pour le DE, [max(pop_size, lignes requises) × n].
+
+    Le latin hypercube par défaut démarre avec ~n titres pondérés à la fois
+    (STARR médiocre, malus de cardinalité dès que ça se concentre) et laisse
+    scipy créer popsize×n individus. Ici la population est concentrée d'emblée :
+    - 1 individu mono-titre ``seed_idx`` (ETF monde / meilleur standalone) ;
+    - one-hots des 5 meilleurs scores standalone + top-20/top-40 équipondérés ;
+    - ``warm_starts`` (meilleurs x des seeds précédents) + une copie bruitée ;
+    - lignes de COUVERTURE : chaque titre apparaît dans au moins un individu —
+      une coordonnée nulle dans TOUTE la population resterait nulle à jamais
+      (mutation DE = a + F·(b−c)), ce qui réduirait l'univers de fait ;
+    - le reste : portefeuilles aléatoires de quelques titres (5-40).
+    """
+    order = np.argsort(np.asarray(scores, dtype=float))[::-1]
+    rows: list[np.ndarray] = []
+
+    def one_hot(i: int) -> np.ndarray:
+        v = np.zeros(n)
+        v[i] = 1.0
+        return v
+
+    if seed_idx is not None:
+        rows.append(one_hot(int(seed_idx)))
+    for i in order[: min(5, n)]:
+        rows.append(one_hot(int(i)))
+    for top in (20, 40):
+        m = min(top, n)
+        v = np.zeros(n)
+        v[order[:m]] = 1.0 / m
+        rows.append(v)
+    for x in (warm_starts or []):
+        x = np.clip(np.asarray(x, dtype=float), 0.0, 1.0)
+        rows.append(x)
+        rows.append(np.clip(x + rng.normal(0.0, 0.02, n), 0.0, 1.0))
+    # Couverture : permutation de l'univers découpée en paquets de ~25 titres.
+    perm = rng.permutation(n)
+    for start in range(0, n, 25):
+        idx = perm[start:start + 25]
+        v = np.zeros(n)
+        v[idx] = rng.uniform(0.2, 1.0, len(idx))
+        rows.append(v)
+    # Complément aléatoire sparse jusqu'à pop_size (minimum scipy : 5 individus).
+    max_pick = min(40, n)
+    while len(rows) < max(pop_size, 5):
+        m = int(rng.integers(1, max_pick + 1)) if max_pick < 5 else int(rng.integers(5, max_pick + 1))
+        idx = rng.choice(n, size=m, replace=False)
+        v = np.zeros(n)
+        v[idx] = rng.uniform(0.2, 1.0, m)
+        rows.append(v)
+    return np.asarray(rows, dtype=float)
 
 
 def optimize_portfolio_de(
@@ -344,9 +476,12 @@ def optimize_portfolio_de(
     matrix_access: list,
     active_brokers: list[str],
     seed: int = 42,
-    progress_cb=None,   # callable(seed_num:int, iteration:int, convergence:float) | None
+    progress_cb=None,   # callable(seed_num:int, iteration:int, convergence:float, best_score:float) | None
     on_new_best=None,   # callable(W: np.ndarray[n_tickers x n_brokers]) | None
-    should_stop=None,   # callable() -> bool | None -- verifie ENTRE deux seeds seulement.
+    should_stop=None,   # callable() -> bool | None -- verifie entre deux GENERATIONS
+                         # (jamais au milieu d'une) et entre deux seeds : l'arret
+                         # demande prend effet en ~1 generation, plus en ~1 seed
+                         # (un seed sur ~2900 titres peut durer des jours).
                          # Sans callback : s'arrete apres exactement 1 seed (defaut sur).
     n_sim: int | None = None,
     alpha: float | None = None,
@@ -374,7 +509,7 @@ def optimize_portfolio_de(
     # qu'arrêter plus tôt, jamais empêcher un arrêt prématuré).
     from scipy.optimize._differentialevolution import DifferentialEvolutionSolver
 
-    from .starr import neg_starr, simulate_scenarios
+    from .starr import neg_starr, neg_starr_batch, simulate_scenarios
 
     n_sim = int(Config.STARR_N_SIM if n_sim is None else n_sim)
     alpha = float(Config.STARR_ALPHA if alpha is None else alpha)
@@ -424,7 +559,7 @@ def optimize_portfolio_de(
     sim_rets = simulate_scenarios(R_inv, n_sim=n_sim, seed=seed)
 
     # ── Contraintes look-through (défensif min, pays max) ────────────────────
-    from .lookthrough import load_lookthrough
+    from .lookthrough import fill_unknown_countries, load_lookthrough
     min_def = float(Config.MIN_DEFENSIVE_PCT)
     max_country = float(Config.MAX_COUNTRY_PCT)
     pen_k = float(Config.CONSTRAINT_PENALTY)
@@ -433,6 +568,10 @@ def optimize_portfolio_de(
         defmap, paysmap = load_lookthrough()
     except Exception:
         defmap, paysmap = {}, {}
+    # Un ticker sans pays connu (ex. ETC or/argent physiques) compterait pour 0%
+    # dans CHAQUE pays -> invisible au plafond MAX_COUNTRY_PCT. Réparti au prorata
+    # de la répartition moyenne des tickers connus (décision utilisateur #buffett).
+    paysmap = fill_unknown_countries(paysmap, inv_tickers)
     d_vec = np.array([defmap.get(t, 0.0) for t in inv_tickers], dtype=float)
     all_countries = sorted({c for t in inv_tickers for c in (paysmap.get(t) or {})})
     cidx = {c: j for j, c in enumerate(all_countries)}
@@ -444,23 +583,80 @@ def optimize_portfolio_de(
           f"pays<={max_country:.0%} ({len(all_countries)} pays)")
 
     # ── Optimisation niveau TICKER (simplexe sum=1) sur l'objectif STARR ─────
-    bounds = [(0.0, 1.0)] * len(inv_idx)
+    n_inv = len(inv_idx)
+    bounds = [(0.0, 1.0)] * n_inv
+    is_etf_inv = is_etf_full[inv_idx]
 
-    def neg_obj(raw: np.ndarray) -> float:
-        base = neg_starr(raw, sim_rets, mean_daily, alpha, downside_weight)
-        s = float(np.sum(raw))
-        if s > 0:
-            w_ = raw / s
-            # Malus cardinalité PAR broker (≤ max_per_broker lignes chez chacun).
-            base += per_broker_cardinality_penalty(w_, access_inv, max_per_broker, card_beta, min_position)
+    # Recherche DE sur un SOUS-ÉCHANTILLON de scénarios en float32 : le coût est
+    # dominé par le produit sim @ W (bande passante mémoire), et cette précision
+    # suffit largement pour COMPARER des candidats entre eux. Le STARR final est
+    # recalculé sur les n_sim scénarios complets en float64 (cf. fin).
+    n_search = max(1, min(n_sim, int(Config.STARR_N_SIM_SEARCH)))
+    sim_search = np.ascontiguousarray(sim_rets[:n_search], dtype=np.float32)
+
+    def neg_obj_batch(X: np.ndarray) -> np.ndarray:
+        """Objectif STARR pénalisé, vectorisé sur la population entière.
+
+        ``X`` : [n_inv × S] (convention scipy ``vectorized=True``) ; retourne [S].
+        Une seule passe BLAS pour toute la population (remplace l'ancien pool de
+        threads qui évaluait individu par individu). Mêmes formules que
+        ``per_broker_cardinality_penalty`` / ``constraint_penalty``, en batch.
+        """
+        X = np.asarray(X, dtype=float)
+        if X.ndim == 1:
+            X = X[:, None]
+        base = neg_starr_batch(X, sim_search, mean_daily, alpha, downside_weight)
+        Xp = np.maximum(X, 0.0)
+        s = Xp.sum(axis=0)
+        ok = s > 1e-12
+        if ok.any():
+            W = Xp[:, ok] / s[ok]
+            pen = np.zeros(W.shape[1])
+            if card_beta > 0:
+                # Malus cardinalité PAR broker sur les lignes RÉELLEMENT déployées :
+                # chaque titre pondéré est affecté à UN seul broker (cf.
+                # assign_tickers_to_brokers), donc un titre partagé n'est pas compté
+                # en double — une ligne à 0 % chez un broker compte pour 0.
+                counts = np.empty((num_b, W.shape[1]))
+                for c in range(W.shape[1]):
+                    a = assign_tickers_to_brokers(W[:, c], access_inv, b_ratios, min_position)
+                    counts[:, c] = np.bincount(a[a >= 0], minlength=num_b)
+                excess = counts - max_per_broker
+                pen += np.where(excess > 0,
+                                np.exp(np.minimum(card_beta * excess, 700.0)) - 1.0,
+                                0.0).sum(axis=0)
             # Contraintes look-through (défensif / pays).
-            base += constraint_penalty(w_, d_vec, C_mat, min_def, max_country, pen_k)
+            if len(d_vec) and float(np.max(d_vec)) > 0:
+                short = np.maximum(min_def - (d_vec @ W), 0.0)
+                pen += pen_k * short * short
+            if C_mat.size:
+                over = np.maximum((C_mat.T @ W) - max_country, 0.0)
+                pen += pen_k * np.sum(over * over, axis=0)
+            base[ok] += pen
         return base
 
-    def _report(seed_num: int, iteration: int, convergence: float) -> None:
+    def neg_obj(x: np.ndarray) -> float:
+        """Version scalaire (polish Nelder-Mead) — mêmes numériques que le batch."""
+        return float(neg_obj_batch(np.asarray(x, dtype=float)[:, None])[0])
+
+    # ── Population initiale SPARSE : partir de portefeuilles concentrés déjà
+    # bons — dont « 1 seul ETF monde » — plutôt que du latin hypercube qui
+    # pondère tout l'univers à la fois (STARR de départ médiocre + malus de
+    # cardinalité, et population scipy de popsize×n individus).
+    scores = ticker_standalone_scores(sim_search, mean_daily, alpha, downside_weight)
+    seed_ticker = str(getattr(Config, "STARR_DE_SEED_TICKER", "") or "").strip().upper()
+    if seed_ticker and seed_ticker in inv_tickers:
+        seed_pos: int | None = inv_tickers.index(seed_ticker)
+    elif is_etf_inv.any():
+        etf_pos = np.flatnonzero(is_etf_inv)
+        seed_pos = int(etf_pos[np.argmax(scores[etf_pos])])
+    else:
+        seed_pos = int(np.argmax(scores)) if len(scores) else None
+
+    def _report(seed_num: int, iteration: int, convergence: float, best_score: float) -> None:
         if progress_cb is not None:
             try:
-                progress_cb(seed_num, iteration, float(convergence))
+                progress_cb(seed_num, iteration, float(convergence), float(best_score))
             except Exception:
                 pass  # la progression ne doit jamais casser l'optimisation
 
@@ -473,8 +669,6 @@ def optimize_portfolio_de(
     # contrainte DURE (projette sur le portefeuille faisable le plus proche qui
     # respecte exactement défensif/pays/plafond par action -- remplace le plafond
     # + la pénalité douce, qui ne servaient qu'à guider la recherche DE).
-    is_etf_inv = is_etf_full[inv_idx]
-
     def _to_broker_matrix(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         raw = np.maximum(x, 0.0)
         s = raw.sum()
@@ -508,44 +702,69 @@ def optimize_portfolio_de(
 
     # ── Seeds illimités : chaque nouveau départ (rng=seed+k, toujours distinct)
     # explore le paysage différemment. On garde le meilleur de tous les seeds
-    # faits et on logge l'écart entre elles (mesure de robustesse : si les
+    # faits et on logge l'écart entre eux (mesure de robustesse : si les
     # scores divergent fort d'un seed à l'autre, le paysage a plusieurs optima
     # locaux comparables). S'arrête quand should_stop() renvoie True, vérifié
-    # UNIQUEMENT entre deux seeds (jamais au milieu) -- un seed interrompu ne
-    # doit jamais compter dans les stats de robustesse. Sans should_stop : 1
-    # seul seed (comportement par défaut sûr, jamais de boucle infinie).
+    # entre deux GENERATIONS (jamais au milieu d'une) : avant, l'arrêt n'était
+    # pris en compte qu'entre deux seeds -- intenable depuis que l'univers fait
+    # ~2900 titres (un seed = des jours). Un seed interrompu reste un candidat
+    # valide (meilleur individu trouvé jusqu'ici) mais est marqué comme tel
+    # dans les stats de robustesse. Sans should_stop : 1 seul seed
+    # (comportement par défaut sûr, jamais de boucle infinie).
+    # Les seeds suivants sont WARM-STARTÉS : le meilleur x de chaque seed fini
+    # est réinjecté dans la population initiale des suivants (+ copie bruitée).
     runs = []   # (energie, x, nit, convergence_naturelle)
     k = 0
+    stop_requested = False
+    warm_starts: list[np.ndarray] = []
     while True:
+        init_pop = build_init_population(
+            n_inv, int(Config.STARR_DE_POPSIZE), np.random.default_rng(seed + k),
+            scores, seed_pos, warm_starts,
+        )
+        if k == 0:
+            print(f"    * DE vectorise : population {init_pop.shape[0]} individus "
+                  f"(init sparse, depart mono-titre "
+                  f"{inv_tickers[seed_pos] if seed_pos is not None else 'aucun'}), "
+                  f"recherche sur {n_search} scenarios float32")
         solver = DifferentialEvolutionSolver(
-            neg_obj,
+            neg_obj_batch,     # vectorized=True : toute la population en 1 matmul BLAS
             bounds=bounds,
             rng=seed + k,
             maxiter=max_gen,
             tol=de_tol,
             mutation=(0.5, 1.5),
             recombination=0.9,
-            popsize=12,
+            init=init_pop,     # fixe AUSSI la taille de population (vs popsize×n de scipy)
             polish=False,      # CVaR non lisse -> pas de polish gradient ici (fait après, cf. plus bas)
-            workers=1,
+            vectorized=True,
             updating="deferred",
         )
         nit = 0
         converged_naturally = False
         for _ in solver:
             nit += 1
-            _report(k + 1, nit, solver.convergence)
             if solver.population_energies[0] < global_best_energy:
                 global_best_energy = float(solver.population_energies[0])
                 _maybe_emit_progress(solver.x)
+            # -energie : objectif STARR pénalisé (pas un STARR pur, cf. neg_obj)
+            # à MAXIMISER -- croissant au fil des générations pour le graphe
+            # d'évolution en direct côté front.
+            _report(k + 1, nit, solver.convergence, -global_best_energy)
             if nit >= min_gen and solver.converged():
                 converged_naturally = True
                 break
             if nit >= max_gen:
                 break
+            if should_stop is not None and should_stop():
+                stop_requested = True
+                print(f"    * Arret demande -> seed #{k} interrompu apres {nit} generation(s) "
+                      "(meilleur portefeuille conserve)")
+                break
         runs.append((float(solver.population_energies[0]), solver.x.copy(), nit, converged_naturally))
+        warm_starts.append(solver.x.copy())
         k += 1
-        if should_stop is None or should_stop():
+        if stop_requested or should_stop is None or should_stop():
             break
 
     energies = [r[0] for r in runs]
@@ -567,7 +786,10 @@ def optimize_portfolio_de(
         neg_obj, best_x, method="Nelder-Mead", bounds=bounds,
         options={"maxiter": int(Config.STARR_DE_POLISH_MAXITER), "xatol": 1e-6, "fatol": 1e-9},
     )
-    if polish.success and float(polish.fun) < best_energy:
+    # On accepte l'amélioration dès que le score est meilleur, même sans
+    # polish.success : Nelder-Mead ne « converge » jamais en ~1000+ dimensions
+    # avec un budget d'itérations borné, mais son meilleur point reste valide.
+    if np.isfinite(polish.fun) and float(polish.fun) < best_energy:
         print(f"    * Polish (Nelder-Mead) : amelioration {best_energy:.5f} -> {float(polish.fun):.5f}")
         best_x = np.asarray(polish.x, dtype=float)
     else:
@@ -577,7 +799,9 @@ def optimize_portfolio_de(
     w_inv, W = _to_broker_matrix(best_x)
 
     # STARR PUR (sans le malus de cardinalité, qui ne sert qu'à orienter l'optimiseur)
-    # — mesuré sur le portefeuille final déjà projeté (contraintes garanties).
+    # — mesuré sur le portefeuille final déjà projeté (contraintes garanties), sur
+    # les n_sim scénarios COMPLETS en float64 (la recherche DE n'utilisait qu'un
+    # sous-échantillon float32, cf. STARR_N_SIM_SEARCH).
     starr = -neg_starr(w_inv, sim_rets, mean_daily, alpha, downside_weight)
     if not np.isfinite(starr):
         starr = 0.0

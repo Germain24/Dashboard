@@ -102,12 +102,12 @@ def portfolio_progress():
 def optimization_stop():
     """Demande l'arrêt de l'optimisation DE en cours (run automatique OU bouton
     manuel « Créer le portefeuille optimal » -- un seul DE actif à la fois,
-    cf. is_analysis_running()). Pris en compte à la fin du seed en cours, jamais
-    au milieu -- pas d'arrêt instantané, mais jamais de seed interrompu compté
-    dans les stats de robustesse."""
+    cf. is_analysis_running()). Pris en compte à la fin de la GÉNÉRATION en
+    cours (jamais au milieu d'une) : effectif en ~1 génération, le meilleur
+    portefeuille trouvé jusque-là est conservé."""
     from app.services.finance.buffett import optimization_progress as opt_prog
     opt_prog.request_stop()
-    return {"message": "Arrêt demandé — pris en compte à la fin du seed en cours."}
+    return {"message": "Arrêt demandé — pris en compte à la fin de la génération en cours."}
 
 
 @router.get("/buffett/runs/{run_id}", response_model=BuffettRunDetailOut)
@@ -289,33 +289,6 @@ def buffett_breakdown(ticker: str):
         "score": score,
         "secteur": metrics.get("Secteur"),
         "criteres": score_breakdown(ratios),
-    }
-
-
-@router.get("/buffett/taux-obligataires")
-def buffett_bond_yields():
-    """Taux obligataires utilisés par le critère d'achat (rafraîchis en direct).
-
-    Confirme que les taux ne sont plus statiques : les pays dans `live` sont
-    récupérés à la journée (cache), les autres utilisent le repli statique.
-    """
-    from app.services.finance.buffett.bond_yields import (
-        SERIES_BY_COUNTRY,
-        STATIC_BOND_YIELDS,
-        get_bond_yields,
-    )
-
-    taux = get_bond_yields(defaults=dict(STATIC_BOND_YIELDS))
-    live = {
-        pays: taux[pays]
-        for pays in SERIES_BY_COUNTRY
-        if pays in taux and taux[pays] != STATIC_BOND_YIELDS.get(pays)
-    }
-    return {
-        "taux": taux,
-        "live": live,                       # pays (G7) effectivement rafraîchis aujourd'hui
-        "sources": SERIES_BY_COUNTRY,       # pays -> série FRED
-        "repli": STATIC_BOND_YIELDS,
     }
 
 
@@ -502,13 +475,24 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
             from app.services.finance.yf_session import download_prices_bulk_with_retry
             raw = download_prices_bulk_with_retry(
                 t_list, period="5y", interval="1d", progress=False, group_by="ticker",
+                use_cache=True,
+                on_progress=lambda done, tot: opt_prog.set_phase(
+                    "preparation", f"Téléchargement des cours… {done}/{tot} titres"),
             )
             if raw.empty:
                 opt_prog.finish(message="Cours indisponibles.")
                 return
+            from app.services.finance.buffett.allocation import drop_short_history
             cd = close_prices_from_download(raw, t_list)
-            cd = cd.dropna(axis=1, thresh=len(cd) * 0.01).ffill()
+            cd, too_young = drop_short_history(cd, int(Config.STARR_MIN_HISTORY_DAYS))
+            if too_young:
+                logger.info(f"[portfolio_create] Historique < {Config.STARR_MIN_HISTORY_DAYS} "
+                            f"jours : {len(too_young)} titres écartés")
+            cd = cd.ffill()
             rets = cd.pct_change().dropna().clip(-0.5, 0.5)
+            if len(rets):
+                logger.info(f"[portfolio_create] Fenêtre commune de rendements : {len(rets)} jours "
+                            f"({rets.index[0].date()} -> {rets.index[-1].date()})")
 
             df_m = pd.DataFrame([{
                 ticker_col: t,
@@ -521,6 +505,7 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
 
             # Disponibilite par broker depuis ToutBroker.xlsx (sinon tout dispo)
             df_m = merge_broker_columns(df_m, ticker_col)
+            opt_prog.set_phase("preparation", "Déduplication (cross-listings)…")
             rets = deduplicate_tickers(rets, df_m, ticker_col)
             t_opt = list(rets.columns)
             if len(t_opt) < 2:

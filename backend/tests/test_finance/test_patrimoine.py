@@ -14,6 +14,7 @@ from app.services.finance.patrimoine import (
     compute_net_worth,
     create_item,
     delete_item,
+    investment_value_eur,
     list_items,
     net_worth_history,
     net_worth_summary,
@@ -67,6 +68,34 @@ def test_net_worth_overlays_auto_account_balance(session, monkeypatch):
     assert dj["valeur"] == 5763.43          # solde auto, pas la saisie manuelle (10)
     assert dj["valeur_source"] == "auto"
     assert dj["valeur_eur"] == round(5763.43 * 0.7, 2)
+
+
+def test_investment_value_eur_only_sums_investment_accounts(session, monkeypatch):
+    """"Objectif patrimoine" doit correspondre à la même source que l'onglet
+    Patrimoine (#bug 2026-07-10 : divergeait de SnapshotPortefeuille)."""
+    monkeypatch.setattr("app.services.finance.fx.convert", lambda amount, base, quote: amount)
+    create_item(session, type="actif", label="Bourse Direct", valeur=27817.62, devise="EUR", categorie="compte-titres")
+    create_item(session, type="actif", label="Trading 212", valeur=1022.90, devise="EUR", categorie="compte-titres")
+    create_item(session, type="actif", label="RealT", valeur=15917.27, devise="EUR", categorie="RealT")
+    create_item(session, type="actif", label="Desjardins", valeur=2000.0, devise="EUR", categorie="Compte en banque")
+    create_item(session, type="passif", label="Emprunt", valeur=20000.0, devise="EUR", categorie="emprunt")
+    total = investment_value_eur(session)
+    assert total == round(27817.62 + 1022.90 + 15917.27, 2)  # ni Desjardins (banque) ni l'emprunt
+
+
+def test_investment_value_eur_uses_auto_balance_over_manual(session, monkeypatch):
+    monkeypatch.setattr("app.services.finance.fx.convert", lambda amount, base, quote: amount)
+    monkeypatch.setattr(
+        "app.services.finance.account_balances.get_balances",
+        lambda: {"trading212": {"solde": 1022.90, "devise": "EUR", "date": "2026-07-06"}},
+    )
+    create_item(session, type="actif", label="Trading 212", valeur=905.10, devise="EUR", categorie="compte-titres")
+    assert investment_value_eur(session) == 1022.90  # solde relevé, pas la saisie manuelle périmée
+
+
+def test_investment_value_eur_zero_when_no_investment_accounts(session):
+    create_item(session, type="actif", label="Desjardins", valeur=2000.0, devise="EUR", categorie="Compte en banque")
+    assert investment_value_eur(session) == 0.0
 
 
 def test_breakdown_history_daily_backfill_for_manual_accounts(session):

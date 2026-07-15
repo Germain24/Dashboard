@@ -582,14 +582,25 @@ def run_buffett_analysis(
             from app.services.finance.yf_session import download_prices_bulk_with_retry
             raw = download_prices_bulk_with_retry(
                 t_list, period="5y", interval="1d", progress=False, group_by="ticker",
+                use_cache=True,
+                on_progress=lambda done, tot: opt_prog.set_phase(
+                    "preparation", f"Téléchargement des cours… {done}/{tot} titres"),
             )
             if raw.empty:
                 opt_prog.finish(message="Cours indisponibles.")
                 opt_error = "Cours indisponibles (téléchargement des cours vide ou expiré)"
             else:
+                from .allocation import drop_short_history
                 cd = close_prices_from_download(raw, t_list)
-                cd = cd.dropna(axis=1, thresh=len(cd) * 0.01).ffill()
+                cd, too_young = drop_short_history(cd, int(Config.STARR_MIN_HISTORY_DAYS))
+                if too_young:
+                    print(f"[runner] Historique < {Config.STARR_MIN_HISTORY_DAYS} jours : "
+                          f"{len(too_young)} titres écartés (ex. {too_young[:8]})")
+                cd = cd.ffill()
                 rets = cd.pct_change().dropna().clip(-0.5, 0.5)
+                if len(rets):
+                    print(f"[runner] Fenêtre commune de rendements : {len(rets)} jours "
+                          f"({rets.index[0].date()} -> {rets.index[-1].date()})")
                 df_m = pd.DataFrame([{
                     ticker_col: t, "Nom": eligible[t][1].get("Nom", ""),
                     "Secteur": eligible[t][1].get("Secteur", ""),
@@ -598,6 +609,10 @@ def run_buffett_analysis(
                 } for t in t_list])
                 # Disponibilite par broker depuis ToutBroker.xlsx (sinon tout dispo)
                 df_m = merge_broker_columns(df_m, ticker_col)
+                opt_prog.set_phase(
+                    "preparation",
+                    "Déduplication (cross-listings, jumeaux d'indice)…",
+                )
                 rets = deduplicate_tickers(rets, df_m, ticker_col)
                 rets = deduplicate_correlated(rets, df_m, ticker_col)
                 t_opt = list(rets.columns)

@@ -112,8 +112,9 @@ def test_de_without_on_new_best_is_unaffected(monkeypatch):
 
 
 def test_de_stops_after_should_stop_true(monkeypatch):
-    """should_stop() verifie uniquement ENTRE deux seeds : avec should_stop qui
-    renvoie True des le debut, on ne fait qu'UN SEUL seed puis on s'arrete."""
+    """should_stop est verifie entre deux GENERATIONS (et entre deux seeds) :
+    avec should_stop qui renvoie True des le debut, le seed 1 est interrompu
+    des sa 1re generation et le resultat reste exploitable."""
     from app.services.finance.buffett.optimizer import optimize_portfolio_de
     from app.services.finance.buffett.config import Config
 
@@ -127,12 +128,48 @@ def test_de_stops_after_should_stop_true(monkeypatch):
     access = [[True] for _ in range(n)]
 
     seeds_seen: set[int] = set()
+    iterations: list[int] = []
     W, starr = optimize_portfolio_de(
         list(rets.columns), rets, access, ["IBKR"], n_sim=3000,
-        progress_cb=lambda seed_num, it, conv: seeds_seen.add(seed_num),
+        progress_cb=lambda seed_num, it, conv, best=None: (
+            seeds_seen.add(seed_num), iterations.append(it)),
         should_stop=lambda: True,
     )
-    assert seeds_seen == {1}   # un seul seed a tourne
+    assert seeds_seen == {1}       # un seul seed a tourne
+    assert max(iterations) == 1    # interrompu des la 1re generation (reactif)
+    assert np.isfinite(W).all()
+    assert abs(W.sum() - 1.0) < 1e-6
+
+
+def test_de_stop_mid_seed_is_responsive(monkeypatch):
+    """L'arret demande PENDANT un seed prend effet a la generation suivante,
+    sans attendre la convergence ni le minimum de generations (#bug rapporte :
+    sur ~2900 titres un seed durait des jours, le bouton Arreter etait vain)."""
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+    from app.services.finance.buffett.config import Config
+
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 1000.0})
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 50)   # jamais atteint
+    monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-9)             # jamais convergent
+    rng = np.random.default_rng(6)
+    n = 10
+    R = rng.normal(0.0006, 0.02, (500, n))
+    rets = pd.DataFrame(R, columns=[f"T{i}" for i in range(n)])
+    access = [[True] for _ in range(n)]
+
+    calls = {"n": 0}
+
+    def should_stop():
+        calls["n"] += 1
+        return calls["n"] >= 3   # demande l'arret pendant le seed 1
+
+    iterations: list[int] = []
+    W, starr = optimize_portfolio_de(
+        list(rets.columns), rets, access, ["IBKR"], n_sim=3000,
+        progress_cb=lambda seed_num, it, conv, best=None: iterations.append(it),
+        should_stop=should_stop,
+    )
+    assert max(iterations) <= 5    # arrete en quelques generations, pas 50
     assert np.isfinite(W).all()
     assert abs(W.sum() - 1.0) < 1e-6
 
@@ -156,14 +193,14 @@ def test_de_without_should_stop_runs_exactly_one_seed(monkeypatch):
     seeds_seen: set[int] = set()
     optimize_portfolio_de(
         list(rets.columns), rets, access, ["IBKR"], n_sim=3000,
-        progress_cb=lambda seed_num, it, conv: seeds_seen.add(seed_num),
+        progress_cb=lambda seed_num, it, conv, best=None: seeds_seen.add(seed_num),
     )
     assert seeds_seen == {1}
 
 
 def test_de_continues_past_first_seed_when_not_stopped(monkeypatch):
-    """should_stop qui renvoie False les 2 premieres fois puis True : verifie
-    qu'on fait bien plusieurs seeds avant de s'arreter (pas bloque au 1er)."""
+    """Tant que should_stop renvoie False, les seeds s'enchainent (pas bloque
+    au 1er) ; l'arret intervient des que la condition devient vraie."""
     from app.services.finance.buffett.optimizer import optimize_portfolio_de
     from app.services.finance.buffett.config import Config
 
@@ -176,15 +213,97 @@ def test_de_continues_past_first_seed_when_not_stopped(monkeypatch):
     rets = pd.DataFrame(R, columns=[f"T{i}" for i in range(n)])
     access = [[True] for _ in range(n)]
 
-    calls = {"n": 0}
-    def should_stop():
-        calls["n"] += 1
-        return calls["n"] >= 3   # False, False, True -> 3 seeds
-
     seeds_seen: set[int] = set()
     optimize_portfolio_de(
         list(rets.columns), rets, access, ["IBKR"], n_sim=3000,
-        progress_cb=lambda seed_num, it, conv: seeds_seen.add(seed_num),
-        should_stop=should_stop,
+        progress_cb=lambda seed_num, it, conv, best=None: seeds_seen.add(seed_num),
+        # False tant que les seeds 1 et 2 tournent ; True au debut du seed 3.
+        should_stop=lambda: len(seeds_seen) >= 3,
     )
-    assert seeds_seen == {1, 2, 3}
+    assert {1, 2, 3} <= seeds_seen
+
+
+def test_de_vectorized_same_contract(monkeypatch):
+    """Evaluation vectorisee (population entiere en 1 matmul, float32, init
+    sparse) : le resultat respecte le meme contrat qu'avant (fini, faisable,
+    budget deploye)."""
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+    from app.services.finance.buffett.config import Config
+
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"IBKR": 600.0, "BoursDirect": 400.0})
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 5)
+    monkeypatch.setattr(Config, "STARR_DE_TOL", 1e-3)
+    rng = np.random.default_rng(7)
+    n = 20
+    R = rng.normal(0.0006, 0.02, (500, n))
+    rets = pd.DataFrame(R, columns=[f"T{i}" for i in range(n)])
+    access = [[(i % 3 != 0), True] for i in range(n)]
+
+    W, starr = optimize_portfolio_de(
+        list(rets.columns), rets, access, ["IBKR", "BoursDirect"], n_sim=3000,
+        min_position=0.0,
+    )
+    assert np.isfinite(W).all()
+    assert np.isfinite(starr)
+    assert abs(W.sum() - 1.0) < 1e-6
+    for i in range(n):
+        if not access[i][0]:
+            assert W[i, 0] == 0.0
+    b_ratios = np.array([600.0, 400.0]) / 1000.0
+    for j in range(2):
+        assert abs(W[:, j].sum() - b_ratios[j]) < 1e-6
+
+
+def test_neg_starr_batch_matches_scalar():
+    """L'objectif vectorise (colonne par colonne) doit coller a neg_starr
+    scalaire : meme rendement/downside, CVaR estime a +-1 scenario pres
+    (k pires scenarios vs percentile) -> tolerance relative serree."""
+    from app.services.finance.buffett.starr import neg_starr, neg_starr_batch
+
+    rng = np.random.default_rng(11)
+    n, n_sim, S = 8, 4000, 25
+    sim = rng.normal(0.0004, 0.02, (n_sim, n))
+    mean_daily = sim.mean(axis=0)
+    X = rng.uniform(0.0, 1.0, (n, S))
+    X[:, 0] = 0.0                       # colonne degeneree -> 1e6
+    batch = neg_starr_batch(X, sim, mean_daily, 0.05, 1.0)
+    assert batch[0] == 1e6
+    for c in range(1, S):
+        scal = neg_starr(X[:, c], sim, mean_daily, 0.05, 1.0)
+        assert abs(batch[c] - scal) <= 0.02 * max(abs(scal), 1e-9)
+
+
+def test_build_init_population_sparse_and_covers_universe():
+    """Population initiale : contient l'individu mono-titre demande, couvre
+    TOUT l'univers (une coordonnee nulle partout resterait nulle a jamais dans
+    un DE), reste sparse, et respecte les bornes [0, 1]."""
+    from app.services.finance.buffett.optimizer import build_init_population
+
+    rng = np.random.default_rng(3)
+    n, pop_size = 300, 64
+    scores = rng.normal(0.5, 0.2, n)
+    seed_idx = 42
+    pop = build_init_population(n, pop_size, rng, scores, seed_idx,
+                                warm_starts=[np.full(n, 0.1)])
+    assert pop.shape[0] >= pop_size and pop.shape[1] == n
+    assert pop.min() >= 0.0 and pop.max() <= 1.0
+    # individu mono-titre (ETF monde / meilleur standalone)
+    one_hot = np.zeros(n); one_hot[seed_idx] = 1.0
+    assert any(np.array_equal(row, one_hot) for row in pop)
+    # couverture : chaque titre est present dans au moins un individu
+    assert (pop.max(axis=0) > 0.0).all()
+    # sparse : la grande majorite des individus concentres (hors warm-starts)
+    n_lines = (pop > 0.0).sum(axis=1)
+    assert np.median(n_lines) <= 50
+
+
+def test_build_init_population_tiny_universe():
+    """Petit univers (moins que le minimum scipy de 5 individus requis par
+    ligne fixe) : au moins 5 individus, jamais d'erreur d'echantillonnage."""
+    from app.services.finance.buffett.optimizer import build_init_population
+
+    rng = np.random.default_rng(4)
+    for n in (1, 2, 3, 10):
+        pop = build_init_population(n, 16, rng, np.arange(n, dtype=float), 0)
+        assert pop.shape[0] >= 5 and pop.shape[1] == n
+        assert (pop.max(axis=0) > 0.0).all()

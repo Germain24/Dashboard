@@ -76,7 +76,10 @@ def fuzzy_ratio(a: str, b: str) -> float:
     return 0.65 * ts + 0.25 * jac + 0.10 * ns
 
 
-def drop_correlated(returns, volumes: dict, threshold: float = 0.97) -> tuple[list, list]:
+def drop_correlated(
+    returns, volumes: dict, threshold: float = 0.97,
+    removable: set | None = None, min_periods: int = 60,
+) -> tuple[list, list]:
     """Retire itérativement les « jumeaux » fortement corrélés (même indice, émetteurs
     différents) que ni le nom ni l'ISIN n'attrapent.
 
@@ -85,33 +88,46 @@ def drop_correlated(returns, volumes: dict, threshold: float = 0.97) -> tuple[li
     plus bas** (à volume égal, le premier dans l'ordre des colonnes). Corrélation
     NÉGATIVE = pas un doublon → jamais fusionnée.
 
+    ``removable`` : si fourni, seules les paires dont les DEUX tickers y figurent
+    sont considérées (décision utilisateur : dedup corrélation ENTRE ETF seulement,
+    une action n'est jamais retirée ni fusionnée avec un ETF). ``min_periods`` :
+    chevauchement minimal (jours) pour qu'une corrélation soit exploitable — deux
+    séries qui ne se recouvrent presque pas produisent des corrélations parasites.
+
     ``returns`` doit déjà être exprimé dans une devise commune (cf. caller : conversion
     EUR), sinon le bruit de change masque l'équivalence. Retourne (kept, removed).
     """
-    import pandas as pd  # noqa: F401
+    import numpy as np
     cols = list(returns.columns)
     if len(cols) < 2:
         return cols, []
-    corr = returns.corr()
-    kept = list(cols)
+    # Matrice numpy + masquage : l'ancienne version rescannait TOUTES les paires
+    # en `.loc` pandas a chaque retrait (O(n^3)) -- sur ~2200 titres avec des
+    # centaines de jumeaux d'ETF, le run restait bloque ici PLUSIEURS HEURES,
+    # sans le moindre log (#bug rapporte). Ici : argmax vectorise par retrait.
+    c = returns.corr(min_periods=min_periods).to_numpy(dtype=float)
+    c = np.where(np.isnan(c), -np.inf, c)
+    c[np.tril_indices(len(cols))] = -np.inf   # ne garder que i<j (une fois par paire)
+    if removable is not None:
+        rem_up = {str(t).upper() for t in removable}
+        not_removable = np.array([str(t).upper() not in rem_up for t in cols])
+        c[not_removable, :] = -np.inf   # paire consideree seulement si les DEUX
+        c[:, not_removable] = -np.inf   # tickers sont des ETF
     removed: list = []   # (ticker_retiré, partenaire_gardé, corrélation)
-    while len(kept) >= 2:
-        best = None  # (corr, a, b)
-        for i in range(len(kept)):
-            for j in range(i + 1, len(kept)):
-                a, b = kept[i], kept[j]
-                c = corr.loc[a, b]
-                if c is None or not (c == c):  # NaN
-                    continue
-                if c >= threshold and (best is None or c > best[0]):
-                    best = (c, a, b)
-        if best is None:
+    dropped: set = set()
+    while True:
+        flat = int(np.argmax(c))
+        i, j = divmod(flat, c.shape[1])
+        if not np.isfinite(c[i, j]) or c[i, j] < threshold:
             break
-        c, a, b = best
-        drop = a if float(volumes.get(a, 0) or 0) <= float(volumes.get(b, 0) or 0) else b
-        partner = b if drop == a else a
-        kept.remove(drop)
-        removed.append((drop, partner, round(float(c), 4)))
+        a, b = cols[i], cols[j]
+        k = i if float(volumes.get(a, 0) or 0) <= float(volumes.get(b, 0) or 0) else j
+        partner = cols[j] if k == i else cols[i]
+        removed.append((cols[k], partner, round(float(c[i, j]), 4)))
+        dropped.add(cols[k])
+        c[k, :] = -np.inf
+        c[:, k] = -np.inf
+    kept = [t for t in cols if t not in dropped]
     return kept, removed
 
 
@@ -124,19 +140,28 @@ _SUFFIX_CCY = {
 
 
 def _ticker_currency(t: str) -> str:
-    """Devise de cotation d'un ticker. fast_info yfinance d'abord (fiable, ex. .L
-    peut être USD/GBP/GBp), repli sur le suffixe. 'GBp'/'GBX' (pence) ramené à 'GBP'
-    (sans effet sur les rendements/corrélations, qui sont des ratios)."""
+    """Devise de cotation d'un ticker, par SUFFIXE (aucun appel réseau), sauf
+    pour `.L` : la LSE cote GBP/GBp/USD selon la ligne -> fast_info yfinance
+    (accès par CLÉ : `fast_info.get()` est cassé dans yfinance 1.x et renvoie
+    toujours le défaut, cf. yf_session.fast_last_price). Avant : un appel
+    yfinance PAR ticker (throttlé ~1,8 s chacun, ~1 h pour 2200 titres) dont le
+    résultat était de toute façon perdu par le `.get()` cassé. 'GBp'/'GBX'
+    (pence) ramené à 'GBP' (sans effet sur les rendements/corrélations, qui
+    sont des ratios)."""
+    suf = t.rsplit(".", 1)[1].upper() if "." in t else ""
     cur = None
-    try:
-        import yfinance as yf
-        from app.services.finance.yf_session import yf_session
-        fi = yf.Ticker(t, session=yf_session()).fast_info
-        cur = (fi.get("currency") if hasattr(fi, "get") else getattr(fi, "currency", None))
-    except Exception:
-        cur = None
+    if suf == "L":
+        try:
+            import yfinance as yf
+            from app.services.finance.yf_session import yf_session
+            fi = yf.Ticker(t, session=yf_session()).fast_info
+            try:
+                cur = fi["currency"]
+            except Exception:
+                cur = getattr(fi, "currency", None)
+        except Exception:
+            cur = None
     if not cur:
-        suf = t.rsplit(".", 1)[1].upper() if "." in t else ""
         cur = _SUFFIX_CCY.get(suf, "USD")
     cur = str(cur).strip().upper()
     return "GBP" if cur in ("GBP", "GBX") else cur
@@ -147,9 +172,12 @@ def deduplicate_correlated(returns, df, ticker_col: str = "Ticker Yahoo Finance"
     """Retire les jumeaux d'indice (corrélation ≥ ``threshold``) sur rendements
     **convertis en ``base_ccy``** (sinon le change masque l'équivalence cross-devises).
 
-    L'optimiseur reçoit ensuite les rendements NATIFS des survivants (on ne convertit
-    que pour la DÉCISION). Robuste : toute erreur (devise/FX introuvable) -> repli sur
-    la corrélation en devise native plutôt que de casser le run.
+    Ne s'applique QU'ENTRE ETF (colonne Secteur == ETF, comme deduplicate_tickers) :
+    une ACTION n'est jamais retirée pour cause de corrélation, ni fusionnée avec un
+    ETF (#bug rapporté : sur fenêtre courte, KIE absorbé par l'action ADBE, NOBL par
+    NVO...). L'optimiseur reçoit ensuite les rendements NATIFS des survivants (on ne
+    convertit que pour la DÉCISION). Robuste : toute erreur (devise/FX introuvable)
+    -> repli sur la corrélation en devise native plutôt que de casser le run.
     """
     import pandas as pd
     if threshold is None:
@@ -157,13 +185,20 @@ def deduplicate_correlated(returns, df, ticker_col: str = "Ticker Yahoo Finance"
     cols = list(returns.columns)
     if len(cols) < 2:
         return returns
-    # volume par ticker (règle de conservation)
+    # volume par ticker (règle de conservation) + ensemble des ETF (seuls candidats
+    # au retrait par corrélation)
     vol: dict = {}
+    etf_set: set = set()
     try:
-        sub = df[[ticker_col, "Volume"]].copy()
+        sub = df[[ticker_col, "Volume", "Secteur"]].copy() if "Secteur" in df.columns \
+            else df[[ticker_col, "Volume"]].copy()
         sub[ticker_col] = sub[ticker_col].astype(str).str.strip()
-        for t, v in zip(sub[ticker_col], sub["Volume"]):
+        for _, row in sub.iterrows():
+            t = row[ticker_col]
+            v = row["Volume"]
             vol.setdefault(t, float(v) if pd.notna(v) else 0.0)
+            if "ETF" in str(row.get("Secteur", "")).upper():
+                etf_set.add(t.upper())
     except Exception:
         vol = {}
 
@@ -172,12 +207,13 @@ def deduplicate_correlated(returns, df, ticker_col: str = "Ticker Yahoo Finance"
         currencies = {t: _ticker_currency(t) for t in cols}
         need = sorted({c for c in currencies.values() if c and c != base_ccy})
         if need:
-            import yfinance as yf
-            from app.services.finance.yf_session import yf_session
+            from app.services.finance.yf_session import download_with_timeout, yf_session
             fx_ret: dict = {}
             for ccy in need:
-                raw = yf.download(f"{ccy}{base_ccy}=X", period="5y", interval="1d",
-                                  progress=False, session=yf_session())
+                raw = download_with_timeout(
+                    tickers=f"{ccy}{base_ccy}=X", period="5y", interval="1d",
+                    progress=False, session=yf_session(),
+                )
                 if raw is None or raw.empty:
                     raise RuntimeError(f"FX {ccy}{base_ccy} indisponible")
                 close = raw["Close"]
@@ -195,9 +231,9 @@ def deduplicate_correlated(returns, df, ticker_col: str = "Ticker Yahoo Finance"
         print(f"[dedup] conversion {base_ccy} impossible ({e}); corrélation en devise native.")
         rets_eur = returns
 
-    kept, removed = drop_correlated(rets_eur, vol, threshold)
+    kept, removed = drop_correlated(rets_eur, vol, threshold, removable=etf_set)
     if removed:
-        print(f"[dedup] {len(removed)} jumeaux d'indice (corr>={threshold}) retires :")
+        print(f"[dedup] {len(removed)} jumeaux d'indice ETF (corr>={threshold}) retires :")
         for t, partner, c in removed:
             print(f"[dedup]   - {t} (corr {c} avec {partner}, garde)")
     return returns[kept]

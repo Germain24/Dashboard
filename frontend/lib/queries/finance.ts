@@ -89,6 +89,26 @@ export function useObjectifPatrimoine() {
   });
 }
 
+/** Calcul d'impôt sur les plus-values de cession (PFU vs barème progressif). */
+export function useCalculImpots(params: {
+  annee: number; autres_revenus?: number; parts?: number;
+  moins_values_anterieures?: number; broker?: string;
+}) {
+  return useQuery({
+    queryKey: [...financeKeys.all, "impots", params],
+    queryFn: () => financeApi.calculImpots(params),
+  });
+}
+
+/** Détail vente par vente (FIFO) -- tableau ouvert au clic sur un gain calculé. */
+export function useVentesImpots(params: { annee?: number; broker?: string }, enabled = true) {
+  return useQuery({
+    queryKey: [...financeKeys.all, "impots-ventes", params],
+    queryFn: () => financeApi.ventesImpots(params),
+    enabled,
+  });
+}
+
 export function useSetObjectifPatrimoine() {
   const qc = useQueryClient();
   return useMutation({

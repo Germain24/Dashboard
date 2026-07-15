@@ -107,3 +107,37 @@ def test_state_from_positions_fallback(monkeypatch):
     assert st["cash_total"] == 0.0               # inconnu sans ledger
     assert st["pl_realise"] == 0.0
     assert st["positions"][0]["ticker"] == "CW8.PA"
+
+
+# ── open_position_tickers : ne prix que les positions ENCORE ouvertes --
+# une position soldée (ex. ANTIN/LR/IPN vendues) était re-téléchargée à chaque
+# rafraîchissement de l'état, en pure perte (symboles souvent invalides). ──
+
+class _Tx:
+    def __init__(self, type, ticker, quantite):
+        self.type = type
+        self.ticker = ticker
+        self.quantite = quantite
+
+
+def test_open_position_tickers_excludes_fully_sold():
+    from app.services.finance.portfolio_state import open_position_tickers
+    txs = [
+        _Tx("achat", "AAPL", 2.0),
+        _Tx("achat", "ANTIN", 1.17968264),
+        _Tx("vente", "ANTIN", 1.17968264),  # soldée
+        _Tx("dividende", "ANTIN", 1.0),      # dividende: pas besoin de cours
+        _Tx("vente", "AAPL", 1.0),           # reste 1.0 -> ouverte
+    ]
+    assert open_position_tickers(txs) == {"AAPL"}
+
+
+def test_open_position_tickers_ignores_cash_and_deposits():
+    from app.services.finance.portfolio_state import open_position_tickers
+    txs = [
+        _Tx("depot", "CASH", 1.0),
+        _Tx("achat", "CASH", 1.0),
+        _Tx("achat", "", 1.0),
+        _Tx("achat", "msft", 3.0),
+    ]
+    assert open_position_tickers(txs) == {"MSFT"}

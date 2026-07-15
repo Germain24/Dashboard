@@ -256,6 +256,12 @@ export const garderobeApi = {
       method: "POST",
     }),
 
+  /** Import de l'inventaire (Vetements.xlsx + pixel arts + photos du dossier
+   *  géré à la main, cf. GARDEROBE_INVENTAIRE_DIR). Idempotent. */
+  syncInventaire: () =>
+    api<{ lignes: number; crees: number; maj: number; assets: number; photos: number; sans_pixel: number }>(
+      `/garderobe/inventaire/sync`, { method: "POST" }),
+
   frequence: (topN = 5) => api<WearFrequency>(`/garderobe/frequence?top_n=${topN}`),
 
   // Planificateur de tenues hebdomadaire (#79)

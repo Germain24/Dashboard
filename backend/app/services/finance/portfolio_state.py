@@ -74,11 +74,12 @@ def get_portfolio_state(session) -> dict:
         _state_cache.set("state", state)
         return state
 
-    tickers = {
-        (t.ticker or "").upper()
-        for t in txs
-        if t.type in ("achat", "vente", "dividende") and t.ticker and t.ticker.upper() != "CASH"
-    }
+    # Cours UNIQUEMENT pour les positions encore ouvertes : une position soldée
+    # n'a pas besoin de prix (sa valeur est déjà réalisée), et un ticker fermé
+    # peut être invalide côté Yahoo (ex. symbole T212 sans suffixe .PA) --
+    # avant ce filtre, CHAQUE ticker jamais tradé était re-téléchargé à chaque
+    # rafraîchissement de l'état, en pure perte (#spam "possibly delisted").
+    tickers = open_position_tickers(txs)
     prix = get_prices(list(tickers)) if tickers else {}
     state = compute_portfolio_state(txs, prix, get_tax_params(session))
     _state_cache.set("state", state)
@@ -139,6 +140,26 @@ def _state_from_positions(session, taxe: dict) -> dict:
             "total": 0.0, "taux_plus_value_pct": taux_pv, "taux_dividende_pct": taux_div,
         },
     }
+
+
+def open_position_tickers(transactions) -> set[str]:
+    """Tickers dont la quantité nette (achats − ventes) est encore > 0.
+
+    Seules ces positions ont besoin d'un cours actuel ; les dividendes et les
+    positions soldées n'en ont pas (montants cash déjà réalisés).
+    """
+    qte: dict[str, float] = defaultdict(float)
+    for t in transactions:
+        typ = str(getattr(t, "type", "") or "").lower()
+        ticker = (getattr(t, "ticker", "") or "").upper()
+        if not ticker or ticker == "CASH":
+            continue
+        q = float(getattr(t, "quantite", 0) or 0)
+        if typ == "achat":
+            qte[ticker] += q
+        elif typ == "vente":
+            qte[ticker] -= q
+    return {t for t, q in qte.items() if q > 1e-9}
 
 
 def _montant(t) -> float:

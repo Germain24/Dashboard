@@ -122,3 +122,10 @@ def delete_credit_rule(rule_id: int, session: Session = Depends(get_session)):
 @router.get("/credit/plan")
 def get_credit_plan(session: Session = Depends(get_session)):
     return svc.compute_plan(session)
+
+
+@router.get("/credit/voyage-budget")
+def get_credit_voyage_budget(ordre: str = "desc", session: Session = Depends(get_session)):
+    """Budget de voyage finançable en chaînant les cartes actives (une à la
+    fois, vidée puis remboursée avant l'échéance -> 0% d'intérêt)."""
+    return svc.get_voyage_budget(session, ordre=ordre)

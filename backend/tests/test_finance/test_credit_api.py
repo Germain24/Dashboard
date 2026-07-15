@@ -109,6 +109,24 @@ def test_plan_endpoint_produces_roadmap_and_growing_margin(client):
     assert body["actions"][0]["type"] == "hausse"
 
 
+def test_voyage_budget_endpoint_chains_active_cards(client):
+    client.post("/finance/credit/accounts", json={
+        "institution": "A", "produit": "Carte", "limite_actuelle": 15000, "date_ouverture": "2025-09-01",
+    })
+    client.post("/finance/credit/accounts", json={
+        "institution": "B", "produit": "Carte", "limite_actuelle": 5000, "date_ouverture": "2025-09-01",
+    })
+    client.post("/finance/credit/accounts", json={
+        "institution": "C", "produit": "Carte", "limite_actuelle": 3000, "date_ouverture": "2025-09-01",
+    })
+    r = client.get("/finance/credit/voyage-budget")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["budget_total"] == 23000.0
+    assert body["mois_total"] == 3
+    assert [m["budget"] for m in body["mois"]] == [15000.0, 5000.0, 3000.0]
+
+
 def test_plan_endpoint_without_enough_score_history_has_no_projection(client):
     r = client.get("/finance/credit/plan")
     assert r.status_code == 200

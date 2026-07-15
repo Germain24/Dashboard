@@ -194,6 +194,36 @@ def net_worth_summary(
     return {**summary, "taux_cad_eur": round(rate, 4), "items": dumped}
 
 
+# Mots-clés identifiant un compte d'investissement parmi les actifs manuels
+# (mêmes critères que le graphe "Évolution du patrimoine net · investissement"
+# du frontend, cf. PatrimoineTab.tsx NetWorthChart -- garder synchronisé).
+_INVEST_KEYWORDS = ("boursedirect", "trading", "realt")
+
+
+def investment_value_eur(session: Session) -> float:
+    """Valeur EUR des seuls actifs d'investissement (comptes-titres, RealT),
+    soldes auto (relevés) prioritaires sur la saisie manuelle -- même source
+    que `net_worth_summary`, pour que "Objectif patrimoine" (progression vers
+    un objectif d'investissement) corresponde à ce qu'affiche l'onglet
+    Patrimoine, au lieu du snapshot de portefeuille (incomplet : ne reflète
+    que les comptes dont les transactions sont suivies dans l'app)."""
+    auto_balances = _load_auto_balances()
+    total = 0.0
+    for i in list_items(session):
+        if i.type != "actif":
+            continue
+        key = _norm_key(i.label)
+        if not any(kw in key for kw in _INVEST_KEYWORDS):
+            continue
+        auto = _match_auto_balance(i.label, auto_balances)
+        if auto is not None:
+            valeur, devise = float(auto["solde"]), auto.get("devise") or i.devise
+        else:
+            valeur, devise = i.valeur, i.devise
+        total += to_eur(valeur, devise)
+    return round(total, 2)
+
+
 # ─── Historisation dans le temps (#257) ─────────────────────────────────────
 
 def record_net_worth_snapshot(

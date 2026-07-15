@@ -84,11 +84,9 @@ class Settings(BaseSettings):
     garderobe_hour_start: int = 7
     garderobe_hour_end: int = 23
     garderobe_weather_cache_ttl: int = 1800
-
-    # --- Voyage (planificateur d'itinéraire) ---
-    # Clé de test/prod Duffel (https://duffel.com) — recherche d'offres de vols.
-    # Vide = module désactivé (fetch_offer renvoie toujours None).
-    duffel_api_key: str = ""
+    # Dossier inventaire géré à la main (Vetements.xlsx + Pixelisé/ + Normal/),
+    # lu par POST /garderobe/inventaire/sync et scripts/import_garderobe_inventaire.
+    garderobe_inventaire_dir: str = r"C:\Users\germa\Desktop\Vetements"
 
     # ── Réglages métier ajustables (override .env) ──────────────────────
     # Finance — score Buffett & valorisation

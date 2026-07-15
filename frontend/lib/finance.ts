@@ -136,6 +136,18 @@ export interface CreditPlan {
   projection_possible: boolean;
 }
 
+export interface VoyageBudgetMois {
+  mois: number;
+  institution: string;
+  produit: string;
+  budget: number;
+}
+export interface VoyageBudget {
+  mois: VoyageBudgetMois[];
+  budget_total: number;
+  mois_total: number;
+}
+
 export interface HistoryPoint {
   date: string;
   valeur: number;
@@ -313,6 +325,29 @@ export interface RebalancingDiff {
   seuil_alerte_pct: number; n_alertes: number;
 }
 
+// Impôts — plus-values de cession (PFU vs barème progressif)
+export interface RegimeTax { ir: number; social: number; total: number; }
+export interface AnneeImpots { gain_brut: number; gain_net_imposable: number; report_apres: number; }
+export interface CalculImpots {
+  annee: number;
+  gain_brut: number;
+  gain_net_imposable: number;
+  report_moins_values_restant: number;
+  historique_par_annee: Record<string, AnneeImpots>;
+  pfu: RegimeTax;
+  bareme: RegimeTax;
+  recommande: "pfu" | "bareme";
+}
+export interface VenteDetail {
+  date: string;
+  ticker: string;
+  quantite: number;
+  prix_achat_moyen: number;
+  prix_vente: number;
+  plus_value: number;
+  impot_estime_pfu: number;
+}
+
 // ---- API client ----
 
 async function get<T>(path: string): Promise<T> {
@@ -456,6 +491,8 @@ export const financeApi = {
       progress_pct: number;
       message: string;
       run_id: number | null;
+      stop_requested: boolean;
+      best_score: number | null;
     }>("/portfolio/progress"),
   /** Arrête l'optimisation DE en cours (run auto ou bouton manuel) */
   optimizationStop: () =>
@@ -469,8 +506,6 @@ export const financeApi = {
     get<{
       objectif_eur: number;
       valeur_eur: number;
-      valeur_cad: number;
-      taux_cad_eur: number;
       progression_pct: number;
       restant_eur: number;
       atteint: boolean;
@@ -503,4 +538,28 @@ export const financeApi = {
   creditRuleCreate: (data: CreditActionRuleCreate) => post<CreditActionRule>("/credit/rules", data),
   creditRuleDelete: (id: number) => del(`/credit/rules/${id}`),
   creditPlan: () => get<CreditPlan>("/credit/plan"),
+  creditVoyageBudget: (ordre: "desc" | "asc" = "desc") =>
+    get<VoyageBudget>(`/credit/voyage-budget?ordre=${ordre}`),
+
+  // Impôts — plus-values de cession
+  calculImpots: (params: {
+    annee: number; autres_revenus?: number; parts?: number;
+    moins_values_anterieures?: number; broker?: string;
+  }) => {
+    const q = new URLSearchParams();
+    q.set("annee", String(params.annee));
+    if (params.autres_revenus != null) q.set("autres_revenus", String(params.autres_revenus));
+    if (params.parts != null) q.set("parts", String(params.parts));
+    if (params.moins_values_anterieures != null)
+      q.set("moins_values_anterieures", String(params.moins_values_anterieures));
+    if (params.broker) q.set("broker", params.broker);
+    return get<CalculImpots>(`/impots/calcul?${q.toString()}`);
+  },
+  ventesImpots: (params: { annee?: number; broker?: string } = {}) => {
+    const q = new URLSearchParams();
+    if (params.annee != null) q.set("annee", String(params.annee));
+    if (params.broker) q.set("broker", params.broker);
+    const qs = q.toString();
+    return get<{ ventes: VenteDetail[] }>(`/impots/ventes${qs ? `?${qs}` : ""}`);
+  },
 };

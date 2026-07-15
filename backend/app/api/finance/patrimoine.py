@@ -41,8 +41,9 @@ def get_patrimoine(session: Session = Depends(get_session)):
     # Comptes-titres : auto-remplir la valeur depuis le dernier relevé déposé
     # (Trading212 pour l'instant). Best-effort — ne jamais casser la lecture.
     try:
-        from app.services.finance.trading212 import refresh_trading212_balance
+        from app.services.finance.trading212 import import_trading212_trades, refresh_trading212_balance
         refresh_trading212_balance()
+        import_trading212_trades(session)
     except Exception:
         pass
     summary = svc.net_worth_summary(session)

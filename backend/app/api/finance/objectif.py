@@ -11,49 +11,30 @@ from app.services.settings import get_preferences, set_preferences
 router = APIRouter()
 
 
-def _get_valeur_portefeuille(session: Session) -> float:
-    """Valeur totale du portefeuille en EUR (depuis le dernier snapshot)."""
-    try:
-        from app.services.finance.snapshots import get_latest_snapshot
-        snap = get_latest_snapshot(session)
-        if snap:
-            return float(snap.valeur or 0.0)
-    except Exception:
-        pass
-    return 0.0
-
-
-def _eur_per_cad(session: Session) -> float:
-    """Taux de change CAD→EUR (best-effort depuis le cache fx)."""
-    try:
-        from app.services.finance.fx import get_rate
-        cad_usd = get_rate("CAD", "USD")
-        eur_usd = get_rate("EUR", "USD")
-        if eur_usd and cad_usd:
-            return cad_usd / eur_usd
-    except Exception:
-        pass
-    return 0.68  # fallback approximatif
-
-
 @router.get("/objectif-patrimoine")
 def get_objectif_patrimoine(session: Session = Depends(get_session)):
-    """Progression vers l'objectif patrimonial d'investissement."""
+    """Progression vers l'objectif patrimonial d'investissement.
+
+    `valeur_eur` = mêmes comptes d'investissement (Trading212, Bourse Direct,
+    RealT) que l'onglet Patrimoine (`investment_value_eur`) -- PAS l'ancien
+    snapshot de portefeuille `SnapshotPortefeuille`, qui ne reflétait que les
+    positions dont les transactions sont suivies dans l'app (ex. Bourse
+    Direct saisi à la main, sans historique de transactions -> absent du
+    snapshot) et affichait donc un chiffre différent de l'onglet Patrimoine
+    pour ce qui est censé être la même chose.
+    """
+    from app.services.finance.patrimoine import investment_value_eur
+
     prefs = get_preferences()
     objectif = float(prefs.get("objectif_patrimoine_eur", 300_000))
 
-    valeur_cad = _get_valeur_portefeuille(session)
-    taux = _eur_per_cad(session)
-    valeur_eur = round(valeur_cad * taux, 2)
-
+    valeur_eur = investment_value_eur(session)
     pct = round(valeur_eur / objectif * 100, 1) if objectif > 0 else 0.0
     restant = round(objectif - valeur_eur, 2)
 
     return {
         "objectif_eur": objectif,
         "valeur_eur": valeur_eur,
-        "valeur_cad": round(valeur_cad, 2),
-        "taux_cad_eur": taux,
         "progression_pct": pct,
         "restant_eur": max(restant, 0.0),
         "atteint": valeur_eur >= objectif,

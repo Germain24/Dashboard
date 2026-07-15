@@ -54,6 +54,40 @@ def test_update_de_tracks_seed_num():
     op.reset()
 
 
+def test_best_score_none_until_first_update():
+    from app.services.finance.buffett import optimization_progress as op
+
+    op.reset()
+    op.start(run_id=1)
+    assert op.snapshot()["best_score"] is None
+
+
+def test_best_score_updated_and_persists_across_calls_without_it():
+    from app.services.finance.buffett import optimization_progress as op
+
+    op.reset()
+    op.start(run_id=1)
+    op.update_de(seed_num=1, iteration=1, convergence=0.1, best_score=0.42)
+    assert op.snapshot()["best_score"] == 0.42
+    # Un appel sans best_score (None) ne doit pas effacer la dernière valeur connue.
+    op.update_de(seed_num=1, iteration=2, convergence=0.2)
+    assert op.snapshot()["best_score"] == 0.42
+    op.update_de(seed_num=1, iteration=3, convergence=0.3, best_score=0.55)
+    assert op.snapshot()["best_score"] == 0.55
+    op.reset()
+
+
+def test_best_score_reset_to_none_by_start():
+    from app.services.finance.buffett import optimization_progress as op
+
+    op.reset()
+    op.start(run_id=1)
+    op.update_de(seed_num=1, iteration=1, convergence=0.1, best_score=0.9)
+    op.start(run_id=2)  # nouveau run
+    assert op.snapshot()["best_score"] is None
+    op.reset()
+
+
 def test_request_stop_sets_flag_reset_by_start():
     from app.services.finance.buffett import optimization_progress as op
 
@@ -82,10 +116,10 @@ def test_optimize_portfolio_de_reports_progress(monkeypatch):
     rets = pd.DataFrame(rng.normal(0.001, 0.02, (300, 3)), columns=["A", "B", "C"])
     matrix = [[True], [True], [True]]
 
-    calls: list[tuple[int, int, float]] = []
+    calls: list[tuple[int, int, float, float]] = []
     weights, sharpe = optimize_portfolio_de(
         ["A", "B", "C"], rets, matrix, ["IBKR"], n_sim=2000,
-        progress_cb=lambda seed_num, it, conv: calls.append((seed_num, it, conv)),
+        progress_cb=lambda seed_num, it, conv, best=None: calls.append((seed_num, it, conv, best)),
     )
     assert len(calls) > 0
     assert all(c[0] == 1 for c in calls)   # un seul seed
@@ -93,3 +127,6 @@ def test_optimize_portfolio_de_reports_progress(monkeypatch):
     iters = [c[1] for c in calls]
     assert iters == sorted(iters)
     assert weights.shape == (3, 1)
+    # best_score (4e argument) fourni à chaque appel, jamais None une fois le
+    # DE démarré (population_energies[0] est toujours fini dès la génération 1).
+    assert all(c[3] is not None for c in calls)

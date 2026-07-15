@@ -138,3 +138,151 @@ def test_stock_cross_listing_still_merged_by_name():
     ])
     out = deduplicate_tickers(returns, df)
     assert list(out.columns) == ["NVO"]
+
+
+# ── _ticker_currency : suffixe seul (aucun reseau) sauf .L, ou fast_info est
+# lu par CLE (fast_info.get() est casse dans yfinance 1.x -> retournait
+# toujours None, et l'appel HTTP throttle par ticker etait fait pour rien). ──
+
+def test_ticker_currency_uses_suffix_without_network(monkeypatch):
+    from app.services.finance.buffett import dedup
+
+    def boom(*a, **k):
+        raise AssertionError("appel yfinance interdit hors .L")
+
+    monkeypatch.setattr("yfinance.Ticker", boom)
+    assert dedup._ticker_currency("AIR.PA") == "EUR"
+    assert dedup._ticker_currency("AAPL") == "USD"
+    assert dedup._ticker_currency("7203.T") == "JPY"
+
+
+def test_ticker_currency_dot_l_reads_fast_info_by_key(monkeypatch):
+    from app.services.finance.buffett import dedup
+
+    class _FI:
+        def __getitem__(self, k):
+            if k == "currency":
+                return "GBp"
+            raise KeyError(k)
+
+        def get(self, _k, default=None):
+            return default  # bug yfinance 1.x : .get() ignore la vraie valeur
+
+    class _T:
+        def __init__(self, *a, **k):
+            self.fast_info = _FI()
+
+    monkeypatch.setattr("yfinance.Ticker", _T)
+    assert dedup._ticker_currency("SGLN.L") == "GBP"  # pence -> GBP
+
+
+def test_ticker_currency_dot_l_falls_back_to_suffix_on_error(monkeypatch):
+    from app.services.finance.buffett import dedup
+
+    def boom(*a, **k):
+        raise RuntimeError("reseau coupe")
+
+    monkeypatch.setattr("yfinance.Ticker", boom)
+    assert dedup._ticker_currency("HSBA.L") == "GBP"
+
+
+# ── Dedup correlation ENTRE ETF seulement (decision utilisateur 2026-07-13) :
+# une ACTION n'est jamais retiree pour cause de correlation, ni fusionnee avec
+# un ETF (#bug : sur fenetre courte, KIE (ETF) etait absorbe par l'action ADBE,
+# NOBL par NVO...). ──
+
+def _perfect_twins(n=300):
+    rng = np.random.RandomState(7)
+    base = rng.randn(n)
+    return base, base + 1e-9 * rng.randn(n)
+
+
+def test_drop_correlated_ignores_stock_etf_pairs():
+    from app.services.finance.buffett.dedup import drop_correlated
+    a, b = _perfect_twins()
+    rets = pd.DataFrame({"KIE": a, "ADBE": b})   # ETF vs ACTION, corr ~1
+    kept, removed = drop_correlated(rets, {"KIE": 1, "ADBE": 999},
+                                    threshold=0.95, removable={"KIE"})
+    assert removed == []                          # paire ignoree : pas 2 ETF
+    assert set(kept) == {"KIE", "ADBE"}
+
+
+def test_drop_correlated_ignores_stock_stock_pairs():
+    from app.services.finance.buffett.dedup import drop_correlated
+    a, b = _perfect_twins()
+    rets = pd.DataFrame({"TTE": a, "SHEL": b})   # deux ACTIONS correlees
+    kept, removed = drop_correlated(rets, {"TTE": 1, "SHEL": 2},
+                                    threshold=0.95, removable=set())
+    assert removed == [] and set(kept) == {"TTE", "SHEL"}
+
+
+def test_drop_correlated_still_merges_etf_etf_pairs():
+    from app.services.finance.buffett.dedup import drop_correlated
+    a, b = _perfect_twins()
+    rets = pd.DataFrame({"IAU": a, "GLD": b})
+    kept, removed = drop_correlated(rets, {"IAU": 10, "GLD": 999},
+                                    threshold=0.95, removable={"IAU", "GLD"})
+    assert [r[0] for r in removed] == ["IAU"]     # ETF-ETF : fusion normale
+    assert kept == ["GLD"]
+
+
+def test_deduplicate_correlated_protects_stocks_via_secteur():
+    """deduplicate_correlated derive l'ensemble ETF de la colonne Secteur."""
+    from app.services.finance.buffett.dedup import deduplicate_correlated
+    a, b = _perfect_twins()
+    rets = pd.DataFrame({"SPY": a, "AAPL": b})
+    df = pd.DataFrame({
+        _TCOL: ["SPY", "AAPL"],
+        "Volume": [999, 1],
+        "Secteur": ["ETF", "Technology"],
+    })
+    out = deduplicate_correlated(rets, df, _TCOL, threshold=0.95)
+    assert set(out.columns) == {"SPY", "AAPL"}    # l'action n'est pas absorbee
+
+
+def test_drop_correlated_min_periods_guards_sparse_overlap():
+    """Deux series qui ne se recouvrent presque pas ne doivent JAMAIS fusionner,
+    meme si leur correlation sur 3 jours communs vaut ~1."""
+    from app.services.finance.buffett.dedup import drop_correlated
+    n = 300
+    rng = np.random.RandomState(8)
+    a = pd.Series(rng.randn(n))
+    b = a.copy()
+    a[150:] = np.nan     # A n'existe que sur la 1re moitie
+    b[:147] = np.nan     # B que sur la fin -> 3 jours de chevauchement
+    rets = pd.DataFrame({"A": a, "B": b})
+    kept, removed = drop_correlated(rets, {"A": 1, "B": 2}, threshold=0.95,
+                                    removable={"A", "B"}, min_periods=60)
+    assert removed == [] and set(kept) == {"A", "B"}
+
+
+# ── drop_short_history : un fonds recent ne doit pas tronquer la fenetre
+# commune de rendements de tout l'univers. ──
+
+def test_drop_short_history_removes_young_funds():
+    from app.services.finance.buffett.allocation import drop_short_history
+    rng = np.random.RandomState(9)
+    n = 1250
+    old = pd.Series(rng.randn(n).cumsum() + 100)
+    young = pd.Series([np.nan] * (n - 40) + list(rng.randn(40).cumsum() + 50))
+    cd = pd.DataFrame({"VIEUX": old, "JEUNE": young})
+    out, dropped = drop_short_history(cd, min_days=252)
+    assert dropped == ["JEUNE"]
+    assert list(out.columns) == ["VIEUX"]
+    # La fenetre commune reste complete apres pct_change().dropna()
+    rets = out.ffill().pct_change().dropna()
+    assert len(rets) >= n - 2
+
+
+def test_drop_short_history_keeps_everything_when_all_old():
+    from app.services.finance.buffett.allocation import drop_short_history
+    cd = pd.DataFrame(np.random.RandomState(10).randn(300, 3) + 100,
+                      columns=["A", "B", "C"])
+    out, dropped = drop_short_history(cd, min_days=252)
+    assert dropped == [] and list(out.columns) == ["A", "B", "C"]
+
+
+def test_drop_short_history_empty_frame():
+    from app.services.finance.buffett.allocation import drop_short_history
+    out, dropped = drop_short_history(pd.DataFrame(), min_days=252)
+    assert dropped == []

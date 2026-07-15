@@ -80,8 +80,11 @@ def portfolio_breakdown(weights_pct: dict, defmap: dict, paysmap: dict,
     0-1}. ``paysmap`` : {TICKER: {pays: fraction}}. ``classmap``/``sectmap`` :
     {TICKER: libellé}. Retourne {'pays', 'defensif', 'agressif', 'classe', 'secteur'}.
     """
+    from .lookthrough import fill_unknown_countries
+
     tot = sum(v for v in weights_pct.values() if v and v > 0) or 1.0
     wn = {str(t).upper(): v / tot for t, v in weights_pct.items() if v and v > 0}
+    paysmap = fill_unknown_countries(paysmap, list(wn.keys()))
     pays: dict = defaultdict(float)
     classe: dict = defaultdict(float)
     sect: dict = defaultdict(float)

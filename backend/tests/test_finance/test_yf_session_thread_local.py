@@ -66,3 +66,13 @@ def test_rotate_session_ne_change_que_le_thread_courant():
     t2.start()
     t2.join()
     assert other_after["session"] is not after
+
+
+def test_session_has_a_default_timeout():
+    """Sans timeout, une connexion qui ne répond jamais bloque le thread
+    indéfiniment (#run Buffett resté bloqué à quelques tickers de la fin,
+    process actif mais aucune progression pendant plusieurs minutes)."""
+    session = yfs.yf_session()
+    assert session is not None  # curl_cffi doit être installé en test
+    assert session.timeout == yfs.DEFAULT_TIMEOUT_S
+    assert session.timeout > 0

@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from app.core.timeutil import utcnow
 from app.models.credit import CreditAccount, CreditActionRule, CreditProfile, CreditScoreEntry
 from app.services.finance.credit.planner import build_plan
+from app.services.finance.credit.voyage_budget import compute_voyage_budget
 
 DEFAULT_DATE_CIBLE_ANNEES = 3
 
@@ -120,3 +121,7 @@ def compute_plan(session: Session) -> dict:
     scores = list_score_entries(session)
     rules = list_rules(session)
     return build_plan(accounts, scores, rules, date_cible=profile.date_cible, today=dt.date.today())
+
+
+def get_voyage_budget(session: Session, *, ordre: str = "desc") -> dict:
+    return compute_voyage_budget(list_accounts(session), ordre=ordre)
