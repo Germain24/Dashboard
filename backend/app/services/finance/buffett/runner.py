@@ -125,15 +125,18 @@ def _get_data_age(data: dict) -> int:
 
 def _etf_result(ticker: str, data: dict) -> tuple[float, dict]:
     """Construit le resultat Score=200 pour un ETF."""
+    from .currency import volume_eur
     info = data.get("info", {})
+    prix = info.get("currentPrice", info.get("regularMarketPrice", 0))
     metrics = {
         "Nom": info.get("longName", info.get("shortName", ticker)),
         "Pays": info.get("country", infer_country(ticker)),
         "Secteur": "ETF",
         "QuoteType": info.get("quoteType", "ETF"),
         "Achat": True,
-        "Prix": info.get("currentPrice", info.get("regularMarketPrice", 0)),
-        "Volume": info.get("volume", 0),
+        "Prix": prix,
+        # En euros (cf. currency.volume_eur), comme extract_metrics.
+        "Volume": volume_eur(info.get("volume", 0), prix, ticker, info),
     }
     return 200.0, metrics
 

@@ -49,11 +49,17 @@ def extract_metrics(symbol: str, info: dict) -> dict:
     pays = info.get("country", "Inconnu")
     if pays == "Inconnu":
         pays = infer_country(symbol)
+    prix = info.get("currentPrice", info.get("regularMarketPrice", 0))
+    from .currency import volume_eur
     return {
         "Nom": ln or sn or symbol, "Pays": pays,
-        "Prix": info.get("currentPrice", info.get("regularMarketPrice", 0)),
+        "Prix": prix,
         "EPS": info.get("trailingEps", 0), "PER": info.get("trailingPE", 0),
-        "Volume": info.get("volume", info.get("regularMarketVolume", 0)),
+        # Volume échangé/jour EN EUROS (nb actions x prix local x FX), pas le
+        # nombre brut d'actions -- cf. currency.volume_eur.
+        "Volume": volume_eur(
+            info.get("volume", info.get("regularMarketVolume", 0)), prix, symbol, info,
+        ),
         "Secteur": secteur, "QuoteType": qt,
     }
 
