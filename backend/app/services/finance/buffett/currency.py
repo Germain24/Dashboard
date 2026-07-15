@@ -12,12 +12,17 @@ from __future__ import annotations
 from app.services.finance import fx
 
 # Suffixe Yahoo -> devise de cotation (source unique, aussi utilisée par
-# dedup._ticker_currency).
+# dedup._ticker_currency). Doit couvrir au moins toutes les bourses non-US de
+# cache_manager.SUFFIX_MAP (source de vérité de l'univers) : test de
+# couverture structurel dans test_currency_volume.py.
 SUFFIX_CCY = {
-    "L": "GBP", "PA": "EUR", "DE": "EUR", "AS": "EUR", "MI": "EUR", "MC": "EUR",
-    "BR": "EUR", "LS": "EUR", "VI": "EUR", "HE": "EUR", "IR": "EUR",
+    "L": "GBP", "PA": "EUR", "DE": "EUR", "F": "EUR", "AS": "EUR", "MI": "EUR",
+    "MC": "EUR", "BR": "EUR", "LS": "EUR", "VI": "EUR", "HE": "EUR", "IR": "EUR",
     "HK": "HKD", "KS": "KRW", "KQ": "KRW", "T": "JPY", "TO": "CAD", "V": "CAD",
-    "SW": "CHF", "ST": "SEK", "OL": "NOK", "CO": "DKK", "SI": "SGD", "AX": "AUD",
+    "SW": "CHF", "ST": "SEK", "OL": "NOK", "CO": "DKK", "SI": "SGD", "SG": "SGD",
+    "AX": "AUD", "SS": "CNY", "SZ": "CNY", "NS": "INR", "BO": "INR", "TW": "TWD",
+    "MX": "MXN", "SA": "BRL", "JO": "ZAR", "JK": "IDR", "IS": "TRY", "IL": "ILS",
+    "BK": "THB", "KL": "MYR",
 }
 
 
@@ -54,7 +59,11 @@ def volume_eur(volume, prix, ticker: str = "", info: dict | None = None,
     get = rate_getter or fx.get_rate
     rate = float(get(ccy, "EUR") or 0.0)
     if rate <= 0:
-        print(f"[currency] taux {ccy}->EUR indisponible ({ticker or '?'}) -> Volume=0")
+        if ccy not in {*SUFFIX_CCY.values(), "USD"}:
+            print(f"[currency] devise {ccy} NON préchauffée par warm_fx_cache "
+                  f"({ticker or '?'}) -> ajouter à SUFFIX_CCY -> Volume=0")
+        else:
+            print(f"[currency] taux {ccy}->EUR indisponible ({ticker or '?'}) -> Volume=0")
         return 0.0
     return round(v * p * factor * rate, 2)
 

@@ -81,3 +81,64 @@ def test_warm_fx_cache_precharge_toutes_les_devises(monkeypatch):
     currency.warm_fx_cache()
     attendu = sorted(({*currency.SUFFIX_CCY.values()} | {"USD"}) - {"EUR"})
     assert sorted(fetched) == attendu
+
+
+def test_suffix_ccy_couvre_toutes_les_bourses_de_suffix_map():
+    """Test de couverture structurel : cache_manager.SUFFIX_MAP est la source
+    de vérité des bourses de l'univers Buffett. Si une bourse non-US y est
+    ajoutée sans devise dans SUFFIX_CCY, warm_fx_cache() ne préchauffera
+    jamais son taux -> Volume=0 silencieux pour tout ticker de cette bourse
+    (voir orchestration/a-faire/2026-07-15-volume-eur-design.md, finding
+    "SUFFIX_CCY couvre moins de bourses que SUFFIX_MAP").
+
+    SUFFIX_MAP contient des suffixes non-bourse ou de bourses US/zone EUR déjà
+    couvertes ; on exclut seulement les pays "United States" et "Inconnu"
+    (aucun suffixe ne mappe vers eux dans la table) -- toute autre entrée doit
+    avoir un suffixe équivalent (sans le point) dans SUFFIX_CCY.
+    """
+    from app.services.finance.buffett import currency
+    from app.services.finance.buffett.cache_manager import SUFFIX_MAP
+
+    manquants = []
+    for suffix_avec_point, pays in SUFFIX_MAP.items():
+        suf = suffix_avec_point.lstrip(".").upper()
+        if suf not in currency.SUFFIX_CCY:
+            manquants.append((suffix_avec_point, pays))
+    assert not manquants, (
+        f"Bourses de SUFFIX_MAP sans devise dans SUFFIX_CCY (Volume=0 "
+        f"silencieux garanti) : {manquants}"
+    )
+
+
+def test_volume_eur_signale_devise_non_prechauffee(capsys):
+    """Une devise absente de SUFFIX_CCY.values() (donc jamais préchauffée par
+    warm_fx_cache) doit produire un message distinct d'un simple échec de
+    fetch, pour qu'on puisse la repérer dans les logs et compléter la table."""
+    from app.services.finance.buffett.currency import volume_eur
+
+    def taux_toujours_absent(base, quote, **kwargs):
+        return 0.0
+
+    # "XXX" n'est la devise d'aucun suffixe de SUFFIX_CCY ni USD.
+    assert volume_eur(1000, 10.0, "FOO.ZZ", {"currency": "XXX"},
+                      rate_getter=taux_toujours_absent) == 0.0
+    out = capsys.readouterr().out
+    assert "XXX" in out
+    assert "préchauffée" in out
+    assert "indisponible" not in out
+
+
+def test_volume_eur_devise_couverte_mais_taux_indisponible_message_different(capsys):
+    """Contrôle négatif : une devise couverte (ex. KRW, déjà dans SUFFIX_CCY)
+    dont le taux échoue au fetch reste un message 'taux indisponible' normal,
+    pas le message 'non préchauffée'."""
+    from app.services.finance.buffett.currency import volume_eur
+
+    def taux_toujours_absent(base, quote, **kwargs):
+        return 0.0
+
+    assert volume_eur(1000, 10.0, "005930.KS", {"currency": "KRW"},
+                      rate_getter=taux_toujours_absent) == 0.0
+    out = capsys.readouterr().out
+    assert "non préchauffée" not in out
+    assert "indisponible" in out
