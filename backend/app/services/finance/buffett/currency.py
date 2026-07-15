@@ -71,6 +71,24 @@ def volume_eur(volume, prix, ticker: str = "", info: dict | None = None,
     return round(v * p * factor * rate, 2)
 
 
+def ensure_volume_eur(metrics: dict, ticker: str = "") -> dict:
+    """Metrics avec ``Volume`` garanti en euros (marqueur ``VolumeDevise``).
+
+    Les métriques HISTORIQUES (cache_status.json et runs d'avant 2026-07-15)
+    portent un Volume en nb d'actions ; celles produites depuis par
+    extract_metrics/_etf_result portent ``VolumeDevise='EUR'``. Sans marqueur,
+    convertit via Prix (devise locale) + suffixe du ticker. Idempotent, ne
+    mute pas l'entrée. Limite connue : sans info['currency'], un titre `.L`
+    coté en pence est traité comme GBP entier (volume surestimé x100) --
+    corrigé au prochain rafraîchissement réel du ticker."""
+    if metrics.get("VolumeDevise") == "EUR":
+        return metrics
+    out = dict(metrics)
+    out["Volume"] = volume_eur(out.get("Volume"), out.get("Prix"), ticker, None)
+    out["VolumeDevise"] = "EUR"
+    return out
+
+
 def warm_fx_cache(quote: str = "EUR") -> None:
     """Précharge les taux devise->quote au DÉMARRAGE du run Buffett : pendant
     l'analyse, fx.get_rate ne frappe plus le réseau (garde _analysis_running)

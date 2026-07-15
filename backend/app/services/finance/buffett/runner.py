@@ -137,6 +137,7 @@ def _etf_result(ticker: str, data: dict) -> tuple[float, dict]:
         "Prix": prix,
         # En euros (cf. currency.volume_eur), comme extract_metrics.
         "Volume": volume_eur(info.get("volume", 0), prix, ticker, info),
+        "VolumeDevise": "EUR",
     }
     return 200.0, metrics
 
@@ -219,11 +220,16 @@ def _analyze_one(
                 on_result(ticker_, score_, metrics_)
             except Exception as e:
                 print(f"[runner] persistance {ticker_}: {e}")
-    # 0. Cache chaud (ETF cached score=200 toujours retourne)
+    # 0. Cache chaud (ETF cached score=200 toujours retourne). Les entrées
+    # d'avant le passage de Volume en euros (2026-07-15) portent un volume en
+    # nb d'actions : ensure_volume_eur convertit à la lecture (marqueur
+    # VolumeDevise, idempotent) -- sinon le filtre de liquidité compare des
+    # nb d'actions au seuil en euros (#bug run 40 : univers faussé).
     cached = cache.get_cached_result(ticker)
     if cached:
+        from .currency import ensure_volume_eur
         score, metrics = cached
-        _emit(ticker, score, metrics)
+        _emit(ticker, score, ensure_volume_eur(metrics, ticker))
         return True
 
     file_path = Config.output_dir() / f"{ticker.replace(':', '_')}.xlsx"

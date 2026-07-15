@@ -60,6 +60,9 @@ def extract_metrics(symbol: str, info: dict) -> dict:
         "Volume": volume_eur(
             info.get("volume", info.get("regularMarketVolume", 0)), prix, symbol, info,
         ),
+        # Marqueur d'unité : permet au cache chaud de distinguer ces métriques
+        # des historiques en nb d'actions (cf. currency.ensure_volume_eur).
+        "VolumeDevise": "EUR",
         "Secteur": secteur, "QuoteType": qt,
     }
 
