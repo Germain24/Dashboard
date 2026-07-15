@@ -540,7 +540,7 @@ def run_buffett_analysis(
         eligible = {
             t: v for t, v in eligible.items()
             if t.upper() in _forced
-            or is_liquid(v[1].get("Volume"), v[1].get("Prix"))
+            or is_liquid(v[1].get("Volume"))
         }
         if before_liq != len(eligible):
             print(f"[runner] Liquidité: {before_liq - len(eligible)} titres écartés "

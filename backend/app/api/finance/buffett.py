@@ -451,7 +451,9 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
             is_forced = ticker.upper() in forced
             eligible = score >= min_score_val or is_etf or is_forced
             # Filtre de liquidité (sauf forcés) : volume échangé €/jour >= seuil.
-            if not is_forced and not is_liquid(r.volume, r.prix):
+            # r.volume est en euros depuis le passage de la colonne Volume en €
+            # (runs anterieurs : nb d'actions brut, pas de migration -- spec).
+            if not is_forced and not is_liquid(r.volume):
                 if eligible and r.achat:
                     n_illiquid += 1
                 continue

@@ -2,8 +2,9 @@
 
 On évite d'allouer un titre trop peu liquide (ex. REIT athénien BLEKEDROS.AT à
 ~5 000 €/jour) : il fausse l'optimiseur (variance faible/artefactuelle → Sharpe
-gonflé → sur-pondération) et serait difficile à acheter/revendre. Mesure retenue :
-**volume échangé en €/jour** = volume (actions) × prix. Seuil : ``Config.MIN_VOLUME_EUR``.
+gonflé → sur-pondération) et serait difficile à acheter/revendre. La colonne
+``Volume`` est DÉJÀ le volume échangé en €/jour (cf. currency.volume_eur) : on
+la compare directement au seuil ``Config.MIN_VOLUME_EUR``.
 """
 
 from __future__ import annotations
@@ -11,15 +12,15 @@ from __future__ import annotations
 from .config import Config
 
 
-def daily_eur_volume(volume, prix) -> float:
-    """Volume échangé par jour en € = nb d'actions × prix (0 si donnée manquante)."""
+def daily_eur_volume(volume_eur) -> float:
+    """Volume échangé par jour en € (0 si donnée manquante/invalide)."""
     try:
-        return float(volume or 0) * float(prix or 0)
+        return float(volume_eur or 0)
     except (TypeError, ValueError):
         return 0.0
 
 
-def is_liquid(volume, prix, min_eur: float | None = None) -> bool:
+def is_liquid(volume_eur, min_eur: float | None = None) -> bool:
     """Vrai si le volume €/jour atteint le seuil (défaut ``Config.MIN_VOLUME_EUR``)."""
     threshold = Config.MIN_VOLUME_EUR if min_eur is None else min_eur
-    return daily_eur_volume(volume, prix) >= float(threshold)
+    return daily_eur_volume(volume_eur) >= float(threshold)
