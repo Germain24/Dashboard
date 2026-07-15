@@ -107,6 +107,11 @@ def job_monthly_buffett(csv_path: str | None = None) -> None:
         from app.models.finance import BuffettRun
 
         Config.load_params()
+        # Taux devise->EUR requis par la colonne Volume (en euros) : a
+        # precharger AVANT le scoring, le garde _analysis_running bloque
+        # ensuite tout fetch FX pendant l'analyse.
+        from app.services.finance.buffett.currency import warm_fx_cache
+        warm_fx_cache()
         tickers_csv = csv_path or str(Config.TICKERS_CSV)
         tickers = load_tickers(tickers_csv)
         n_total = len(tickers)

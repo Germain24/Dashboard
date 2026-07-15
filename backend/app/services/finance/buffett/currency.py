@@ -57,3 +57,15 @@ def volume_eur(volume, prix, ticker: str = "", info: dict | None = None,
         print(f"[currency] taux {ccy}->EUR indisponible ({ticker or '?'}) -> Volume=0")
         return 0.0
     return round(v * p * factor * rate, 2)
+
+
+def warm_fx_cache(quote: str = "EUR") -> None:
+    """Précharge les taux devise->quote au DÉMARRAGE du run Buffett : pendant
+    l'analyse, fx.get_rate ne frappe plus le réseau (garde _analysis_running)
+    et rendrait 0.0 pour toute paire jamais vue ce jour -> tous les volumes
+    non-EUR seraient nuls et écartés comme illiquides."""
+    currencies = sorted(({*SUFFIX_CCY.values()} | {"USD"}) - {quote.upper()})
+    ok = [c for c in currencies if fx.get_rate(c, quote, force=True) > 0]
+    manquantes = sorted(set(currencies) - set(ok))
+    print(f"[currency] FX warm-up : {len(ok)}/{len(currencies)} paires -> {quote}"
+          + (f" (manquantes : {', '.join(manquantes)})" if manquantes else ""))

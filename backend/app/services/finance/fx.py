@@ -53,8 +53,12 @@ def get_rate(
     *,
     fetcher: Callable[[str, str], float | None] | None = None,
     today: dt.date | None = None,
+    force: bool = False,
 ) -> float:
-    """Taux du jour pour 1 ``base`` en ``quote`` (cache quotidien). 1.0 si base==quote."""
+    """Taux du jour pour 1 ``base`` en ``quote`` (cache quotidien). 1.0 si
+    base==quote. ``force=True`` (warm-up au démarrage d'un run Buffett) passe
+    outre le garde _analysis_running et le cache négatif -- pas le cache du
+    jour."""
     base, quote = base.upper(), quote.upper()
     if base == quote:
         return 1.0
@@ -67,7 +71,9 @@ def get_rate(
         entry = _cache.get(key)
         if entry and entry[0] == today:
             return entry[1]
-        if _analysis_running() or now - _failed.get(key, float("-inf")) < NEG_RETRY_S:
+        if not force and (
+            _analysis_running() or now - _failed.get(key, float("-inf")) < NEG_RETRY_S
+        ):
             # Analyse en cours OU echec recent -> dernier taux connu sans
             # re-frapper yfinance
             return _cache[key][1] if key in _cache else 0.0

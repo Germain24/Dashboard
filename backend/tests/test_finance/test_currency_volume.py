@@ -64,3 +64,20 @@ def test_dedup_reutilise_la_table_suffixe():
     # La table vit dans currency.py ; dedup ne doit plus avoir sa copie.
     from app.services.finance.buffett import currency, dedup
     assert dedup._SUFFIX_CCY is currency.SUFFIX_CCY
+
+
+def test_warm_fx_cache_precharge_toutes_les_devises(monkeypatch):
+    from app.services.finance import fx
+    from app.services.finance.buffett import currency
+
+    fetched = []
+
+    def fake_get_rate(base, quote, **kwargs):
+        assert kwargs.get("force") is True and quote == "EUR"
+        fetched.append(base)
+        return 1.0
+
+    monkeypatch.setattr(fx, "get_rate", fake_get_rate)
+    currency.warm_fx_cache()
+    attendu = sorted(({*currency.SUFFIX_CCY.values()} | {"USD"}) - {"EUR"})
+    assert sorted(fetched) == attendu

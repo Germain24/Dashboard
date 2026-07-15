@@ -95,3 +95,26 @@ def test_serves_stale_rate_while_analysis_running(monkeypatch):
     monkeypatch.setattr(fx, "_analysis_running", lambda: True)
     r = fx.get_rate("EUR", "USD", fetcher=lambda b, q: 9.9, today=dt.date(2026, 6, 4))
     assert r == 1.1  # dernier taux connu, pas de fetch live
+
+
+def test_get_rate_force_contourne_le_garde_analyse(monkeypatch):
+    """Pendant une analyse, get_rate ne fetch jamais (garde _analysis_running)
+    -> le warm-up doit pouvoir forcer le fetch, sinon toute paire jamais vue
+    ce jour vaudrait 0 pendant tout le run."""
+    from app.services.finance import fx
+    fx.clear_cache()
+    monkeypatch.setattr(fx, "_analysis_running", lambda: True)
+    calls = []
+
+    def fetch(base, quote):
+        calls.append((base, quote))
+        return 1.25
+
+    assert fx.get_rate("USD", "EUR", fetcher=fetch) == 0.0      # garde actif
+    assert calls == []
+    assert fx.get_rate("USD", "EUR", fetcher=fetch, force=True) == 1.25
+    assert calls == [("USD", "EUR")]
+    # Le taux forcé est en cache : l'appel normal suivant le voit.
+    assert fx.get_rate("USD", "EUR", fetcher=fetch) == 1.25
+    assert calls == [("USD", "EUR")]
+    fx.clear_cache()
