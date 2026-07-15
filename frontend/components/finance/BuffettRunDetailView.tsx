@@ -5,7 +5,8 @@
 import { useState } from "react";
 import { financeApi, type BuffettRunDetail, type BuffettResultOut } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
-import { fmt, ScoreChip, StatusBadge } from "./buffett-ui";
+import { fmt, ScoreChip, StatusBadge, type OptProgress } from "./buffett-ui";
+import { DeStarrChart } from "./DeStarrChart";
 
 /** Abrège le nom du broker pour l'affichage compact. */
 function brokerShort(b?: string): string {
@@ -53,11 +54,15 @@ function AllocCell({ r }: { r: BuffettResultOut }) {
 }
 
 export function BuffettRunDetailView({
-  selected, onBack, onError,
+  selected, onBack, onError, optProgress = null,
 }: {
   selected: BuffettRunDetail;
   onBack: () => void;
   onError: (msg: string) => void;
+  /** Progression DE live (pollée par le parent) : affiche le graphe STARR ici
+   *  aussi — avant, il n'existait que sur la vue liste de l'onglet, donc il
+   *  « disparaissait » dès qu'on ouvrait le détail du run (#bug rapporté). */
+  optProgress?: OptProgress | null;
 }) {
   const [backtest, setBacktest] = useState<{ rendement_pct: number; equity: number[]; n_points: number } | null>(null);
   const [backtesting, setBacktesting] = useState(false);
@@ -123,6 +128,9 @@ export function BuffettRunDetailView({
         <p className="text-xs rounded-[var(--radius)] bg-[var(--info-muted)] text-[var(--info-foreground)] px-3 py-2">
           🔄 Optimisation en cours — ce portefeuille s&apos;améliore en direct, actualisation automatique.
         </p>
+      )}
+      {optProgress?.active && optProgress.run_id === selected.run.id && (
+        <DeStarrChart optProgress={optProgress} />
       )}
       {backtest && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm flex items-center gap-3 flex-wrap">

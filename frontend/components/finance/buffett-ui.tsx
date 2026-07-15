@@ -78,7 +78,9 @@ export function DeProgressBar({
       <div className="flex items-center justify-between text-xs">
         <span className="text-[var(--muted-foreground)]">
           {optProgress.active
-            ? (PHASE_LABEL[optProgress.phase] || "En cours…")
+            // Le message serveur est plus précis que le libellé de phase :
+            // "Téléchargement des cours… 850/2898 titres", "Déduplication…"
+            ? (optProgress.message || PHASE_LABEL[optProgress.phase] || "En cours…")
             : (optProgress.message || "Terminé")}
           {optProgress.active && optProgress.phase === "optimisation"
             ? ` · seed ${optProgress.seed_num || 1}${

@@ -4,7 +4,7 @@
  *  trouvé par le Differential Evolution, pendant qu'il tourne -- pas
  *  seulement affiché une fois terminé. Pas d'historique côté serveur : on
  *  accumule les valeurs polled via `optProgress` (déjà rafraîchi toutes les
- *  3s par le parent), persisté en sessionStorage par run_id pour survivre à
+ *  60s par le parent), persisté en sessionStorage par run_id pour survivre à
  *  un refresh de page / remount tant que le DE tourne toujours côté serveur. */
 
 import { useEffect, useRef, useState } from "react";

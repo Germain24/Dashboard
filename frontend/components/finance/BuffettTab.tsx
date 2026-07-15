@@ -62,21 +62,28 @@ export function BuffettTab() {
 
   const pollOptProgress = useCallback(async (runId: number) => {
     const p = await financeApi.portfolioProgress().catch(() => null);
-    if (p && p.run_id === runId) {
-      setOptProgress(p);
-      if (!p.active) stopOptPolling();
-    } else if (!p?.active) {
-      stopOptPolling();
-    }
-  }, [stopOptPolling]);
+    // Ne JAMAIS couper le polling ici sur un état inactif : entre la fin du
+    // scoring et le vrai début de la phase d'optimisation (écriture
+    // ToutBroker.xlsx, téléchargement des cours — plusieurs minutes à heures),
+    // /portfolio/progress répond "idle". Le premier poll tombait dans cette
+    // fenêtre et arrêtait tout définitivement (#bug : ni seed/génération, ni
+    // graphe STARR, ni bouton Arrêter pendant le run mensuel). L'intervalle
+    // est arrêté par l'effet appelant quand le run Buffett n'est plus actif.
+    setOptProgress(p && p.active && p.run_id === runId ? p : null);
+  }, []);
 
-  // Une fois le scoring des tickers à 100 %, le run automatique enchaîne sur la
-  // phase d'optimisation DE (peut durer des heures) : on relaie la même barre de
+  // Après le scoring des tickers, le run automatique enchaîne sur la phase
+  // d'optimisation DE (peut durer des heures) : on relaie la même barre de
   // progression que le bouton manuel "Créer le portefeuille optimal".
+  // On sonde dès que le run est actif, SANS condition sur progress_pct : le
+  // scoring finit souvent sous 100 % (tickers sautés — ex. 10471/10490 =
+  // 99.8 %), et finalize_run ne pose 100 qu'après TOUTE la pipeline. Un gate
+  // `>= 100` ici privait la phase DE de barre et de graphe STARR (#bug
+  // rapporté). Tant que le DE n'a pas démarré, /portfolio/progress répond
+  // "idle" et pollOptProgress laisse optProgress à null : rien ne s'affiche.
   useEffect(() => {
     const runId = progress?.run_id;
-    const scoringDone = (progress?.progress_pct ?? 0) >= 100;
-    if (progress?.active && scoringDone && runId != null) {
+    if (progress?.active && runId != null) {
       stopOptPolling();
       // eslint-disable-next-line react-hooks/set-state-in-effect -- même schéma que loadRuns() ci-dessus (l.39) : sonde fire-and-forget qui met à jour l'état une fois résolue.
       void pollOptProgress(runId);
@@ -86,7 +93,7 @@ export function BuffettTab() {
       setOptProgress(null);
     }
     return () => stopOptPolling();
-  }, [progress?.active, progress?.progress_pct, progress?.run_id, pollOptProgress, stopOptPolling]);
+  }, [progress?.active, progress?.run_id, pollOptProgress, stopOptPolling]);
 
   // Rafraîchit le détail d'un run "en_cours" pour afficher l'allocation
   // progressive (meilleur portefeuille trouvé jusqu'ici) sans action utilisateur.
@@ -168,6 +175,7 @@ export function BuffettTab() {
   if (selected) {
     return (
       <BuffettRunDetailView
+        optProgress={optProgress}
         selected={selected}
         onBack={() => setSelected(null)}
         onError={setError}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, BarChart3, RefreshCw, Star, LayoutGrid, CreditCard, Target, Landmark } from "lucide-react";
+import { TrendingUp, BarChart3, RefreshCw, Star, LayoutGrid, CreditCard, Target, Landmark, Receipt } from "lucide-react";
 import { ModuleHeader } from "@/components/layout";
 import { PortefeuilleTab } from "./PortefeuilleTab";
 import { SuiviTab } from "./SuiviTab";
@@ -10,6 +10,7 @@ import { BuffettTab } from "./BuffettTab";
 import { RebalancingTab } from "./RebalancingTab";
 import { TransactionsTab } from "./TransactionsTab";
 import { PatrimoineTab } from "./PatrimoineTab";
+import { ImpotsTab } from "./ImpotsTab";
 import { useObjectifPatrimoine, useSetObjectifPatrimoine } from "@/lib/queries/finance";
 
 function ObjectifWidget() {
@@ -84,7 +85,7 @@ function ObjectifWidget() {
   );
 }
 
-type Tab = "suivi" | "portefeuille" | "composition" | "rebalancing" | "buffett" | "transactions" | "patrimoine";
+type Tab = "suivi" | "portefeuille" | "composition" | "rebalancing" | "buffett" | "transactions" | "patrimoine" | "impots";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "suivi",        label: "Suivi",        icon: TrendingUp },
@@ -94,6 +95,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "buffett",      label: "Buffett",       icon: Star },
   { id: "transactions", label: "Transactions",  icon: CreditCard },
   { id: "patrimoine",   label: "Patrimoine",    icon: Landmark },
+  { id: "impots",       label: "Impôts",        icon: Receipt },
 ];
 
 export function Finance() {
@@ -122,6 +124,7 @@ export function Finance() {
         {active === "buffett"      && <BuffettTab />}
         {active === "transactions" && <TransactionsTab />}
         {active === "patrimoine"   && <PatrimoineTab />}
+        {active === "impots"       && <ImpotsTab />}
       </div>
     </div>
   );
