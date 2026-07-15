@@ -131,12 +131,7 @@ def drop_correlated(
     return kept, removed
 
 
-_SUFFIX_CCY = {
-    "L": "GBP", "PA": "EUR", "DE": "EUR", "AS": "EUR", "MI": "EUR", "MC": "EUR",
-    "BR": "EUR", "LS": "EUR", "VI": "EUR", "HE": "EUR", "IR": "EUR",
-    "HK": "HKD", "KS": "KRW", "KQ": "KRW", "T": "JPY", "TO": "CAD", "V": "CAD",
-    "SW": "CHF", "ST": "SEK", "OL": "NOK", "CO": "DKK", "SI": "SGD", "AX": "AUD",
-}
+from .currency import SUFFIX_CCY as _SUFFIX_CCY  # source unique (currency.py)
 
 
 def _ticker_currency(t: str) -> str:
