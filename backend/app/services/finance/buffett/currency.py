@@ -19,9 +19,12 @@ SUFFIX_CCY = {
     "L": "GBP", "PA": "EUR", "DE": "EUR", "F": "EUR", "AS": "EUR", "MI": "EUR",
     "MC": "EUR", "BR": "EUR", "LS": "EUR", "VI": "EUR", "HE": "EUR", "IR": "EUR",
     "HK": "HKD", "KS": "KRW", "KQ": "KRW", "T": "JPY", "TO": "CAD", "V": "CAD",
-    "SW": "CHF", "ST": "SEK", "OL": "NOK", "CO": "DKK", "SI": "SGD", "SG": "SGD",
+    "SW": "CHF", "ST": "SEK", "OL": "NOK", "CO": "DKK", "SI": "SGD",
+    "SG": "EUR",  # .SG = Stuttgart (Yahoo), pas Singapour (.SI)
+    "DU": "EUR",  # .DU = Düsseldorf (présent dans tickers.csv, absent de SUFFIX_MAP)
+    "IL": "USD",  # .IL = London IOB (USD), pas Israel
     "AX": "AUD", "SS": "CNY", "SZ": "CNY", "NS": "INR", "BO": "INR", "TW": "TWD",
-    "MX": "MXN", "SA": "BRL", "JO": "ZAR", "JK": "IDR", "IS": "TRY", "IL": "ILS",
+    "MX": "MXN", "SA": "BRL", "JO": "ZAR", "JK": "IDR", "IS": "TRY",
     "BK": "THB", "KL": "MYR",
 }
 
