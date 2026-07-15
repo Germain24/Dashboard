@@ -133,6 +133,12 @@ def job_monthly_buffett(csv_path: str | None = None) -> None:
                 session.refresh(existing)
                 run_id = existing.id
                 logger.info("Reprise du run Buffett interrompu #%d", run_id)
+                logger.warning(
+                    "Reprise du run %s : les tickers deja analyses avant le passage "
+                    "de la colonne Volume en euros gardent un volume en nb d'actions "
+                    "(unites melangees sur CE run uniquement, pas de migration).",
+                    existing.id,
+                )
             else:
                 run = create_run(session, n_total, params)
                 run_id = run.id
