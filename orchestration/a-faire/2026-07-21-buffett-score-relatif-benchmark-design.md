@@ -156,15 +156,27 @@ Deux sources d'étiquettes sectorielles ont été testées, avec le **même** r�
   rien : seuls **123 titres vifs** disposent de ≥ 756 j d'historique, répartis en
   groupes de 1 à 79. Les étiquettes ne sont pas le facteur limitant.
 
-Le vrai facteur limitant est ailleurs, et relève des **données, pas du code** : sur
-les 1056 actions retenues par le crible Buffett au run #50, seules **33** sont
-marquées disponibles chez un broker dans ToutBroker.xlsx — la colonne
-`Tradding 212` n'a que 360 valeurs renseignées sur 11 609 lignes. L'univers
-d'optimisation compte ainsi ~2023 ETF pour ~123 actions.
+Le facteur limitant est le **crible Buffett lui-même**, et c'est voulu — entonnoir
+mesuré sur les actions vives du run #50 :
 
-Sujet à rouvrir uniquement si les colonnes brokers sont remplies largement, ce qui
-peuplerait enfin les groupes sectoriels. Le changement serait alors local à
-`class_aware_prior`.
+```
+   achat = 1                          1056
+   ... liquidite >= 100k EUR/j         850   (-206)
+   ... score Buffett >= 80            ~134   (-716)   <- filtre dominant, par conception
+   ... >= 756 j d'historique           121
+```
+
+À noter pour qui relira ce document : une case vide dans une colonne broker de
+ToutBroker.xlsx signifie **disponible**, pas indisponible (`optimizer._is_true`
+l.18-22). Les 1056 actions retenues sont donc toutes accessibles ; la disponibilité
+broker n'est pas un filtre limitant. Le score Buffett n'est pas persisté en base
+(`buffett_run_result.poids` est `NULL`), d'où l'estimation du palier ~134 par
+élimination.
+
+L'univers d'optimisation compte ainsi ~2023 ETF pour ~123 actions. Sujet à rouvrir
+uniquement si `BUFFETT_SCORE_THRESHOLD` est abaissé au point de peupler les groupes
+sectoriels — ce qui est une décision d'investissement, pas technique. Le changement
+serait alors local à `class_aware_prior`.
 
 **Pas de taille minimale de classe.** Une classe à 1 membre dégénère en « sa propre
 moyenne » — pour une obligation c'est la réponse conservatrice correcte. Un seuil
