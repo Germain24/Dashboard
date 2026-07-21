@@ -14,22 +14,72 @@ Légende d'impact : (*) confort  (**) valeur réelle  (***) structurant
 Suivi : chaque item terminé est daté — `← FINIS ✓ (AAAA-MM-JJ) <note>`.
 Un item toujours sans marqueur = jamais commencé.
 
+================================================================================
+TRIAGE DE PERTINENCE (2026-07-20)
+================================================================================
+Ce fichier est une liste d'idées brainstormées, pas une feuille de route
+validée. Passe de tri pour séparer ce qui est réellement actionnable de ce qui
+ne le sera jamais dans CE produit. Rien n'a été supprimé — un item écarté
+reste lisible avec sa raison.
+
+Les contraintes produit qui décident (cf. README, PLAN.md, décisions passées) :
+mono-utilisateur · local-first · pas d'IA conversationnelle ni générative ·
+pas de vocal ni d'aides handicap · les données réelles sont la source de vérité.
+
+FAMILLES ÉCARTÉES EN BLOC (raison structurelle, pas un manque de temps) :
+
+- Z. Domotique (306-320) — aucun équipement domotique dans le périmètre de
+  l'utilisateur. Rien à piloter, rien à lire : construire l'intégration
+  reviendrait à écrire un module contre des données inexistantes.
+
+- AF. Intégrations externes (386-400) — chacune demande un compte tiers, des
+  clés d'API et un flux OAuth pour un seul utilisateur. Contradiction directe
+  avec local-first. 398/399 (marketplace, SDK de plugins) supposent en plus une
+  communauté qui n'existe pas — même raison que #500, déjà abandonné.
+
+- AG. Mobile natif / Watch (401, 403-412) — le dashboard est une app web
+  consultée au poste de travail. Le responsive et le mode hors-ligne de base
+  sont déjà traités ailleurs ; app native, complications montre, biométrie et
+  share sheet sont un produit différent.
+
+- AJ. IA/ML (436-450, sauf 439) — modèles prédictifs, embeddings, MLOps,
+  explicabilité. Écarté par la contrainte « pas d'IA » et par le volume de
+  données : un historique mono-utilisateur ne nourrit pas un modèle appris.
+  Exception 439 (prévision de dépenses) : faisable en statistique pure, et
+  déjà couvert par #259 (cash_flow_forecast).
+
+- AM. Nouveaux modules de vie (477-499) — 23 modules spéculatifs (jardin,
+  bénévolat, DIY, famille, réceptions…). Aucun ne répond à un besoin exprimé ;
+  les modules existants viennent tous d'un usage réel. À rouvrir un par un si
+  le besoin apparaît, jamais en bloc.
+
+- Multi-utilisateur (339, 340, 344, 345, 491, 499) — partage, listes
+  partagées, calendrier familial, finances du foyer. Le produit est
+  mono-utilisateur par conception ; l'authentification et les permissions que
+  ça impliquerait sont un chantier hors sujet.
+
+RESTE ACTIONNABLE : les sections W (finances), X (santé), Y (productivité),
+AD (administratif), AE (analytics) et AL (qualité/plateforme) contiennent des
+items faisables hors-ligne sur des données déjà présentes. C'est là qu'il faut
+piocher — en vérifiant d'abord ce qui existe déjà (plusieurs items « à faire »
+se sont révélés déjà couverts, cf. #289).
+
 --------------------------------------------------------------------------------
 W. FINANCES PERSONNELLES AVANCÉES (256-270)
 --------------------------------------------------------------------------------
 256. [L](***) Agrégation bancaire (open banking / import OFX/CSV multi-comptes) avec catégorisation auto.   ← FINIS ✓ (2026-06-17) (import CSV multi-comptes + catégorisation auto via règles existaient déjà ; ajout du support OFX/QFX : parse_ofx (sans dépendance, <STMTTRN> SGML 1.x/XML 2.x — DTPOSTED/TRNAMT/NAME→MEMO) + import_ofx (même pipeline de catégorisation #115) + dispatcher import_transactions (sniff OFXHEADER/<OFX> sinon CSV) câblé sur POST /budget/import ; UI TransactionsTab accepte .ofx/.qfx ; open banking en ligne hors périmètre offline ; 6 tests TDD)
 257. [M](***) Vue patrimoine net consolidée (comptes, placements, immobilier, dettes) dans le temps.   ← FINIS ✓ (2026-06-17) (la vue consolidée (PatrimoineItem + net_worth_summary) existait depuis cette session ; ajout du « dans le temps » : modèle PatrimoineSnapshot (1 ligne/jour, EUR) + migration q257 ; record_net_worth_snapshot (upsert idempotent par date) + net_worth_history(days) ; capture auto via le job snapshot quotidien + à l'ouverture de la page (GET idempotent) ; GET /finance/patrimoine/history ; UI : courbe SVG NetWorthChart (sans dépendance) + delta depuis le 1er point dans PatrimoineTab ; 2 tests TDD)
 258. [M](**) Catégorisation automatique des transactions par ML + règles apprenables.   ← FINIS ✓ (2026-06-17) (volet « règles apprenables » sans ML, conforme à la contrainte « pas d'IA » : suggest_rules_from_history (pur) déduit des BudgetRule des marchands catégorisés à la main — clé = 1er token alpha ≥3 lettres, pureté de catégorie + min_occurrences, ignore ceux déjà couverts par une règle ; learn_rules(apply) crée les règles puis reapply_all_rules rattrape les transactions non catégorisées ; GET /budget/rules/suggestions + POST /budget/rules/learn ; UI LearnedRulesSection (chips « MOTIF → catégorie (N×) » + bouton « Créer N règle(s) ») dans TransactionsTab ; 5 tests TDD. Le volet ML pur est volontairement abandonné.)
-259. [M](**) Prévision de trésorerie (cash-flow) sur 1-12 mois avec scénarios.
-260. [M](**) Détection d'abonnements récurrents et alertes hausses/doublons.
+259. [M](**) Prévision de trésorerie (cash-flow) sur 1-12 mois avec scénarios.   ← FINIS ✓ (2026-07-16) (cash_flow_forecast pur (moyenne revenus/dépenses des N derniers mois + projection cumulée, scénario %) + cash_flow_projection (wrapper DB sur spending_trend) ; GET /budget/forecast?months_ahead&history_months&revenus_delta_pct&depenses_delta_pct ; carte « Prévision de trésorerie » dans MoisTab (6 mois + réglage scénario revenus/dépenses) ; tests TDD back (5) + front (1))
+260. [M](**) Détection d'abonnements récurrents et alertes hausses/doublons.   ← FINIS ✓ (2026-07-20) (la détection existait déjà (#116 detect_recurring / #266 recurring_vs_oneoff) ; ajout du volet ALERTES : extraction de _monthly_cadence_groups (cadence seule, partagée avec detect_recurring) ; detect_price_increases (dernier prélèvement vs médiane des précédents sur 13 mois, plancher +1,00 $ ET +5 %) ; detect_duplicate_subscriptions (meme_service = même clé marchand des règles apprenables #258, prix à ±15 %, ≥1 mois prélevé EN COMMUN pour écarter les renommages de libellé, passerelles PAYPAL/GOOGLE… exclues ; double_prelevement = ≥2 débits au prix de l'abonnement dans le même mois) ; subscription_alerts + GET /budget/recurring/alerts ; UI : bandeau d'alertes dans la section « Abonnements détectés » de MoisTab (affichée même si la hausse a fait sortir l'abonnement du filtre de stabilité) ; 15 tests TDD back + 5 front)
 261. [M](**) Suivi et optimisation fiscale (PEA, CTO, plus-values, impôts estimés).
 262. [M](**) Simulateur de prêts/crédits (mensualités, coût total, remboursement anticipé).
 263. [M](**) Objectifs d'épargne par enveloppe avec virements programmés simulés.
 264. [M](**) Comparateur de scénarios d'investissement (DCA vs lump sum, allocations).
-265. [M](**) Alertes de marché personnalisées (seuils de prix, dividendes, résultats).
+265. [M](**) Alertes de marché personnalisées (seuils de prix, dividendes, résultats).   ← FINIS ✓ (2026-07-16) (seuils prix par ticker, check_alerts pur, GET/POST/PATCH/DELETE /finance/alerts + /finance/alerts/status, carte SuiviTab, tests TDD)
 266. [M](**) Dépenses récurrentes vs ponctuelles avec projection annuelle.   ← FINIS ✓ (2026-06-13) (détection des récurrences déjà en place ; ajout helper recurring_vs_oneoff (récurrent mensuel + projection ×12 + total ponctuel) + endpoint /budget/recurring/projection + UI : projection annuelle « ≈ X/an » dans l'en-tête Abonnements détectés ; 1 test TDD)
 267. [M](**) Multi-devises consolidées avec historique de change (étendre #55).
-268. [M](**) Rapport d'indépendance financière (FIRE) : taux d'épargne, années restantes.
+268. [M](**) Rapport d'indépendance financière (FIRE) : taux d'épargne, années restantes.   ← FINIS ✓ (2026-07-20) (nouveau service budget/fire.py, 100 % basé sur l'existant : spending_trend (#113) pour revenus/dépenses et net_worth_summary (#257) pour le patrimoine net — rien n'est recalculé ; savings_rate + fire_projection purs (capital × (1+rendement) + épargne, interpolation dans l'année de franchissement, horizon borné à 60 ans → épargne ≤ 0 renvoie None au lieu de boucler, patrimoine ≥ objectif ou dépenses nulles → 0 an) ; taux de retrait 4 % et rendement réel 5 % configurables ; agrégats budget convertis CAD→EUR avec le convertisseur du patrimoine (sinon ratio bi-devises) ; GET /budget/fire ; UI : carte compacte FireCard sous le patrimoine net dans PatrimoineTab ; 14 tests TDD back + 4 front)
 269. [M](**) Suivi immobilier (valeur, loyers, charges, rendement).
 270. [M](**) Coffre-fort de documents financiers (relevés, contrats) chiffré et indexé.
 
@@ -58,7 +108,7 @@ X. SANTÉ & BIEN-ÊTRE APPROFONDIS (271-288)
 --------------------------------------------------------------------------------
 Y. PRODUCTIVITÉ, OBJECTIFS & VIE PRO (289-305)
 --------------------------------------------------------------------------------
-289. [M](***) Module Objectifs/OKR : objectifs trimestriels, résultats clés mesurables, suivi.
+289. [M](***) Module Objectifs/OKR : objectifs trimestriels, résultats clés mesurables, suivi.   ← FINIS ✓ (2026-07-16) (déjà couvert par LifeGoal (#226, backend/app/models/objectifs_vie.py + services/automatisations/objectifs_vie.py) : objectif avec échéance + sous-objectifs mesurables rattachés à une métrique d'un autre module (poids/épargne/habitudes), progression directionnelle agnostique — équivalent fonctionnel objectif/résultats-clés, l'échéance jouant le rôle de « trimestre » ; pas de nouveau module créé pour éviter la duplication avec /objectifs)
 290. [M](**) Gestion de projets personnels (tâches, jalons, dépendances, Kanban).
 291. [M](**) Inbox de capture rapide universelle (note, tâche, idée) type GTD.
 292. [M](**) Time tracking par activité avec rapports (où passe ton temps).
@@ -137,7 +187,7 @@ AC. APPRENTISSAGE & DÉVELOPPEMENT PERSONNEL (346-358)
 349. [M](**) Apprentissage de langues (vocabulaire, pratique, niveau).
 350. [M](**) Objectifs de lecture annuels + recommandations (étendre Livres).
 351. [M](**) Fiches de lecture depuis tes surlignages (saisie + organisation, sans IA).
-352. [M](**) Suivi de compétences (skill tree) avec niveaux et preuves.
+352. [M](**) Suivi de compétences (skill tree) avec niveaux et preuves.   ← FINIS ✓ (2026-07-16) (store JSON compétences avec niveaux 1-5 + preuves horodatées, skills_by_category/overall_stats purs, CRUD + POST preuves + /etudes/skills/stats, onglet CompetencesTab, tests TDD)
 353. [M](**) Curation de contenus (à lire/voir plus tard) priorisée.
 354. [M](**) Quiz/flashcards créés depuis tes notes pour t'auto-évaluer (sans IA).
 355. [M](**) Journal d'apprentissage quotidien (« qu'ai-je appris aujourd'hui ? »).
@@ -151,7 +201,7 @@ AD. DOCUMENTS, ADMINISTRATIF & VIE PRATIQUE (359-372)
 359. [L](**) Gestionnaire de documents (OCR, tags, recherche plein-texte) chiffré.
 360. [M](**) Échéances administratives (papiers, renouvellements) avec rappels.
 361. [M](**) Coffre-fort numérique (identités, contrats, garanties).
-362. [M](**) Suivi des abonnements/contrats (échéances, résiliations, coûts).
+362. [M](**) Suivi des abonnements/contrats (échéances, résiliations, coûts).   ← FINIS ✓ (2026-07-16) (store JSON contrats manuels distinct de la détection auto #116/#266, classify_echeance/monthly_cost/upcoming_renewals purs, CRUD + /budget/contracts/summary, onglet ContratsTab, tests TDD)
 363. [M](**) Garanties produits avec preuves d'achat.
 364. [M](**) Numérisation et classement automatique des reçus.
 365. [M](**) Suivi des remboursements (santé, assurances) en attente.
@@ -233,7 +283,7 @@ AH. VOIX, MULTIMODAL & ACCESSIBILITÉ (413-423)
 --------------------------------------------------------------------------------
 AI. SÉCURITÉ, VIE PRIVÉE & SOUVERAINETÉ DES DONNÉES (424-435)
 --------------------------------------------------------------------------------
-424. [M](***) Chiffrement au repos des données sensibles (SQLCipher / par champ).
+424. [M](***) Chiffrement au repos des données sensibles (SQLCipher / par champ).   ← ABANDONNÉ ✗ (2026-07-16) même rationale que #192 : mono-utilisateur local, la clé de déchiffrement vivrait à côté du secret sur la même machine → gain de sécurité nul, complexité et risque de perte de données en plus.
 425. [M](**) Authentification locale optionnelle (PIN/biométrie) si activée.
 426. [M](**) Journal d'audit des accès et modifications sensibles.
 427. [M](**) Sauvegardes chiffrées automatiques (local + cloud au choix).
@@ -325,6 +375,6 @@ AM. NOUVEAUX MODULES DE VIE (476-500)
 497. [L](**) Module « Événements de vie » (déménagement, mariage, naissance) avec checklists.
 498. [L](**) Module « Long terme/Retraite » (projection, FIRE, planification).
 499. [L](**) Module « Communauté » (groupes, entraide, partage de modules).
-500. [L](***) « Mission Control OS » : marketplace de modules + thèmes + automatisations, extensible par la communauté.
+500. [L](***) « Mission Control OS » : marketplace de modules + thèmes + automatisations, extensible par la communauté.   ← ABANDONNÉ ✗ (2026-07-16) disproportionné pour un outil mono-utilisateur local (README : « pas de reconstruction ni mock data » hors intégrations réelles) ; aucune communauté à servir, pas de marketplace tiers souhaité.
 
 --------------------------------------------------------------------------------
