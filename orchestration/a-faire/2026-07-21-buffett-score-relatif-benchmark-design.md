@@ -148,10 +148,23 @@ structurel et persiste. Le prior n'encode que cela.
    persistance : Spearman 0,400  (contre une classe parfaitement stable)
 ```
 
-Et la sectorisation manuelle de ToutBroker (`Secteur 1..5`, 5 niveaux, de qualité)
-ne couvre que **12 des 136 titres vifs** ayant un historique de prix, soit ~1,7 titre
-par secteur. À rouvrir si cette colonne est un jour remplie largement : le changement
-serait local à `class_aware_prior`.
+Deux sources d'étiquettes sectorielles ont été testées, avec le **même** résultat :
+
+- la sectorisation manuelle de ToutBroker (`Secteur 1..5`, 5 niveaux, de qualité) ne
+  couvre que 12 des 136 titres vifs ayant un historique de prix ;
+- les secteurs **yfinance** (colonne `Secteur`, 11 555 tickers étiquetés) ne changent
+  rien : seuls **123 titres vifs** disposent de ≥ 756 j d'historique, répartis en
+  groupes de 1 à 79. Les étiquettes ne sont pas le facteur limitant.
+
+Le vrai facteur limitant est ailleurs, et relève des **données, pas du code** : sur
+les 1056 actions retenues par le crible Buffett au run #50, seules **33** sont
+marquées disponibles chez un broker dans ToutBroker.xlsx — la colonne
+`Tradding 212` n'a que 360 valeurs renseignées sur 11 609 lignes. L'univers
+d'optimisation compte ainsi ~2023 ETF pour ~123 actions.
+
+Sujet à rouvrir uniquement si les colonnes brokers sont remplies largement, ce qui
+peuplerait enfin les groupes sectoriels. Le changement serait alors local à
+`class_aware_prior`.
 
 **Pas de taille minimale de classe.** Une classe à 1 membre dégénère en « sa propre
 moyenne » — pour une obligation c'est la réponse conservatrice correcte. Un seuil
