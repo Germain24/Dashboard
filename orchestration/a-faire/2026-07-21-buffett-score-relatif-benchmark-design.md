@@ -138,7 +138,42 @@ pairs :
 L'écart **individuel** est du bruit (Pearson 0,001) ; l'écart **entre classes** est
 structurel et persiste. Le prior n'encode que cela.
 
-**Pas de prior sectoriel** — testé et écarté sur deux motifs mesurés :
+**Prior sectoriel : question OUVERTE, tranchée par un test à venir.**
+
+Un premier test a mesuré une persistance sectorielle de Spearman 0,400 seulement,
+mais il était **sous-dimensionné et ne prouve rien** : il portait sur les 123 actions
+de l'univers investissable, soit des groupes de 1 à 79 titres (Consumer Defensive
+n'en comptait qu'un). Rien n'oblige le *prior* à être estimé sur l'univers
+investissable — une action Finance au score nul reste une observation valide du
+comportement du secteur Finance. Seule l'**allocation** est restreinte aux titres
+éligibles.
+
+Le pipeline actuel ne permet pas de le tester : le cache de prix
+(`data/cache/price_history`) n'est alimenté que par `download_prices_bulk_with_retry`,
+appelé depuis `runner.py:631` et `api/finance/buffett.py:625` avec la seule liste
+éligible (`score ≥ 80` ET `achat` ET liquidité). Les ~6789 actions non éligibles
+connues en base n'ont donc jamais de cours téléchargés.
+
+**Plan retenu (décision utilisateur 2026-07-21)** :
+
+1. Test jetable hors pipeline, sur un échantillon stratifié suffisant, pour mesurer
+   la persistance sectorielle avec une vraie puissance statistique. À lancer
+   **après** la fin du run en cours — un téléchargement parallèle risquerait un
+   blocage Yahoo (limite à 1000 req/h depuis le 2026-07-12, à la suite d'un blocage
+   sévère).
+2. Si le signal sectoriel existe : les médianes sectorielles deviennent des
+   **valeurs de référence persistées, recalculées ~1×/an** via une action dédiée
+   (téléchargement complet, long), et non ré-estimées à chaque run. Une médiane
+   sectorielle sur 5 ans ne bouge pas d'une semaine à l'autre : ce découpage
+   supprime tout coût récurrent.
+3. Sinon : on s'en tient au prior par classe.
+
+**Cette question ne bloque pas l'implémentation.** Le regroupement est un paramètre
+de `class_aware_prior` : passer de la classe au secteur est une substitution de la
+table de correspondance, pas une réécriture. Le reste du design (score relatif,
+suppression du turnover, seed unique, pénalités additives) en est indépendant.
+
+Éléments déjà mesurés, à confirmer ou infirmer par le test :
 
 ```
    secteur (yfinance)        n     mediane H1   mediane H2
@@ -148,16 +183,28 @@ structurel et persiste. Le prior n'encode que cela.
    persistance : Spearman 0,400  (contre une classe parfaitement stable)
 ```
 
-Deux sources d'étiquettes sectorielles ont été testées, avec le **même** résultat :
+### Source des étiquettes sectorielles
 
-- la sectorisation manuelle de ToutBroker (`Secteur 1..5`, 5 niveaux, de qualité) ne
-  couvre que 12 des 136 titres vifs ayant un historique de prix ;
-- les secteurs **yfinance** (colonne `Secteur`, 11 555 tickers étiquetés) ne changent
-  rien : seuls **123 titres vifs** disposent de ≥ 756 j d'historique, répartis en
-  groupes de 1 à 79. Les étiquettes ne sont pas le facteur limitant.
+Les **étiquettes ne manquent pas** — c'est le point qui a longtemps brouillé
+l'analyse :
 
-Le facteur limitant est le **crible Buffett lui-même**, et c'est voulu — entonnoir
-mesuré sur les actions vives du run #50 :
+| source | couverture |
+|---|---|
+| `Secteur` (yfinance), en base | **11 555 tickers**, 11 secteurs + ETF |
+| `Secteur 1..5` (ToutBroker, saisie manuelle) | 12 titres vifs sur 136 en cache, mais 5 niveaux de finesse |
+
+Ce sont les **cours** qui manquent : 6925 actions vives sont connues en base, 136
+seulement ont un historique de prix, parce que seuls les titres éligibles sont
+téléchargés. C'est précisément ce que le recalcul annuel viendrait combler.
+
+Les secteurs yfinance suffiront au test et à un premier prior sectoriel ; la
+sectorisation manuelle, plus fine, pourra le raffiner quand elle sera plus remplie.
+
+### Entonnoir de l'univers investissable (contexte)
+
+Mesuré sur les actions vives du run #50 — utile pour comprendre pourquoi l'univers
+d'**allocation** compte ~2023 ETF pour ~123 actions, mais **sans rapport avec la
+population d'estimation du prior** :
 
 ```
    achat = 1                          1056
@@ -166,17 +213,17 @@ mesuré sur les actions vives du run #50 :
    ... >= 756 j d'historique           121
 ```
 
-À noter pour qui relira ce document : une case vide dans une colonne broker de
-ToutBroker.xlsx signifie **disponible**, pas indisponible (`optimizer._is_true`
-l.18-22). Les 1056 actions retenues sont donc toutes accessibles ; la disponibilité
-broker n'est pas un filtre limitant. Le score Buffett n'est pas persisté en base
-(`buffett_run_result.poids` est `NULL`), d'où l'estimation du palier ~134 par
-élimination.
+Deux pièges pour qui relira ce document :
 
-L'univers d'optimisation compte ainsi ~2023 ETF pour ~123 actions. Sujet à rouvrir
-uniquement si `BUFFETT_SCORE_THRESHOLD` est abaissé au point de peupler les groupes
-sectoriels — ce qui est une décision d'investissement, pas technique. Le changement
-serait alors local à `class_aware_prior`.
+- une case vide dans une colonne broker de ToutBroker.xlsx signifie **disponible**,
+  pas indisponible (`optimizer._is_true` l.18-22) : les 1056 actions retenues sont
+  donc toutes accessibles, la disponibilité broker n'est pas un filtre limitant ;
+- le score Buffett n'est pas persisté (`buffett_run_result.poids` est `NULL`), d'où
+  l'estimation du palier ~134 par élimination.
+
+Ce seuil de score est **volontaire** — c'est le crible de sélection. Il n'y a pas
+lieu de l'abaisser pour peupler les groupes sectoriels : le prior s'estime sur une
+population indépendante de l'éligibilité.
 
 **Pas de taille minimale de classe.** Une classe à 1 membre dégénère en « sa propre
 moyenne » — pour une obligation c'est la réponse conservatrice correcte. Un seuil
