@@ -597,6 +597,42 @@ def find_positive_random_seed(
     )
 
 
+def class_aware_prior(raw_mean_daily, classes) -> np.ndarray:
+    """Prior de rendement journalier : la médiane de la CLASSE de chaque titre.
+
+    Remplace la médiane globale unique, qui tirait les obligations vers la médiane
+    de tout l'univers (15,79 %/an mesuré) et leur offrait ainsi ~9 points de
+    rendement fictif tout en leur laissant leur risque quasi nul.
+
+    Le shrinkage lui-même reste indispensable : mesuré sur 2145 titres, le
+    rendement passé ne prédit pas le rendement futur (Pearson 0,001) alors que le
+    risque, lui, persiste (Spearman 0,935). Sans régularisation l'optimiseur
+    achèterait des titres dont l'avantage s'évapore et dont le risque reste. Mais
+    l'écart ENTRE CLASSES est structurel et persiste (taux 4,32 -> 5,52 %, actions
+    13,32 -> 18,13 % d'un semestre à l'autre) : c'est le bon groupe de pairs.
+
+    `classes` est aligné index par index sur `raw_mean_daily` ; `None` = classe
+    inconnue -> médiane globale (comportement historique).
+
+    PAS de taille minimale de classe : une classe à un seul membre dégénère en sa
+    propre moyenne, ce qui pour une obligation est la réponse conservatrice
+    correcte. Un seuil minimal ferait retomber les petites classes sur la médiane
+    globale, c'est-à-dire réintroduirait le bug d'origine.
+    """
+    mu = np.asarray(raw_mean_daily, dtype=float)
+    finite_all = mu[np.isfinite(mu)]
+    global_median = float(np.median(finite_all)) if finite_all.size else 0.0
+    prior = np.full(mu.shape, global_median, dtype=float)
+    labels = list(classes)
+    for name in {c for c in labels if c is not None}:
+        mask = np.array([c == name for c in labels], dtype=bool)
+        values = mu[mask]
+        finite = values[np.isfinite(values)]
+        if finite.size:
+            prior[mask] = float(np.median(finite))
+    return prior
+
+
 def optimize_portfolio_de(
     tickers: list[str],
     returns,  # pd.DataFrame de rendements journaliers
