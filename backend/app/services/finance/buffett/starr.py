@@ -477,3 +477,101 @@ def neg_starr_batch(raw_weights: np.ndarray, sim_rets: np.ndarray, mean_daily: n
     ratio = ann_ret / risk
     out[ok] = np.where(np.isfinite(ratio), -ratio, 1e6)
     return out
+
+
+SCORE_SCALE = 100.0   # score exprime en POINTS de pourcentage annuels
+
+
+def benchmark_stats(bench_sim_returns, bench_mean_daily, alpha: float = 0.05,
+                    target: float = 0.0) -> dict:
+    """Reperes du benchmark, calcules UNE SEULE FOIS avant la boucle DE.
+
+    `bench_sim_returns` doit provenir des MEMES scenarios simules que les
+    candidats (colonne dediee de `sim_rets`), sans quoi la comparaison melangerait
+    deux tirages differents.
+    """
+    return {
+        "annual_return": float(bench_mean_daily) * 252.0,
+        "cvar": float(portfolio_cvar(bench_sim_returns, alpha)) * np.sqrt(252.0),
+        "downside_deviation": float(
+            downside_deviation(bench_sim_returns, target)
+        ) * np.sqrt(252.0),
+    }
+
+
+def neg_benchmark_relative(raw_weights: np.ndarray, sim_rets: np.ndarray,
+                           mean_daily: np.ndarray, bench: dict,
+                           alpha: float = 0.05, downside_weight: float = 1.0,
+                           target: float = 0.0, annual_cost: float = 0.0) -> float:
+    """-(score) pour la minimisation. `raw_weights` normalise sur le simplexe.
+
+    score = (rendement - rendement_benchmark)
+          - max(0, CVaR - CVaR_benchmark)
+          - lambda * max(0, semi-deviation - semi-deviation_benchmark)
+
+    Trois proprietes voulues :
+    - un portefeuille identique au benchmark vaut exactement 0 ;
+    - PLUS de division, donc plus de score infini quand le CVaR tend vers 0 : c'est
+      ce qui permettait a un ETF monetaire de rafler 96 % de l'allocation ;
+    - etre MOINS risque que le benchmark ne rapporte rien (`max(0, ...)`), sans quoi
+      le biais monetaire reviendrait par la porte du denominateur.
+
+    La semi-deviation ne compte que les journees NEGATIVES : la volatilite a la
+    hausse n'est jamais penalisee.
+    """
+    s = float(np.sum(raw_weights))
+    if s <= 1e-12:
+        return 1e6
+    w = raw_weights / s
+    ann_ret = float(mean_daily @ w) * 252.0 - max(float(annual_cost), 0.0)
+    port = sim_rets @ w
+    cvar = portfolio_cvar(port, alpha) * np.sqrt(252.0)
+    dd = downside_deviation(port, target) * np.sqrt(252.0)
+    score = (
+        (ann_ret - bench["annual_return"])
+        - max(0.0, cvar - bench["cvar"])
+        - downside_weight * max(0.0, dd - bench["downside_deviation"])
+    )
+    if not np.isfinite(score):
+        return 1e6
+    return -score * SCORE_SCALE
+
+
+def neg_benchmark_relative_batch(raw_weights: np.ndarray, sim_rets: np.ndarray,
+                                 mean_daily: np.ndarray, bench: dict,
+                                 alpha: float = 0.05, downside_weight: float = 1.0,
+                                 target: float = 0.0, annual_costs=0.0) -> np.ndarray:
+    """Version VECTORISEE sur une population entiere.
+
+    `raw_weights` : [n_actifs x S], une colonne par candidat (convention scipy
+    `vectorized=True`). Meme estimation du CVaR par `np.partition` que
+    `neg_starr_batch` : moyenne des `round(alpha * n_sim)` pires scenarios.
+    """
+    X = np.asarray(raw_weights, dtype=float)
+    if X.ndim == 1:
+        X = X[:, None]
+    n_sim = sim_rets.shape[0]
+    out = np.full(X.shape[1], 1e6)
+    X = np.maximum(X, 0.0)
+    s = X.sum(axis=0)
+    ok = s > 1e-12
+    if not ok.any():
+        return out
+    W = X[:, ok] / s[ok]
+    cost_array = np.broadcast_to(
+        np.asarray(annual_costs, dtype=float), (X.shape[1],)
+    )[ok]
+    ann_ret = (mean_daily @ W) * 252.0 - np.maximum(cost_array, 0.0)
+    port = sim_rets @ W.astype(sim_rets.dtype)
+    k = max(1, int(round(alpha * n_sim)))
+    tail = np.partition(port, k - 1, axis=0)[:k]
+    cvar = -tail.mean(axis=0, dtype=np.float64) * np.sqrt(252.0)
+    downside = np.minimum(port - target, 0.0).astype(np.float64)
+    dd = np.sqrt(np.mean(downside ** 2, axis=0)) * np.sqrt(252.0)
+    score = (
+        (ann_ret - bench["annual_return"])
+        - np.maximum(cvar - bench["cvar"], 0.0)
+        - downside_weight * np.maximum(dd - bench["downside_deviation"], 0.0)
+    )
+    out[ok] = np.where(np.isfinite(score), -score * SCORE_SCALE, 1e6)
+    return out

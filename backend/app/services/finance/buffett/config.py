@@ -97,7 +97,7 @@ class Config:
     # gardent l'exploration reproductible sans boucle infinie.
     STARR_DE_STAGNATION_GENERATIONS: int = 250
     STARR_DE_MIN_IMPROVEMENT: float = 1e-6
-    STARR_DE_MAX_SEEDS: int = 3
+    STARR_DE_MAX_SEEDS: int = 1
     # Tolérance de convergence (écart-type des scores de la population / |moyenne|
     # <= tol). Choix délibéré de garder 1e-6 (précision maximale) malgré le coût :
     # sur un cas de test à 29 titres, la convergence naturelle demande ~730
@@ -151,10 +151,10 @@ class Config:
     STARR_STRESS_WEIGHT: float = 0.10
     STARR_STRESS_VOL_MULTIPLIER: float = 2.0
     STARR_STRESS_EQUITY_CORRELATION: float = 0.85
-    # Coût de changement d'allocation dans l'objectif. Exprimé en unités de score
-    # STARR par unité de turnover bilatéral (Σ|w_nouveau-w_actuel| / 2).
-    STARR_TURNOVER_PENALTY: float = 0.05
-    STARR_REBALANCE_BAND_PCT: float = 0.05
+    # Benchmark de reference : le score mesure l'ecart A CE TITRE. Il n'appartient
+    # PAS a l'univers d'optimisation (select_etfs_per_broker l'ecarte) : ses
+    # rendements sont injectes par le runner. Cf. la spec du 2026-07-21.
+    STARR_BENCHMARK_TICKER: str = "CW8.PA"
     REBALANCES_PER_YEAR: int = 4
     TRANSACTION_COSTS_ENABLED: bool = True
     # Frais brokers applicables aux ordres de rebalancement (tarifs BD au
