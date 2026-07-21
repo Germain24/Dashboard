@@ -65,6 +65,80 @@ def _secteur1_col(columns) -> str | None:
     return None
 
 
+def _secteur2_col(columns) -> str | None:
+    """Trouve la colonne 'Secteur 2' (tolère espaces/casse)."""
+    for c in columns:
+        if str(c).strip().lower() == "secteur 2":
+            return c
+    return None
+
+
+def _normalize_asset_class(secteur2, secteur1) -> str | None:
+    """Classe d'actif depuis 'Secteur 2'. None = inconnue.
+
+    Obligations et Monétaire sont FUSIONNÉS en `taux` (décision utilisateur
+    2026-07-21) : le monétaire ne comptait qu'un titre, et son comportement est
+    celui d'un produit de taux.
+
+    La comparaison se fait sur un PRÉFIXE désaccentué et jamais sur la chaîne
+    complète : le tableur contient du mojibake (`Mati?res premi?res`,
+    `Mon?taire`) qui ferait silencieusement tomber ces classes dans `actions`.
+    """
+    import unicodedata
+
+    norm = (
+        unicodedata.normalize("NFKD", str(secteur2).strip())
+        .encode("ascii", "ignore")
+        .decode()
+        .lower()
+    )
+    if norm in ("", "nan", "none"):
+        # Un titre vif sans Secteur 2 est une action ; un ETF sans Secteur 2 a une
+        # classe réellement inconnue -> repli sur la médiane globale.
+        return None if str(secteur1).strip().upper() == "ETF" else "actions"
+    if norm.startswith("oblig") or norm.startswith("mon"):
+        return "taux"
+    if norm.startswith("mati"):
+        return "matieres_premieres"
+    return "actions"
+
+
+def _compute_asset_classes(df, ticker_col: str) -> dict[str, str]:
+    if df is None or getattr(df, "empty", True):
+        return {}
+    tcol = _find_ticker_col(df.columns, ticker_col)
+    s2col = _secteur2_col(df.columns)
+    s1col = _secteur1_col(df.columns)
+    if tcol is None or s2col is None:
+        return {}
+    s1_values = df[s1col] if s1col is not None else ["" for _ in range(len(df))]
+    out: dict[str, str] = {}
+    for t, s2, s1 in zip(df[tcol], df[s2col], s1_values, strict=True):
+        tt = _norm_ticker(t)
+        if not tt:
+            continue
+        klass = _normalize_asset_class(s2, s1)
+        if klass is not None:
+            out[tt] = klass
+    return out
+
+
+def load_asset_classes(df=None, ticker_col: str = "Ticker Yahoo Finance") -> dict[str, str]:
+    """Classe d'actif par ticker depuis ToutBroker.xlsx ('Secteur 2').
+
+    Source AUTORITAIRE, comme `load_etf_tickers` l'est pour la classification ETF.
+    Sert au prior de rendement de l'optimiseur : chaque titre est tiré vers la
+    médiane de SA classe et non vers celle de tout l'univers, qui offrait ~9 points
+    de rendement fictif aux obligations. `df` explicite = pas de cache (tests).
+    """
+    global _ASSET_CLASS_CACHE
+    if df is not None:
+        return _compute_asset_classes(df, ticker_col)
+    if _ASSET_CLASS_CACHE is None:
+        _ASSET_CLASS_CACHE = _compute_asset_classes(load_broker_table(), ticker_col)
+    return _ASSET_CLASS_CACHE
+
+
 def _norm_ticker(v) -> str:
     s = str(v).strip().upper()
     return "" if s in ("", "NAN", "NONE") else s
@@ -88,13 +162,15 @@ def _compute_etf_tickers(df, ticker_col: str) -> set[str]:
 
 _ETF_CACHE: set[str] | None = None
 _UNIVERSE_CACHE: set[str] | None = None
+_ASSET_CLASS_CACHE: dict[str, str] | None = None
 
 
 def reset_etf_cache() -> None:
-    """Invalide les caches ETF/univers (à appeler après modif de ToutBroker.xlsx)."""
-    global _ETF_CACHE, _UNIVERSE_CACHE
+    """Invalide les caches ETF/univers/classes (à appeler après modif de ToutBroker.xlsx)."""
+    global _ETF_CACHE, _UNIVERSE_CACHE, _ASSET_CLASS_CACHE
     _ETF_CACHE = None
     _UNIVERSE_CACHE = None
+    _ASSET_CLASS_CACHE = None
 
 
 def load_etf_tickers(df=None, ticker_col: str = "Ticker Yahoo Finance") -> set[str]:
