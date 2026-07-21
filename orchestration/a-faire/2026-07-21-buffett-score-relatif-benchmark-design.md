@@ -113,10 +113,34 @@ la moyenne des CVaR individuels, et le score devient franchement positif :
 fraction. C'est ce qui garde les coefficients de pénalité existants dans le même
 ordre de grandeur que le score (cf. §4).
 
-**Benchmark configurable** : `Config.STARR_BENCHMARK_TICKER = "CW8.PA"`. S'il est
-absent de l'univers ou sans historique suffisant, le run échoue explicitement plutôt
-que de retomber silencieusement sur un benchmark nul — un score mesuré contre un
-benchmark absent n'aurait aucun sens.
+**Benchmark configurable** : `Config.STARR_BENCHMARK_TICKER = "CW8.PA"`.
+
+⚠️ **Le benchmark n'est PAS dans l'univers d'optimisation et ne doit pas y être.**
+Vérifié sur le run #51 : CW8.PA est bien `achat=1`, liquide (3,9 M€/jour) et présent
+en cache, mais il est écarté par `select_etfs_per_broker`
+(855 ETF → 58, plafond `ETF_MAX_CANDIDATES_PER_BROKER = 50`) — d'où un
+`named_benchmarks` vide dans les diagnostics. `deduplicate_correlated` pourrait
+l'écarter de la même façon comme « jumeau d'indice ».
+
+Ses rendements doivent donc être **injectés explicitement** :
+
+- le runner extrait la série du benchmark **après** `returns_in_base_currency`
+  (donc en EUR) et **avant** `deduplicate_tickers` / `deduplicate_correlated` /
+  `select_etfs_per_broker`, qui peuvent le supprimer ;
+- il la passe à `optimize_portfolio_de(..., benchmark_returns=...)` ;
+- l'optimiseur l'ajoute comme **colonne supplémentaire** de la matrice envoyée à
+  `simulate_regime_scenarios`, de sorte que le benchmark soit simulé *conjointement*
+  avec l'univers (mêmes scénarios, mêmes dépendances de queue), puis l'exclut des
+  variables de décision : `sim_rets[:, :n_inv]` pour le portefeuille,
+  `sim_rets[:, n_inv]` pour le benchmark.
+
+Le rendement espéré du benchmark passe par **le même estimateur** que les candidats
+(prior par classe, classe `actions`) : comparer une estimation régularisée à une
+moyenne brute biaiserait la comparaison.
+
+Si le benchmark est introuvable ou a moins de `STARR_MIN_HISTORY_DAYS` de cours, le
+run **échoue explicitement** — un score mesuré contre un benchmark absent n'aurait
+aucun sens.
 
 ### 2. Prior par classe d'actif
 
