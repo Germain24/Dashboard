@@ -3,20 +3,19 @@
 from __future__ import annotations
 
 import datetime as dt
-from app.core.timeutil import utcnow
-from typing import Optional
 
 from sqlmodel import Session, select
 
+from app.core.timeutil import utcnow
 from app.models.finance import Position, SnapshotPortefeuille, Transaction
 
 
 def get_positions(session: Session) -> list[dict]:
     """Retourne les positions enrichies (prix courant + P&L latent).
 
-    S'il existe des transactions, les positions sont **dérivées automatiquement**
-    du ledger (app.services.finance.portfolio_state) — l'utilisateur ne saisit
-    que ses mouvements. Sinon, fallback sur la table Position (saisie manuelle).
+    Les positions du ledger sont fusionnées avec la table Position manuelle.
+    Le ledger prime sur un doublon du même ticker chez le même broker, sans
+    masquer les autres comptes maintenus manuellement.
     Les cours passent par le cache quotidien (un seul appel groupé par jour).
     """
     from app.models.finance import Transaction
@@ -91,10 +90,9 @@ def get_title_detail(session: Session, ticker: str) -> dict:
     total = sum(p["valeur_actuelle"] for p in all_positions)
     poids_pct = (valeur / total * 100) if total > 0 else 0.0
 
-    from app.models.finance import BuffettRunResult
-    br = session.exec(
-        select(BuffettRunResult).where(BuffettRunResult.ticker == ticker)
-    ).first()
+    from app.services.finance.buffett.reporting import get_latest_result_for_ticker
+
+    br = get_latest_result_for_ticker(session, ticker)
 
     return {
         "ticker": ticker,

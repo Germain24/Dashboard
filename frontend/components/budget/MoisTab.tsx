@@ -1,11 +1,12 @@
 'use client'
 import { useState } from 'react'
 import {
-  useBudgetCategories, useByCategory, useEnvelopes,
+  useBudgetCategories, useByCategory, useEnvelopes, useForecast,
   useRecurring, useRecurringProjection, useSavingsGoal, useSetSavingsGoal, useTrend,
-  useRollingSummary, useCategoryShare, useByTag,
+  useRollingSummary, useCategoryShare, useByTag, useSubscriptionAlerts,
 } from '@/lib/queries/budget'
 import { CategoryShareChart, TrendChart, Donut } from './charts'
+import { SubscriptionAlerts } from './SubscriptionAlerts'
 import { StaggerGroup, StaggerItem } from '@/lib/motion/Stagger'
 import { CHART_SERIES } from '@/lib/design/colors'
 
@@ -14,6 +15,8 @@ const formatCAD = (v: number) =>
 
 export default function MoisTab() {
   const [goalInput, setGoalInput] = useState('')
+  const [revenusDeltaPct, setRevenusDeltaPct] = useState(0)
+  const [depensesDeltaPct, setDepensesDeltaPct] = useState(0)
   const month = new Date().toISOString().slice(0, 7)
 
   const [periodMonths, setPeriodMonths] = useState(12)   // zoom temporel des graphes
@@ -26,7 +29,9 @@ export default function MoisTab() {
   const trendQ = useTrend(periodMonths)
   const recurringQ = useRecurring()
   const projectionQ = useRecurringProjection()
+  const alertsQ = useSubscriptionAlerts()
   const savingsQ = useSavingsGoal()
+  const forecastQ = useForecast(6, 6, { revenusDeltaPct, depensesDeltaPct })
   const setGoalMutation = useSetSavingsGoal()
 
   const rolling = rollingQ.data ?? { revenus: 0, depenses: 0, solde: 0, debut: '', fin: '', jours: 30 }
@@ -225,6 +230,52 @@ export default function MoisTab() {
         </div>
       </div>
 
+      {/* Prévision de trésorerie (#259) */}
+      {forecastQ.data && forecastQ.data.points.length > 0 && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Prévision de trésorerie <span className="font-normal text-[var(--muted-foreground)]">· 6 prochains mois</span></h2>
+            <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
+              <label className="flex items-center gap-1">
+                Revenus
+                <input
+                  type="number" step="5" value={revenusDeltaPct}
+                  onChange={(e) => setRevenusDeltaPct(parseFloat(e.target.value) || 0)}
+                  aria-label="Ajustement scénario revenus (%)"
+                  className="w-14 rounded border border-[var(--border)] bg-transparent px-1.5 py-0.5 text-right"
+                />%
+              </label>
+              <label className="flex items-center gap-1">
+                Dépenses
+                <input
+                  type="number" step="5" value={depensesDeltaPct}
+                  onChange={(e) => setDepensesDeltaPct(parseFloat(e.target.value) || 0)}
+                  aria-label="Ajustement scénario dépenses (%)"
+                  className="w-14 rounded border border-[var(--border)] bg-transparent px-1.5 py-0.5 text-right"
+                />%
+              </label>
+            </div>
+          </div>
+          <p className="mb-3 text-xs text-[var(--muted-foreground)]">
+            Basé sur la moyenne des 6 derniers mois : {formatCAD(forecastQ.data.moyenne_revenus)} de revenus,{' '}
+            {formatCAD(forecastQ.data.moyenne_depenses)} de dépenses → {formatCAD(forecastQ.data.solde_mensuel_moyen)}/mois.
+          </p>
+          <div className="divide-y divide-[var(--border)]">
+            {forecastQ.data.points.map((p) => (
+              <div key={p.mois} className="flex items-center justify-between py-1.5 text-sm">
+                <span className="text-[var(--muted-foreground)]">{p.mois}</span>
+                <span className={`font-mono tabular-nums ${p.solde_mensuel >= 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'}`}>
+                  {p.solde_mensuel >= 0 ? '+' : ''}{formatCAD(p.solde_mensuel)}
+                </span>
+                <span className="w-28 text-right font-mono text-xs tabular-nums text-[var(--muted-foreground)]">
+                  cumul {formatCAD(p.cumul)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Dépenses par tag — les tags se comportent comme des catégories ; se met
           à jour dès qu'on (dé)tague une transaction. */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 animate-fade-in-up">
@@ -256,8 +307,10 @@ export default function MoisTab() {
         </a>
       </div>
 
-      {/* Abonnements récurrents détectés (#116) */}
-      {recurring.length > 0 && (
+      {/* Abonnements récurrents détectés (#116) + alertes hausses/doublons (#260).
+          Une forte hausse fait sortir l'abonnement de la détection (montant devenu
+          instable) : la section reste donc affichée s'il n'y a que des alertes. */}
+      {(recurring.length > 0 || (alertsQ.data?.nb_alertes ?? 0) > 0) && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden animate-fade-in-up">
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
             <div>
@@ -273,6 +326,7 @@ export default function MoisTab() {
               {formatCAD(recurring.reduce((s, r) => s + r.montant_moyen, 0))}<span className="text-xs text-[var(--muted-foreground)]"> /mois</span>
             </span>
           </div>
+          <SubscriptionAlerts alerts={alertsQ.data} />
           <div className="divide-y divide-[var(--border)]">
             {recurring.map((r) => (
               <div key={r.marchand} className="flex items-center gap-3 px-4 py-2.5">

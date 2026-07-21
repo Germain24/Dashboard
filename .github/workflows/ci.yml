@@ -20,8 +20,14 @@ jobs:
       - name: Install dependencies
         run: cd backend && uv sync
 
-      # Lint advisory : dette ruff pré-existante suivie séparément, on ne bloque
-      # pas la CI dessus (ratchet possible plus tard).
+      # Ratchet §6.1 : les règles déjà à zéro violation sont BLOQUANTES (voir
+      # backend/ruff-ci.toml). Corriger une règle de la dette ci-dessous puis
+      # l'ajouter à ce fichier fait avancer le ratchet d'un cran.
+      - name: Lint (ruff, ratchet bloquant)
+        run: cd backend && uv run ruff check . --config ruff-ci.toml
+
+      # Lint advisory : reste de la dette ruff (E/F/I/B/UP en entier), suivie
+      # séparément — on ne bloque pas la CI dessus.
       - name: Lint (ruff, advisory)
         continue-on-error: true
         run: cd backend && uv run ruff check .
@@ -72,3 +78,46 @@ jobs:
         env:
           NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000
         run: cd frontend && npm run build
+
+      - name: Install Chromium
+        run: cd frontend && npx playwright install --with-deps chromium
+
+      - name: Mobile smoke test
+        run: cd frontend && npx playwright test e2e/mobile.spec.ts
+
+  # §6.3 : `frontend/lib/types.ts` est généré depuis l'OpenAPI du backend et
+  # doit rester synchrone. Job à part : c'est le seul qui a besoin de Python ET
+  # de Node en même temps.
+  #
+  # Advisory pour l'instant : le fichier commité a déjà dérivé dans les deux
+  # sens (routes supprimées encore présentes, routes ajoutées manquantes). À
+  # passer bloquant — retirer `continue-on-error` — une fois `npm run gen:types`
+  # rejoué et le diff commité.
+  types:
+    name: Types en phase avec l'OpenAPI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd backend && uv sync && cd ../frontend && npm ci
+
+      - name: Régénérer et comparer
+        continue-on-error: true
+        run: |
+          cd backend && uv run python -m scripts.dump_openapi ../frontend/openapi.json
+          cd ../frontend && npm run gen:types:file
+          git diff --exit-code lib/types.ts

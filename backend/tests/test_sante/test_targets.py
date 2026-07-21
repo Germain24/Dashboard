@@ -133,3 +133,43 @@ def test_custom_surplus_and_rest_factor(germain_weight):
     )
     maintenance = germain_weight * 32.0
     assert base["Calories"] == pytest.approx((maintenance + 750.0) * 1.2)
+
+
+def test_iron_excess_reduces_next_day_target_safely(germain_weight):
+    today = dt.date(2026, 5, 18)
+    history = [{
+        "date": (today - dt.timedelta(days=1)).isoformat(),
+        "targets": {"Fer": 13.0},
+        "consumed": {"Fer": 20.0},
+    }]
+    base, comp = calculate_daily_targets(
+        weight=germain_weight, date=today, history=history, intensity="medium",
+    )
+    assert base["Fer"] == 13.0
+    assert comp["Fer"] == 6.0
+
+
+def test_extreme_iron_excess_never_creates_negative_target(germain_weight):
+    today = dt.date(2026, 5, 18)
+    history = [{
+        "date": today - dt.timedelta(days=1),
+        "targets": {"Fer": 13.0},
+        "consumed": {"Fer": 100.0},
+    }]
+    _, comp = calculate_daily_targets(
+        weight=germain_weight, date=today, history=history, intensity="medium",
+    )
+    assert comp["Fer"] == pytest.approx(13.0 * 0.25)
+
+
+def test_under_a_maximum_does_not_raise_next_day_ceiling(germain_weight):
+    today = dt.date(2026, 5, 18)
+    history = [{
+        "date": today - dt.timedelta(days=1),
+        "targets": {"Sodium_Max": 2000.0},
+        "consumed": {"Sodium_Max": 1000.0},
+    }]
+    base, comp = calculate_daily_targets(
+        weight=germain_weight, date=today, history=history, intensity="medium",
+    )
+    assert comp["Sodium_Max"] == base["Sodium_Max"]

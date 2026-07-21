@@ -1,5 +1,7 @@
 # Product
 
+Specs et plans d'implémentation détaillés : voir [orchestration/README.md](orchestration/README.md).
+
 ## Register
 
 product

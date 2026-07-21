@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { financeApi } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { fmt, ScoreChip, DeProgressBar, type OptProgress } from "./buffett-ui";
+import { DeStarrChart } from "./DeStarrChart";
 
 export function BuffettActionsPanel({
   starting, progressActive, interrupted, onStartRun, onError,
@@ -24,6 +25,7 @@ export function BuffettActionsPanel({
   const [creatingPortfolio, setCreatingPortfolio] = useState(false);
   const [optProgress, setOptProgress] = useState<OptProgress | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const historyRef = useRef<{ runId: number | null; iteration: number }>({ runId: null, iteration: 0 });
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -31,7 +33,19 @@ export function BuffettActionsPanel({
 
   const pollProgress = useCallback(async () => {
     try {
-      const p = await financeApi.portfolioProgress();
+      const p = await financeApi.portfolioProgress(historyRef.current.iteration);
+      if (p.run_id !== historyRef.current.runId) {
+        historyRef.current = { runId: p.run_id, iteration: 0 };
+        if (p.run_id != null) {
+          const initial = await financeApi.portfolioProgress(0);
+          const lastInitial = initial.score_history?.at(-1);
+          historyRef.current.iteration = lastInitial?.iteration ?? 0;
+          setOptProgress(initial);
+          return;
+        }
+      }
+      const lastPoint = p.score_history?.at(-1);
+      if (lastPoint) historyRef.current.iteration = lastPoint.iteration;
       setOptProgress(p);
       if (!p.active) {
         stopPolling();
@@ -45,16 +59,21 @@ export function BuffettActionsPanel({
 
   const startPolling = useCallback(() => {
     stopPolling();
-    pollProgress();
-    pollRef.current = setInterval(pollProgress, 60_000);
+    void pollProgress();
+    pollRef.current = setInterval(() => { void pollProgress(); }, 2_000);
   }, [pollProgress, stopPolling]);
 
   // Reprend l'affichage si une optimisation tourne déjà (navigation/refresh) ;
   // nettoie l'intervalle au démontage.
   useEffect(() => {
     let cancelled = false;
-    financeApi.portfolioProgress().then(p => {
-      if (!cancelled && p.active) { setOptProgress(p); startPolling(); }
+    financeApi.portfolioProgress(0).then(p => {
+      if (!cancelled && p.active) {
+        const lastPoint = p.score_history?.at(-1);
+        historyRef.current = { runId: p.run_id, iteration: lastPoint?.iteration ?? 0 };
+        setOptProgress(p);
+        startPolling();
+      }
     }).catch(() => {});
     return () => { cancelled = true; stopPolling(); };
   }, [startPolling, stopPolling]);
@@ -83,8 +102,10 @@ export function BuffettActionsPanel({
     try {
       await financeApi.portfolioCreate();
       setOptProgress({ active: true, phase: "preparation", seed_num: 0, iteration: 0,
+        total_iterations: 0, initialization_attempt: 0, initialization_max: 0,
         convergence: 0, progress_pct: 0, message: "Démarrage…", run_id: null, stop_requested: false,
         best_score: null });
+      historyRef.current = { runId: null, iteration: 0 };
       startPolling();
     } catch (e: unknown) {
       onError(e instanceof Error ? e.message : "Erreur création portefeuille");
@@ -181,6 +202,7 @@ export function BuffettActionsPanel({
       {/* Barre de progression de l'optimisation DE */}
       {/* eslint-disable-next-line @typescript-eslint/no-misused-promises -- même schéma que createPortfolio/analyzeTicker ci-dessus : handler async passé tel quel en prop d'événement. */}
       <DeProgressBar optProgress={optProgress} onStop={stopOptimization} />
+      {!progressActive && optProgress?.active && <DeStarrChart optProgress={optProgress} />}
     </div>
   );
 }

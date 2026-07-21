@@ -27,14 +27,13 @@ const buttonVariants = cva(
           "bg-[var(--destructive)] text-[var(--destructive-foreground)] shadow-sm hover:shadow-[var(--shadow-md)] hover:-translate-y-px",
         success:
           "bg-[var(--success)] text-[var(--success-foreground)] shadow-sm hover:shadow-[var(--shadow-md)] hover:-translate-y-px",
-        link:
-          "text-[var(--ring)] underline-offset-4 hover:underline p-0 h-auto",
+        link: "text-[var(--ring)] underline-offset-4 hover:underline p-0 h-auto",
       },
       size: {
-        sm: "h-7 px-3 text-xs",
-        md: "h-8 px-3.5",
-        lg: "h-10 px-5 text-base",
-        icon: "h-8 w-8",
+        sm: "h-8 px-3 text-xs",
+        md: "h-9 px-3.5",
+        lg: "h-11 px-5 text-base",
+        icon: "h-9 w-9",
       },
     },
     defaultVariants: {
@@ -45,8 +44,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   loading?: boolean;
 }
 
@@ -57,6 +55,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         aria-busy={loading}
+        data-ui-control={variant === "link" ? undefined : true}
         className={cn(buttonVariants({ variant, size }), className)}
         {...props}
       >

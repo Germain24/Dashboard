@@ -12,6 +12,7 @@ from app.repositories.livres import BookRepository
 from app.services.livres import books as books_svc
 from app.services.livres import metadata as metadata_svc
 from app.services.livres import progress as progress_svc
+from app.services.livres import series as series_svc
 
 router = APIRouter()
 
@@ -20,6 +21,12 @@ router = APIRouter()
 def list_books(statut: str | None = None, sort: str | None = None,
                session: Session = Depends(get_session)):
     return books_svc.get_books(session, statut, sort)
+
+
+@router.get("/series")
+def list_series(session: Session = Depends(get_session)):
+    """Livres regroupés par série (tomes triés + progression) (#5.3)."""
+    return series_svc.get_series(session)
 
 
 @router.get("/search")

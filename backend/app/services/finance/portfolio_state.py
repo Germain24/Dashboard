@@ -1,4 +1,4 @@
-"""État du portefeuille dérivé des transactions (source de vérité unique).
+"""État du portefeuille dérivé du ledger et des positions manuelles.
 
 Fonction pure : à partir du ledger de transactions, des cours et des paramètres de
 taxe, calcule positions (ACB), cash par broker, plus-value latente et réalisée,
@@ -80,8 +80,9 @@ def get_portfolio_state(session) -> dict:
     # avant ce filtre, CHAQUE ticker jamais tradé était re-téléchargé à chaque
     # rafraîchissement de l'état, en pure perte (#spam "possibly delisted").
     tickers = open_position_tickers(txs)
-    prix = get_prices(list(tickers)) if tickers else {}
+    prix = get_prices(list(tickers), stale_ok=True) if tickers else {}
     state = compute_portfolio_state(txs, prix, get_tax_params(session))
+    state = _merge_manual_positions(session, state)
     _state_cache.set("state", state)
     return state
 
@@ -94,7 +95,7 @@ def _state_from_positions(session, taxe: dict) -> dict:
     from app.services.finance.prices import get_prices
 
     rows = list(session.exec(select(Position)).all())
-    prix = get_prices([p.ticker for p in rows]) if rows else {}
+    prix = get_prices([p.ticker for p in rows], stale_ok=True) if rows else {}
 
     positions = []
     pl_latent_total = 0.0
@@ -134,12 +135,99 @@ def _state_from_positions(session, taxe: dict) -> dict:
         "pl_realise": 0.0,
         "pl_latent_total": round(pl_latent_total, 2),
         "dividendes_total": 0.0,
+        "dividendes_bruts": 0.0,
+        "retenues_source": 0.0,
+        "interets_bruts": 0.0,
+        "interets_total": 0.0,
+        "revenus_mobiliers_total": 0.0,
         "allocation": allocation,
         "taxes": {
             "base_pv": 0.0, "impot_pv": 0.0, "base_div": 0.0, "impot_div": 0.0,
             "total": 0.0, "taux_plus_value_pct": taux_pv, "taux_dividende_pct": taux_div,
         },
     }
+
+
+def _merge_manual_positions(session, state: dict) -> dict:
+    """Ajoute les positions manuelles absentes du ledger.
+
+    Une ligne ledger gagne uniquement sur le même couple ``ticker, broker``.
+    Cela permet de suivre quelques transactions sans faire disparaître les
+    comptes encore maintenus manuellement.
+    """
+    from sqlmodel import select
+
+    from app.models.finance import Position
+    from app.services.finance.prices import get_prices
+
+    existing = {
+        (str(position["ticker"]).upper(), position.get("broker") or "default")
+        for position in state["positions"]
+    }
+    manual_rows = []
+    seen = set(existing)
+    for position in session.exec(select(Position)).all():
+        key = (position.ticker.upper(), position.broker or "default")
+        if key in seen:
+            continue
+        seen.add(key)
+        manual_rows.append(position)
+    if not manual_rows:
+        return state
+
+    prices = get_prices([position.ticker for position in manual_rows], stale_ok=True)
+    invested = 0.0
+    unrealized = 0.0
+    for position in manual_rows:
+        quantity = float(position.quantite or 0)
+        acb = float(position.pmu or 0)
+        price = float(prices.get(position.ticker, 0) or 0)
+        value = price * quantity
+        pnl = (price - acb) * quantity if acb else 0.0
+        invested += acb * quantity
+        unrealized += pnl
+        state["positions"].append(
+            {
+                "ticker": position.ticker,
+                "broker": position.broker,
+                "quantite": round(quantity, 6),
+                "acb": round(acb, 2),
+                "prix": round(price, 2),
+                "valeur": round(value, 2),
+                "pl_latent": round(pnl, 2),
+                "pl_pct": round((price / acb - 1) * 100, 2) if acb > 0 else 0.0,
+            }
+        )
+
+    state["investi_net"] = round(float(state["investi_net"]) + invested, 2)
+    state["pl_latent_total"] = round(float(state["pl_latent_total"]) + unrealized, 2)
+    state["valeur_totale"] = round(
+        sum(position["valeur"] for position in state["positions"])
+        + float(state["cash_total"]),
+        2,
+    )
+    denominator = state["valeur_totale"] or 1.0
+    for position in state["positions"]:
+        position["poids_pct"] = round(position["valeur"] / denominator * 100, 2)
+    state["allocation"] = [
+        {
+            "label": position["ticker"],
+            "valeur": position["valeur"],
+            "poids_pct": position["poids_pct"],
+        }
+        for position in sorted(
+            state["positions"], key=lambda item: item["valeur"], reverse=True
+        )
+    ]
+    if state["cash_total"] != 0:
+        state["allocation"].append(
+            {
+                "label": "Cash",
+                "valeur": state["cash_total"],
+                "poids_pct": round(state["cash_total"] / denominator * 100, 2),
+            }
+        )
+    return state
 
 
 def open_position_tickers(transactions) -> set[str]:
@@ -173,7 +261,7 @@ def compute_portfolio_state(transactions, prix: dict[str, float], taxe: dict) ->
     """Dérive l'état complet du portefeuille depuis les transactions.
 
     transactions : itérable d'objets avec attributs
-        type (achat|vente|dividende|depot|retrait|frais), ticker, broker,
+        type (achat|vente|dividende|interet|depot|retrait|frais), ticker, broker,
         quantite, prix_unitaire, frais, date.
     prix : {ticker: cours_actuel}.
     taxe : {taux_plus_value_pct, taux_dividende_pct}.
@@ -183,7 +271,11 @@ def compute_portfolio_state(transactions, prix: dict[str, float], taxe: dict) ->
     book: dict[tuple[str, str], dict[str, float]] = defaultdict(lambda: {"qte": 0.0, "cout": 0.0})
     cash: dict[str, float] = defaultdict(float)
     realise = 0.0
-    dividendes = 0.0
+    dividendes_bruts = 0.0
+    retenues_source = 0.0
+    dividendes_nets = 0.0
+    interets_bruts = 0.0
+    interets_nets = 0.0
     depots = 0.0
     retraits = 0.0
 
@@ -203,7 +295,7 @@ def compute_portfolio_state(transactions, prix: dict[str, float], taxe: dict) ->
         elif typ == "vente":
             b = book[(ticker, broker)]
             acb = b["cout"] / b["qte"] if b["qte"] > 0 else 0.0
-            realise += (pu - acb) * q
+            realise += (pu - acb) * q - frais
             b["cout"] -= acb * q
             b["qte"] -= q
             if b["qte"] < 1e-9:
@@ -211,9 +303,21 @@ def compute_portfolio_state(transactions, prix: dict[str, float], taxe: dict) ->
                 b["cout"] = 0.0
             cash[broker] += q * pu - frais
         elif typ == "dividende":
-            m = _montant(t)
-            cash[broker] += m
-            dividendes += m
+            montant_stocke = getattr(t, "montant_brut", None)
+            brut = float(montant_stocke) if montant_stocke is not None else _montant(t)
+            retenue = float(getattr(t, "retenue_source", 0) or 0)
+            net = brut - retenue - frais
+            cash[broker] += net
+            dividendes_bruts += brut
+            retenues_source += retenue
+            dividendes_nets += net
+        elif typ == "interet":
+            montant_stocke = getattr(t, "montant_brut", None)
+            brut = float(montant_stocke) if montant_stocke is not None else _montant(t)
+            net = brut - frais
+            cash[broker] += net
+            interets_bruts += brut
+            interets_nets += net
         elif typ == "depot":
             m = _montant(t)
             cash[broker] += m
@@ -269,7 +373,8 @@ def compute_portfolio_state(transactions, prix: dict[str, float], taxe: dict) ->
     taux_div = float(taxe.get("taux_dividende_pct", 0) or 0)
     base_pv = max(0.0, realise)
     impot_pv = round(base_pv * taux_pv / 100, 2)
-    impot_div = round(dividendes * taux_div / 100, 2)
+    revenus_bruts = dividendes_bruts + interets_bruts
+    impot_div = round(revenus_bruts * taux_div / 100, 2)
 
     return {
         "positions": positions,
@@ -279,12 +384,17 @@ def compute_portfolio_state(transactions, prix: dict[str, float], taxe: dict) ->
         "valeur_totale": valeur_totale,
         "pl_realise": round(realise, 2),
         "pl_latent_total": round(pl_latent_total, 2),
-        "dividendes_total": round(dividendes, 2),
+        "dividendes_total": round(dividendes_nets, 2),
+        "dividendes_bruts": round(dividendes_bruts, 2),
+        "retenues_source": round(retenues_source, 2),
+        "interets_bruts": round(interets_bruts, 2),
+        "interets_total": round(interets_nets, 2),
+        "revenus_mobiliers_total": round(dividendes_nets + interets_nets, 2),
         "allocation": allocation,
         "taxes": {
             "base_pv": round(base_pv, 2),
             "impot_pv": impot_pv,
-            "base_div": round(dividendes, 2),
+            "base_div": round(revenus_bruts, 2),
             "impot_div": impot_div,
             "total": round(impot_pv + impot_div, 2),
             "taux_plus_value_pct": taux_pv,

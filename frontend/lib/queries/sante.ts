@@ -19,6 +19,7 @@ export const santeKeys = {
   aliments: () => [...santeKeys.all, "aliments"] as const,
   score: () => [...santeKeys.all, "score"] as const,
   scoreHistory: (days: number) => [...santeKeys.all, "score-history", days] as const,
+  scoreCorrelations: (jours: number) => [...santeKeys.all, "score-correlations", jours] as const,
   favorites: () => [...santeKeys.all, "favorites"] as const,
   photos: () => [...santeKeys.all, "photos"] as const,
 };
@@ -31,6 +32,12 @@ export function useScore() {
 }
 export function useScoreHistory(days = 90) {
   return useQuery({ queryKey: santeKeys.scoreHistory(days), queryFn: () => santeApi.scoreHistory(days) });
+}
+export function useScoreCorrelations(jours = 90) {
+  return useQuery({
+    queryKey: santeKeys.scoreCorrelations(jours),
+    queryFn: () => santeApi.scoreCorrelations(jours),
+  });
 }
 export function useNutritionGoal() {
   return useQuery({ queryKey: santeKeys.goal(), queryFn: santeApi.getGoal });

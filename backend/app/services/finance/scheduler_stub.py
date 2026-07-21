@@ -7,6 +7,8 @@ from __future__ import annotations
 import logging
 import threading
 from datetime import datetime
+
+from app.core.config import settings as _settings
 from app.core.timeutil import utcnow
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,6 @@ def is_analysis_running() -> bool:
 
 # Seuil (%) de baisse quotidienne déclenchant une notification.
 # Pilotable par .env (FINANCE_SNAPSHOT_DROP_ALERT_PCT).
-from app.core.config import settings as _settings
 SNAPSHOT_DROP_ALERT_PCT = _settings.finance_snapshot_drop_alert_pct
 
 
@@ -43,10 +44,13 @@ def job_daily_snapshot() -> None:
     Crée une notification si le snapshot échoue (error) ou si la valeur chute de
     plus de SNAPSHOT_DROP_ALERT_PCT vs le snapshot précédent (warning).
     """
-    from app.core.db import engine
     from sqlmodel import Session
+
+    from app.core.db import engine
     from app.services.finance.snapshots import (
-        take_snapshot_now, get_latest_snapshot, drop_alert_pct,
+        drop_alert_pct,
+        get_latest_snapshot,
+        take_snapshot_now,
     )
 
     try:
@@ -96,22 +100,24 @@ def job_monthly_buffett(csv_path: str | None = None) -> None:
     start_time = datetime.now()
 
     try:
-        from app.core.db import engine
         from sqlmodel import Session, select
+
+        from app.core.db import engine
+        from app.models.finance import BuffettRun, BuffettRunStatus
         from app.services.finance.buffett import run_buffett_analysis
         from app.services.finance.buffett.config import Config
-        from app.services.finance.buffett.runner import load_tickers
         from app.services.finance.buffett.reporting import (
-            create_run, update_run_progress, finalize_run,
+            create_run,
+            finalize_run,
+            update_run_progress,
         )
-        from app.models.finance import BuffettRun
+        from app.services.finance.buffett.runner import load_tickers
 
         Config.load_params()
-        # Taux devise->EUR requis par la colonne Volume (en euros) : a
-        # precharger AVANT le scoring, le garde _analysis_running bloque
-        # ensuite tout fetch FX pendant l'analyse.
-        from app.services.finance.buffett.currency import warm_fx_cache
-        warm_fx_cache()
+        # NB : le warm-up FX (taux devise->EUR de la colonne Volume) est fait
+        # dans run_buffett_analysis, APRES la creation du run -- ici il
+        # retardait toute trace visible (verrou tenu, aucun run cree) quand
+        # Yahoo throttlait (#bug POST /buffett/run "ne fait rien").
         tickers_csv = csv_path or str(Config.TICKERS_CSV)
         tickers = load_tickers(tickers_csv)
         n_total = len(tickers)
@@ -122,11 +128,14 @@ def job_monthly_buffett(csv_path: str | None = None) -> None:
         with Session(engine) as session:
             existing = session.exec(
                 select(BuffettRun)
-                .where(BuffettRun.statut.in_(["en_cours", "interrompu"]))  # type: ignore[attr-defined]
+                .where(BuffettRun.statut.in_([
+                    BuffettRunStatus.EN_COURS.value,
+                    BuffettRunStatus.INTERROMPU.value,
+                ]))  # type: ignore[attr-defined]
                 .order_by(BuffettRun.run_date.desc(), BuffettRun.id.desc())  # type: ignore[attr-defined]
             ).first()
             if existing:
-                existing.statut = "en_cours"
+                existing.statut = BuffettRunStatus.EN_COURS.value
                 existing.updated_at = utcnow()
                 session.add(existing)
                 session.commit()
@@ -162,7 +171,7 @@ def job_monthly_buffett(csv_path: str | None = None) -> None:
         with Session(engine) as session:
             finalize_run(
                 session, run_id,
-                statut="erreur" if erreur else "termine",
+                statut=BuffettRunStatus.ERREUR.value if erreur else BuffettRunStatus.TERMINE.value,
                 duree_sec=duree,
                 erreur=str(erreur) if erreur else None,
             )
@@ -177,13 +186,14 @@ def job_monthly_buffett(csv_path: str | None = None) -> None:
         # On marque "interrompu" (et non "erreur") pour permettre une reprise.
         if run_id is not None:
             try:
-                from app.core.db import engine
                 from sqlmodel import Session
-                from app.models.finance import BuffettRun
+
+                from app.core.db import engine
+                from app.models.finance import BuffettRun, BuffettRunStatus
                 with Session(engine) as s:
                     run = s.get(BuffettRun, run_id)
-                    if run and run.statut == "en_cours":
-                        run.statut = "interrompu"
+                    if run and run.statut == BuffettRunStatus.EN_COURS.value:
+                        run.statut = BuffettRunStatus.INTERROMPU.value
                         run.erreur = str(exc)
                         run.updated_at = utcnow()
                         s.add(run)

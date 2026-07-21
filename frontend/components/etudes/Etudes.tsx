@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, AlarmClock, Clock, Award, BarChart3, Brain } from "lucide-react";
+import { BookOpen, AlarmClock, Clock, Award, BarChart3, Brain, Sparkles } from "lucide-react";
 import { ModuleHeader } from "@/components/layout";
 import { CoursTab } from "./CoursTab";
 import { DeadlinesTab } from "./DeadlinesTab";
@@ -9,8 +9,9 @@ import { GpaTab } from "./GpaTab";
 import { SessionsTab } from "./SessionsTab";
 import { StatistiquesTab } from "./StatistiquesTab";
 import { RevisionTab } from "./RevisionTab";
+import { CompetencesTab } from "./CompetencesTab";
 
-type Tab = "cours" | "deadlines" | "sessions" | "stats" | "revision" | "gpa";
+type Tab = "cours" | "deadlines" | "sessions" | "stats" | "revision" | "gpa" | "competences";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "cours", label: "Cours", Icon: BookOpen },
@@ -19,6 +20,7 @@ const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "stats", label: "Stats", Icon: BarChart3 },
   { id: "revision", label: "Révision", Icon: Brain },
   { id: "gpa", label: "GPA", Icon: Award },
+  { id: "competences", label: "Compétences", Icon: Sparkles },
 ];
 
 export function Etudes() {
@@ -41,6 +43,7 @@ export function Etudes() {
         {tab === "sessions" && <SessionsTab />}
         {tab === "stats" && <StatistiquesTab />}
         {tab === "revision" && <RevisionTab />}
+        {tab === "competences" && <CompetencesTab />}
       </div>
     </div>
   );

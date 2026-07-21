@@ -1,6 +1,27 @@
 # Suivis — Comparaison prix Super C / Adonis
 
-Statut : à faire · Créé le 2026-07-06, mis à jour le 2026-07-07
+Statut : **clos** le 2026-07-20 · Créé le 2026-07-06, mis à jour le 2026-07-07
+
+## Clôture (2026-07-20)
+
+Les trois points ouverts sont résolus ou devenus sans objet :
+
+1. **Scraper circulaire Super C** — RÉSOLU (commit `7e4aad5`). La circulaire est
+   servie en JSON par l'API digital-flyer de Metro
+   (`/api/pages/<pubId>/<store>/bil/`) : ni sélecteurs DOM, ni iframe, ni
+   contournement de reCAPTCHA. 219 promos réelles extraites.
+2. **Vérification visuelle du badge** — SANS OBJET. Le badge comparait deux
+   magasins ; depuis le passage « Super C unique » (`99edb47`) il n'y a plus de
+   comparaison à afficher.
+3. **Cache Adonis produce-only** — SANS OBJET. Adonis est sorti de la couche
+   courses ET de l'optimiseur (Phases 1-3 de `2026-07-14-superc-unique-design.md`,
+   commits `99edb47`, `c88e22f`, `f9e6d05`). Plus aucune catégorie ne dépend
+   d'Adonis, donc plus de trou de couverture viande.
+
+Le contenu ci-dessous est conservé tel quel comme trace de l'état au 2026-07-07.
+
+---
+
 Suite de : `orchestration/finis/2026-07-06-lufa-superc-comparaison-prix-{design,plan}.md`
 (feature livrée, 10 commits `1058fe2..9c37540` sur `main`)
 

@@ -264,3 +264,37 @@ backend émettait bien `best_score` (vérifié : iteration 1498, score -0.97 →
 
 Vérifs : backend 21/21 (split+cardinalité) + optimizer_robust ; frontend tsc propre,
 222/222 tests.
+
+## Bugfix n°3 : dédup corrélation ETF aveugle à la dispo broker (2026-07-17)
+
+**Symptôme signalé** : l'optimiseur retire parfois trop d'ETF — la dédup par
+corrélation (« jumeaux d'indice », `dedup.py::drop_correlated`) tourne AVANT que
+la dispo par broker ne soit prise en compte (celle-ci n'intervient qu'ensuite,
+dans `prepare_optimization`/`assign_tickers_to_brokers`). Si deux ETF corrélés
+(≥ `CORRELATION_DEDUP_THRESHOLD`) sont chacun exclusifs à un broker différent,
+l'ancien code gardait celui au **plus gros volume** sans savoir que l'autre
+était le SEUL représentant de cet indice sur son broker -> ce broker perdait
+toute exposition à l'indice (d'où la sur-suppression rapportée).
+
+**Root cause (systematic-debugging)** : `drop_correlated` ne connaissait que le
+volume ; la dispo broker (déjà fusionnée dans `df_m` par `merge_broker_columns`
+AVANT l'appel à `deduplicate_correlated` dans `runner.py`) n'était simplement
+jamais lue par la fonction de dédup.
+
+**Fix** : `drop_correlated` accepte désormais `broker_access:
+dict[ticker, frozenset[broker]]`. Avant de choisir lequel des deux jumeaux
+retirer : si l'un des deux a un ensemble de brokers **sous-ensemble** de
+l'autre, il est retiré en priorité (aucune exposition broker perdue) ; à dispo
+égale, le volume tranche comme avant ; si les deux couvrent des brokers actifs
+**exclusifs et disjoints**, la paire n'est PAS fusionnée (les deux sont
+gardés). `deduplicate_correlated` calcule `broker_access` depuis les colonnes
+déjà présentes dans `df` (une par broker actif de `Config.BUDGET_BROKERS`,
+réutilise `_is_true` d'`optimizer.py`) — aucun changement requis côté
+`runner.py`, l'ordre d'appel existant (`merge_broker_columns` avant
+`deduplicate_correlated`) suffisait déjà à exposer la dispo, il ne restait qu'à
+la lire.
+
+Tests : `test_dedup.py` — 4 nouveaux (paire exclusive disjointe gardée,
+sous-ensemble retiré, égalité → volume tranche, wiring depuis les colonnes de
+`df`) ; 26/26 verts sur le fichier, suite `test_finance` complète non
+régressée.

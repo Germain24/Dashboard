@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING
 
 from .config import Config
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 ABBREV: dict[str, str] = {
     " international ": " intl ", " national ": " natl ", " american ": " amer ",
@@ -79,14 +83,26 @@ def fuzzy_ratio(a: str, b: str) -> float:
 def drop_correlated(
     returns, volumes: dict, threshold: float = 0.97,
     removable: set | None = None, min_periods: int = 60,
+    broker_access: dict | None = None,
 ) -> tuple[list, list]:
     """Retire itérativement les « jumeaux » fortement corrélés (même indice, émetteurs
     différents) que ni le nom ni l'ISIN n'attrapent.
 
     Algorithme déterministe : tant qu'il existe une paire de corrélation (signée) ≥
-    ``threshold``, on prend la **plus** corrélée et on retire le ticker au **volume le
-    plus bas** (à volume égal, le premier dans l'ordre des colonnes). Corrélation
-    NÉGATIVE = pas un doublon → jamais fusionnée.
+    ``threshold``, on prend la **plus** corrélée et on retire un des deux tickers.
+    Corrélation NÉGATIVE = pas un doublon → jamais fusionnée.
+
+    ``broker_access`` (optionnel) : ``{ticker: frozenset[broker]}``, les brokers
+    actifs où chaque ticker est disponible. La dispo broker est vérifiée **avant**
+    le volume (#bug rapporté : la dédup corrélation ne connaissait que le volume,
+    et pouvait retirer le SEUL ticker accessible sur un broker au profit d'un
+    jumeau plus liquide mais indisponible chez ce broker — ce broker perdait alors
+    toute exposition à l'indice). Règle : on ne retire un ticker que si son
+    ensemble de brokers est un **sous-ensemble** de celui du partenaire gardé (donc
+    aucun broker n'est perdu) ; à dispo égale, le volume tranche comme avant. Si
+    aucun des deux n'est sous-ensemble de l'autre (brokers exclusifs disjoints),
+    la paire n'est PAS fusionnée : les deux sont gardés. Sans ``broker_access``,
+    comportement inchangé (volume seul, comme avant).
 
     ``removable`` : si fourni, seules les paires dont les DEUX tickers y figurent
     sont considérées (décision utilisateur : dedup corrélation ENTRE ETF seulement,
@@ -121,7 +137,22 @@ def drop_correlated(
         if not np.isfinite(c[i, j]) or c[i, j] < threshold:
             break
         a, b = cols[i], cols[j]
-        k = i if float(volumes.get(a, 0) or 0) <= float(volumes.get(b, 0) or 0) else j
+        if broker_access is not None:
+            acc_a = broker_access.get(a, frozenset())
+            acc_b = broker_access.get(b, frozenset())
+            if acc_a == acc_b:
+                k = i if float(volumes.get(a, 0) or 0) <= float(volumes.get(b, 0) or 0) else j
+            elif acc_b <= acc_a:      # b n'apporte aucun broker que a n'a pas
+                k = j
+            elif acc_a <= acc_b:      # symétrique
+                k = i
+            else:
+                # Brokers exclusifs disjoints : retirer l'un ferait perdre
+                # l'exposition à cet indice sur un broker actif -> ne pas fusionner.
+                c[i, j] = -np.inf
+                continue
+        else:
+            k = i if float(volumes.get(a, 0) or 0) <= float(volumes.get(b, 0) or 0) else j
         partner = cols[j] if k == i else cols[i]
         removed.append((cols[k], partner, round(float(c[i, j]), 4)))
         dropped.add(cols[k])
@@ -162,8 +193,70 @@ def _ticker_currency(t: str) -> str:
     return "GBP" if cur in ("GBP", "GBX") else cur
 
 
+def _broker_access_sets(df, ticker_col: str) -> dict[str, frozenset[str]]:
+    """Brokers actifs (budget > 0) où chaque ticker est disponible.
+
+    Lit les colonnes ajoutées à ``df`` par ``merge_broker_columns`` (nommées
+    exactement comme les clés de ``Config.BUDGET_BROKERS`` — cf. son docstring).
+    Absence de colonne pour un broker actif -> disponible partout par défaut,
+    même convention que ``_is_true``/``prepare_optimization`` dans optimizer.py.
+    """
+    from .optimizer import _is_true
+    active = [b for b, budget in Config.BUDGET_BROKERS.items() if budget > 0]
+    cols = [b for b in active if b in df.columns]
+    out: dict[str, frozenset[str]] = {}
+    for _, row in df.iterrows():
+        t = str(row[ticker_col]).strip()
+        out[t] = frozenset(b for b in active if b not in cols or _is_true(row[b]))
+    return out
+
+
+def returns_in_base_currency(returns, base_ccy: str = "EUR", *, strict: bool = False):
+    """Convertit des rendements de cotation vers ``base_ccy``.
+
+    Fonction partagée par la déduplication et la présélection diversifiée des ETF.
+    En cas d'indisponibilité FX, renvoie les rendements natifs sans casser le run.
+    """
+    import pandas as pd
+
+    cols = list(returns.columns)
+    if len(cols) < 1:
+        return returns
+    try:
+        currencies = {t: _ticker_currency(t) for t in cols}
+        need = sorted({c for c in currencies.values() if c and c != base_ccy})
+        fx_ret: dict = {}
+        if need:
+            from app.services.finance.yf_session import download_with_timeout, yf_session
+            for ccy in need:
+                raw = download_with_timeout(
+                    tickers=f"{ccy}{base_ccy}=X", period="5y", interval="1d",
+                    progress=False, session=yf_session(),
+                )
+                if raw is None or raw.empty:
+                    raise RuntimeError(f"FX {ccy}{base_ccy} indisponible")
+                close = raw["Close"]
+                close = close.iloc[:, 0] if hasattr(close, "columns") else close
+                fx_ret[ccy] = close.pct_change().reindex(returns.index).fillna(0.0)
+        conv = {}
+        for ticker in cols:
+            ccy = currencies[ticker]
+            conv[ticker] = returns[ticker] if ccy == base_ccy else (
+                (1.0 + returns[ticker]) * (1.0 + fx_ret[ccy]) - 1.0
+            )
+        return pd.DataFrame(conv, index=returns.index)
+    except Exception as exc:
+        if strict:
+            raise RuntimeError(
+                f"Conversion historique obligatoire vers {base_ccy} impossible: {exc}"
+            ) from exc
+        print(f"[dedup] conversion {base_ccy} impossible ({exc}); corrélation en devise native.")
+        return returns
+
+
 def deduplicate_correlated(returns, df, ticker_col: str = "Ticker Yahoo Finance",
-                           threshold: float | None = None, base_ccy: str = "EUR"):
+                           threshold: float | None = None, base_ccy: str = "EUR",
+                           returns_already_converted: bool = False):
     """Retire les jumeaux d'indice (corrélation ≥ ``threshold``) sur rendements
     **convertis en ``base_ccy``** (sinon le change masque l'équivalence cross-devises).
 
@@ -197,36 +290,13 @@ def deduplicate_correlated(returns, df, ticker_col: str = "Ticker Yahoo Finance"
     except Exception:
         vol = {}
 
-    rets_eur = returns
-    try:
-        currencies = {t: _ticker_currency(t) for t in cols}
-        need = sorted({c for c in currencies.values() if c and c != base_ccy})
-        if need:
-            from app.services.finance.yf_session import download_with_timeout, yf_session
-            fx_ret: dict = {}
-            for ccy in need:
-                raw = download_with_timeout(
-                    tickers=f"{ccy}{base_ccy}=X", period="5y", interval="1d",
-                    progress=False, session=yf_session(),
-                )
-                if raw is None or raw.empty:
-                    raise RuntimeError(f"FX {ccy}{base_ccy} indisponible")
-                close = raw["Close"]
-                close = close.iloc[:, 0] if hasattr(close, "columns") else close
-                fx_ret[ccy] = close.pct_change().reindex(returns.index).fillna(0.0)
-            conv = {}
-            for t in cols:
-                ccy = currencies[t]
-                if ccy == base_ccy:
-                    conv[t] = returns[t]
-                else:
-                    conv[t] = (1.0 + returns[t]) * (1.0 + fx_ret[ccy]) - 1.0
-            rets_eur = pd.DataFrame(conv)
-    except Exception as e:
-        print(f"[dedup] conversion {base_ccy} impossible ({e}); corrélation en devise native.")
-        rets_eur = returns
+    rets_eur = returns if returns_already_converted else returns_in_base_currency(
+        returns, base_ccy
+    )
 
-    kept, removed = drop_correlated(rets_eur, vol, threshold, removable=etf_set)
+    broker_access = _broker_access_sets(df, ticker_col) if df is not None else None
+    kept, removed = drop_correlated(rets_eur, vol, threshold, removable=etf_set,
+                                     broker_access=broker_access)
     if removed:
         print(f"[dedup] {len(removed)} jumeaux d'indice ETF (corr>={threshold}) retires :")
         for t, partner, c in removed:
@@ -242,7 +312,6 @@ def _norm_isin(v) -> str:
 
 def deduplicate_tickers(returns, df, ticker_col: str = "Ticker Yahoo Finance") -> "pd.DataFrame":
     """Supprime les cross-listings (même entreprise, plusieurs bourses)."""
-    import pandas as pd
     cols = list(returns.columns)
     forced_up = [t.upper() for t in Config.FORCED_BUY_TICKERS]
     groups: dict[str, list[tuple[str, float]]] = {}

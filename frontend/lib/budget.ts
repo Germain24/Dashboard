@@ -80,6 +80,26 @@ export async function fetchCategoryShare(days = 180, window = 30): Promise<Categ
   return (await fetch(`${BASE}/category-share?days=${days}&window=${window}`)).json()
 }
 
+// Prévision de trésorerie (#259)
+export type CashFlowForecast = {
+  moyenne_revenus: number
+  moyenne_depenses: number
+  solde_mensuel_moyen: number
+  points: { mois: string; solde_mensuel: number; cumul: number }[]
+}
+export async function fetchForecast(
+  monthsAhead = 6, historyMonths = 6,
+  scenario?: { revenusDeltaPct?: number; depensesDeltaPct?: number },
+): Promise<CashFlowForecast> {
+  const params = new URLSearchParams({
+    months_ahead: String(monthsAhead),
+    history_months: String(historyMonths),
+    revenus_delta_pct: String(scenario?.revenusDeltaPct ?? 0),
+    depenses_delta_pct: String(scenario?.depensesDeltaPct ?? 0),
+  })
+  return (await fetch(`${BASE}/forecast?${params}`)).json()
+}
+
 export type Recurring = {
   marchand: string; montant_moyen: number; occurrences: number
   periodicite: string; derniere_date: string; category_id: number | null
@@ -100,6 +120,60 @@ export type RecurringProjection = {
 }
 export async function fetchRecurringProjection(): Promise<RecurringProjection> {
   return (await fetch(`${BASE}/recurring/projection`)).json()
+}
+
+// Alertes sur abonnements : hausses de prix + doublons (#260)
+export type SubscriptionHausse = {
+  marchand: string; montant_precedent: number; montant_actuel: number
+  delta: number; delta_pct: number; date: string; occurrences: number
+  category_id: number | null
+}
+export type SubscriptionDoublon = {
+  type: 'meme_service' | 'double_prelevement'
+  service: string; marchands: string[]; mois: string
+  occurrences: number; montant_redondant: number
+}
+export type SubscriptionAlerts = {
+  hausses: SubscriptionHausse[]
+  doublons: SubscriptionDoublon[]
+  nb_alertes: number
+  surcout_mensuel: number
+}
+const EMPTY_ALERTS: SubscriptionAlerts = { hausses: [], doublons: [], nb_alertes: 0, surcout_mensuel: 0 }
+
+export async function fetchSubscriptionAlerts(): Promise<SubscriptionAlerts> {
+  const d = await (await fetch(`${BASE}/recurring/alerts`)).json()
+  return d && Array.isArray(d.hausses) ? d : EMPTY_ALERTS
+}
+
+// Rapport d'indépendance financière (#268)
+export type FireReport = {
+  patrimoine_net: number
+  revenus_annuels: number
+  epargne_annuelle: number
+  depenses_annuelles: number
+  objectif_fi: number
+  taux_epargne_pct: number
+  taux_retrait_pct: number
+  rendement_reel_pct: number
+  progression_pct: number
+  annees_restantes: number | null
+  annee_cible: number | null
+  atteint: boolean
+  horizon_max: number
+  mois_analyses: number
+  devise: string
+}
+
+export async function fetchFire(
+  months = 12, tauxRetrait = 0.04, rendementReel = 0.05,
+): Promise<FireReport> {
+  const params = new URLSearchParams({
+    months: String(months),
+    taux_retrait: String(tauxRetrait),
+    rendement_reel: String(rendementReel),
+  })
+  return (await fetch(`${BASE}/fire?${params}`)).json()
 }
 
 export type SavingsGoal = { objectif: number; epargne: number; progress_pct: number }
@@ -153,4 +227,54 @@ export async function fetchRuleSuggestions(): Promise<LearnRulesResult> {
 
 export async function learnRules(): Promise<LearnRulesResult> {
   return (await fetch(`${BASE}/rules/learn`, { method: 'POST' })).json()
+}
+
+// Suivi manuel des abonnements/contrats (#362) — distinct de la détection auto (#116/#266)
+export type Contract = {
+  id: number
+  nom: string
+  categorie: string
+  montant: number
+  periodicite: 'mensuel' | 'annuel'
+  date_echeance: string | null
+  statut: 'actif' | 'resilie'
+  date_resiliation: string | null
+  notes: string
+  statut_echeance: 'no_date' | 'depassee' | 'proche' | 'ok'
+}
+export type ContractsSummary = {
+  cout_mensuel: number
+  prochaines_echeances: Contract[]
+}
+
+export async function fetchContracts(statut?: string): Promise<Contract[]> {
+  const q = statut ? `?statut=${encodeURIComponent(statut)}` : ''
+  const d = await (await fetch(`${BASE}/contracts${q}`)).json()
+  return Array.isArray(d) ? d : []
+}
+
+export async function fetchContractsSummary(): Promise<ContractsSummary> {
+  const d = await (await fetch(`${BASE}/contracts/summary`)).json()
+  return d && typeof d.cout_mensuel === 'number' ? d : { cout_mensuel: 0, prochaines_echeances: [] }
+}
+
+export async function createContract(data: {
+  nom: string; categorie: string; montant: number; periodicite: string
+  date_echeance?: string | null; notes?: string
+}) {
+  const res = await fetch(`${BASE}/contracts`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  })
+  return res.json()
+}
+
+export async function updateContract(id: number, patch: Partial<Contract>) {
+  const res = await fetch(`${BASE}/contracts/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  })
+  return res.json()
+}
+
+export async function deleteContract(id: number) {
+  await fetch(`${BASE}/contracts/${id}`, { method: 'DELETE' })
 }

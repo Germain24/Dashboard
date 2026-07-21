@@ -1,19 +1,28 @@
 """Sous-routeur Finance : portefeuille, snapshots, positions, historique."""
 from __future__ import annotations
-from app.core.timeutil import utcnow
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
-from app.core.db import get_session
 from app.api.schemas_finance import (
-    SnapshotOut, HistoryPointOut, PositionOut, PerfMetricsOut,
-    PositionCreate, PositionIdOut,
+    HistoryPointOut,
+    PerfMetricsOut,
+    PositionCreate,
+    PositionIdOut,
+    PositionOut,
+    SnapshotOut,
 )
-from app.services.finance.snapshots import get_latest_snapshot, get_history, take_snapshot_now
-from app.services.finance.portfolio import get_positions, get_perf_metrics, get_title_detail
+from app.core.db import get_session
+from app.core.timeutil import utcnow
+from app.services.finance.portfolio import get_perf_metrics, get_positions, get_title_detail
+from app.services.finance.snapshots import (
+    downsample_history,
+    get_history,
+    get_latest_snapshot,
+    take_snapshot_now,
+)
 
 router = APIRouter()
 
@@ -56,10 +65,13 @@ def cash(session: Session = Depends(get_session)):
 
 
 @router.get("/tax")
-def tax(session: Session = Depends(get_session)):
-    """Détail des taxes estimées (plus-value réalisée + dividendes) au taux configuré."""
-    from app.services.finance.portfolio_state import get_portfolio_state
-    return get_portfolio_state(session)["taxes"]
+def tax(annee: int | None = None, session: Session = Depends(get_session)):
+    """Alias historique vers l'estimation fiscale annuelle de l'onglet Impots."""
+    import datetime as dt
+
+    from app.services.finance.impots_transactions import compute_tax_summary
+
+    return compute_tax_summary(session, annee=annee or dt.date.today().year)
 
 
 @router.get("/settings")
@@ -77,7 +89,6 @@ def get_settings(session: Session = Depends(get_session)):
 @router.patch("/settings")
 def patch_settings(body: dict, session: Session = Depends(get_session)):
     """Met à jour les taux de taxe / la devise d'affichage."""
-    import datetime as _dt
     from app.services.finance.portfolio_state import get_or_create_settings, invalidate_state
     s = get_or_create_settings(session)
     for k in ("taux_plus_value_pct", "taux_dividende_pct", "devise_affichage"):
@@ -104,7 +115,7 @@ def projection(
     objectif: float = 0,
 ):
     """Projection d'épargne à intérêts composés (+ mois pour atteindre un objectif)."""
-    from app.services.finance.projection import project_savings, mois_pour_objectif
+    from app.services.finance.projection import mois_pour_objectif, project_savings
     res = project_savings(initial, mensuel, taux, mois)
     if objectif and objectif > 0:
         res["objectif"] = objectif
@@ -137,8 +148,13 @@ def snapshot_create(session: Session = Depends(get_session)):
 
 
 @router.get("/history", response_model=list[HistoryPointOut])
-def history(days: int = 365, session: Session = Depends(get_session)):
+def history(
+    days: int = Query(365, ge=1, le=10_000),
+    max_points: int = Query(1_000, ge=2, le=2_000),
+    session: Session = Depends(get_session),
+):
     rows = get_history(session, limit=days)
+    rows = downsample_history(rows, max_points=max_points)
     return [HistoryPointOut(date=r.date, valeur=r.valeur, investit=r.investit)
             for r in rows]
 
@@ -148,17 +164,18 @@ def history(days: int = 365, session: Session = Depends(get_session)):
 @router.get("/positions/list", response_model=list[PositionIdOut])
 def positions_list(session: Session = Depends(get_session)):
     """Liste toutes les positions avec leur id (pour edition/suppression)."""
-    from app.models.finance import Position
     from sqlmodel import select as sel
+
+    from app.models.finance import Position
     return list(session.exec(sel(Position)).all())
 
 
 @router.post("/positions", response_model=PositionIdOut, status_code=201)
 def positions_create(body: PositionCreate, session: Session = Depends(get_session)):
     """Cree ou met a jour une position (upsert par ticker+broker)."""
-    import datetime as _dt
-    from app.models.finance import Position
     from sqlmodel import select as sel
+
+    from app.models.finance import Position
     broker = body.broker or "default"
     existing = session.exec(
         sel(Position)
@@ -191,7 +208,6 @@ def positions_create(body: PositionCreate, session: Session = Depends(get_sessio
 @router.put("/positions/{pos_id}", response_model=PositionIdOut)
 def positions_update(pos_id: int, body: PositionCreate, session: Session = Depends(get_session)):
     """Met a jour une position par son id."""
-    import datetime as _dt
     from app.models.finance import Position
     pos = session.get(Position, pos_id)
     if not pos:
@@ -225,8 +241,10 @@ def snapshot_auto(session: Session = Depends(get_session)):
     Retourne le snapshot du jour (nouveau ou existant). Jamais d'erreur 422.
     """
     import datetime as _dt
-    from app.models.finance import SnapshotPortefeuille
+
     from sqlmodel import select as sel
+
+    from app.models.finance import SnapshotPortefeuille
     today = _dt.date.today()
     existing = session.exec(sel(SnapshotPortefeuille).where(SnapshotPortefeuille.date == today)).first()
     if existing:

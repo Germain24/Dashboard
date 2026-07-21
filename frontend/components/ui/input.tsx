@@ -7,21 +7,36 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, ...props }, ref) => {
-    const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+  (
+    {
+      className,
+      label,
+      error,
+      id,
+      "aria-describedby": describedBy,
+      "aria-invalid": invalid,
+      ...props
+    },
+    ref,
+  ) => {
+    const generatedId = React.useId();
+    const inputId = id ?? generatedId;
+    const errorId = `${inputId}-error`;
     return (
       <div className="flex flex-col gap-1">
         {label && (
-          <label
-            htmlFor={inputId}
-            className="text-xs font-medium text-[var(--muted-foreground)]"
-          >
+          <label htmlFor={inputId} className="text-xs font-medium text-[var(--muted-foreground)]">
             {label}
           </label>
         )}
         <input
           id={inputId}
           ref={ref}
+          data-ui-control
+          aria-invalid={error ? true : invalid}
+          aria-describedby={
+            [describedBy, error ? errorId : null].filter(Boolean).join(" ") || undefined
+          }
           className={cn(
             "h-8 w-full rounded-[var(--radius)] border border-[var(--border)]",
             "bg-[var(--field)] px-3 py-1 text-sm text-[var(--foreground)]",
@@ -36,7 +51,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <p className="text-xs text-[var(--destructive)]">{error}</p>
+          <p id={errorId} role="alert" className="text-xs text-[var(--destructive)]">
+            {error}
+          </p>
         )}
       </div>
     );

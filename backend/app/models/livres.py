@@ -12,6 +12,10 @@ class Book(SQLModel, table=True):
     statut: str = "a_lire"
     genre: str = ""
     format: str = "papier"
+    # serie vide = ouvrage isolé ; renseignée, le livre est un tome regroupé
+    # avec ses pairs (cf. services/livres/series.py).
+    serie: str = ""
+    tome: int | None = None
     note: float | None = None
     langue: str = ""
     page_courante: int | None = None

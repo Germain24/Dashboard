@@ -36,3 +36,23 @@ class EnvelopeCreate(BaseModel):
     category_id: int
     mois: str
     montant: float
+
+
+class ContractCreate(BaseModel):
+    nom: str
+    categorie: str
+    montant: float
+    periodicite: str
+    date_echeance: str | None = None
+    notes: str = ""
+
+
+class ContractPatch(BaseModel):
+    nom: str | None = None
+    categorie: str | None = None
+    montant: float | None = None
+    periodicite: str | None = None
+    date_echeance: str | None = None
+    statut: str | None = None
+    date_resiliation: str | None = None
+    notes: str | None = None

@@ -15,6 +15,8 @@ class BookCreate(BaseModel):
     genre: str = ""
     langue: str = ""
     format: str = "papier"
+    serie: str = ""
+    tome: int | None = None
 
 
 class NoteCreate(BaseModel):

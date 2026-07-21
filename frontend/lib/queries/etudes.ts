@@ -5,25 +5,32 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addRevisionCard,
+  addSkillPreuve,
   createCours,
   createEvaluation,
   createSession,
+  createSkill,
   deleteCours,
   deleteEvaluation,
   deleteRevisionCard,
   deleteSession,
+  deleteSkill,
   fetchCours,
   fetchDeadlines,
   fetchEtudesStats,
   fetchGpa,
   fetchRevisionCards,
   fetchSessions,
+  fetchSkills,
+  fetchSkillsStats,
   patchCours,
+  patchSkill,
   reviewRevisionCard,
   setEtudesGoal,
   type Cours,
   type CoursCreate,
   type EvaluationCreate,
+  type Skill,
 } from "@/lib/etudes";
 
 export const etudesKeys = {
@@ -35,6 +42,8 @@ export const etudesKeys = {
   sessions: (coursId?: number) => [...etudesKeys.all, "sessions", coursId ?? "all"] as const,
   stats: (days: number) => [...etudesKeys.all, "stats", days] as const,
   revisionCards: (dueOnly: boolean) => [...etudesKeys.all, "revision-cards", dueOnly] as const,
+  skills: () => [...etudesKeys.all, "skills"] as const,
+  skillsStats: () => [...etudesKeys.all, "skills-stats"] as const,
 };
 
 export function useCours(params?: { semestre?: string; actif?: boolean }) {
@@ -57,6 +66,12 @@ export function useRevisionCards(dueOnly = false) {
     queryKey: etudesKeys.revisionCards(dueOnly),
     queryFn: () => fetchRevisionCards(dueOnly),
   });
+}
+export function useSkills() {
+  return useQuery({ queryKey: etudesKeys.skills(), queryFn: () => fetchSkills() });
+}
+export function useSkillsStats() {
+  return useQuery({ queryKey: etudesKeys.skillsStats(), queryFn: () => fetchSkillsStats() });
 }
 
 function useInvalidateAll() {
@@ -121,4 +136,30 @@ export function useReviewRevisionCard() {
 export function useDeleteRevisionCard() {
   const invalidate = useInvalidateAll();
   return useMutation({ mutationFn: (id: number) => deleteRevisionCard(id), onSuccess: invalidate });
+}
+export function useCreateSkill() {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (d: { nom: string; categorie: string; niveau?: number }) => createSkill(d),
+    onSuccess: invalidate,
+  });
+}
+export function useUpdateSkill() {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (p: { id: number; patch: Partial<Pick<Skill, "nom" | "categorie" | "niveau">> }) =>
+      patchSkill(p.id, p.patch),
+    onSuccess: invalidate,
+  });
+}
+export function useDeleteSkill() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: (id: number) => deleteSkill(id), onSuccess: invalidate });
+}
+export function useAddPreuve() {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (p: { id: number; texte: string; date?: string }) => addSkillPreuve(p.id, p.texte, p.date),
+    onSuccess: invalidate,
+  });
 }

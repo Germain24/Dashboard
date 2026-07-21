@@ -15,12 +15,13 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Optional
 
+from app.core.config import settings
 from app.services.sante.constants import (
     COMPENSATION_EXCLUDED,
     DAILY_BASE_TARGETS_NUTRIENTS,
     DEFAULT_PRIX_MAX_DAILY,
+    TRACKED_MAX_NUTRIENTS,
 )
-from app.core.config import settings
 from app.services.sante.intensity import default_intensity_for_date, intensity_modifiers
 
 
@@ -97,12 +98,40 @@ def calculate_daily_targets(
                     if k in COMPENSATION_EXCLUDED:
                         continue
                     if k in y_targets and k in y_consumed:
-                        gap = y_targets[k] - y_consumed[k]
+                        target = float(y_targets[k])
+                        consumed = float(y_consumed[k])
+                        gap = target - consumed
                         if is_weekly:
                             gap /= 7.0
-                        comp_targets[k] += gap
+                        comp_targets[k] = _safe_compensated_target(
+                            key=k,
+                            base=float(base_daily[k]),
+                            gap=gap,
+                        )
 
     return base_daily, comp_targets
+
+
+def _safe_compensated_target(key: str, base: float, gap: float) -> float:
+    """Reporte J-1 sans fabriquer une cible dangereuse ou incohérente.
+
+    Pour un plafond (sodium, sucres…), seule une consommation excessive réduit
+    le plafond du lendemain; avoir mangé peu de sodium ne donne pas la permission
+    d'en manger davantage. Pour les minima, manque et excès sont reportés, avec
+    des bornes adaptées aux macros et micronutriments.
+    """
+    if key in TRACKED_MAX_NUTRIENTS:
+        if gap >= 0:
+            return base
+        return max(base * 0.50, base + gap)
+
+    if key == "Calories":
+        low, high = 0.75, 1.25
+    elif key in {"Protéines", "Lipides", "Glucides"}:
+        low, high = 0.50, 1.50
+    else:
+        low, high = 0.25, 1.75
+    return min(base * high, max(base * low, base + gap))
 
 
 def _find_entry_for_date(history: list[dict[str, Any]], date: dt.date) -> dict | None:

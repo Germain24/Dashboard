@@ -88,6 +88,12 @@ class Settings(BaseSettings):
     # lu par POST /garderobe/inventaire/sync et scripts/import_garderobe_inventaire.
     garderobe_inventaire_dir: str = r"C:\Users\germa\Desktop\Vetements"
 
+    # --- Voyage ---
+    # Recherche de vols datés. Vide = estimations locales clairement signalées.
+    duffel_api_key: str = ""
+    voyage_live_price_cache_hours: int = 12
+    voyage_max_live_itineraries: int = 5
+
     # ── Réglages métier ajustables (override .env) ──────────────────────
     # Finance — score Buffett & valorisation
     buffett_score_threshold: float = 80.0       # score d'achat minimal

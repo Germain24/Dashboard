@@ -2,6 +2,7 @@
 autres brokers = nombre d'actions entières."""
 
 import numpy as np
+import pandas as pd
 
 
 def test_t212_pie_integer_pct_sums_to_100(monkeypatch):
@@ -63,3 +64,25 @@ def test_integer_rounding_leftover_below_cheapest_share(monkeypatch):
     alloc = discretize_allocation(tickers, W, ["BoursDirect2"], prices, 1000.0)
     spent = sum(a["eur"] for a in alloc)
     assert 1000.0 - spent < 90.0, f"reste {1000.0 - spent} >= prix le moins cher"
+
+
+def test_latest_prices_eur_converts_native_quotes(monkeypatch):
+    from app.services.finance import fx
+    from app.services.finance.buffett import dedup
+    from app.services.finance.buffett.allocation import latest_prices_eur
+
+    currencies = {"US": "USD", "EU": "EUR"}
+    monkeypatch.setattr(dedup, "_ticker_currency", lambda ticker: currencies[ticker])
+    monkeypatch.setattr(
+        fx,
+        "get_rate",
+        lambda base, quote, stale_ok=True: {("USD", "EUR"): 0.8, ("EUR", "EUR"): 1.0}[
+            (base, quote)
+        ],
+    )
+    close = pd.DataFrame({"US": [100.0, 110.0], "EU": [90.0, 95.0]})
+
+    prices = latest_prices_eur(close, ["US", "EU"])
+
+    assert prices["US"] == 88.0
+    assert prices["EU"] == 95.0

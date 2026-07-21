@@ -78,7 +78,7 @@ def _compute_etf_tickers(df, ticker_col: str) -> set[str]:
     if tcol is None or scol is None:
         return set()
     out: set[str] = set()
-    for t, s in zip(df[tcol], df[scol]):
+    for t, s in zip(df[tcol], df[scol], strict=True):
         if str(s).strip().upper() == "ETF":
             tt = _norm_ticker(t)
             if tt:
@@ -340,6 +340,24 @@ def aggregate_weights(alloc: list[dict]) -> dict[str, float]:
     return {t: round(p, 4) for t, p in out.items()}
 
 
+def current_target_weights(df, ticker_col: str = "Ticker Yahoo Finance") -> dict[str, float]:
+    """Lit la dernière cible persistée dans ``Poids`` et la convertit en fractions."""
+    if df is None or getattr(df, "empty", True) or "Poids" not in df.columns:
+        return {}
+    weights: dict[str, float] = {}
+    for _, row in df.iterrows():
+        ticker = str(row.get(ticker_col, "") or "").strip()
+        if not ticker:
+            continue
+        try:
+            fraction = max(float(row.get("Poids", 0) or 0), 0.0) / 100.0
+        except (TypeError, ValueError):
+            fraction = 0.0
+        if fraction > 0:
+            weights[ticker] = weights.get(ticker, 0.0) + fraction
+    return weights
+
+
 def update_broker_file_weights(alloc: list[dict], path: str | None = None,
                                ticker_col: str = "Ticker Yahoo Finance",
                                weight_col: str = "Poids") -> int:
@@ -406,12 +424,30 @@ def merge_broker_columns(df_m, ticker_col: str = "Ticker Yahoo Finance"):
             if not col:
                 continue
             series = lookup[col]
-            out[broker] = [series.get(k, None) for k in keys]
+            # Excel représente ces colonnes par 1/0 avec des cellules vides,
+            # donc pandas les charge généralement en float64. Les normaliser
+            # ici évite ensuite les affectations booléennes interdites par
+            # pandas 3 (False dans une colonne float64) tout en conservant
+            # None = disponibilité inconnue.
+            out[broker] = [_cell_state(series.get(k, None)) for k in keys]
         # Colonne ISIN (dédup ETF par identité exacte), si présente dans ToutBroker.
         isin_col = next((c for c in tbl.columns if str(c).strip().upper() == "ISIN"), None)
         if isin_col is not None:
             series = lookup[isin_col]
             out["ISIN"] = [series.get(k, None) for k in keys]
+        # Métadonnées utilisées par la présélection diversifiée des ETF et par
+        # la pénalité de turnover. Elles restent informatives et ne sont jamais
+        # interprétées comme des colonnes broker par `_get_broker_col`.
+        for metadata_col in (
+            "Secteur 2", "Secteur 3", "Secteur 4", "Secteur 5", "Poids", "TTF"
+        ):
+            source = next(
+                (c for c in tbl.columns if str(c).strip().lower() == metadata_col.lower()),
+                None,
+            )
+            if source is not None:
+                series = lookup[source]
+                out[metadata_col] = [series.get(k, None) for k in keys]
         return out
     except Exception as e:
         print(f"[broker_availability] Fusion colonnes broker: {e}")

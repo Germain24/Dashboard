@@ -8,6 +8,29 @@ broker fausse) + Sharpe -inf -> 0 allocation persistée.
 
 import numpy as np
 import pandas as pd
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _relax_real_world_constraints_for_synthetic_universes(monkeypatch):
+    """Les petits univers de ce fichier ne peuvent pas respecter pays<=25 %."""
+    from app.services.finance.buffett.config import Config
+
+    monkeypatch.setattr(Config, "MIN_DEFENSIVE_PCT", 0.0)
+    monkeypatch.setattr(Config, "MAX_COUNTRY_PCT", 1.0)
+    monkeypatch.setattr(Config, "STARR_CARD_BETA", 0.0)
+    monkeypatch.setattr(Config, "STARR_DE_MAX_GENERATIONS", 50)
+    monkeypatch.setattr(Config, "STARR_DE_STAGNATION_GENERATIONS", 10)
+    monkeypatch.setattr(Config, "STARR_DE_MAX_SEEDS", 3)
+    monkeypatch.setattr(Config, "STARR_DE_POPSIZE", 32)
+    monkeypatch.setattr(Config, "STARR_DE_POSITIVE_INIT_BATCH_SIZE", 32)
+    monkeypatch.setattr(Config, "STARR_DE_POSITIVE_INIT_MAX_BATCHES", 10)
+    monkeypatch.setattr(Config, "STARR_DE_POLISH_MAXITER", 20)
+    # Les scénarios de stress ont leurs propres tests ; les désactiver ici garde
+    # les tests DE synthétiques rapides et leurs scénarios exactement contrôlés.
+    monkeypatch.setattr(Config, "STARR_STRESS_WEIGHT", 0.0)
+    # Le barème est testé séparément ; ces tests isolent les propriétés du DE.
+    monkeypatch.setattr(Config, "TRANSACTION_COSTS_ENABLED", False)
 
 
 def test_de_returns_feasible_finite_weights(monkeypatch):
@@ -307,3 +330,219 @@ def test_build_init_population_tiny_universe():
         pop = build_init_population(n, 16, rng, np.arange(n, dtype=float), 0)
         assert pop.shape[0] >= 5 and pop.shape[1] == n
         assert (pop.max(axis=0) > 0.0).all()
+
+
+def test_find_positive_random_seed_retries_until_score_is_positive():
+    from app.services.finance.buffett.optimizer import find_positive_random_seed
+
+    calls = {"n": 0}
+    progress: list[tuple[int, int, float | None]] = []
+
+    def objective(candidates):
+        calls["n"] += 1
+        energies = np.full(candidates.shape[1], 0.2)
+        if calls["n"] == 2:
+            energies[3] = -0.35
+        return energies
+
+    vector, score, batch = find_positive_random_seed(
+        8,
+        np.random.default_rng(12),
+        objective,
+        batch_size=6,
+        max_batches=4,
+        progress_cb=lambda current, maximum, best: progress.append((current, maximum, best)),
+    )
+
+    assert batch == 2
+    assert score == pytest.approx(0.35)
+    assert vector.shape == (8,)
+    assert progress[-1] == (2, 4, pytest.approx(0.35))
+
+
+def test_find_positive_random_seed_fails_before_starting_de():
+    from app.services.finance.buffett.optimizer import find_positive_random_seed
+
+    with pytest.raises(RuntimeError, match="Aucun portefeuille à score positif"):
+        find_positive_random_seed(
+            5,
+            np.random.default_rng(13),
+            lambda candidates: np.full(candidates.shape[1], 0.1),
+            batch_size=4,
+            max_batches=3,
+        )
+
+
+def test_positive_seed_error_has_a_specific_runtime_error_type():
+    from app.services.finance.buffett.optimizer import (
+        PositiveSeedNotFound,
+        find_positive_random_seed,
+    )
+
+    with pytest.raises(PositiveSeedNotFound):
+        find_positive_random_seed(
+            5,
+            np.random.default_rng(14),
+            lambda candidates: np.full(candidates.shape[1], 0.1),
+            batch_size=2,
+            max_batches=1,
+        )
+
+
+def test_de_retries_without_lookthrough_constraints(monkeypatch, capsys):
+    from app.services.finance.buffett import broker_availability, lookthrough
+    from app.services.finance.buffett.config import Config
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"PEA": 1000.0})
+    monkeypatch.setattr(Config, "MIN_DEFENSIVE_PCT", 0.30)
+    monkeypatch.setattr(Config, "MAX_COUNTRY_PCT", 0.25)
+    monkeypatch.setattr(Config, "CONSTRAINT_PENALTY", 100.0)
+    monkeypatch.setattr(Config, "STARR_DE_POSITIVE_INIT_BATCH_SIZE", 4)
+    monkeypatch.setattr(Config, "STARR_DE_POSITIVE_INIT_MAX_BATCHES", 1)
+    monkeypatch.setattr(Config, "STARR_DE_POPSIZE", 5)
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 1)
+    monkeypatch.setattr(Config, "STARR_DE_MAX_GENERATIONS", 1)
+    monkeypatch.setattr(Config, "STARR_DE_POLISH_MAXITER", 1)
+    monkeypatch.setattr(broker_availability, "load_etf_tickers", lambda: {"A", "B"})
+    monkeypatch.setattr(
+        lookthrough,
+        "load_lookthrough",
+        lambda: ({"A": 0.0, "B": 0.0}, {"A": {"France": 1.0}, "B": {"France": 1.0}}),
+    )
+
+    # Rendements positifs mais assez faibles pour que les penalites defensif/pays
+    # rendent tous les scores de la premiere passe negatifs.
+    values = np.tile([[0.0001, 0.0002], [0.0002, 0.0001]], (30, 1))
+    returns = pd.DataFrame(values, columns=["A", "B"])
+
+    weights, score = optimize_portfolio_de(
+        ["A", "B"], returns, [[True], [True]], ["PEA"], n_sim=40
+    )
+
+    output = capsys.readouterr().out
+    assert "nouvelle tentative sans minimum defensif ni plafond par pays" in output
+    assert np.isfinite(score) and score > 0
+    assert weights.sum() == pytest.approx(1.0)
+
+
+def _patch_fast_deterministic_de(monkeypatch, returns: pd.DataFrame):
+    from app.services.finance.buffett import broker_availability, starr
+    from app.services.finance.buffett.config import Config
+
+    scenarios = np.asarray(returns, dtype=float)
+    monkeypatch.setattr(
+        starr,
+        "simulate_scenarios",
+        lambda _returns, n_sim, seed: np.resize(scenarios, (n_sim, scenarios.shape[1])),
+    )
+    monkeypatch.setattr(broker_availability, "load_etf_tickers", lambda: set(returns.columns))
+    monkeypatch.setattr(Config, "STARR_DE_POPSIZE", 8)
+    monkeypatch.setattr(Config, "STARR_DE_POSITIVE_INIT_BATCH_SIZE", 8)
+    monkeypatch.setattr(Config, "STARR_DE_POSITIVE_INIT_MAX_BATCHES", 2)
+    monkeypatch.setattr(Config, "STARR_DE_MIN_GENERATIONS", 1)
+    monkeypatch.setattr(Config, "STARR_DE_MAX_GENERATIONS", 20)
+    monkeypatch.setattr(Config, "STARR_DE_STAGNATION_GENERATIONS", 2)
+    monkeypatch.setattr(Config, "STARR_DE_MAX_SEEDS", 1)
+    monkeypatch.setattr(Config, "STARR_DE_POLISH_MAXITER", 1)
+    return scenarios
+
+
+def test_final_score_uses_actual_broker_deployment(monkeypatch):
+    from app.services.finance.buffett.config import Config
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+    from app.services.finance.buffett.starr import neg_starr
+
+    returns = pd.DataFrame(
+        np.tile(
+            [[-0.002, 0.0002, -0.001, 0.0001], [0.003, 0.0003, 0.002, 0.0002]],
+            (30, 1),
+        ),
+        columns=["PEA_A", "T212_A", "PEA_B", "T212_B"],
+    )
+    scenarios = _patch_fast_deterministic_de(monkeypatch, returns)
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"PEA": 800.0, "Trading212": 200.0})
+    access = [[True, False], [False, True], [True, False], [False, True]]
+
+    weights, score, diagnostics = optimize_portfolio_de(
+        list(returns.columns),
+        returns,
+        access,
+        ["PEA", "Trading212"],
+        n_sim=60,
+        seed=17,
+        return_diagnostics=True,
+    )
+
+    actual_global = weights.sum(axis=1)
+    raw_mean = returns.to_numpy().mean(axis=0)
+    expected_mean = (
+        Config.STARR_MEAN_SIGNAL_WEIGHT * raw_mean
+        + (1.0 - Config.STARR_MEAN_SIGNAL_WEIGHT) * np.median(raw_mean)
+    )
+    expected = -neg_starr(
+        actual_global,
+        np.resize(scenarios, (60, 4)),
+        expected_mean,
+        Config.STARR_ALPHA,
+        Config.STARR_DOWNSIDE_WEIGHT,
+    )
+    assert score == pytest.approx(expected)
+    assert weights[:, 0].sum() == pytest.approx(0.8)
+    assert weights[:, 1].sum() == pytest.approx(0.2)
+    assert diagnostics["benchmarks"]["optimized"] == pytest.approx(score)
+
+
+def test_stagnation_is_bounded_and_run_is_reproducible(monkeypatch):
+    from app.services.finance.buffett.config import Config
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+
+    returns = pd.DataFrame(
+        np.tile([[0.0001, 0.0001], [0.0002, 0.0002]], (30, 1)),
+        columns=["A", "B"],
+    )
+    _patch_fast_deterministic_de(monkeypatch, returns)
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"Trading212": 1000.0})
+    monkeypatch.setattr(Config, "STARR_DE_TOL", -1.0)  # interdit la convergence scipy
+
+    args = (list(returns.columns), returns, [[True], [True]], ["Trading212"])
+    first_w, first_score, first_diag = optimize_portfolio_de(
+        *args, n_sim=60, seed=23, return_diagnostics=True
+    )
+    second_w, second_score, second_diag = optimize_portfolio_de(
+        *args, n_sim=60, seed=23, return_diagnostics=True
+    )
+
+    assert first_diag["termination"]["runs"][0]["reason"] == "stagnation"
+    assert first_diag["termination"]["runs"][0]["generations"] <= 3
+    assert np.array_equal(first_w, second_w)
+    assert first_score == second_score
+    assert first_diag == second_diag
+
+
+def test_turnover_diagnostics_use_previous_target_weights(monkeypatch):
+    from app.services.finance.buffett.config import Config
+    from app.services.finance.buffett.optimizer import optimize_portfolio_de
+
+    returns = pd.DataFrame(
+        np.tile([[0.0001, 0.0003], [0.0002, 0.0004]], (30, 1)),
+        columns=["A", "B"],
+    )
+    _patch_fast_deterministic_de(monkeypatch, returns)
+    monkeypatch.setattr(Config, "BUDGET_BROKERS", {"Trading212": 1000.0})
+
+    _, _, diagnostics = optimize_portfolio_de(
+        ["A", "B"],
+        returns,
+        [[True], [True]],
+        ["Trading212"],
+        n_sim=60,
+        seed=29,
+        current_weights={"A": 0.8, "B": 0.2},
+        return_diagnostics=True,
+    )
+
+    assert diagnostics["turnover"]["current_weights_available"] is True
+    assert diagnostics["turnover"]["penalty"] == Config.STARR_TURNOVER_PENALTY
+    assert diagnostics["turnover"]["rebalance_band"] == Config.STARR_REBALANCE_BAND_PCT
+    assert diagnostics["turnover"]["estimated_one_way"] >= 0.0

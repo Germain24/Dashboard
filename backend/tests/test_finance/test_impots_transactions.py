@@ -1,4 +1,4 @@
-"""Plus/moins-values réalisées FIFO depuis le grand livre des transactions."""
+"""Plus/moins-values realisees au PMP depuis le grand livre."""
 
 from __future__ import annotations
 
@@ -25,6 +25,9 @@ class FakeTx:
     prix_unitaire: float
     devise: str = "EUR"
     frais: float = 0.0
+    broker: str = "trading212"
+    montant_brut: float | None = None
+    retenue_source: float = 0.0
 
 
 def test_simple_buy_then_sell_same_year():
@@ -35,16 +38,14 @@ def test_simple_buy_then_sell_same_year():
     assert compute_realized_gains_fifo(txs) == {2025: 500.0}
 
 
-def test_fifo_order_across_two_lots():
-    # Achète 5@100 puis 5@120 ; vend 8 -> consomme les 5@100 (moins cher,
-    # achetés en premier) puis 3@120, PAS une moyenne pondérée.
+def test_pmp_across_two_lots():
+    # Achète 5@100 puis 5@120 : PMP = 110 pour toute vente partielle.
     txs = [
         FakeTx(dt.datetime(2025, 1, 1), "AAA", "achat", 5, 100.0),
         FakeTx(dt.datetime(2025, 2, 1), "AAA", "achat", 5, 120.0),
         FakeTx(dt.datetime(2025, 6, 1), "AAA", "vente", 8, 150.0),
     ]
-    # 5*(150-100) + 3*(150-120) = 250 + 90 = 340
-    assert compute_realized_gains_fifo(txs) == {2025: 340.0}
+    assert compute_realized_gains_fifo(txs) == {2025: 320.0}
 
 
 def test_gain_attributed_to_sale_year_not_purchase_year():
@@ -93,23 +94,24 @@ def test_multiple_tickers_summed_per_year():
     assert compute_realized_gains_fifo(txs) == {2025: 450.0}
 
 
-def test_gbx_pence_converted_via_gbp(monkeypatch):
-    import app.services.finance.impots_transactions as mod
+def test_pmp_is_calculated_independently_per_broker():
+    txs = [
+        FakeTx(dt.datetime(2025, 1, 1), "AAA", "achat", 1, 100.0, broker="broker-a"),
+        FakeTx(dt.datetime(2025, 1, 2), "AAA", "achat", 1, 200.0, broker="broker-b"),
+        FakeTx(dt.datetime(2025, 6, 1), "AAA", "vente", 1, 150.0, broker="broker-a"),
+    ]
+    assert compute_realized_gains_fifo(txs) == {2025: 50.0}
 
-    def fake_convert(amount, base, quote, **kw):
-        assert base == "GBP" and quote == "EUR"
-        return round(amount * 1.15, 4)  # taux GBP->EUR fictif
 
-    monkeypatch.setattr("app.services.finance.fx.convert", fake_convert)
+def test_non_eur_without_historical_rate_is_excluded():
     txs = [
         FakeTx(dt.datetime(2025, 1, 1), "BAG", "achat", 10, 60_000.0, devise="GBX"),  # 600 GBP
         FakeTx(dt.datetime(2025, 6, 1), "BAG", "vente", 10, 70_000.0, devise="GBX"),  # 700 GBP
     ]
-    out = compute_realized_gains_fifo(txs)
-    # (700-600) GBP * 10... non : prix_unitaire est DEJA par action en pence ;
-    # cout = 60000/100=600 GBP/action *1.15=690 EUR/action ; vente = 700/100=7 GBP...
-    # -> valeurs choisies pour un calcul lisible : 10 actions, cout unitaire 690 EUR, vente unitaire 805 EUR.
-    assert out == {2025: round(10 * (805.0 - 690.0), 2)}
+    assert compute_realized_gains_fifo(txs) == {}
+    sale = compute_realized_sales_fifo(txs)[0]
+    assert sale["calculable"] is False
+    assert sale["raison"] == "Conversion EUR historique manquante"
 
 
 @pytest.fixture(name="session")
@@ -134,8 +136,39 @@ def test_compute_tax_summary_no_carryforward(session):
     assert out["gain_brut"] == 500.0
     assert out["gain_net_imposable"] == 500.0
     assert out["report_moins_values_restant"] == 0.0
-    assert out["pfu"]["total"] == 150.0  # 500*30%
+    assert out["pfu"]["total"] == 157.0  # 500 * 31,4 %
     assert out["recommande"] == "bareme"  # revenu 0 -> barème (0% jusqu'à 11 600)
+
+
+def test_compute_tax_summary_includes_gross_dividends_and_withholding(session):
+    session.add(Transaction(
+        date=dt.datetime(2025, 3, 1), ticker="DIV", broker="trading212",
+        type="dividende", quantite=1, prix_unitaire=100.0, devise="EUR",
+        montant_brut=100.0, retenue_source=15.0,
+    ))
+    session.commit()
+
+    out = compute_tax_summary(session, annee=2025)
+    assert out["gain_net_imposable"] == 0.0
+    assert out["dividendes_bruts"] == 100.0
+    assert out["dividendes_nets"] == 85.0
+    assert out["retenue_source_etrangere"] == 15.0
+    assert out["pfu"]["total"] == 31.4
+
+
+def test_compute_tax_summary_keeps_interest_outside_dividend_allowance(session):
+    session.add(Transaction(
+        date=dt.datetime(2025, 3, 1), ticker="CASH", broker="trading212",
+        type="interet", quantite=1, prix_unitaire=100.0, devise="EUR",
+        montant_brut=100.0,
+    ))
+    session.commit()
+
+    out = compute_tax_summary(session, annee=2025, autres_revenus=30_000.0)
+    assert out["interets_bruts"] == 100.0
+    assert out["dividendes_bruts"] == 0.0
+    assert out["bareme"]["abattement_dividendes"] == 0.0
+    assert out["bareme"]["ir"] == 30.0
 
 
 def test_compute_tax_summary_carries_loss_from_prior_year(session):
@@ -163,6 +196,20 @@ def test_compute_tax_summary_pre_ledger_carryforward_input(session):
     assert out["report_moins_values_restant"] == 500.0  # 2000-1500
 
 
+def test_manual_carryforward_does_not_offset_past_ledger_gain(session):
+    _add_tx(session, dt.datetime(2024, 1, 1), "AAA", "achat", 10, 100.0)
+    _add_tx(session, dt.datetime(2024, 6, 1), "AAA", "vente", 10, 150.0)
+
+    out = compute_tax_summary(
+        session,
+        annee=2025,
+        moins_values_anterieures=200.0,
+        moins_values_anterieures_annee=2024,
+    )
+    assert out["historique_par_annee"][2024]["gain_net_imposable"] == 500.0
+    assert out["report_moins_values_restant"] == 200.0
+
+
 def test_compute_tax_summary_loss_expires_after_10_years(session):
     # Perte en 2014, gain 11 ans plus tard en 2025 (2025-2014=11 > 10) : le
     # report a expire, le gain de 2025 est donc entierement imposable.
@@ -174,7 +221,7 @@ def test_compute_tax_summary_loss_expires_after_10_years(session):
     out = compute_tax_summary(session, annee=2025, autres_revenus=0.0)
     assert out["gain_net_imposable"] == 700.0  # report expire, rien a imputer
     assert out["report_moins_values_restant"] == 0.0
-    assert out["pfu"]["total"] == 210.0  # 700*30%
+    assert out["pfu"]["total"] == 219.8  # 700 * 31,4 %
 
 
 def test_compute_tax_summary_loss_still_usable_at_exactly_10_years(session):
@@ -228,7 +275,7 @@ def test_short_sale_without_matching_lot_is_ignored():
 
 # ── Détail vente par vente (tableau cliquable) ────────────────────────────────
 
-def test_sales_fifo_returns_one_line_per_sale_with_avg_buy_price():
+def test_sales_pmp_returns_one_line_per_sale_with_avg_buy_price():
     txs = [
         FakeTx(dt.datetime(2025, 1, 1), "AAA", "achat", 5, 100.0),
         FakeTx(dt.datetime(2025, 2, 1), "AAA", "achat", 5, 120.0),
@@ -240,29 +287,18 @@ def test_sales_fifo_returns_one_line_per_sale_with_avg_buy_price():
     assert s["ticker"] == "AAA"
     assert s["quantite"] == 8.0
     assert s["prix_vente"] == 150.0
-    # moyenne pondérée des lots consommés : 5@100 + 3@120 -> (500+360)/8 = 107.5
-    assert s["prix_achat_moyen"] == 107.5
-    assert s["plus_value"] == 340.0  # matches test_fifo_order_across_two_lots
+    assert s["prix_achat_moyen"] == 110.0
+    assert s["plus_value"] == 320.0
 
 
-def test_sales_fifo_estimated_tax_zero_on_loss():
+def test_sales_detail_does_not_estimate_tax_line_by_line():
     txs = [
         FakeTx(dt.datetime(2025, 1, 1), "AAA", "achat", 10, 100.0),
         FakeTx(dt.datetime(2025, 6, 1), "AAA", "vente", 10, 60.0),
     ]
     sales = compute_realized_sales_fifo(txs)
     assert sales[0]["plus_value"] == -400.0
-    assert sales[0]["impot_estime_pfu"] == 0.0
-
-
-def test_sales_fifo_estimated_tax_pfu_30_pct_on_gain():
-    txs = [
-        FakeTx(dt.datetime(2025, 1, 1), "AAA", "achat", 10, 100.0),
-        FakeTx(dt.datetime(2025, 6, 1), "AAA", "vente", 10, 150.0),  # +500
-    ]
-    sales = compute_realized_sales_fifo(txs)
-    assert sales[0]["plus_value"] == 500.0
-    assert sales[0]["impot_estime_pfu"] == 150.0  # 500 * 0.30
+    assert "impot_estime_pfu" not in sales[0]
 
 
 def test_sales_fifo_two_separate_sales_produce_two_lines():
@@ -305,10 +341,10 @@ def test_sale_fee_only_applied_once_per_sale_not_per_lot():
         FakeTx(dt.datetime(2025, 2, 1), "AAA", "achat", 5, 120.0),
         FakeTx(dt.datetime(2025, 6, 1), "AAA", "vente", 8, 150.0, frais=8.0),
     ]
-    # 5*(150-100) + 3*(150-120) = 250 + 90 = 340, moins 8 de frais = 332.
+    # PMP 110 : 8*(150-110) - 8 de frais = 312.
     sales = compute_realized_sales_fifo(txs)
     assert len(sales) == 1
-    assert sales[0]["plus_value"] == 332.0
+    assert sales[0]["plus_value"] == 312.0
 
 
 def test_realized_sales_detail_filters_by_broker_and_year_most_recent_first(session):

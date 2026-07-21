@@ -31,13 +31,15 @@ Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data
     (choix user) — tous les specs/plans regroupés dans `orchestration/` classés par
     avancement (`a-faire/`, `en-cours/`, `finis/`), convention dans
     `orchestration/README.md` ; `docs/` supprimé. ← FINIS ✓ (2026-07-02)
-    Résidu : `README.md`/`ARCHITECTURE.md`/`DESIGN.md`/`PRODUCT.md` restent à la
-    racine ; ajouter des liens de renvoi vers `orchestration/README.md`.
+    Résidu réglé le 2026-07-16 : `README.md`/`ARCHITECTURE.md`/`DESIGN.md`/`PRODUCT.md`
+    pointent désormais vers `orchestration/README.md`.
 3.2 [S](\*) Nettoyage racine : `pytest_out.txt`, `pytest_full.txt` → supprimés et
-    gitignorés ; `entities.json`, `mempalace.yaml` → `orchestration/` si rien ne les
-    référence à la racine (à vérifier avant déplacement).
+    gitignorés ; `entities.json`, `mempalace.yaml` → `orchestration/` (aucune
+    référence ailleurs, vérifié avant déplacement). ← FINIS ✓ (2026-07-16)
 3.3 [S](\*) Clarifier `src/mission_control/` (package Python quasi vide à la racine) :
-    le documenter ou le retirer s'il n'est plus consommé.
+    scaffold `uv init` mort (hello-world, aucun consommateur dans backend/frontend,
+    pyproject/uv.lock racine séparés du vrai `backend/pyproject.toml`) → retiré
+    entièrement (`src/`, `pyproject.toml`, `uv.lock`). ← FINIS ✓ (2026-07-16)
 3.4 [L](\*\*) *(P3, risqué)* Unifier le frontend sous `frontend/src/` (`components/` et
     `lib/` vivent aujourd'hui hors de `src/`). Gros renommage → à faire seul dans un
     commit dédié, avec mise à jour des tsconfig paths, puis sync graphify par
@@ -53,7 +55,7 @@ Constat : la séparation demandée existe déjà (`frontend/`, `backend/`, `data
 | Phase | Contenu | Statut |
 |-------|---------|--------|
 | **P0** | §1 transitions & micro-interactions (1.1 → 1.8) | ✅ Terminé — `finis/2026-07-04-improvements-p0-p1-navigation-design-perf.md` |
-| **P1** | §2 conformité Verre Clair + backgrounds, §4 perfs, 3.1–3.3 rangement docs | ✅ §2+§4 terminés (même fichier finis/) ; 3.1 fait, 3.2/3.3 restants ci-dessus |
+| **P1** | §2 conformité Verre Clair + backgrounds, §4 perfs, 3.1–3.3 rangement docs | ✅ Terminé — §2+§4 (`finis/2026-07-04-...`), 3.1–3.3 (ce fichier, 2026-07-16) |
 | **P2** | §5 enrichissements modules, §6 qualité | Pas commencé — `a-faire/ameliorations-p2-modules-qualite.md` |
 | **P3** | 3.4 unification `frontend/src/` | Pas commencé, risqué et invasif : seul, en dernier, commit dédié |
 

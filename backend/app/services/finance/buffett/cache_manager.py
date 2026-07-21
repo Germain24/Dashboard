@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .config import Config
+from .scoring_pure import SCORING_MODEL_VERSION
 
 SUFFIX_MAP: dict[str, str] = {
     ".PA": "France", ".DE": "Germany", ".F": "Germany", ".VI": "Austria",
@@ -142,6 +143,7 @@ class CacheManager:
                 "score": score,
                 "metrics": metrics,
                 "status": "success",
+                "score_model_version": SCORING_MODEL_VERSION,
             }
 
     def get_cached_result(self, ticker: str) -> tuple[float, dict] | None:
@@ -171,6 +173,10 @@ class CacheManager:
                 # purge_misclassified_etf_cache, appele a chaque run.
                 if score >= 200:
                     return score, metrics
+                # Une action doit être recalculée dès que les formules MOAT
+                # changent. Les anciennes entrées sans version sont invalides.
+                if info.get("score_model_version") != SCORING_MODEL_VERSION:
+                    return None
                 last_update = datetime.fromisoformat(info["last_update"])
                 age_days = (datetime.now() - last_update).days
                 if age_days >= 60:

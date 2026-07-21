@@ -6,11 +6,12 @@
  * Le script anti-flash du layout applique le choix avant le paint.
  */
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Rows3, Rows2 } from "lucide-react";
 
 type Density = "comfortable" | "compact";
 const STORAGE_KEY = "mc-density";
+const listeners = new Set<() => void>();
 
 function apply(d: Density) {
   const root = document.documentElement;
@@ -18,24 +19,37 @@ function apply(d: Density) {
   else root.removeAttribute("data-density");
 }
 
-export function DensityToggle() {
-  const [density, setDensity] = useState<Density>("comfortable");
-  const [mounted, setMounted] = useState(false);
+function getDensity(): Density {
+  return localStorage.getItem(STORAGE_KEY) === "compact" ? "compact" : "comfortable";
+}
 
-  useEffect(() => {
-    const stored = (localStorage.getItem(STORAGE_KEY) as Density | null) ?? "comfortable";
-    setDensity(stored);
-    setMounted(true);
-  }, []);
+function subscribe(listener: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY) listener();
+  };
+  listeners.add(listener);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function persistDensity(density: Density) {
+  localStorage.setItem(STORAGE_KEY, density);
+  apply(density);
+  listeners.forEach((listener) => listener());
+}
+
+export function DensityToggle() {
+  const density = useSyncExternalStore<Density>(subscribe, getDensity, () => "comfortable");
 
   function toggle() {
     const next: Density = density === "compact" ? "comfortable" : "compact";
-    setDensity(next);
-    localStorage.setItem(STORAGE_KEY, next);
-    apply(next);
+    persistDensity(next);
   }
 
-  const compact = mounted && density === "compact";
+  const compact = density === "compact";
   const Icon = compact ? Rows2 : Rows3;
   const label = compact ? "Densité compacte" : "Densité confort";
 
@@ -45,9 +59,10 @@ export function DensityToggle() {
       onClick={toggle}
       title={label}
       aria-label={label}
-      className="flex items-center justify-center h-8 w-8 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+      data-ui-control
+      className="flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
     >
-      <Icon size={16} />
+      <Icon size={16} aria-hidden="true" />
     </button>
   );
 }

@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import threading
 
-from app.services.finance import prices
+from app.services.finance import portfolio_state, prices
 
 
 def test_cache_hits_same_day_fetches_once():
@@ -155,3 +156,56 @@ def test_serves_stale_price_while_analysis_running(monkeypatch):
                           today=dt.date(2026, 6, 4))  # lendemain : cache "perime"
     assert calls == []
     assert r["AAPL"] == 150.0   # dernier cours connu servi tel quel
+
+
+def test_stale_ok_refreshes_default_fetcher_in_background(tmp_path, monkeypatch):
+    monkeypatch.setattr(prices, "_PRICE_CACHE_FILE", tmp_path / "prices.json")
+    prices.clear_cache()
+    started = threading.Event()
+    release = threading.Event()
+    stored = threading.Event()
+    invalidated = threading.Event()
+
+    def slow_fetch(tickers):
+        started.set()
+        assert release.wait(2)
+        return {"AAPL": 175.0}
+
+    original_store = prices._store_fetched
+
+    def store_and_signal(*args, **kwargs):
+        result = original_store(*args, **kwargs)
+        stored.set()
+        return result
+
+    monkeypatch.setattr(prices, "_default_fetch", slow_fetch)
+    monkeypatch.setattr(prices, "_store_fetched", store_and_signal)
+    monkeypatch.setattr(portfolio_state, "invalidate_state", invalidated.set)
+    day = dt.date(2026, 7, 15)
+
+    result = prices.get_prices(["AAPL"], today=day, stale_ok=True)
+    assert result == {"AAPL": 0.0}
+    assert started.wait(1)
+
+    release.set()
+    assert stored.wait(2)
+    assert invalidated.wait(2)
+    assert prices.get_prices(["AAPL"], today=day) == {"AAPL": 175.0}
+    prices.clear_cache()
+
+
+def test_default_fetcher_prices_survive_process_cache_reset(tmp_path, monkeypatch):
+    monkeypatch.setattr(prices, "_PRICE_CACHE_FILE", tmp_path / "prices.json")
+    monkeypatch.setattr(prices, "_default_fetch", lambda tickers: {"MSFT": 420.0})
+    prices.clear_cache()
+    day = dt.date(2026, 7, 15)
+
+    assert prices.get_prices(["MSFT"], today=day) == {"MSFT": 420.0}
+    prices.clear_cache()
+
+    def must_not_fetch(_tickers):
+        raise AssertionError("le cache disque du jour doit suffire")
+
+    monkeypatch.setattr(prices, "_default_fetch", must_not_fetch)
+    assert prices.get_prices(["MSFT"], today=day) == {"MSFT": 420.0}
+    prices.clear_cache()

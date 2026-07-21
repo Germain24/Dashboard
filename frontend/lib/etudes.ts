@@ -255,3 +255,74 @@ export async function reviewRevisionCard(id: number, quality: number): Promise<R
 export async function deleteRevisionCard(id: number): Promise<void> {
   await fetch(`${BASE}/revision/cards/${id}`, { method: "DELETE" });
 }
+
+// ── Suivi de compétences (skill tree, #352) ──────────────────────────
+
+export interface Preuve {
+  date: string;
+  texte: string;
+}
+
+export interface Skill {
+  id: number;
+  nom: string;
+  categorie: string;
+  niveau: number;
+  preuves: Preuve[];
+  cree_le: string;
+}
+
+export interface SkillsByCategory {
+  [categorie: string]: { niveau_moyen: number; nb_competences: number; competences: string[] };
+}
+
+export interface SkillsStats {
+  par_categorie: SkillsByCategory;
+  global: { nb_competences: number; niveau_moyen: number; nb_preuves_total: number };
+}
+
+export async function fetchSkills(): Promise<Skill[]> {
+  const r = await fetch(`${BASE}/skills`);
+  if (!r.ok) throw new Error("Erreur chargement compétences");
+  return r.json();
+}
+
+export async function fetchSkillsStats(): Promise<SkillsStats> {
+  const r = await fetch(`${BASE}/skills/stats`);
+  if (!r.ok) throw new Error("Erreur chargement statistiques de compétences");
+  return r.json();
+}
+
+export async function createSkill(data: { nom: string; categorie: string; niveau?: number }): Promise<Skill> {
+  const r = await fetch(`${BASE}/skills`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error("Erreur création compétence");
+  return r.json();
+}
+
+export async function patchSkill(id: number, data: Partial<Pick<Skill, "nom" | "categorie" | "niveau">>): Promise<Skill> {
+  const r = await fetch(`${BASE}/skills/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error("Erreur mise à jour compétence");
+  return r.json();
+}
+
+export async function deleteSkill(id: number): Promise<void> {
+  await fetch(`${BASE}/skills/${id}`, { method: "DELETE" });
+}
+
+export async function addSkillPreuve(id: number, texte: string, date?: string): Promise<Skill> {
+  const r = await fetch(`${BASE}/skills/${id}/preuves`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ texte, date }),
+  });
+  if (!r.ok) throw new Error("Erreur ajout de preuve");
+  return r.json();
+}

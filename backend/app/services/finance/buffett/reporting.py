@@ -3,12 +3,59 @@
 from __future__ import annotations
 
 import datetime as dt
-from app.core.timeutil import utcnow
+from collections.abc import Iterable
 from typing import Any
 
 from sqlmodel import Session, delete, select
 
-from app.models.finance import BuffettRun, BuffettRunResult
+from app.core.timeutil import utcnow
+from app.models.finance import BuffettRun, BuffettRunResult, BuffettRunStatus
+
+
+def get_latest_results_by_ticker(
+    session: Session, tickers: Iterable[str]
+) -> dict[str, BuffettRunResult]:
+    """Retourne le dernier résultat d'un run terminé pour chaque ticker.
+
+    Les runs interrompus ou en cours sont ignorés. Les lignes historiques sans
+    ``run_id`` restent disponibles en repli pour les tickers qui n'ont encore
+    aucun résultat rattaché à un run terminé.
+    """
+    normalized = sorted({ticker.upper().strip() for ticker in tickers if ticker.strip()})
+    if not normalized:
+        return {}
+
+    completed_rows = session.exec(
+        select(BuffettRunResult)
+        .join(BuffettRun, BuffettRun.id == BuffettRunResult.run_id)
+        .where(BuffettRunResult.ticker.in_(normalized))  # type: ignore[attr-defined]
+        .where(BuffettRun.statut == BuffettRunStatus.TERMINE.value)
+        .order_by(BuffettRun.run_date.desc(), BuffettRun.id.desc())
+    ).all()
+    latest: dict[str, BuffettRunResult] = {}
+    for row in completed_rows:
+        latest.setdefault(row.ticker, row)
+
+    missing = [ticker for ticker in normalized if ticker not in latest]
+    if missing:
+        legacy_rows = session.exec(
+            select(BuffettRunResult)
+            .where(BuffettRunResult.run_id.is_(None))  # type: ignore[union-attr]
+            .where(BuffettRunResult.ticker.in_(missing))  # type: ignore[attr-defined]
+            .order_by(BuffettRunResult.updated_at.desc(), BuffettRunResult.id.desc())
+        ).all()
+        for row in legacy_rows:
+            latest.setdefault(row.ticker, row)
+
+    return latest
+
+
+def get_latest_result_for_ticker(
+    session: Session, ticker: str
+) -> BuffettRunResult | None:
+    """Version unitaire de :func:`get_latest_results_by_ticker`."""
+    normalized = ticker.upper().strip()
+    return get_latest_results_by_ticker(session, [normalized]).get(normalized)
 
 
 def delete_run(session: Session, run_id: int) -> bool:
@@ -31,10 +78,10 @@ def delete_run(session: Session, run_id: int) -> bool:
 
 
 def create_run(session: Session, n_total: int, params: dict) -> BuffettRun:
-    """Crée un run en statut 'running'."""
+    """Crée un run en statut actif."""
     run = BuffettRun(
         run_date=dt.date.today(),
-        statut="en_cours",
+        statut=BuffettRunStatus.EN_COURS.value,
         n_tickers_total=n_total,
         n_tickers_analyzed=0,
         progress_pct=0.0,
@@ -48,16 +95,50 @@ def create_run(session: Session, n_total: int, params: dict) -> BuffettRun:
 
 
 def update_run_progress(session: Session, run_id: int, n_done: int, n_total: int) -> None:
-    """Met à jour la progression d'un run en cours."""
+    """Met à jour la progression et le total réellement analysable d'un run.
+
+    Le run est créé avant le filtrage des titres indisponibles chez tous les
+    brokers. ``n_total`` est donc la source de vérité après ce filtrage.
+    """
     run = session.get(BuffettRun, run_id)
     if run:
+        run.n_tickers_total = n_total
         run.n_tickers_analyzed = n_done
         run.progress_pct = round(n_done / n_total * 100, 1) if n_total else 0
         run.updated_at = utcnow()
-        if run.statut != "termine":
-            run.statut = "en_cours"  # un run qui progresse est bien actif (annule un "interrompu")
+        if run.statut != BuffettRunStatus.TERMINE.value:
+            run.statut = BuffettRunStatus.EN_COURS.value  # un run qui progresse est bien actif
         session.add(run)
         session.commit()
+
+
+def update_run_optimization_diagnostics(
+    session: Session, run_id: int, diagnostics: dict[str, Any]
+) -> None:
+    """Persiste les paramètres reproductibles et benchmarks de l'optimisation."""
+    run = session.get(BuffettRun, run_id)
+    if run is None:
+        return
+    params = dict(run.params_json or {})
+    params["optimization"] = diagnostics
+    run.params_json = params
+    benchmarks = diagnostics.get("benchmarks") or {}
+    optimized = benchmarks.get("optimized")
+    equal_weight = benchmarks.get("equal_weight")
+    best_ticker = benchmarks.get("best_single_ticker")
+    best_single = benchmarks.get("best_single")
+    if optimized is not None and equal_weight is not None:
+        run.resume = (
+            f"STARR réel {float(optimized):.4f} · équipondéré {float(equal_weight):.4f}"
+            + (
+                f" · meilleur candidat simple {best_ticker} {float(best_single):.4f}"
+                if best_ticker and best_single is not None
+                else ""
+            )
+        )
+    run.updated_at = utcnow()
+    session.add(run)
+    session.commit()
 
 
 def finalize_run(
@@ -68,7 +149,7 @@ def finalize_run(
     if run:
         run.statut = statut
         run.duree_sec = duree_sec
-        run.progress_pct = 100.0 if statut == "termine" else run.progress_pct
+        run.progress_pct = 100.0 if statut == BuffettRunStatus.TERMINE.value else run.progress_pct
         run.erreur = erreur
         run.updated_at = utcnow()
         session.add(run)
@@ -90,7 +171,11 @@ def upsert_result(session: Session, run_id: int, ticker: str, score: float, metr
     """
     from sqlalchemy.exc import IntegrityError
 
-    existing = session.exec(select(BuffettRunResult).where(BuffettRunResult.ticker == ticker)).first()
+    existing = session.exec(
+        select(BuffettRunResult)
+        .where(BuffettRunResult.run_id == run_id)
+        .where(BuffettRunResult.ticker == ticker)
+    ).first()
     growth = metrics.get("CAGR")
     peg = metrics.get("PEG")
     values: dict[str, Any] = {
@@ -153,7 +238,9 @@ def update_allocations(
 
     for ticker, items in by_ticker.items():
         row = session.exec(
-            select(BuffettRunResult).where(BuffettRunResult.ticker == ticker)
+            select(BuffettRunResult)
+            .where(BuffettRunResult.run_id == run_id)
+            .where(BuffettRunResult.ticker == ticker)
         ).first()
         if not row:
             continue

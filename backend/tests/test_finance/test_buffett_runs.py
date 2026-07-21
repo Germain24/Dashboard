@@ -7,8 +7,16 @@ import datetime as dt
 from sqlalchemy import event
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from app.models.finance import BuffettRun, BuffettRunResult
-from app.services.finance.buffett.reporting import delete_run
+from app.models.finance import BuffettRun, BuffettRunResult, BuffettRunStatus
+from app.services.finance.buffett.reporting import (
+    delete_run,
+    get_latest_result_for_ticker,
+    get_latest_results_by_ticker,
+    update_allocations,
+    update_run_optimization_diagnostics,
+    update_run_progress,
+    upsert_result,
+)
 
 
 def _fk_engine():
@@ -22,6 +30,67 @@ def _fk_engine():
 
     SQLModel.metadata.create_all(engine)
     return engine
+
+
+def test_buffett_run_status_values_are_stable_contract():
+    assert BuffettRunStatus.EN_COURS.value == "en_cours"
+    assert BuffettRunStatus.TERMINE.value == "termine"
+    assert BuffettRunStatus.INTERROMPU.value == "interrompu"
+    assert BuffettRunStatus.ERREUR.value == "erreur"
+    assert BuffettRun(run_date=dt.date.today()).statut == "en_cours"
+
+
+def test_progress_replaces_raw_total_with_filtered_broker_total():
+    engine = _fk_engine()
+    with Session(engine) as s:
+        run = BuffettRun(
+            run_date=dt.date.today(),
+            n_tickers_total=10_490,
+            n_tickers_analyzed=0,
+            progress_pct=0.0,
+        )
+        s.add(run)
+        s.commit()
+        s.refresh(run)
+
+        update_run_progress(s, run.id, n_done=10_454, n_total=10_454)
+
+        refreshed = s.get(BuffettRun, run.id)
+        assert refreshed is not None
+        assert refreshed.n_tickers_total == 10_454
+        assert refreshed.n_tickers_analyzed == 10_454
+        assert refreshed.progress_pct == 100.0
+
+
+def test_optimization_diagnostics_are_persisted_with_readable_benchmarks():
+    engine = _fk_engine()
+    with Session(engine) as s:
+        run = BuffettRun(
+            run_date=dt.date.today(),
+            params_json={"csv_path": "tickers.csv"},
+        )
+        s.add(run)
+        s.commit()
+        s.refresh(run)
+        diagnostics = {
+            "seed": 42,
+            "benchmarks": {
+                "optimized": 1.23456,
+                "equal_weight": 0.98765,
+                "best_single_ticker": "CW8.PA",
+                "best_single": 1.11111,
+            },
+        }
+
+        update_run_optimization_diagnostics(s, run.id, diagnostics)
+
+        refreshed = s.get(BuffettRun, run.id)
+        assert refreshed is not None
+        assert refreshed.params_json["csv_path"] == "tickers.csv"
+        assert refreshed.params_json["optimization"] == diagnostics
+        assert refreshed.resume == (
+            "STARR réel 1.2346 · équipondéré 0.9877 · meilleur candidat simple CW8.PA 1.1111"
+        )
 
 
 def test_delete_run_removes_run_and_its_results():
@@ -42,6 +111,113 @@ def test_delete_run_removes_run_and_its_results():
 def test_delete_run_returns_false_when_absent():
     with Session(_fk_engine()) as s:
         assert delete_run(s, 9999) is False
+
+
+def test_same_ticker_is_persisted_independently_for_each_run():
+    engine = _fk_engine()
+    with Session(engine) as s:
+        run_1 = BuffettRun(run_date=dt.date(2026, 7, 1), statut="termine")
+        run_2 = BuffettRun(run_date=dt.date(2026, 7, 2), statut="termine")
+        s.add(run_1)
+        s.add(run_2)
+        s.commit()
+        s.refresh(run_1)
+        s.refresh(run_2)
+
+        upsert_result(s, run_1.id, "AAPL", 80.0, {"Nom": "Apple run 1"})
+        upsert_result(s, run_2.id, "AAPL", 91.0, {"Nom": "Apple run 2"})
+
+        rows = list(
+            s.exec(
+                select(BuffettRunResult)
+                .where(BuffettRunResult.ticker == "AAPL")
+                .order_by(BuffettRunResult.run_id)
+            ).all()
+        )
+        assert [(row.run_id, row.chance_moat) for row in rows] == [
+            (run_1.id, 80.0),
+            (run_2.id, 91.0),
+        ]
+
+
+def test_latest_result_uses_newest_completed_run_and_ignores_interrupted_run():
+    engine = _fk_engine()
+    with Session(engine) as s:
+        older = BuffettRun(run_date=dt.date(2026, 7, 1), statut="termine")
+        latest = BuffettRun(run_date=dt.date(2026, 7, 2), statut="termine")
+        interrupted = BuffettRun(run_date=dt.date(2026, 7, 3), statut="interrompu")
+        s.add(older)
+        s.add(latest)
+        s.add(interrupted)
+        s.commit()
+        s.refresh(older)
+        s.refresh(latest)
+        s.refresh(interrupted)
+
+        s.add(BuffettRunResult(run_id=older.id, ticker="AAPL", chance_moat=70.0))
+        s.add(BuffettRunResult(run_id=latest.id, ticker="AAPL", chance_moat=90.0))
+        s.add(BuffettRunResult(run_id=interrupted.id, ticker="AAPL", chance_moat=10.0))
+        s.commit()
+
+        result = get_latest_result_for_ticker(s, "aapl")
+        assert result is not None
+        assert result.run_id == latest.id
+        assert result.chance_moat == 90.0
+
+
+def test_latest_results_fall_back_to_legacy_rows_per_ticker():
+    engine = _fk_engine()
+    with Session(engine) as s:
+        run = BuffettRun(run_date=dt.date(2026, 7, 2), statut="termine")
+        s.add(run)
+        s.commit()
+        s.refresh(run)
+        s.add(BuffettRunResult(run_id=run.id, ticker="AAPL", chance_moat=90.0))
+        s.add(BuffettRunResult(ticker="MSFT", chance_moat=80.0))
+        s.commit()
+
+        results = get_latest_results_by_ticker(s, ["aapl", "msft", "absent"])
+        assert set(results) == {"AAPL", "MSFT"}
+        assert results["AAPL"].run_id == run.id
+        assert results["MSFT"].run_id is None
+
+
+def test_allocation_update_is_scoped_to_requested_run():
+    engine = _fk_engine()
+    with Session(engine) as s:
+        run_1 = BuffettRun(run_date=dt.date(2026, 7, 1), statut="termine")
+        run_2 = BuffettRun(run_date=dt.date(2026, 7, 2), statut="termine")
+        s.add(run_1)
+        s.add(run_2)
+        s.commit()
+        s.refresh(run_1)
+        s.refresh(run_2)
+        s.add(BuffettRunResult(run_id=run_1.id, ticker="AAPL"))
+        s.add(BuffettRunResult(run_id=run_2.id, ticker="AAPL"))
+        s.commit()
+
+        update_allocations(
+            s,
+            run_2.id,
+            [{
+                "Ticker": "AAPL",
+                "Broker": "Trading212",
+                "shares": None,
+                "eur": 500.0,
+                "prix": 200.0,
+                "type": "pie",
+                "Poids total (%)": 12.5,
+            }],
+        )
+
+        first = s.exec(
+            select(BuffettRunResult).where(BuffettRunResult.run_id == run_1.id)
+        ).one()
+        second = s.exec(
+            select(BuffettRunResult).where(BuffettRunResult.run_id == run_2.id)
+        ).one()
+        assert first.allocation_pct is None
+        assert second.allocation_pct == 12.5
 
 
 def test_delete_run_bulk_removes_many_results():

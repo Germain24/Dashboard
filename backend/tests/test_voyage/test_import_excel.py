@@ -38,10 +38,35 @@ def test_parse_voyage_xlsx(tmp_path):
     assert rows[0] == {
         "nom": "Table Mountain", "ville": "Le Cap", "pays": "Afrique du Sud", "visite": False,
         "aeroport_iata": "CPT", "jours_min": 2, "jours_max": 4, "cout_jour_estime": 80.0,
+        "ordre": 1, "progression": "montagne", "priorite": 3,
+        "cout_activite": None, "cout_transport_local": None, "mois_disponibles": None,
+        "cout_hebergement_jour": None, "cout_nourriture_jour": None,
+        "statut": "possible", "raison_indisponible": None,
     }
     assert rows[1]["aeroport_iata"] is None
     assert rows[1]["jours_min"] is None
     assert rows[2]["visite"] is True
+
+
+def test_parse_extended_planning_columns(tmp_path):
+    p = tmp_path / "Voyage.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append([
+        "Lieux", "Ville (ou ville la plus proche)", "Pays", "Visité", "Ordre",
+        "Aéroport (IATA)", "Jours min", "Jours max", "Coût/jour estimé",
+        "Progression", "Priorité", "Coût activité", "Transport local", "Mois disponibles",
+    ])
+    ws.append(["Trail", "Chamonix", "France", False, 2, "GVA", 2, 3, 120,
+               "course", 5, 180, 75, "06-09"])
+    wb.save(p)
+
+    row = parse_voyage_xlsx(p)[0]
+    assert row["progression"] == "course"
+    assert row["priorite"] == 5
+    assert row["cout_activite"] == 180.0
+    assert row["cout_transport_local"] == 75.0
+    assert row["mois_disponibles"] == "06-09"
 
 
 def test_sync_voyage_wipes_and_refills_and_flags_incomplete(tmp_path, session):

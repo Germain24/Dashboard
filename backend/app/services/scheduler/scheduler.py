@@ -26,6 +26,7 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
         portfolio_snapshot,
         snapshot,
         weather_refresh,
+        weekly_trash,
     )
     from app.services.scheduler.runner import run_job
     scheduler.add_job(run_job, "cron", hour=22, minute=0,
@@ -43,6 +44,11 @@ def register_all_jobs(scheduler: AsyncIOScheduler) -> None:
     scheduler.add_job(run_job, "cron", minute="*/15",
                       args=["agenda_reminders", agenda_reminders.run],
                       id="agenda_reminders", replace_existing=True, misfire_grace_time=600)
+    # Le dimanche matin, après la mise à jour du calendrier, place le rappel
+    # dans un vrai créneau libre. Le job Agenda standard notifiera 30 min avant.
+    scheduler.add_job(run_job, "cron", day_of_week="sun", hour=6, minute=5,
+                      args=["weekly_trash", weekly_trash.run],
+                      id="weekly_trash", replace_existing=True, misfire_grace_time=3600)
     scheduler.add_job(run_job, "cron", hour=20, minute=0,
                       args=["habit_reminders", habit_reminders.run],
                       id="habit_reminders", replace_existing=True, misfire_grace_time=3600)

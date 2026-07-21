@@ -32,3 +32,21 @@ def test_breakdown_subscore_clamped():
     # gpm très élevé -> sous_score plafonné à 1.0
     out = {c["cle"]: c for c in score_breakdown({"gpm": 2.0})}
     assert out["gpm"]["sous_score"] == 1.0
+
+
+def test_max_criterion_has_full_score_at_announced_threshold():
+    out = {c["cle"]: c for c in score_breakdown({"debt_eq": 0.80})}
+    assert out["debt_eq"]["ok"] is True
+    assert out["debt_eq"]["sous_score"] == 1.0
+
+
+def test_reit_breakdown_omits_gaap_ratios_that_are_not_comparable():
+    out = score_breakdown(
+        {"roe": 0.30, "capex": 0.10, "debt_eq": 0.50},
+        secteur="Real Estate",
+        industrie="REIT - Retail",
+    )
+    keys = {item["cle"] for item in out}
+    assert "roe" not in keys
+    assert "capex" not in keys
+    assert "debt_eq" in keys

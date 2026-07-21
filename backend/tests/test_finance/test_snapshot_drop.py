@@ -32,7 +32,9 @@ def test_invalid_prev():
 
 @pytest.fixture(name="session")
 def session_fixture():
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
     SQLModel.metadata.create_all(engine)
     with Session(engine) as s:
         yield s
@@ -47,15 +49,38 @@ def test_take_snapshot_now_from_ledger_positions(session):
     prices.clear_cache()
     prices.get_prices(["AAPL"], fetcher=lambda t: {"AAPL": 150.0})
 
-    session.add(Transaction(
-        ticker="AAPL", broker="t212", type="achat",
-        quantite=10, prix_unitaire=100.0, frais=0.0,
-        date=dt.datetime(2026, 1, 1),
-    ))
+    session.add(
+        Transaction(
+            ticker="AAPL",
+            broker="t212",
+            type="achat",
+            quantite=10,
+            prix_unitaire=100.0,
+            frais=0.0,
+            date=dt.datetime(2026, 1, 1),
+        )
+    )
     session.commit()
 
     snap = take_snapshot_now(session)
     assert snap is not None
-    assert snap.valeur == 1500.0    # 10 * 150
+    assert snap.valeur == 1500.0  # 10 * 150
     assert snap.investit == 1000.0  # 10 * 100 (pmu/acb)
     assert snap.date == dt.date.today()
+
+
+def test_take_snapshot_now_rejects_position_without_price(session, monkeypatch):
+    monkeypatch.setattr(
+        "app.services.finance.portfolio.get_positions",
+        lambda _session: [
+            {
+                "ticker": "CW8.PA",
+                "quantite": 10.0,
+                "prix_actuel": 0.0,
+                "valeur_actuelle": 0.0,
+                "pmu": 500.0,
+            }
+        ],
+    )
+
+    assert take_snapshot_now(session) is None

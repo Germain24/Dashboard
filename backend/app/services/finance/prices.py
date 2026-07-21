@@ -8,9 +8,11 @@ récupération échoue, on conserve le dernier cours connu (utile hors-ligne).
 from __future__ import annotations
 
 import datetime as dt
+import json
 import threading
 import time
 from collections.abc import Callable, Iterable
+from pathlib import Path
 
 # ticker -> (date du cours, prix)
 _cache: dict[str, tuple[dt.date, float]] = {}
@@ -22,6 +24,9 @@ _cache: dict[str, tuple[dt.date, float]] = {}
 _failed: dict[str, float] = {}
 NEG_RETRY_S = 3600.0  # re-tenter un ticker en echec au plus 1x/heure
 _lock = threading.Lock()
+_refreshing: set[str] = set()
+_disk_loaded = False
+_PRICE_CACHE_FILE = Path(__file__).resolve().parents[4] / "data" / "cache" / "latest_prices.json"
 
 
 def _now() -> float:  # injectable dans les tests
@@ -60,19 +65,119 @@ def _default_fetch(tickers: list[str]) -> dict[str, float]:
     return out
 
 
+def load_disk_cache() -> None:
+    """Recharge les derniers cours connus une seule fois par process."""
+    global _disk_loaded
+    with _lock:
+        if _disk_loaded:
+            return
+        _disk_loaded = True
+    try:
+        raw = json.loads(_PRICE_CACHE_FILE.read_text(encoding="utf-8"))
+        loaded = {
+            ticker: (dt.date.fromisoformat(day), float(price))
+            for ticker, (day, price) in raw.items()
+            if float(price) > 0
+        }
+        with _lock:
+            for ticker, entry in loaded.items():
+                _cache.setdefault(ticker, entry)
+    except Exception:
+        pass
+
+
+def save_disk_cache() -> None:
+    """Persiste les cours réels pour survivre aux redémarrages du backend."""
+    try:
+        with _lock:
+            data = {
+                ticker: (day.isoformat(), price)
+                for ticker, (day, price) in _cache.items()
+                if price > 0
+            }
+        _PRICE_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _PRICE_CACHE_FILE.write_text(
+            json.dumps(data, indent=1, sort_keys=True), encoding="utf-8"
+        )
+    except Exception:
+        pass
+
+
+def _store_fetched(
+    tickers: list[str], fetched: dict[str, float], today: dt.date, *, persist: bool
+) -> dict[str, float]:
+    result: dict[str, float] = {}
+    now = _now()
+    changed = False
+    with _lock:
+        for ticker in tickers:
+            price = float(fetched.get(ticker, 0) or 0)
+            if price > 0:
+                _cache[ticker] = (today, price)
+                _failed.pop(ticker, None)
+                result[ticker] = price
+                changed = True
+            else:
+                _failed[ticker] = now
+                result[ticker] = _cache[ticker][1] if ticker in _cache else 0.0
+    if persist and changed:
+        save_disk_cache()
+    return result
+
+
+def _refresh_prices(tickers: list[str], today: dt.date) -> None:
+    try:
+        refreshed = _store_fetched(
+            tickers, _default_fetch(tickers) or {}, today, persist=True
+        )
+        if any(price > 0 for price in refreshed.values()):
+            # L'état portefeuille peut avoir été calculé avec 0 ou un cours
+            # périmé pendant ce fetch. Le polling UI doit voir le nouveau cours
+            # immédiatement, sans attendre les cinq minutes de son propre TTL.
+            from app.services.finance.portfolio_state import invalidate_state
+
+            invalidate_state()
+    finally:
+        with _lock:
+            _refreshing.difference_update(tickers)
+
+
+def _schedule_refresh(tickers: list[str], today: dt.date) -> None:
+    with _lock:
+        pending = [ticker for ticker in tickers if ticker not in _refreshing]
+        _refreshing.update(pending)
+    if pending:
+        threading.Thread(
+            target=_refresh_prices,
+            args=(pending, today),
+            name="finance-price-refresh",
+            daemon=True,
+        ).start()
+
+
 def get_prices(
     tickers: Iterable[str],
     *,
     fetcher: Callable[[list[str]], dict[str, float]] | None = None,
     today: dt.date | None = None,
+    stale_ok: bool = False,
 ) -> dict[str, float]:
-    """Cours du jour pour ``tickers`` (cache quotidien, fetch groupé pour les manquants)."""
+    """Cours du jour pour ``tickers``.
+
+    ``stale_ok=True`` sert immédiatement le dernier cours persistant et lance
+    l'actualisation réelle en arrière-plan. Ce mode est réservé aux vues
+    interactives; les snapshots conservent le comportement synchrone précis.
+    """
     today = today or dt.date.today()
+    use_default_fetcher = fetcher is None
+    if use_default_fetcher:
+        load_disk_cache()
     fetch = fetcher or _default_fetch
     ordered = [t for t in dict.fromkeys(tickers) if t]  # dédup en gardant l'ordre
 
     result: dict[str, float] = {}
     stale: list[str] = []
+    refresh: list[str] = []
     now = _now()
     analysis = _analysis_running()
     with _lock:
@@ -84,21 +189,19 @@ def get_prices(
                 # Analyse en cours OU echec recent -> ne PAS re-frapper yfinance,
                 # servir le dernier cours connu (meme d'un jour precedent)
                 result[t] = _cache[t][1] if t in _cache else 0.0
+            elif stale_ok and use_default_fetcher:
+                result[t] = _cache[t][1] if t in _cache else 0.0
+                refresh.append(t)
             else:
                 stale.append(t)
 
+    if refresh:
+        _schedule_refresh(refresh, today)
     if stale:
         fetched = fetch(stale) or {}
-        with _lock:
-            for t in stale:
-                price = float(fetched.get(t, 0) or 0)
-                if price > 0:
-                    _cache[t] = (today, price)
-                    _failed.pop(t, None)
-                    result[t] = price
-                else:
-                    _failed[t] = now
-                    result[t] = _cache[t][1] if t in _cache else 0.0
+        result.update(
+            _store_fetched(stale, fetched, today, persist=use_default_fetcher)
+        )
     return result
 
 
@@ -109,6 +212,8 @@ def get_price(ticker: str, **kwargs) -> float:
 
 def clear_cache() -> None:
     """Vide le cache (tests / rafraîchissement forcé)."""
+    global _disk_loaded
     with _lock:
         _cache.clear()
         _failed.clear()
+        _disk_loaded = False

@@ -8,24 +8,14 @@ ferme le circuit pour satisfaire la contrainte `AddCircuit` de CP-SAT — ce
 n'est pas un vrai trajet, juste un artifice de modélisation.
 
 Algorithme en deux temps :
-  1. CP-SAT choisit le sous-ensemble de candidats à visiter, objectif
-     lexicographique (a) maximiser le nombre de lieux retenus sous contrainte
-     de jours disponibles et de budget total (transport + subsistance pendant
-     les jours de trajet, cf. `transit_cost` + coût/jour × durée du séjour),
-     (b) à nombre égal, minimiser le total de jours utilisés (chaque lieu
-     retenu reçoit sa durée minimale).
-  2. S'il reste du budget ET des jours de vacances non utilisés après (1), on
-     les comble entièrement en restant plus longtemps dans le lieu déjà
-     retenu le MOINS CHER (pas de nouveau trajet, juste profiter sans rien
-     visiter de spécial -- donc SANS plafond de jours_max, qui borne la durée
-     d'intérêt touristique, pas celle d'un simple séjour de détente) -- jusqu'à
-     épuiser le budget ou les jours restants, l'un des deux servant de limite.
+  1. CP-SAT maximise une valeur de voyage : priorité des activités, diversité
+     des pays et des hubs, puis pénalise coût et temps de transport.
+  2. Les jours restants sont distribués dans les limites `jours_max`, en
+     privilégiant les étapes à forte priorité. Le solveur n'invente plus un
+     séjour démesuré dans le lieu le moins cher.
 
-`solve_top_k_itineraries` génère plusieurs itinéraires visitant des
-COMBINAISONS DE PAYS DISTINCTES (pas juste des choix de lieux différents au
-sein des 2-3 mêmes pays les plus avantageux, ce qui donnait des résultats
-quasi identiques) à nombre maximal de lieux égal, chacun complété par (2),
-puis les classe par coût total croissant.
+`solve_top_k_itineraries` impose un recouvrement maximal entre les hubs et les
+pays des propositions afin que les alternatives soient réellement distinctes.
 """
 from __future__ import annotations
 
@@ -53,6 +43,7 @@ def _build_model(
     jours_disponibles: int,
     depart_id: str,
     arrivee_id: str,
+    max_destinations: int | None = None,
 ):
     """Construit le modèle CP-SAT partagé par `solve_itinerary` et
     `solve_top_k_itineraries` (mêmes variables/contraintes/objectif)."""
@@ -111,20 +102,12 @@ def _build_model(
     for c in candidats:
         i = idx[c["id"]]
         total_cost.append(cp_model.LinearExpr.Term(duree_days[i], round(c["cout_jour"])))
+        fixed_cost = round(c.get("cout_fixe", 0.0))
+        if fixed_cost:
+            total_cost.append(fixed_cost * (1 - skip_lit[i]))
 
     model.Add(cp_model.LinearExpr.Sum(total_days) <= jours_disponibles)
     model.Add(cp_model.LinearExpr.Sum(total_cost) <= round(budget_total))
-
-    # Objectif lexicographique : (1) maximiser le nombre de lieux visités,
-    # (2) à égalité, minimiser le total de jours utilisés. Sans (2), la durée
-    # d'un candidat retenu dans [jours_min, jours_max] n'est contrainte par
-    # rien d'autre et CP-SAT peut renvoyer n'importe quelle valeur de la
-    # fourchette — constaté non déterministe d'une machine à l'autre avec
-    # l'objectif (1) seul. BIG doit dominer strictement le terme secondaire,
-    # qui est borné par jours_disponibles via la contrainte ci-dessus.
-    BIG = jours_disponibles + 1
-    n_visites = sum(1 - skip_lit[idx[c["id"]]] for c in candidats)
-    model.Maximize(n_visites * BIG - cp_model.LinearExpr.Sum(total_days))
 
     # Regroupe les candidats par pays (fallback : chaque candidat forme son
     # propre groupe si `pays` est absent -- utilisé par les tests unitaires
@@ -141,7 +124,38 @@ def _build_model(
         model.AddMaxEquality(lit, [skip_lit[i].Not() for i in idxs])
         pays_lit[p] = lit
 
-    return model, ids, idx, depart_idx, arrivee_idx, skip_lit, duree_days, arc_lit, pays_lit
+    hub_indices: dict[str, list[int]] = {}
+    for c in candidats:
+        hub = c.get("hub") or c["id"]
+        hub_indices.setdefault(hub, []).append(idx[c["id"]])
+    hub_lit: dict[str, cp_model.IntVar] = {}
+    for hub, idxs in hub_indices.items():
+        lit = model.NewBoolVar(f"hub_{hub}")
+        model.AddMaxEquality(lit, [skip_lit[i].Not() for i in idxs])
+        hub_lit[hub] = lit
+    if max_destinations is not None:
+        model.Add(cp_model.LinearExpr.Sum(list(hub_lit.values())) <= max_destinations)
+
+    # Valeur par activité (priorité 1..5), bonus de vraie diversité, puis
+    # pénalités en euros/jours. Les coefficients conservent l'intérêt d'une
+    # activité sans rendre le coût invisible comme dans l'ancien objectif.
+    activity_value = cp_model.LinearExpr.Sum([
+        (100 + 40 * max(1, min(5, int(c.get("priorite", 3))))) * 100
+        * (1 - skip_lit[idx[c["id"]]])
+        for c in candidats
+    ])
+    diversity = 2_000 * cp_model.LinearExpr.Sum(list(pays_lit.values()))
+    diversity += 1_000 * cp_model.LinearExpr.Sum(list(hub_lit.values()))
+    model.Maximize(
+        activity_value + diversity
+        - cp_model.LinearExpr.Sum(total_cost)
+        - 100 * cp_model.LinearExpr.Sum(total_days)
+    )
+
+    return (
+        model, ids, idx, depart_idx, arrivee_idx, skip_lit, duree_days,
+        arc_lit, pays_lit, hub_lit,
+    )
 
 
 def _extract_itinerary(solver, ids, idx, depart_idx, arrivee_idx, duree_days, arc_lit) -> list[dict]:
@@ -183,11 +197,9 @@ def _remplir_jours_restants(
     trajets: dict[tuple[str, str], dict], budget_total: float, jours_disponibles: int,
     depart_id: str, arrivee_id: str,
 ) -> list[dict]:
-    """S'il reste du budget ET des jours après le choix des lieux à visiter,
-    prolonge le séjour dans le lieu déjà retenu le MOINS CHER (pas de trajet
-    supplémentaire) pour épuiser le budget/temps de vacances plutôt que de le
-    laisser inutilisé -- SANS plafond de jours_max (on ne visite plus rien de
-    spécial à ce stade, juste se reposer au meilleur prix)."""
+    """Distribue les jours libres sans dépasser la durée pertinente de chaque
+    activité. Un reliquat de budget ou de congés est préférable à une fausse
+    précision qui inventerait 20 jours sur une activité prévue pour 3."""
     if not resultat:
         return resultat
     cout_actuel, jours_actuels = _cout_et_jours(resultat, candidats_by_id, trajets, depart_id, arrivee_id)
@@ -196,12 +208,26 @@ def _remplir_jours_restants(
     if reste_jours <= 0 or reste_budget <= 0:
         return resultat
 
-    moins_cher = min(resultat, key=lambda e: candidats_by_id[e["id"]]["cout_jour"])
-    cout_jour = candidats_by_id[moins_cher["id"]]["cout_jour"]
-    extra = reste_jours if cout_jour <= 0 else min(reste_jours, int(reste_budget // cout_jour))
-    if extra <= 0:
-        return resultat
-    return [{**e, "jours": e["jours"] + extra} if e is moins_cher else dict(e) for e in resultat]
+    out = [dict(e) for e in resultat]
+    ranked = sorted(
+        out,
+        key=lambda e: (
+            -int(candidats_by_id[e["id"]].get("priorite", 3)),
+            candidats_by_id[e["id"]]["cout_jour"],
+        ),
+    )
+    for etape in ranked:
+        candidat = candidats_by_id[etape["id"]]
+        capacity = max(0, int(candidat["jours_max"]) - etape["jours"])
+        cout_jour = candidat["cout_jour"]
+        affordable = capacity if cout_jour <= 0 else int(reste_budget // cout_jour)
+        extra = min(capacity, reste_jours, affordable)
+        etape["jours"] += extra
+        reste_jours -= extra
+        reste_budget -= extra * cout_jour
+        if reste_jours <= 0 or reste_budget <= 0:
+            break
+    return out
 
 
 def solve_itinerary(
@@ -211,6 +237,7 @@ def solve_itinerary(
     jours_disponibles: int,
     depart_id: str = "DEPART",
     arrivee_id: str = "ARRIVEE",
+    max_destinations: int | None = None,
 ) -> Optional[list[dict]]:
     """Choisit un sous-ensemble ordonné de `candidats` maximisant leur nombre,
     puis comble le budget/temps restant (cf. docstring du module).
@@ -224,11 +251,16 @@ def solve_itinerary(
     candidat ne rentre mais que depart->arrivee direct est faisable. `None`
     si même le trajet direct dépasse le budget ou les jours disponibles.
     """
-    model, ids, idx, depart_idx, arrivee_idx, skip_lit, duree_days, arc_lit, _pays_lit = _build_model(
+    (
+        model, ids, idx, depart_idx, arrivee_idx, skip_lit, duree_days,
+        arc_lit, _pays_lit, _hub_lit,
+    ) = _build_model(
         candidats, trajets, budget_total, jours_disponibles, depart_id, arrivee_id,
+        max_destinations,
     )
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 10
+    solver.parameters.max_time_in_seconds = 3
+    solver.parameters.num_search_workers = 8
     status = solver.Solve(model)
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return None
@@ -247,21 +279,20 @@ def solve_top_k_itineraries(
     depart_id: str = "DEPART",
     arrivee_id: str = "ARRIVEE",
     k: int = 10,
+    max_destinations: int | None = None,
 ) -> list[list[dict]]:
-    """Comme `solve_itinerary`, mais renvoie jusqu'à `k` itinéraires visitant
-    des COMBINAISONS DE PAYS DISTINCTES. Après chaque solution, on interdit de
-    reproduire EXACTEMENT le même ensemble de pays visités (peu importe quels
-    lieux précis dans chaque pays) et on resolve -- s'arrête dès que le modèle
-    devient infaisable (plus aucune combinaison de pays distincte sous
-    budget/temps) ou que `k` est atteint. Chaque résultat est ensuite complété
-    (jours restants comblés au lieu le moins cher) et la liste est reclassée :
-    nombre de lieux décroissant, puis coût total croissant (à nombre égal, le
-    moins cher gagne)."""
-    model, ids, idx, depart_idx, arrivee_idx, skip_lit, duree_days, arc_lit, pays_lit = _build_model(
+    """Comme `solve_itinerary`, avec jusqu'à `k` alternatives dont au moins
+    50 % des hubs et 40 % des pays diffèrent des solutions précédentes."""
+    (
+        model, ids, idx, depart_idx, arrivee_idx, skip_lit, duree_days,
+        arc_lit, pays_lit, hub_lit,
+    ) = _build_model(
         candidats, trajets, budget_total, jours_disponibles, depart_id, arrivee_id,
+        max_destinations,
     )
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 8
+    solver.parameters.max_time_in_seconds = 2
+    solver.parameters.num_search_workers = 8
 
     bruts: list[list[dict]] = []
     for _ in range(k):
@@ -273,19 +304,32 @@ def solve_top_k_itineraries(
             break  # rien de retenu -> les tentatives suivantes ne feraient que répéter ça
         bruts.append(_extract_itinerary(solver, ids, idx, depart_idx, arrivee_idx, duree_days, arc_lit))
         visited_pays = [p for p, lit in pays_lit.items() if solver.Value(lit) == 1]
-        not_visited_pays = [p for p in pays_lit if p not in visited_pays]
-        # Interdit EXACTEMENT le même ensemble de pays visités/écartés (au
-        # moins un pays doit changer, peu importe les lieux précis dedans).
-        model.AddBoolOr(
-            [pays_lit[p].Not() for p in visited_pays] + [pays_lit[p] for p in not_visited_pays]
-        )
+        visited_hubs = [hub for hub, lit in hub_lit.items() if solver.Value(lit) == 1]
+        # Chaque nouvelle proposition doit remplacer au moins 50 % des hubs et
+        # 40 % des pays. On obtient ainsi de vraies alternatives plutôt que le
+        # même voyage dans un ordre légèrement différent.
+        if visited_hubs:
+            model.Add(
+                cp_model.LinearExpr.Sum([hub_lit[hub] for hub in visited_hubs])
+                <= math.floor(len(visited_hubs) * 0.50)
+            )
+        if visited_pays:
+            model.Add(
+                cp_model.LinearExpr.Sum([pays_lit[pays] for pays in visited_pays])
+                <= math.floor(len(visited_pays) * 0.60)
+            )
 
     candidats_by_id = {c["id"]: c for c in candidats}
     remplis = [
         _remplir_jours_restants(r, candidats_by_id, trajets, budget_total, jours_disponibles, depart_id, arrivee_id)
         for r in bruts
     ]
-    remplis.sort(key=lambda r: (
-        -len(r), _cout_et_jours(r, candidats_by_id, trajets, depart_id, arrivee_id)[0],
-    ))
+    def quality(r: list[dict]) -> tuple:
+        countries = {candidats_by_id[e["id"]].get("pays") for e in r}
+        hubs = {candidats_by_id[e["id"]].get("hub", e["id"]) for e in r}
+        priority = sum(int(candidats_by_id[e["id"]].get("priorite", 3)) for e in r)
+        cost = _cout_et_jours(r, candidats_by_id, trajets, depart_id, arrivee_id)[0]
+        return (-priority, -len(countries), -len(hubs), cost)
+
+    remplis.sort(key=quality)
     return remplis

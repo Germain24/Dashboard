@@ -42,14 +42,27 @@ except Exception:  # pragma: no cover — défensif
 router = APIRouter()
 
 
-def _resolve_intensity(session, date, sport_days) -> str:
-    """Intensité officielle pour `date`. Priorise Entraînement, fallback Santé."""
+def _resolve_intensity(session, date, sport_days) -> tuple[str, dict]:
+    """Intensité de la journée, combinant Entraînement et charge Agenda."""
+    # L'Agenda est désormais la source du planning. `sport_days` ne sert que si
+    # l'intégration Agenda échoue entièrement; il ne doit pas inventer une
+    # séance un lundi où aucun sport n'est réellement planifié.
+    workout = "none"
     if _entrainement_intensity is not None:
         try:
-            return _entrainement_intensity(session, date, sport_days_fallback=sport_days)
+            workout = _entrainement_intensity(session, date, sport_days_fallback=[])
         except Exception:
             pass
-    return default_intensity_for_date(date, sport_days)
+    try:
+        from app.services.sante.agenda_intensity import resolve_day_intensity
+        return resolve_day_intensity(session, date, workout)
+    except Exception:
+        fallback = workout if workout != "none" else default_intensity_for_date(date, sport_days)
+        return fallback, {
+            "source": "entrainement",
+            "workout_intensity": fallback,
+            "agenda_intensity": "unavailable",
+        }
 
 
 def _history_payload(session: Session, limit_days: int = 90):
@@ -112,6 +125,8 @@ def _plan_to_response(plan, df):
         consumed=plan.consumed,
         warning=plan.warning,
         budget_max_daily=float((plan.targets or {}).get("Prix_Max", 18.0)),
+        day_context=(plan.extra or {}).get("day_context"),
+        pricing_context=(plan.extra or {}).get("pricing_context"),
     )
 
 
@@ -129,8 +144,9 @@ def get_targets_today(
     if poids is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aucun poids connu et aucun poids fourni.")
     intensity_was_default = intensity is None
+    day_context = {"source": "manual"}
     if intensity is None:
-        intensity = _resolve_intensity(session, today, goal.sport_days)
+        intensity, day_context = _resolve_intensity(session, today, goal.sport_days)
     history = _history_payload(session)
     base, comp = calculate_daily_targets(
         weight=poids, date=today, history=history, intensity=intensity,
@@ -140,6 +156,7 @@ def get_targets_today(
     return TargetsResponse(
         date=today, poids=poids, intensity=intensity,
         intensity_was_default=intensity_was_default, base_targets=base, targets=comp,
+        day_context=day_context,
     )
 
 
@@ -153,7 +170,11 @@ def generate_plan(payload: PlanGenerateRequest, session: Session = Depends(get_s
     if poids is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aucun poids connu.")
     intensity_was_default = payload.intensity is None
-    intensity = payload.intensity or _resolve_intensity(session, today, goal.sport_days)
+    day_context = {"source": "manual"}
+    if payload.intensity is None:
+        intensity, day_context = _resolve_intensity(session, today, goal.sport_days)
+    else:
+        intensity = payload.intensity
     history = _history_payload(session)
     base, comp = calculate_daily_targets(
         weight=poids, date=today, history=history, intensity=intensity,
@@ -163,18 +184,30 @@ def generate_plan(payload: PlanGenerateRequest, session: Session = Depends(get_s
     df = load_aliments_dataframe(session)
     if df.empty:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Catalogue aliments vide.")
-    # Fruits & légumes : re-tarifés au prix Super C (magasin unique, cache
-    # maintenu au démarrage). Best-effort — n'échoue jamais l'optimisation.
-    # Voir adonis_pricing.apply_superc_produce_prices.
-    from app.services.sante.adonis_pricing import apply_superc_produce_prices
-    df, _produce_changed = apply_superc_produce_prices(df)
-    budget = payload.budget_max_daily if payload.budget_max_daily is not None else comp.get("Prix_Max")
+    # Catalogue complet re-tarifé avec le moins cher entre prix courant et
+    # circulaire Super C. Best-effort — le CSV source reste le fallback.
+    from app.services.sante.adonis_pricing import apply_superc_catalog_prices
+    df, priced_foods = apply_superc_catalog_prices(df)
+    pricing_context = {
+        "store": "Super C",
+        "includes_flyer": True,
+        "matched_foods": len(priced_foods),
+        "fallback": "catalogue" if not priced_foods else None,
+    }
+    budget = (
+        payload.budget_max_daily
+        if payload.budget_max_daily is not None
+        else comp.get("Prix_Max")
+    )
     # « Re-générer » (force=True) : seed aléatoire -> un plan différent à chaque
     # clic. Première génération du jour (force=False) : déterministe (seed=None).
     seed = secrets.randbelow(2**31) if payload.force else None
     plan_items, warning = optimize_nutrition(df, comp, budget_max_daily=budget, seed=seed)
     if plan_items is None:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, warning or "Optimisation impossible")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            warning or "Optimisation impossible",
+        )
     quantites = {it["Aliment"]: float(it["Quantite_g"]) for it in plan_items}
     items = _plan_to_items(quantites, df)
     totals = calculate_plan_totals(plan_items, df)
@@ -187,6 +220,11 @@ def generate_plan(payload: PlanGenerateRequest, session: Session = Depends(get_s
         existing.quantites = quantites
         existing.totals = totals
         existing.warning = warning
+        existing.extra = {
+            **(existing.extra or {}),
+            "day_context": day_context,
+            "pricing_context": pricing_context,
+        }
         if payload.force:
             existing.consumed = None
         session.add(existing)
@@ -196,17 +234,23 @@ def generate_plan(payload: PlanGenerateRequest, session: Session = Depends(get_s
             date=today, poids_used=poids, intensite=intensity,
             base_targets=base, targets=comp, quantites=quantites,
             totals=totals, warning=warning,
+            extra={"day_context": day_context, "pricing_context": pricing_context},
         )
         session.add(new)
         session.commit()
     # `consumed` is preserved across re-generations unless `force=True`
-    consumed_out = None if (payload.force or not existing) else (existing.consumed if existing else None)
+    consumed_out = (
+        None
+        if payload.force or not existing
+        else existing.consumed
+    )
     return PlanResponse(
         date=today, poids_used=poids, intensite=intensity,
         intensity_was_default=intensity_was_default,
         base_targets=base, targets=comp, items=items, totals=totals,
         consumed=consumed_out,
         warning=warning or None, budget_max_daily=float(budget or 18.0),
+        day_context=day_context, pricing_context=pricing_context,
     )
 
 
@@ -221,6 +265,8 @@ def get_plan_for_date(date: dt.date, session: Session = Depends(get_session)):
     if not plan:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Aucun plan pour {date}.")
     df = load_aliments_dataframe(session)
+    from app.services.sante.adonis_pricing import apply_superc_catalog_prices
+    df, _ = apply_superc_catalog_prices(df)
     return _plan_to_response(plan, df)
 
 
@@ -230,9 +276,14 @@ def patch_plan(date: dt.date, payload: PlanPatchRequest, session: Session = Depe
     if not plan:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Aucun plan pour {date}.")
     df = load_aliments_dataframe(session)
+    from app.services.sante.adonis_pricing import apply_superc_catalog_prices
+    df, _ = apply_superc_catalog_prices(df)
     if payload.quantites is not None:
         plan.quantites = payload.quantites
-        items_for_total = [{"Aliment": nom, "Quantite_g": grammes} for nom, grammes in payload.quantites.items()]
+        items_for_total = [
+            {"Aliment": nom, "Quantite_g": grammes}
+            for nom, grammes in payload.quantites.items()
+        ]
         plan.totals = calculate_plan_totals(items_for_total, df)
     # consumed_grams (par aliment) → on calcule les totaux nutritionnels et on
     # garde les deux dans `consumed` (clés _g pour les grammes, clés nutriment

@@ -62,6 +62,8 @@ spacing:
 
 # Design System: Mission Control
 
+Specs et plans d'implémentation détaillés : voir [orchestration/README.md](orchestration/README.md).
+
 ## 1. Overview
 
 **Creative North Star: "The Old Money Almanac, Behind Clear Glass"**

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime as dt
 from typing import Any, Optional
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -98,11 +98,18 @@ class BenchmarkOut(BaseModel):
 # ---------------------------------------------------------------------------
 
 class RiskMetricsOut(BaseModel):
+    # Noms alignés sur ce que `get_risk_metrics` produit réellement. Ils ont
+    # divergé (`volatilite_annuelle_pct`, `hhi_label`) : pydantic ignorant les
+    # clés en trop, l'endpoint renvoyait volatilité 0.0 et label « — » en
+    # permanence, sans jamais lever d'erreur.
     max_drawdown_pct: float = 0.0
-    volatilite_annuelle_pct: float = 0.0
+    volatilite_annualisee_pct: float = 0.0
     sharpe: Optional[float] = None
+    # None = aucun rendement baissier sur la période (ratio non défini), cf.
+    # services/finance/risk.compute_sortino.
+    sortino: Optional[float] = None
     hhi: float = 0.0
-    hhi_label: str = "—"
+    concentration: str = "inconnu"
     n_positions: int = 0
 
 
@@ -118,15 +125,31 @@ class TreemapNodeOut(BaseModel):
 # ---------------------------------------------------------------------------
 
 class TransactionCreate(BaseModel):
-    ticker: str
-    type_transaction: str = Field(..., pattern="^(?i:(achat|vente|dividende|frais|depot|retrait))$")
+    ticker: str = Field(min_length=1, max_length=32)
+    type_transaction: str = Field(
+        ...,
+        pattern="^(?i:(achat|vente|dividende|interet|frais|depot|retrait))$",
+    )
     date_transaction: dt.date
-    quantite: float
-    prix_unitaire: float
-    frais: float = 0.0
-    devise: str = "EUR"
+    quantite: float = Field(gt=0)
+    prix_unitaire: float = Field(ge=0)
+    frais: float = Field(default=0.0, ge=0)
+    montant_brut: Optional[float] = Field(default=None, ge=0)
+    retenue_source: float = Field(default=0.0, ge=0)
+    devise: str = Field(default="EUR", pattern="^[A-Za-z]{3}$")
     broker: Optional[str] = None
     note: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_withholding(self):
+        gross = (
+            self.montant_brut
+            if self.montant_brut is not None
+            else self.quantite * self.prix_unitaire
+        )
+        if self.retenue_source > gross:
+            raise ValueError("La retenue a la source depasse le montant brut")
+        return self
 
 
 class TransactionOut(BaseModel):
@@ -139,6 +162,8 @@ class TransactionOut(BaseModel):
     quantite: float
     prix_unitaire: float
     frais: float
+    montant_brut: Optional[float] = None
+    retenue_source: float = 0.0
     devise: str
     note: Optional[str] = None
     created_at: dt.datetime
@@ -146,6 +171,7 @@ class TransactionOut(BaseModel):
 
 class ImportResultOut(BaseModel):
     imported: int
+    updated: int = 0
     skipped: int
     errors: list[str]
 
@@ -205,6 +231,7 @@ class BuffettRunDetailOut(BaseModel):
     run: BuffettRunOut
     top_results: list[BuffettResultOut]
     allocation_cible: list[BuffettResultOut]
+    optimization: Optional[dict] = None
 
 
 class BuffettProgressOut(BaseModel):

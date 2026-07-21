@@ -1,31 +1,112 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, BarChart3, RefreshCw, Star, LayoutGrid, CreditCard, Target, Landmark, Receipt } from "lucide-react";
+import dynamic from "next/dynamic";
+import {
+  AlertTriangle,
+  BarChart3,
+  CreditCard,
+  Landmark,
+  LayoutGrid,
+  Pencil,
+  Receipt,
+  RefreshCw,
+  Star,
+  Target,
+  TrendingUp,
+} from "lucide-react";
 import { ModuleHeader } from "@/components/layout";
-import { PortefeuilleTab } from "./PortefeuilleTab";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { TabLoading } from "@/components/ui/tab-loading";
 import { SuiviTab } from "./SuiviTab";
-import { CompositionTab } from "./CompositionTab";
-import { BuffettTab } from "./BuffettTab";
-import { RebalancingTab } from "./RebalancingTab";
-import { TransactionsTab } from "./TransactionsTab";
-import { PatrimoineTab } from "./PatrimoineTab";
-import { ImpotsTab } from "./ImpotsTab";
 import { useObjectifPatrimoine, useSetObjectifPatrimoine } from "@/lib/queries/finance";
 
+const PortefeuilleTab = dynamic(
+  () => import("./PortefeuilleTab").then((module) => module.PortefeuilleTab),
+  { loading: TabLoading },
+);
+const CompositionTab = dynamic(
+  () => import("./CompositionTab").then((module) => module.CompositionTab),
+  { loading: TabLoading },
+);
+const BuffettTab = dynamic(
+  () => import("./BuffettTab").then((module) => module.BuffettTab),
+  { loading: TabLoading },
+);
+const RebalancingTab = dynamic(
+  () => import("./RebalancingTab").then((module) => module.RebalancingTab),
+  { loading: TabLoading },
+);
+const TransactionsTab = dynamic(
+  () => import("./TransactionsTab").then((module) => module.TransactionsTab),
+  { loading: TabLoading },
+);
+const PatrimoineTab = dynamic(
+  () => import("./PatrimoineTab").then((module) => module.PatrimoineTab),
+  { loading: TabLoading },
+);
+const ImpotsTab = dynamic(
+  () => import("./ImpotsTab").then((module) => module.ImpotsTab),
+  { loading: TabLoading },
+);
+
 function ObjectifWidget() {
-  const { data, isLoading } = useObjectifPatrimoine();
+  const { data, isLoading, isError, refetch } = useObjectifPatrimoine();
   const setObjectif = useSetObjectifPatrimoine();
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState("");
+  const [inputError, setInputError] = useState<string>();
 
-  if (isLoading || !data) return null;
+  if (isLoading) {
+    return (
+      <div
+        className="skeleton-shimmer h-[70px] rounded-lg"
+        aria-label="Chargement de l'objectif patrimoine"
+      />
+    );
+  }
 
-  const pct = Math.min(data.progression_pct, 100);
+  if (isError || !data) {
+    return (
+      <div
+        role="alert"
+        className="flex min-h-[70px] flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--destructive)]/30 px-3 py-2 text-sm"
+      >
+        <span className="flex items-center gap-2 text-[var(--destructive)]">
+          <AlertTriangle className="h-4 w-4" aria-hidden />
+          Objectif patrimonial indisponible.
+        </span>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            void refetch();
+          }}
+        >
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
+
+  const pct = Math.min(Math.max(data.progression_pct, 0), 100);
   const color = data.atteint ? "var(--success)" : pct >= 75 ? "var(--warning)" : "var(--ring)";
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+    new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+      maximumFractionDigits: 0,
+    }).format(n);
 
   return (
     <div className="flex items-center gap-3 text-sm bg-[var(--muted)] rounded-lg px-3 py-2">
@@ -50,52 +131,91 @@ function ObjectifWidget() {
               Reste {fmt(data.restant_eur)}
             </span>
           )}
-          {data.atteint && <span className="text-xs font-medium" style={{ color }}>Objectif atteint !</span>}
+          {data.atteint && (
+            <span className="text-xs font-medium" style={{ color }}>
+              Objectif atteint !
+            </span>
+          )}
         </div>
       </div>
-      <button
-        onClick={() => { setEditing(true); setVal(String(data.objectif_eur)); }}
-        className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] px-1"
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        onClick={() => {
+          setEditing(true);
+          setVal(String(data.objectif_eur));
+          setInputError(undefined);
+        }}
+        aria-label="Modifier l'objectif patrimoine"
         title="Modifier l'objectif"
       >
-        ✏
-      </button>
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditing(false)}>
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 w-72 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="font-semibold mb-3">Objectif patrimoine</h3>
-            <input
+        <Pencil className="h-3.5 w-3.5" aria-hidden />
+      </Button>
+      <Dialog open={editing} onClose={() => setEditing(false)} className="max-w-sm">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const objectif = Number(val);
+            if (!Number.isFinite(objectif) || objectif <= 0) {
+              setInputError("Saisissez un montant supérieur à zéro.");
+              return;
+            }
+            setObjectif.mutate(objectif, {
+              onSuccess: () => setEditing(false),
+            });
+          }}
+        >
+          <DialogHeader onClose={() => setEditing(false)}>
+            <DialogTitle>Objectif patrimoine</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <Input
+              label="Montant cible"
               type="number"
+              min="1"
+              step="1000"
               value={val}
-              onChange={e => setVal(e.target.value)}
-              className="w-full border border-[var(--border)] rounded-lg px-3 py-2 text-sm bg-[var(--background)] mb-3"
-              placeholder="300000"
+              onChange={(event) => {
+                setVal(event.target.value);
+                setInputError(undefined);
+              }}
+              error={inputError}
             />
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)]">Annuler</button>
-              <button
-                onClick={() => { setObjectif.mutate(Number(val)); setEditing(false); }}
-                className="px-3 py-1.5 text-sm rounded-lg bg-[var(--ring)] text-white"
-              >Enregistrer</button>
-            </div>
-          </div>
-        </div>
-      )}
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
+              Annuler
+            </Button>
+            <Button type="submit" loading={setObjectif.isPending}>
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </form>
+      </Dialog>
     </div>
   );
 }
 
-type Tab = "suivi" | "portefeuille" | "composition" | "rebalancing" | "buffett" | "transactions" | "patrimoine" | "impots";
+type Tab =
+  | "suivi"
+  | "portefeuille"
+  | "composition"
+  | "rebalancing"
+  | "buffett"
+  | "transactions"
+  | "patrimoine"
+  | "impots";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "suivi",        label: "Suivi",        icon: TrendingUp },
-  { id: "portefeuille", label: "Portefeuille",  icon: BarChart3 },
-  { id: "composition",  label: "Composition",   icon: LayoutGrid },
-  { id: "rebalancing",  label: "Rebalancing",   icon: RefreshCw },
-  { id: "buffett",      label: "Buffett",       icon: Star },
-  { id: "transactions", label: "Transactions",  icon: CreditCard },
-  { id: "patrimoine",   label: "Patrimoine",    icon: Landmark },
-  { id: "impots",       label: "Impôts",        icon: Receipt },
+  { id: "suivi", label: "Suivi", icon: TrendingUp },
+  { id: "portefeuille", label: "Portefeuille", icon: BarChart3 },
+  { id: "composition", label: "Composition", icon: LayoutGrid },
+  { id: "rebalancing", label: "Rebalancing", icon: RefreshCw },
+  { id: "buffett", label: "Buffett", icon: Star },
+  { id: "transactions", label: "Transactions", icon: CreditCard },
+  { id: "patrimoine", label: "Patrimoine", icon: Landmark },
+  { id: "impots", label: "Impôts", icon: Receipt },
 ];
 
 export function Finance() {
@@ -117,14 +237,14 @@ export function Finance() {
 
       {/* Content — re-mounts on tab change for fade-in-up */}
       <div key={active} className="p-6 animate-fade-in-up">
-        {active === "suivi"        && <SuiviTab />}
+        {active === "suivi" && <SuiviTab />}
         {active === "portefeuille" && <PortefeuilleTab />}
-        {active === "composition"  && <CompositionTab />}
-        {active === "rebalancing"  && <RebalancingTab />}
-        {active === "buffett"      && <BuffettTab />}
+        {active === "composition" && <CompositionTab />}
+        {active === "rebalancing" && <RebalancingTab />}
+        {active === "buffett" && <BuffettTab />}
         {active === "transactions" && <TransactionsTab />}
-        {active === "patrimoine"   && <PatrimoineTab />}
-        {active === "impots"       && <ImpotsTab />}
+        {active === "patrimoine" && <PatrimoineTab />}
+        {active === "impots" && <ImpotsTab />}
       </div>
     </div>
   );

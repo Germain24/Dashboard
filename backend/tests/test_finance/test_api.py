@@ -141,6 +141,24 @@ def test_create_transaction_invalid_type(client):
     assert r.status_code == 422
 
 
+def test_create_transaction_rejects_negative_amounts(client):
+    r = client.post("/finance/transactions", json={
+        "ticker": "AAPL", "type_transaction": "achat",
+        "date_transaction": "2025-01-15", "quantite": -1,
+        "prix_unitaire": 100,
+    })
+    assert r.status_code == 422
+
+
+def test_create_transaction_rejects_withholding_above_gross(client):
+    r = client.post("/finance/transactions", json={
+        "ticker": "LOG", "type_transaction": "dividende",
+        "date_transaction": "2025-01-15", "quantite": 1,
+        "prix_unitaire": 10, "montant_brut": 10, "retenue_source": 11,
+    })
+    assert r.status_code == 422
+
+
 def test_list_transactions_after_create(client):
     client.post("/finance/transactions", json={
         "ticker": "NVDA", "type_transaction": "achat",
@@ -266,6 +284,38 @@ def test_portfolio_create_proceeds_when_no_analysis_running(client):
     r = client.post("/finance/portfolio/create")
     assert r.status_code == 404
     assert "Aucun run Buffett" in r.json()["detail"]
+
+
+def test_latest_optimizable_run_reuses_complete_analysis_after_optimization_error(session):
+    from app.api.finance.buffett import _latest_optimizable_run
+    from app.models.finance import BuffettRun, BuffettRunStatus
+
+    older = BuffettRun(
+        run_date=dt.date(2026, 7, 19),
+        statut=BuffettRunStatus.TERMINE.value,
+        n_tickers_total=100,
+        n_tickers_analyzed=100,
+    )
+    failed_optimization = BuffettRun(
+        run_date=dt.date(2026, 7, 20),
+        statut=BuffettRunStatus.ERREUR.value,
+        n_tickers_total=10_454,
+        n_tickers_analyzed=10_454,
+        erreur="Invalid value 'False' for dtype 'float64'",
+    )
+    incomplete = BuffettRun(
+        run_date=dt.date(2026, 7, 21),
+        statut=BuffettRunStatus.ERREUR.value,
+        n_tickers_total=100,
+        n_tickers_analyzed=12,
+    )
+    session.add_all([older, failed_optimization, incomplete])
+    session.commit()
+
+    selected = _latest_optimizable_run(session)
+
+    assert selected is not None
+    assert selected.id == failed_optimization.id
 
 
 def test_run_portfolio_creation_noop_when_lock_already_held(monkeypatch):

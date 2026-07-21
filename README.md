@@ -13,6 +13,8 @@ et skincare. Pensé pour tourner en local sur une machine, sans dépendance à u
 
 Détail de l'architecture : voir [ARCHITECTURE.md](ARCHITECTURE.md).
 
+Specs, plans et backlog d'améliorations : voir [orchestration/README.md](orchestration/README.md).
+
 ## Prérequis
 
 - Python 3.11+ (uv installe la bonne version au besoin)

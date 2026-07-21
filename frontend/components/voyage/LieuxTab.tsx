@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
+import { LockKeyhole, RefreshCw } from "lucide-react";
 import { useLieuxVoyage, useSyncVoyage } from "@/lib/queries/voyage";
 
 export function LieuxTab({ selected, onToggle }: {
@@ -45,17 +45,30 @@ export function LieuxTab({ selected, onToggle }: {
           <label
             key={l.id}
             className={`flex items-center gap-3 rounded-lg border border-[var(--border)] p-2 text-sm ${
-              l.complet ? "cursor-pointer hover:bg-[var(--muted)]" : "opacity-50"
+              l.complet && !l.verrouille ? "cursor-pointer transition-colors hover:bg-[var(--muted)]" : "opacity-50"
             }`}
           >
             <input
               type="checkbox"
-              disabled={!l.complet}
+              disabled={!l.complet || l.verrouille}
               checked={selected.has(l.id)}
               onChange={() => onToggle(l.id)}
             />
             <span className="flex-1">{l.nom}</span>
             <span className="text-[var(--muted-foreground)]">{l.ville ?? l.pays ?? ""}</span>
+            {l.ordre && (
+              <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs">
+                {l.progression ?? "progression"} · palier {l.ordre}
+              </span>
+            )}
+            {l.verrouille && (
+              <span className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]" title={l.raison_verrouillage ?? "Verrouillé"}>
+                <LockKeyhole className="h-3.5 w-3.5" /> verrouillé
+              </span>
+            )}
+            {l.statut === "impossible" && (
+              <span className="text-xs text-[var(--destructive)]">impossible</span>
+            )}
             {!l.complet && <span className="text-xs text-[var(--destructive)]">incomplet</span>}
           </label>
         ))}

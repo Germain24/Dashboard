@@ -40,10 +40,10 @@ def test_weights_sum_to_one():
         assert len(w) == n
 
 
-def test_weights_decreasing():
+def test_weights_increase_from_oldest_to_most_recent():
     w = exponential_weights(5)
     for i in range(len(w) - 1):
-        assert w[i] >= w[i + 1]
+        assert w[i] <= w[i + 1]
 
 
 # ── score_year ──────────────────────────────────────────────────────────────
@@ -155,6 +155,37 @@ def test_moat_score_all_perfect_beats_all_bad():
 def test_moat_score_returns_float():
     s = compute_moat_score([_perfect_year()])
     assert isinstance(s, float)
+
+
+def test_most_recent_year_has_more_influence():
+    good = _perfect_year()
+    bad = {**good, "gpm": 0.0}
+    improving = compute_moat_score([bad, good])
+    deteriorating = compute_moat_score([good, bad])
+    assert improving > deteriorating
+
+
+def test_missing_data_reduces_confidence_without_becoming_fake_zero_ratios():
+    complete = score_year(_perfect_year())
+    sparse = score_year({"gpm": 0.80})
+    assert 0 < sparse < complete
+
+
+def test_financial_profile_ignores_industrial_gross_margin():
+    relevant = {
+        "net_income_growth": True,
+        "net_income_positive": True,
+        "nim": 0.30,
+        "eps_growth": True,
+        "cash_growth": True,
+        "retained_growth": True,
+        "cap_stock_var": True,
+        "roe": 0.25,
+        "buybacks": True,
+    }
+    low_margin = score_year({**relevant, "gpm": 0.01}, "Financial Services")
+    high_margin = score_year({**relevant, "gpm": 0.90}, "Financial Services")
+    assert low_margin == high_margin
 
 
 # ── compute_buy_signal ──────────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import threading
 
 from app.services.finance import fx
 
@@ -117,4 +118,72 @@ def test_get_rate_force_contourne_le_garde_analyse(monkeypatch):
     # Le taux forcé est en cache : l'appel normal suivant le voit.
     assert fx.get_rate("USD", "EUR", fetcher=fetch) == 1.25
     assert calls == [("USD", "EUR")]
+    fx.clear_cache()
+
+
+# ── Cache disque (survit au redémarrage du backend ; jamais pollué par les
+#    fetchers factices des tests) ──
+
+def test_fx_cache_disque_roundtrip(tmp_path, monkeypatch):
+    monkeypatch.setattr(fx, "_DISK_CACHE_FILE", tmp_path / "fx.json")
+    fx.clear_cache()
+    assert fx.get_rate("USD", "EUR", fetcher=lambda b, q: 0.9) == 0.9
+    fx.save_disk_cache()
+    fx.clear_cache()                       # redémarrage de process simulé
+
+    def boom(b, q):
+        raise AssertionError("ne doit pas fetcher : le disque doit suffire")
+
+    fx.load_disk_cache()
+    assert fx.get_rate("USD", "EUR", fetcher=boom) == 0.9
+    fx.clear_cache()
+
+
+def test_fx_cache_disque_taux_de_la_veille_comme_repli(tmp_path, monkeypatch):
+    """Un taux d'HIER chargé du disque n'est pas 'du jour' (get_rate re-fetche
+    normalement), mais sert de dernier taux connu pendant une analyse (garde
+    _analysis_running) -- au lieu de 0.0 qui annulerait tous les volumes."""
+    import json
+    f = tmp_path / "fx.json"
+    f.write_text(json.dumps({"USD/EUR": ["2026-07-14", 0.88]}), encoding="utf-8")
+    monkeypatch.setattr(fx, "_DISK_CACHE_FILE", f)
+    fx.clear_cache()
+    fx.load_disk_cache()
+    monkeypatch.setattr(fx, "_analysis_running", lambda: True)
+
+    def boom(b, q):
+        raise AssertionError("pas de fetch pendant l'analyse sans force")
+
+    assert fx.get_rate("USD", "EUR", fetcher=boom, today=dt.date(2026, 7, 15)) == 0.88
+    fx.clear_cache()
+
+
+def test_stale_ok_refreshes_default_rate_in_background(tmp_path, monkeypatch):
+    monkeypatch.setattr(fx, "_DISK_CACHE_FILE", tmp_path / "fx.json")
+    fx.clear_cache()
+    started = threading.Event()
+    release = threading.Event()
+    stored = threading.Event()
+
+    def slow_fetch(base, quote):
+        started.set()
+        assert release.wait(2)
+        return 0.92
+
+    monkeypatch.setattr(fx, "_default_fetch", slow_fetch)
+    original_save = fx.save_disk_cache
+
+    def save_and_signal():
+        original_save()
+        stored.set()
+
+    monkeypatch.setattr(fx, "save_disk_cache", save_and_signal)
+    day = dt.date(2026, 7, 15)
+
+    assert fx.get_rate("USD", "EUR", today=day, stale_ok=True) == 0.0
+    assert started.wait(1)
+
+    release.set()
+    assert stored.wait(2)
+    assert fx.get_rate("USD", "EUR", today=day) == 0.92
     fx.clear_cache()

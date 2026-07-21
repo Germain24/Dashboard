@@ -21,9 +21,15 @@ vi.mock("@/lib/etudes", () => ({
   addRevisionCard: vi.fn().mockResolvedValue({ id: 1 }),
   reviewRevisionCard: vi.fn().mockResolvedValue({ id: 1 }),
   deleteRevisionCard: vi.fn().mockResolvedValue(undefined),
+  fetchSkills: vi.fn().mockResolvedValue([{ id: 1, nom: "Python", categorie: "technique", niveau: 3, preuves: [] }]),
+  fetchSkillsStats: vi.fn().mockResolvedValue({ par_categorie: {}, global: { nb_competences: 1, niveau_moyen: 3, nb_preuves_total: 0 } }),
+  createSkill: vi.fn().mockResolvedValue({ id: 2 }),
+  patchSkill: vi.fn().mockResolvedValue({ id: 1 }),
+  deleteSkill: vi.fn().mockResolvedValue(undefined),
+  addSkillPreuve: vi.fn().mockResolvedValue({ id: 1 }),
 }));
 
-import { etudesKeys, useCours, useSetEtudesGoal } from "@/lib/queries/etudes";
+import { etudesKeys, useCours, useSetEtudesGoal, useSkills } from "@/lib/queries/etudes";
 
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -46,5 +52,11 @@ describe("queries/etudes", () => {
     const { result } = renderHook(() => useSetEtudesGoal(), { wrapper });
     result.current.mutate(10);
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it("useSkills charge la liste des compétences", async () => {
+    const { result } = renderHook(() => useSkills(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([{ id: 1, nom: "Python", categorie: "technique", niveau: 3, preuves: [] }]);
   });
 });

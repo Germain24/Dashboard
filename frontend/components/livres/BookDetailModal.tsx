@@ -32,6 +32,8 @@ export default function BookDetailModal({
 }) {
   const [statut, setStatut] = useState<Statut>(book.statut)
   const [langue, setLangue] = useState(book.langue ?? '')
+  const [serie, setSerie] = useState(book.serie ?? '')
+  const [tome, setTome] = useState(book.tome != null ? String(book.tome) : '')
   const [newNote, setNewNote] = useState('')
   const [newQuote, setNewQuote] = useState('')
   const [pageFin, setPageFin] = useState('')
@@ -67,6 +69,17 @@ export default function BookDetailModal({
     updateMutation.mutate({ id: book.id, patch: { langue: v } }, {
       onSuccess: onChanged,
       onError: () => toast.error('Langue non sauvegardée.'),
+    })
+  }
+
+  const saveSerie = () => {
+    const nom = serie.trim()
+    const num = tome.trim() ? parseInt(tome, 10) : null
+    if (num != null && Number.isNaN(num)) { toast.error('Numéro de tome invalide.'); return }
+    if (nom === (book.serie ?? '') && num === (book.tome ?? null)) return
+    updateMutation.mutate({ id: book.id, patch: { serie: nom, tome: num } }, {
+      onSuccess: onChanged,
+      onError: () => toast.error('Série non sauvegardée.'),
     })
   }
 
@@ -175,6 +188,31 @@ export default function BookDetailModal({
             onKeyDown={(e) => { if (e.key === 'Enter') saveLangue() }}
             placeholder="ex. Français, Anglais…"
             className={`${inputCls} flex-1`}
+          />
+        </div>
+
+        {/* Série / tome (regroupement mangas & sagas sur l'onglet Bibliothèque) */}
+        <div className="mb-4 flex items-center gap-2">
+          <label htmlFor="book-serie" className="text-xs font-medium text-[var(--muted-foreground)]">Série</label>
+          <input
+            id="book-serie"
+            value={serie}
+            onChange={(e) => setSerie(e.target.value)}
+            onBlur={saveSerie}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveSerie() }}
+            placeholder="vide = livre isolé"
+            className={`${inputCls} flex-1`}
+          />
+          <label htmlFor="book-tome" className="text-xs font-medium text-[var(--muted-foreground)]">Tome</label>
+          <input
+            id="book-tome"
+            type="number"
+            min={1}
+            value={tome}
+            onChange={(e) => setTome(e.target.value)}
+            onBlur={saveSerie}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveSerie() }}
+            className={`${inputCls} w-20`}
           />
         </div>
 

@@ -26,13 +26,14 @@ from datetime import datetime, timedelta
 import pandas as pd
 import pytest
 
+from app.services.finance.buffett.cache_manager import CacheManager
+from app.services.finance.buffett.scoring_pure import SCORING_MODEL_VERSION
+
 
 # ── Fix #1 : TTL 60 jours ne doit plus s'appliquer aux ETF (score>=200) ─────
 
 
 def _write_cache(tmp_path, entries: dict) -> "object":
-    from app.services.finance.buffett.cache_manager import CacheManager
-
     cache_file = tmp_path / "cache_status.json"
     cache_file.write_text(json.dumps(entries))
     return CacheManager(str(cache_file))
@@ -93,11 +94,28 @@ def test_non_etf_stock_within_age_window_still_works(tmp_path):
         "AAPL": {
             "last_update": recent, "latest_year": this_year, "score": 85.0,
             "metrics": {"Nom": "Apple Inc."}, "status": "success",
+            "score_model_version": SCORING_MODEL_VERSION,
         },
     })
     result = cm.get_cached_result("AAPL")
     assert result is not None
     assert result[0] == 85.0
+
+
+def test_action_cache_from_previous_scoring_model_is_invalidated(tmp_path):
+    recent = datetime.now().isoformat()
+    this_year = datetime.now().year - 1
+    cm = _write_cache(tmp_path, {
+        "AAPL": {
+            "last_update": recent,
+            "latest_year": this_year,
+            "score": 85.0,
+            "metrics": {"Nom": "Apple Inc."},
+            "status": "success",
+            "score_model_version": SCORING_MODEL_VERSION - 1,
+        },
+    })
+    assert cm.get_cached_result("AAPL") is None
 
 
 # ── Interaction avec purge_misclassified_etf_cache (reclassification) ──────

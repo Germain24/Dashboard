@@ -97,6 +97,25 @@ _MAX_CSV_COLS: set[str] = {NUTRIENT_KEY_TO_CSV[k] for k in TRACKED_MAX_NUTRIENTS
 MAX_DAILY_UNITS = 4.0  # 1 unité = 100g → 400g/jour max d'un même aliment
 SUPPLEMENT_MAX = 0.05   # 5g max pour suppléments / vitamines
 
+# ── Malus de diversité (#bug rapporté : « 5g de courgette » recommandé — un
+# aliment inclus pour un gain de couverture marginal minuscule, que le
+# snap MinQty (post-traitement) remonte ensuite à une quantité "réelle" mais
+# dérisoire). COVERAGE_POWER=4 rend déjà le MANQUE marginal petit une fois un
+# nutriment bien couvert, mais laisse SLSQP s'arrêter (ftol) sur un x résiduel
+# proche de 0 plutôt que pile 0 — le snap-up (x >= MinQty/2) en fait alors un
+# "aliment" visible. Un coût fixe par aliment ACTIF (même minime) pousse
+# franchement ces x résiduels vers 0 : chaque aliment inclus doit justifier
+# son coût, pas seulement le dernier gramme de couverture.
+DIVERSITY_EPS = 0.02     # 2g : quantité à partir de laquelle un aliment "compte" pleinement
+DIVERSITY_WEIGHT = 0.08  # coût fixe (échelle objectif) par aliment actif
+
+
+def diversity_penalty(x: np.ndarray, eps: float = DIVERSITY_EPS) -> float:
+    """Approximation lisse du NOMBRE d'aliments actifs (x > 0), différentiable
+    pour SLSQP. Chaque aliment contribue x/(x+eps) : ~0 si quasi-nul, ~1 dès
+    que la quantité dépasse `eps` de quelques multiples (sature vite). Pur."""
+    return float(np.sum(x / (x + eps)))
+
 
 def optimize_nutrition(
     df: pd.DataFrame,
@@ -191,6 +210,8 @@ def optimize_nutrition(
 
         # Petite pénalité prix : favorise les options moins chères à nutrition équivalente
         error += 0.001 * float(np.dot(x, prix_arr))
+        # Malus de diversité : chaque aliment actif a un coût fixe (cf. constante).
+        error += DIVERSITY_WEIGHT * diversity_penalty(x, DIVERSITY_EPS)
         # Préférence aléatoire (variété) — nulle si seed=None.
         error += float(np.dot(x, taste_arr))
         return error

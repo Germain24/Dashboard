@@ -41,6 +41,23 @@ export type ScoreDay = {
 };
 export type ScorePoint = { date: string; score: number | null };
 
+/** `exclus` = composantes du score (sommeil/sport/nutrition), volontairement
+ *  hors corrélations : les corréler au score qu'elles calculent serait circulaire. */
+export type ScoreCorrelation = {
+  source: "score";
+  cible: string;
+  r: number | null;
+  n: number;
+  force: string;
+  signe: string;
+};
+export type ScoreCorrelations = {
+  caveat: string;
+  jours: number;
+  exclus: string[];
+  correlations: ScoreCorrelation[];
+};
+
 export type NutritionGoal = {
   id: number;
   date_set: string;
@@ -66,6 +83,16 @@ export type TargetsResponse = {
   intensity_was_default: boolean;
   base_targets: Record<string, number>;
   targets: Record<string, number>;
+  day_context?: DayContext | null;
+};
+
+export type DayContext = {
+  source: string;
+  workout_intensity?: string;
+  agenda_intensity?: string;
+  scheduled_minutes?: number;
+  weighted_minutes?: number;
+  categories_minutes?: Record<string, number>;
 };
 
 export type PlanItem = {
@@ -91,6 +118,13 @@ export type PlanResponse = {
   consumed: Record<string, number> | null;
   warning: string | null;
   budget_max_daily: number;
+  day_context?: DayContext | null;
+  pricing_context?: {
+    store: string;
+    includes_flyer: boolean;
+    matched_foods: number;
+    fallback?: string | null;
+  } | null;
 };
 
 export type PlanGenerateRequest = {
@@ -195,6 +229,8 @@ export const santeApi = {
   // Score de forme (sommeil + sport + nutrition)
   score: () => api<ScoreDay>(`/sante/score`),
   scoreHistory: (days = 90) => api<{ days: number; points: ScorePoint[] }>(`/sante/score/history?days=${days}`),
+  scoreCorrelations: (jours = 90) =>
+    api<ScoreCorrelations>(`/sante/score/correlations?jours=${jours}`),
 
   // Favoris d'aliments — saisie rapide (#64)
   listFavorites: () => api<{ favorites: string[] }>(`/sante/favorites`).then((r) => r.favorites),

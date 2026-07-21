@@ -49,6 +49,11 @@ def _learn_key(marchand: str) -> str | None:
     return tokens[0] if tokens else None
 
 
+# Alias public : les alertes d'abonnement (#260) rapprochent les libellés
+# bancaires avec exactement la même normalisation que les règles apprenables.
+merchant_key = _learn_key
+
+
 def suggest_rules_from_history(
     transactions: list[Any], existing_rules: list[dict], *, min_occurrences: int = 3,
 ) -> list[dict]:

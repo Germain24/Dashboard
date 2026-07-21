@@ -62,6 +62,19 @@ def trend(months: int = 6, session: Session = Depends(get_session)):
     return analytics_svc.spending_trend(session, months)
 
 
+@router.get("/forecast")
+def forecast(
+    months_ahead: int = 6, history_months: int = 6,
+    revenus_delta_pct: float = 0.0, depenses_delta_pct: float = 0.0,
+    session: Session = Depends(get_session),
+):
+    """Prévision de trésorerie sur 1-12 mois, avec scénario optionnel (#259)."""
+    scenario = {"revenus_delta_pct": revenus_delta_pct, "depenses_delta_pct": depenses_delta_pct}
+    return analytics_svc.cash_flow_projection(
+        session, months_ahead=months_ahead, history_months=history_months, scenario=scenario,
+    )
+
+
 @router.get("/rolling-summary")
 def rolling_summary(days: int = 30, session: Session = Depends(get_session)):
     """Revenus/dépenses/solde sur les N derniers jours glissants."""
@@ -85,6 +98,24 @@ def recurring(session: Session = Depends(get_session)):
 def recurring_projection(session: Session = Depends(get_session)):
     """Récurrentes vs ponctuelles + projection annuelle des abonnements (#266)."""
     return analytics_svc.recurring_summary(session)
+
+
+@router.get("/recurring/alerts")
+def recurring_alerts(session: Session = Depends(get_session)):
+    """Alertes sur les abonnements : hausses de prix et doublons (#260)."""
+    return analytics_svc.subscription_alerts_summary(session)
+
+
+@router.get("/fire")
+def fire(
+    months: int = 12, taux_retrait: float = 0.04, rendement_reel: float = 0.05,
+    session: Session = Depends(get_session),
+):
+    """Rapport d'indépendance financière : taux d'épargne + années restantes (#268)."""
+    from app.services.budget import fire as fire_svc
+    return fire_svc.fire_report(
+        session, months=months, taux_retrait=taux_retrait, rendement_reel=rendement_reel,
+    )
 
 
 @router.get("/savings-goal")

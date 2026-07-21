@@ -25,7 +25,14 @@ def to_eur(amount: float, devise: str | None) -> float:
         return round(float(amount), 2)
     try:
         from app.services.finance.fx import convert
-        eur = convert(float(amount), devise.upper(), "EUR")
+        try:
+            eur = convert(float(amount), devise.upper(), "EUR", stale_ok=True)
+        except TypeError as exc:
+            # Compatibilité avec les convertisseurs injectés historiques qui
+            # n'acceptent que (amount, base, quote).
+            if "stale_ok" not in str(exc):
+                raise
+            eur = convert(float(amount), devise.upper(), "EUR")
         return eur if eur else round(float(amount), 2)
     except Exception:
         return round(float(amount), 2)

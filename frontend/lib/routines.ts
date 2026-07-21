@@ -138,11 +138,14 @@ export type Recommendation = { titre: string; module: string; impact: number; ra
 export const fetchRecommendations = (): Promise<{ recommendations: Recommendation[]; count: number }> =>
   fetch(`${BASE}/recommendations`).then(json)
 
-// Objectifs de vie inter-modules (#226)
+// Objectifs de vie inter-modules (#226) + jalons datés (§5.4)
 export type LifeGoalMetric = { metric: string; label: string }
-export type LifeGoalSub = { label: string; metric: string; baseline: number; cible: number; courant: number | null; pct: number | null; atteint: boolean }
-export type LifeGoal = { id: number; titre: string; echeance: string | null; objectifs: LifeGoalSub[]; pct_global: number | null }
-export type LifeGoalCreate = { titre: string; echeance?: string | null; objectifs: { label: string; metric: string; baseline: number; cible: number }[] }
+/** `statut` est dérivé côté serveur depuis `date` et la progression ; `date`
+ *  est null pour les sous-objectifs stockés avant les jalons datés. */
+export type LifeGoalJalonStatut = 'atteint' | 'en_retard' | 'a_venir'
+export type LifeGoalSub = { label: string; metric: string; baseline: number; cible: number; courant: number | null; pct: number | null; atteint: boolean; date: string | null; statut: LifeGoalJalonStatut }
+export type LifeGoal = { id: number; titre: string; echeance: string | null; objectifs: LifeGoalSub[]; pct_global: number | null; jalons_en_retard: number }
+export type LifeGoalCreate = { titre: string; echeance?: string | null; objectifs: { label: string; metric: string; baseline: number; cible: number; date?: string | null }[] }
 
 export const fetchLifeGoals = (): Promise<LifeGoal[]> => fetch(`${BASE}/objectifs-vie`).then(json)
 export const fetchLifeGoalMetrics = (): Promise<LifeGoalMetric[]> => fetch(`${BASE}/objectifs-vie/metriques`).then(json)

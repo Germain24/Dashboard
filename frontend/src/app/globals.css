@@ -21,7 +21,7 @@
 
   /* ── Lavis ambiants (profondeur derrière le verre) ─────── */
   --wash-1: rgb(4 20 44 / 0.07);
-  --wash-2: rgb(197 160 89 / 0.10);
+  --wash-2: rgb(197 160 89 / 0.1);
   --wash-3: rgb(83 98 82 / 0.06);
 
   /* Lavis d'accent par module (catégories du Deck) — repère spatial subtil. */
@@ -49,7 +49,7 @@
   --glass-strong: rgb(255 255 255 / 0.72);
   --glass-border: rgb(27 28 26 / 0.08);
   --glass-highlight: rgb(255 255 255 / 0.7);
-  --glass-blur: 24px;
+  --glass-blur: 18px;
   --field: rgb(255 255 255 / 0.5);
 
   /* ── Fonts (auto-hébergées via next/font, cf. layout.tsx) ── */
@@ -109,10 +109,30 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out-quint */
   /* Ressort doux (léger dépassement) pour les transforms — le feel Apple. */
   --spring: linear(
-    0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%,
-    1.017, 1.077 20.4%, 1.121, 1.149 24.3%, 1.159, 1.163 27%, 1.154, 1.129 32.8%,
-    1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%,
-    0.997 69.8%, 1.003 76.9%, 1
+    0,
+    0.009,
+    0.035 2.1%,
+    0.141 4.4%,
+    0.281 6.7%,
+    0.723 12.9%,
+    0.938 16.7%,
+    1.017,
+    1.077 20.4%,
+    1.121,
+    1.149 24.3%,
+    1.159,
+    1.163 27%,
+    1.154,
+    1.129 32.8%,
+    1.051 39.6%,
+    1.017 43.1%,
+    0.991,
+    0.977 51%,
+    0.974 53.8%,
+    0.975 57.1%,
+    0.997 69.8%,
+    1.003 76.9%,
+    1
   );
   --transition-fast: 100ms var(--ease-out);
   --transition: 180ms var(--ease-out);
@@ -132,19 +152,19 @@
 /* Thème sombre automatique (OS), sauf si l'utilisateur a explicitement choisi clair. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #0B121E;
+    --background: #0b121e;
     --background-subtle: #111a2a;
     --grain-opacity: 0.02;
     --foreground: #f2f1ed;
 
     --wash-1: rgb(197 160 89 / 0.09);
-    --wash-2: rgb(56 71 98 / 0.30);
+    --wash-2: rgb(56 71 98 / 0.3);
     --wash-3: rgb(80 19 18 / 0.14);
 
     --tint-finance: rgb(56 71 98 / 0.12);
-    --tint-corps: rgb(83 98 82 / 0.10);
+    --tint-corps: rgb(83 98 82 / 0.1);
     --tint-quotidien: rgb(197 160 89 / 0.09);
-    --tint-savoir: rgb(80 19 18 / 0.10);
+    --tint-savoir: rgb(80 19 18 / 0.1);
     --tint-loisirs: rgb(56 71 98 / 0.12);
 
     --muted: rgb(242 241 237 / 0.06);
@@ -168,7 +188,7 @@
 
     --sidebar: transparent;
 
-    --ring: #C5A059;
+    --ring: #c5a059;
     --nav-active-fg: #d8be8a;
     --tertiary: #d17771;
     --tertiary-muted: #501312;
@@ -178,7 +198,7 @@
     --success-muted: #3c4a3c;
     --success-foreground: #d7e7d3;
 
-    --warning: #C5A059;
+    --warning: #c5a059;
     --warning-muted: #574311;
     --warning-foreground: #f1e7c8;
 
@@ -205,19 +225,19 @@
 
 /* Thème sombre explicite (toggle manuel) — prime sur la préférence OS. */
 :root[data-theme="dark"] {
-  --background: #0B121E;
+  --background: #0b121e;
   --background-subtle: #111a2a;
   --grain-opacity: 0.02;
   --foreground: #f2f1ed;
 
   --wash-1: rgb(197 160 89 / 0.09);
-  --wash-2: rgb(56 71 98 / 0.30);
+  --wash-2: rgb(56 71 98 / 0.3);
   --wash-3: rgb(80 19 18 / 0.14);
 
   --tint-finance: rgb(56 71 98 / 0.12);
-  --tint-corps: rgb(83 98 82 / 0.10);
+  --tint-corps: rgb(83 98 82 / 0.1);
   --tint-quotidien: rgb(197 160 89 / 0.09);
-  --tint-savoir: rgb(80 19 18 / 0.10);
+  --tint-savoir: rgb(80 19 18 / 0.1);
   --tint-loisirs: rgb(56 71 98 / 0.12);
 
   --muted: rgb(242 241 237 / 0.06);
@@ -241,7 +261,7 @@
 
   --sidebar: transparent;
 
-  --ring: #C5A059;
+  --ring: #c5a059;
   --nav-active-fg: #d8be8a;
   --tertiary: #d17771;
   --tertiary-muted: #501312;
@@ -251,7 +271,7 @@
   --success-muted: #3c4a3c;
   --success-foreground: #d7e7d3;
 
-  --warning: #C5A059;
+  --warning: #c5a059;
   --warning-muted: #574311;
   --warning-foreground: #f1e7c8;
 
@@ -317,8 +337,12 @@ body::before {
   animation: washDrift 70s ease-in-out infinite alternate;
 }
 @keyframes washDrift {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(-2.5%, 2%, 0) scale(1.08); }
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-2.5%, 2%, 0) scale(1.08);
+  }
 }
 
 /* Grain papier : bruit SVG inline (feTurbulence), statique, au-dessus des
@@ -337,32 +361,42 @@ body::after {
 /* Catégorie -> teinte. Les segments hors table gardent les lavis de base. */
 body[data-module="finance"],
 body[data-module="patrimoine"],
-body[data-module="budget"] { --wash-module: var(--tint-finance); }
+body[data-module="budget"] {
+  --wash-module: var(--tint-finance);
+}
 
 body[data-module="sante"],
 body[data-module="entrainement"],
 body[data-module="score"],
 body[data-module="skincare"],
-body[data-module="garderobe"] { --wash-module: var(--tint-corps); }
+body[data-module="garderobe"] {
+  --wash-module: var(--tint-corps);
+}
 
 body[data-module="cuisine"],
 body[data-module="routines"],
 body[data-module="agenda"],
-body[data-module="habitudes"] { --wash-module: var(--tint-quotidien); }
+body[data-module="habitudes"] {
+  --wash-module: var(--tint-quotidien);
+}
 
 body[data-module="etudes"],
 body[data-module="travail"],
 body[data-module="jobs"],
 body[data-module="langues"],
 body[data-module="documents"],
-body[data-module="livres"] { --wash-module: var(--tint-savoir); }
+body[data-module="livres"] {
+  --wash-module: var(--tint-savoir);
+}
 
 body[data-module="musique"],
 body[data-module="film"],
 body[data-module="series"],
 body[data-module="gaming"],
 body[data-module="voyage"],
-body[data-module="journal"] { --wash-module: var(--tint-loisirs); }
+body[data-module="journal"] {
+  --wash-module: var(--tint-loisirs);
+}
 
 /* Titres en serif éditorial (Libre Caslon) — la voix de l'almanach, conservée
    dans le monde liquid glass. `.font-display` étend le serif à un élément
@@ -370,10 +404,12 @@ body[data-module="journal"] { --wash-module: var(--tint-loisirs); }
 h1,
 .font-display {
   font-family: var(--font-serif);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   text-wrap: balance;
 }
 
@@ -398,10 +434,10 @@ h1, h2, h3 {
 }
 .glass-card {
   background: var(--card);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   border: 1px solid var(--glass-border);
-  box-shadow: inset 0 1px 0 0 var(--glass-highlight), var(--shadow);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    var(--shadow);
 }
 /* Voile d'overlay (dialogs, palette, menus) — le fond reste deviné. */
 .glass-veil {
@@ -412,8 +448,42 @@ h1, h2, h3 {
 /* Surface encastrée (rail d'onglets, champs) : le creux, pas le relief. */
 .glass-inset {
   background: var(--field);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass-panel,
+  .glass-modal {
+    background: color-mix(in srgb, var(--background) 94%, var(--foreground) 6%);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --glass-blur: 12px;
+  }
+
+  body::before {
+    animation: none;
+  }
+
+  .glass-modal {
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+  }
+
+  .glass-veil {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel,
+  .glass-modal {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 /* ── Focus visible global ──────────────────────────────────── */
@@ -426,6 +496,13 @@ h1, h2, h3 {
 /* ── Scroll fluide ─────────────────────────────────────────── */
 html {
   scroll-behavior: smooth;
+}
+
+@media (pointer: coarse) {
+  [data-ui-control] {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* ── Scrollbar custom (Webkit) ─────────────────────────────── */
@@ -452,35 +529,74 @@ html {
 
 /* ── Animations ────────────────────────────────────────────── */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-8px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.97) translateY(6px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.animate-fade-in-up { animation: fadeInUp 0.45s var(--ease-out) forwards; }
-.animate-fade-in    { animation: fadeIn 0.3s var(--ease-out) forwards; }
+.animate-fade-in-up {
+  animation: fadeInUp 0.45s var(--ease-out) forwards;
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s var(--ease-out) forwards;
+}
 
-.animate-slide-left { animation: slideInLeft 0.3s var(--ease-out) forwards; }
-.animate-scale-in   { animation: scaleIn 0.28s var(--ease-out) forwards; }
+.animate-slide-left {
+  animation: slideInLeft 0.3s var(--ease-out) forwards;
+}
+.animate-scale-in {
+  animation: scaleIn 0.28s var(--ease-out) forwards;
+}
 
 /* Skeleton shimmer */
 .skeleton-shimmer {
@@ -498,9 +614,12 @@ html {
    durée base 0.45 s) au lieu du `ease` par défaut de la lib.
    :not([data-swiping='true']) laisse sonner couper la transition pendant le
    drag ; sa media query prefers-reduced-motion (!important) reste prioritaire. */
-[data-sonner-toast]:not([data-swiping='true']) {
-  transition: transform 0.45s var(--ease-out), opacity 0.45s var(--ease-out),
-    height 0.45s var(--ease-out), box-shadow 0.2s var(--ease-out);
+[data-sonner-toast]:not([data-swiping="true"]) {
+  transition:
+    transform 0.45s var(--ease-out),
+    opacity 0.45s var(--ease-out),
+    height 0.45s var(--ease-out),
+    box-shadow 0.2s var(--ease-out);
 }
 ol[data-sonner-toaster] {
   transition: transform 0.45s var(--ease-out);
@@ -516,7 +635,12 @@ ol[data-sonner-toaster] {
 
 /* prefers-reduced-motion : désactive toutes les animations */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -525,7 +649,9 @@ ol[data-sonner-toaster] {
 
 /* ── Interactions globales ─────────────────────────────────── */
 .card-hover {
-  transition: box-shadow 220ms var(--ease-out), transform 220ms var(--ease-out),
+  transition:
+    box-shadow 220ms var(--ease-out),
+    transform 220ms var(--ease-out),
     border-color 220ms var(--ease-out);
 }
 .card-hover:hover {
@@ -535,7 +661,9 @@ ol[data-sonner-toaster] {
 }
 
 .interactive {
-  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out),
+  transition:
+    background-color 180ms var(--ease-out),
+    color 180ms var(--ease-out),
     opacity 180ms var(--ease-out);
   cursor: pointer;
 }
@@ -543,7 +671,9 @@ ol[data-sonner-toaster] {
 /* Remplissage des barres de progression : quand la donnée revalide (TanStack),
    le delta glisse au lieu de sauter. La largeur inline vient du composant. */
 .bar-fill {
-  transition: width 0.45s var(--ease-out), background-color 0.45s var(--ease-out);
+  transition:
+    width 0.45s var(--ease-out),
+    background-color 0.45s var(--ease-out);
 }
 
 /* Item de navigation actif (« vous êtes ici »).
@@ -612,15 +742,32 @@ ol[data-sonner-toaster] {
   }
 }
 @keyframes deckPop {
-  0%        { opacity: 0.3; transform: scale(0.93) translateY(28px); }
-  42%, 58%  { opacity: 1;   transform: scale(1) translateY(0); }
-  100%      { opacity: 0.3; transform: scale(0.93) translateY(-28px); }
+  0% {
+    opacity: 0.3;
+    transform: scale(0.93) translateY(28px);
+  }
+  42%,
+  58% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(0.93) translateY(-28px);
+  }
 }
 
 /* Indice « scroll vers le bas » : flèche qui respire. */
 @keyframes hintFloat {
-  0%, 100% { transform: translateY(0); opacity: 0.7; }
-  50%      { transform: translateY(6px); opacity: 1; }
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
 }
 .deck-hint {
   animation: hintFloat 2.4s ease-in-out infinite;
@@ -628,17 +775,26 @@ ol[data-sonner-toaster] {
 
 /* Transforms à ressort (hover de cartes, dots, pastilles). */
 .springy {
-  transition: transform 480ms var(--spring), box-shadow 320ms var(--ease-out),
-    border-color 320ms var(--ease-out), background-color 320ms var(--ease-out);
+  transition:
+    transform 480ms var(--spring),
+    box-shadow 320ms var(--ease-out),
+    border-color 320ms var(--ease-out),
+    background-color 320ms var(--ease-out);
 }
 
 /* ── Tiroir latéral (menu principal, depuis le dock) ───────
    « Porte lourde bien huilée » : démarre vite, atterrit doux. */
 .drawer-enter {
-  transition: transform 350ms var(--ease-out), opacity 350ms var(--ease-out);
+  transition:
+    transform 350ms var(--ease-out),
+    opacity 350ms var(--ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .deck { scroll-snap-type: y proximity; }
-  .deck-section > .deck-pop { animation: none; }
+  .deck {
+    scroll-snap-type: y proximity;
+  }
+  .deck-section > .deck-pop {
+    animation: none;
+  }
 }

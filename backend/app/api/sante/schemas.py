@@ -91,6 +91,7 @@ class TargetsResponse(BaseModel):
     intensity_was_default: bool
     base_targets: dict[str, float]
     targets: dict[str, float]  # compensés J-1
+    day_context: Optional[dict[str, Any]] = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -145,6 +146,8 @@ class PlanResponse(BaseModel):
     consumed: Optional[dict[str, float]] = None
     warning: Optional[str] = None
     budget_max_daily: float
+    day_context: Optional[dict[str, Any]] = None
+    pricing_context: Optional[dict[str, Any]] = None
 
 
 class PlanPatchRequest(BaseModel):

@@ -11,11 +11,27 @@ from __future__ import annotations
 # 'boursedirect' vise le compte principal (BoursDirect2).
 _ACCOUNT_TO_BROKER = {
     "trading212": "Trading212",
+    "tradding212": "Trading212",
     "t212": "Trading212",
     "boursedirect": "BoursDirect2",
     "boursedirect2": "BoursDirect2",
+    "boursdirect2": "BoursDirect2",
     "boursedirect1": "BoursDirect",
+    "boursdirect1": "BoursDirect",
+    "boursdirect": "BoursDirect",
 }
+
+
+def canonical_broker_name(name: object) -> str:
+    """Renvoie le nom canonique d'un broker connu.
+
+    Les positions historiques utilisent notamment ``Bourse Direct`` alors que
+    l'optimiseur nomme le même compte principal ``BoursDirect2``. Centraliser
+    cette correspondance évite de simuler une vente suivie d'un rachat sur le
+    même compte.
+    """
+    normalized = "".join(char for char in str(name or "").lower() if char.isalnum())
+    return _ACCOUNT_TO_BROKER.get(normalized, str(name or "").strip())
 
 
 def compute_budgets(static: dict, balances: dict) -> dict:
@@ -26,8 +42,8 @@ def compute_budgets(static: dict, balances: dict) -> dict:
     """
     out = dict(static)
     for acct, info in (balances or {}).items():
-        broker = _ACCOUNT_TO_BROKER.get(str(acct).strip().lower())
-        if broker is None or broker not in out:
+        broker = canonical_broker_name(acct)
+        if broker not in out:
             continue
         try:
             out[broker] = round(float(info.get("solde")), 2)

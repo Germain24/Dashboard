@@ -1,9 +1,10 @@
 """Tests basiques de l'optimiseur SLSQP + sémantique MinQty (semi-continuous)."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
-from app.services.sante.optimizer import optimize_nutrition
+from app.services.sante.optimizer import diversity_penalty, optimize_nutrition
 
 
 def _mini_catalog() -> pd.DataFrame:
@@ -117,6 +118,66 @@ def test_high_targets_still_work_with_minqty():
     targets["Protéines"] = 176.0
     plan, warning = optimize_nutrition(df, targets, budget_max_daily=180.0)
     assert plan is not None, f"Plan attendu, got None (warning: {warning})"
+
+
+# ── Malus de diversité (#bug rapporté : "5g de courgette" — un aliment inclus
+# pour un gain marginal minuscule, puis remonté à MinQty par le snap). ──────
+
+def test_diversity_penalty_zero_when_nothing_included():
+    assert diversity_penalty(np.zeros(3), eps=0.02) == 0.0
+
+
+def test_diversity_penalty_half_at_eps():
+    x = np.array([0.02, 0.0, 0.0])
+    assert diversity_penalty(x, eps=0.02) == pytest.approx(0.5)
+
+
+def test_diversity_penalty_saturates_near_one_for_large_quantity():
+    x = np.array([2.0])  # 200g, très au-dessus de eps
+    assert diversity_penalty(x, eps=0.02) > 0.98
+
+
+def test_diversity_penalty_grows_with_number_of_foods():
+    small = diversity_penalty(np.array([1.0]), eps=0.02)
+    large = diversity_penalty(np.array([1.0, 1.0, 1.0]), eps=0.02)
+    assert large == pytest.approx(3 * small)
+
+
+def test_diversity_malus_reduces_marginal_filler_foods():
+    """Avec un malus de diversité, l'optimiseur consolide sur MOINS d'aliments
+    à faible valeur marginale plutôt que de saupoudrer une cible de couverture
+    (ici Magnesium, presque entièrement à 0) sur de nombreux "fillers" quasi
+    équivalents. Reproduit la dynamique du bug rapporté (« 5g de courgette ») :
+    sans malus, le coût nul de chaque source additionnelle (prix négligeable,
+    shortfall^4 toujours légèrement positif) encourage à en inclure beaucoup ;
+    avec malus, chaque aliment actif a un coût fixe -> consolidation."""
+    df = _mini_catalog()
+    df.loc["Riz blanc", "Magnesium"] = 100.0
+    df.loc["Poulet", "Magnesium"] = 25.0
+    for i, mg in enumerate([8.0, 7.0, 6.0, 5.0, 4.0, 3.0]):
+        name = f"Filler{i}"
+        row = df.loc["Brocoli"].copy()
+        row["Magnesium"] = mg
+        row["Prix"] = 0.01
+        df.loc[name] = row
+    targets = _t(_base_targets())
+    targets["Magnésium"] = 400.0
+
+    import app.services.sante.optimizer as opt_mod
+
+    plan_with_malus, _ = optimize_nutrition(df, targets, budget_max_daily=18.0)
+    n_with = sum(1 for it in plan_with_malus if it["Aliment"].startswith("Filler"))
+
+    old_weight = opt_mod.DIVERSITY_WEIGHT
+    opt_mod.DIVERSITY_WEIGHT = 0.0
+    try:
+        plan_without_malus, _ = optimize_nutrition(df, targets, budget_max_daily=18.0)
+    finally:
+        opt_mod.DIVERSITY_WEIGHT = old_weight
+    n_without = sum(1 for it in plan_without_malus if it["Aliment"].startswith("Filler"))
+
+    assert n_without == 6            # sans malus : saupoudré sur tous les fillers
+    assert n_with < n_without        # avec malus : nettement consolidé
 
 
 def test_tight_budget_emits_warning_or_failure():

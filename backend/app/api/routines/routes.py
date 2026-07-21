@@ -563,6 +563,8 @@ class SousObjectif(BaseModel):
     metric: str
     baseline: float
     cible: float
+    # Jalon daté (§5.4) — optionnel : les objectifs déjà stockés n'en ont pas.
+    date: str | None = None
 
 
 class LifeGoalIn(BaseModel):

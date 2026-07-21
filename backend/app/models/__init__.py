@@ -36,4 +36,10 @@ from app.models.gaming import Game, GameGoal  # noqa: F401
 from app.models.langues import ProjetInternational, VocabEntry  # noqa: F401
 from app.models.objectifs_vie import LifeGoal  # noqa: F401
 from app.models.patrimoine import PatrimoineItem, PatrimoineSnapshot  # noqa: F401
-from app.models.voyage import LieuVoyage  # noqa: F401
+from app.models.voyage import (  # noqa: F401
+    LieuVoyage,
+    Voyage,
+    VoyageChecklistItem,
+    VoyageEtape,
+    VoyagePriceCache,
+)

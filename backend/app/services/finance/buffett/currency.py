@@ -89,13 +89,47 @@ def ensure_volume_eur(metrics: dict, ticker: str = "") -> dict:
     return out
 
 
-def warm_fx_cache(quote: str = "EUR") -> None:
+def warm_fx_cache(quote: str = "EUR", budget_s: float = 90.0) -> None:
     """Précharge les taux devise->quote au DÉMARRAGE du run Buffett : pendant
     l'analyse, fx.get_rate ne frappe plus le réseau (garde _analysis_running)
     et rendrait 0.0 pour toute paire jamais vue ce jour -> tous les volumes
-    non-EUR seraient nuls et écartés comme illiquides."""
+    non-EUR seraient nuls et écartés comme illiquides.
+
+    BORNÉ dans le temps (#bug POST /buffett/run « ne fait rien » : Yahoo
+    throttlé rendait ce warm-up interminable, verrou d'analyse tenu, aucun
+    log, aucun run visible) : budget global + timeout par paire ; au premier
+    timeout on abandonne le reste (la session Yahoo est saturée, les paires
+    suivantes pendraient pareil -- thread abandonné, même compromis que
+    yf_session.download_with_timeout). Les paires manquantes retombent sur le
+    dernier taux connu (cache disque rechargé ici) ou volume 0."""
+    import concurrent.futures
+    import time as _time
+
+    fx.load_disk_cache()   # taux d'un run précédent (survit au redémarrage)
     currencies = sorted(({*SUFFIX_CCY.values()} | {"USD"}) - {quote.upper()})
-    ok = [c for c in currencies if fx.get_rate(c, quote, force=True) > 0]
+    print(f"[currency] FX warm-up de {len(currencies)} paires -> {quote} "
+          f"(budget {budget_s:.0f}s)...")
+    t0 = _time.monotonic()
+    ok: list[str] = []
+    ex = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    try:
+        for ccy in currencies:
+            remaining = budget_s - (_time.monotonic() - t0)
+            if remaining <= 0:
+                break
+            fut = ex.submit(fx.get_rate, ccy, quote, force=True)
+            try:
+                if fut.result(timeout=min(20.0, remaining)) > 0:
+                    ok.append(ccy)
+            except concurrent.futures.TimeoutError:
+                break
+            except Exception:
+                pass
+    finally:
+        ex.shutdown(wait=False)
+    fx.save_disk_cache()
     manquantes = sorted(set(currencies) - set(ok))
-    print(f"[currency] FX warm-up : {len(ok)}/{len(currencies)} paires -> {quote}"
-          + (f" (manquantes : {', '.join(manquantes)})" if manquantes else ""))
+    print(f"[currency] FX warm-up : {len(ok)}/{len(currencies)} paires -> {quote} "
+          f"en {_time.monotonic() - t0:.0f}s"
+          + (f" (manquantes : {', '.join(manquantes)} -> dernier taux connu ou volume 0)"
+             if manquantes else ""))

@@ -156,7 +156,7 @@ def compute_shopping(
     Déduit ce qu'on possède déjà : la ligne 'QuantiteDispo' d'aliments.csv ET le
     garde-manger (data/cuisine_pantry.json) — un ingrédient présent au garde-manger
     réduit (ou supprime) la quantité à acheter. Annote ensuite chaque item restant
-    avec un magasin recommandé (Super C/Adonis) + prix estimé, en best-effort
+    avec un magasin recommandé (Super C) + prix estimé, en best-effort
     (voir store_pricing.py) : un échec de comparaison n'empêche jamais la liste.
     """
     q = select(MealPlanEntry).where(MealPlanEntry.semaine == semaine)

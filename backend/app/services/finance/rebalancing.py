@@ -18,7 +18,9 @@ from dataclasses import dataclass, field
 
 from sqlmodel import Session, select
 
-from app.models.finance import BuffettRun, BuffettRunResult
+from app.core.config import settings as _settings
+from app.models.finance import BuffettRun, BuffettRunResult, BuffettRunStatus
+from app.services.finance.buffett.broker_budgets import canonical_broker_name
 from app.services.finance.buffett.config import Config
 from app.services.finance.portfolio import get_positions
 
@@ -62,7 +64,6 @@ class RebalancingDiff:
 
 # Seuil (en points de %) au-delà duquel un écart poids actuel/cible déclenche une
 # alerte. Pilotable par .env (FINANCE_REBALANCE_ALERT_PCT).
-from app.core.config import settings as _settings
 
 REBALANCE_ALERT_THRESHOLD_PCT = _settings.finance_rebalance_alert_pct
 
@@ -75,7 +76,7 @@ def _ecart_alerte(actuel_pct: float, cible_pct: float, seuil: float) -> tuple[fl
 def _get_last_run(session: Session) -> BuffettRun | None:
     stmt = (
         select(BuffettRun)
-        .where(BuffettRun.statut == "termine")
+        .where(BuffettRun.statut == BuffettRunStatus.TERMINE.value)
         .order_by(BuffettRun.run_date.desc())  # type: ignore[attr-defined]
     )
     return session.exec(stmt).first()
@@ -92,36 +93,15 @@ def _get_run_results(session: Session, run_id: int) -> list[BuffettRunResult]:
 
 
 def _norm_broker(name) -> str:
-    return "".join(filter(str.isalnum, str(name or "").upper()))
+    canonical = canonical_broker_name(name)
+    return "".join(filter(str.isalnum, canonical.upper()))
 
 
 def _fetch_prices(tickers: list[str]) -> dict[str, float]:
-    """Prix courants pour une liste de tickers. {ticker: prix}."""
-    prices: dict[str, float] = {}
-    tickers = [t for t in tickers if t]
-    if not tickers:
-        return prices
-    try:
-        from app.services.finance.yf_session import download_with_timeout, yf_session
-        data = download_with_timeout(
-            tickers=tickers, period="5d", auto_adjust=True, progress=False, session=yf_session(),
-        )
-        close = data["Close"] if "Close" in getattr(data, "columns", []) else data
-        for t in tickers:
-            try:
-                if t in close.columns:
-                    s = close[t].dropna()
-                    if len(s):
-                        prices[t] = float(s.iloc[-1])
-                elif len(tickers) == 1:
-                    s = close.dropna()
-                    if len(s):
-                        prices[t] = float(s.iloc[-1])
-            except Exception:
-                pass
-    except Exception:
-        pass
-    return prices
+    """Prix du cache partage ; actualisation Yahoo en arriere-plan si besoin."""
+    from app.services.finance.prices import get_prices
+
+    return get_prices((ticker for ticker in tickers if ticker), stale_ok=True)
 
 
 def _target_allocations(r: BuffettRunResult, budget_total: float) -> list[dict]:
@@ -145,7 +125,11 @@ def _target_allocations(r: BuffettRunResult, budget_total: float) -> list[dict]:
     }]
 
 
-def _action(delta_eur: float) -> str:
+def _action(delta_eur: float, delta_shares: int | None = None) -> str:
+    if delta_shares is not None:
+        if delta_shares == 0:
+            return "CONSERVER"
+        return "ACHETER" if delta_shares > 0 else "VENDRE"
     if abs(delta_eur) < 1:
         return "CONSERVER"
     return "ACHETER" if delta_eur > 0 else "VENDRE"
@@ -167,7 +151,18 @@ def compute_rebalancing_diff(session: Session) -> RebalancingDiff | None:
     pos_map: dict[tuple[str, str], tuple[dict, float]] = {}
     for p in positions:
         price = prices.get(p["ticker"]) or (p["pmu"] or 0.0)
-        pos_map[(p["ticker"], _norm_broker(p["broker"]))] = (p, price)
+        key = (p["ticker"], _norm_broker(p["broker"]))
+        if key in pos_map:
+            # Deux libellés alias peuvent coexister dans l'historique. Ils
+            # représentent le même compte et leurs quantités doivent s'additionner.
+            previous, previous_price = pos_map[key]
+            merged = dict(previous)
+            merged["quantite"] = float(previous.get("quantite") or 0) + float(
+                p.get("quantite") or 0
+            )
+            pos_map[key] = (merged, price or previous_price)
+        else:
+            pos_map[key] = (p, price)
 
     valeur_totale = sum(price * (p["quantite"] or 0) for p, price in pos_map.values())
     if valeur_totale <= 0:
@@ -194,8 +189,15 @@ def compute_rebalancing_diff(session: Session) -> RebalancingDiff | None:
             pos, price = pos_map.get(key, (None, prices.get(r.ticker) or prix or 0))
             qte = float(pos["quantite"]) if pos else 0.0
             val_act = (price or prix) * qte
-            delta_eur = cible_eur - val_act
             delta_shares = (int(cible_shares) - round(qte)) if cible_shares is not None else None
+            # Sur un broker entier, le nombre d'actions est la consigne réelle.
+            # Une variation de cours ne doit pas créer un delta en euros si la
+            # quantité détenue correspond déjà exactement à la cible.
+            delta_eur = (
+                delta_shares * (price or prix)
+                if delta_shares is not None
+                else cible_eur - val_act
+            )
 
             alloc_actuelle = round(val_act / denom_actuel * 100, 2)
             alloc_cible = round(cible_eur / budget_total * 100, 2) if budget_total else 0.0
@@ -214,7 +216,7 @@ def compute_rebalancing_diff(session: Session) -> RebalancingDiff | None:
                 allocation_cible_pct=alloc_cible,
                 delta_eur=round(delta_eur, 2),
                 delta_shares=delta_shares,
-                action=_action(delta_eur),
+                action=_action(delta_eur, delta_shares),
                 ecart_pct=ecart,
                 alerte=alerte,
             ))

@@ -54,14 +54,16 @@ def dividendes(session: Session = Depends(get_session)):
 def transactions_create(body: TransactionCreate,
                         session: Session = Depends(get_session)):
     data = {
-        "ticker": body.ticker.upper(),
+        "ticker": body.ticker.strip().upper(),
         "type": body.type_transaction.lower(),  # normalisé (casse front incohérente)
         "date": dt.datetime.combine(body.date_transaction, dt.time.min),
         "quantite": body.quantite,
         "prix_unitaire": body.prix_unitaire,
         "frais": body.frais,
-        "devise": body.devise,
-        "broker": body.broker,
+        "montant_brut": body.montant_brut,
+        "retenue_source": body.retenue_source,
+        "devise": body.devise.upper(),
+        "broker": body.broker.strip() if body.broker else None,
         "note": body.note,
     }
     return create_transaction(session, data)

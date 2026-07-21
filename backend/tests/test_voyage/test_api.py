@@ -4,12 +4,11 @@ from __future__ import annotations
 import openpyxl
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 import app.models  # noqa: F401
 from app.api.voyage import routes as voyage_routes
-from app.core.config import settings
 from app.core.db import get_session
 from app.main import create_app
 from app.models.voyage import LieuVoyage
@@ -200,7 +199,11 @@ def test_planifier_happy_path(client, session, monkeypatch):
     # coût/jour de 0, seul CPT compte : 2 legs x 0.5x80x1.2 = 96) = 1096.
     assert data["cout_transport"] == 1096.0
     assert data["cout_sejour"] == 160.0  # 2 jours x 80
-    assert data["cout_total"] == 1256.0
+    assert data["cout_hebergement"] == 104.0
+    assert data["cout_nourriture"] == 56.0
+    assert data["cout_activites"] == 28.8
+    assert data["cout_transport_local"] == 28.8
+    assert data["cout_total"] == 1313.6
 
 
 def test_planifier_includes_coordinates(client, session, monkeypatch):
@@ -431,6 +434,73 @@ def test_planifier_auto_returns_409_when_infeasible(client, session, monkeypatch
         "depart_iata": "YUL", "date_debut": "2026-09-01", "date_fin": "2026-09-01", "budget_total": 10,
     })
     assert r.status_code == 409
+
+
+def test_planifier_auto_respects_open_jaw_geographic_corridor(client, session, monkeypatch):
+    iceland = LieuVoyage(
+        nom="Reykjavik", ville="Reykjavik", pays="Islande", aeroport_iata="KEF",
+        jours_min=2, jours_max=3, cout_jour_estime=100.0,
+    )
+    australia = LieuVoyage(
+        nom="Sydney", ville="Sydney", pays="Australie", aeroport_iata="SYD",
+        jours_min=2, jours_max=3, cout_jour_estime=100.0,
+    )
+    session.add_all([iceland, australia])
+    session.commit()
+    coords = {
+        "YUL": (45.4706, -73.7408), "CDG": (49.0097, 2.5479),
+        "KEF": (63.985, -22.6056), "SYD": (-33.9399, 151.1753),
+    }
+    monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: coords.get(iata))
+    monkeypatch.setattr(
+        voyage_routes, "estimate_trajet",
+        lambda origine, destination: {"prix": 300.0, "duree_min": 300},
+    )
+
+    response = client.post("/voyage/planifier-auto", json={
+        "depart_iata": "YUL", "arrivee_iata": "CDG",
+        "date_debut": "2026-09-01", "date_fin": "2026-09-15",
+        "budget_total": 15000, "k": 2, "prix_live": False,
+    })
+    assert response.status_code == 200
+    names = {
+        step["nom"]
+        for itinerary in response.json()["itineraires"]
+        for step in itinerary["etapes"]
+    }
+    assert "Reykjavik" in names
+    assert "Sydney" not in names
+
+
+def test_planifier_auto_excludes_impossible_activities(client, session, monkeypatch):
+    allowed = LieuVoyage(
+        nom="Bogota", pays="Colombie", aeroport_iata="BOG",
+        jours_min=2, jours_max=3, cout_jour_estime=70,
+    )
+    forbidden = LieuVoyage(
+        nom="Pyongyang", pays="Corée du Nord", aeroport_iata="FNJ",
+        jours_min=2, jours_max=3, cout_jour_estime=70,
+        statut="impossible", raison_indisponible="Évitez tout voyage",
+    )
+    session.add_all([allowed, forbidden])
+    session.commit()
+    coords = {
+        "YUL": (45.4706, -73.7408), "BOG": (4.7016, -74.1469),
+        "FNJ": (39.224, 125.67),
+    }
+    monkeypatch.setattr(voyage_routes, "lookup_coords", lambda iata, **kwargs: coords.get(iata))
+    monkeypatch.setattr(
+        voyage_routes, "estimate_trajet",
+        lambda origine, destination: {"prix": 300.0, "duree_min": 300},
+    )
+
+    response = client.post("/voyage/planifier-auto", json={
+        "depart_iata": "YUL", "date_debut": "2026-09-01", "date_fin": "2026-09-10",
+        "budget_total": 3000, "k": 1, "prix_live": False,
+    })
+    assert response.status_code == 200
+    names = {step["nom"] for step in response.json()["itineraires"][0]["etapes"]}
+    assert names == {"Bogota"}
 
 
 def test_confirmer_marks_visite(client, session, monkeypatch, tmp_path):

@@ -1,60 +1,109 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
-import { DeStarrChart } from '@/components/finance/DeStarrChart'
-import type { OptProgress } from '@/components/finance/buffett-ui'
+import { beforeEach, describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { DeStarrChart } from "@/components/finance/DeStarrChart";
+import type { OptProgress } from "@/components/finance/buffett-ui";
+
+type ScorePoint = NonNullable<OptProgress["score_history"]>[number];
+
+function point(iteration: number, score: number): ScorePoint {
+  return { iteration, seed_num: 1, seed_iteration: iteration, score };
+}
 
 function progress(overrides: Partial<OptProgress>): OptProgress {
   return {
-    active: true, phase: 'optimisation', seed_num: 1, iteration: 1,
-    convergence: 0.1, progress_pct: 10, message: '', run_id: 1,
-    stop_requested: false, best_score: null,
+    active: true,
+    phase: "optimisation",
+    seed_num: 1,
+    iteration: 1,
+    total_iterations: 1,
+    initialization_attempt: 0,
+    initialization_max: 0,
+    convergence: 0.1,
+    progress_pct: 10,
+    message: "",
+    run_id: 1,
+    stop_requested: false,
+    best_score: 0.5,
+    score_history: [],
     ...overrides,
-  }
+  };
 }
 
-describe('DeStarrChart', () => {
+describe("DeStarrChart", () => {
   beforeEach(() => {
-    sessionStorage.clear()
-    cleanup()
-  })
+    sessionStorage.clear();
+    cleanup();
+  });
 
-  it("n'affiche rien tant qu'il n'y a pas 2 points", () => {
-    const { rerender } = render(<DeStarrChart optProgress={progress({ best_score: 0.5 })} />)
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
-    rerender(<DeStarrChart optProgress={progress({ best_score: 0.5 })} />)
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
-  })
+  it("n'affiche rien tant qu'il n'y a pas deux itérations", () => {
+    render(<DeStarrChart optProgress={progress({ score_history: [point(1, 0.5)] })} />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
 
-  it('affiche le graphique après 2 valeurs distinctes du même run', () => {
-    const { rerender } = render(<DeStarrChart optProgress={progress({ best_score: 0.5 })} />)
-    rerender(<DeStarrChart optProgress={progress({ best_score: 0.8 })} />)
-    expect(screen.getByRole('img')).toBeInTheDocument()
-    expect(screen.getByText('min 0,5000')).toBeInTheDocument()
-    expect(screen.getByText('max 0,8000')).toBeInTheDocument()
-  })
+  it("ajoute un point par itération même lorsque le meilleur score ne change pas", () => {
+    const { rerender } = render(
+      <DeStarrChart optProgress={progress({ score_history: [point(1, 0.5)] })} />,
+    );
+    rerender(
+      <DeStarrChart optProgress={progress({
+        iteration: 2,
+        total_iterations: 2,
+        score_history: [point(2, 0.5)],
+      })} />,
+    );
 
-  it('reprend l\'historique déjà accumulé après un remount (refresh de page simulé)', () => {
-    const { rerender, unmount } = render(<DeStarrChart optProgress={progress({ best_score: 0.5 })} />)
-    rerender(<DeStarrChart optProgress={progress({ best_score: 0.8 })} />)
-    expect(screen.getByText('max 0,8000')).toBeInTheDocument()
+    expect(screen.getByRole("img")).toHaveAccessibleName(/2 générations/);
+    expect(screen.getByText("2 itérations")).toBeInTheDocument();
+  });
 
-    unmount()
-    // Remount "à froid" du même composant, comme après un refresh de page --
-    // l'historique doit être repris depuis sessionStorage (même run_id), pas
-    // reparti à un seul point.
-    render(<DeStarrChart optProgress={progress({ best_score: 0.8 })} />)
-    expect(screen.getByText('max 0,8000')).toBeInTheDocument()
-    expect(screen.getByText('min 0,5000')).toBeInTheDocument()
-  })
+  it("accepte un lot de points incrémentaux retourné par le serveur", () => {
+    render(<DeStarrChart optProgress={progress({
+      iteration: 3,
+      total_iterations: 3,
+      best_score: 0.8,
+      score_history: [point(1, 0.5), point(2, 0.5), point(3, 0.8)],
+    })} />);
 
-  it("ne réutilise pas l'historique d'un run_id différent", () => {
-    const { rerender, unmount } = render(<DeStarrChart optProgress={progress({ run_id: 1, best_score: 0.5 })} />)
-    rerender(<DeStarrChart optProgress={progress({ run_id: 1, best_score: 0.8 })} />)
-    unmount()
+    expect(screen.getByRole("img")).toHaveAccessibleName(/3 générations/);
+    expect(screen.getByText("min 0,5000 · max 0,8000")).toBeInTheDocument();
+  });
 
-    const { rerender: rerender2 } = render(<DeStarrChart optProgress={progress({ run_id: 2, best_score: 0.1 })} />)
-    rerender2(<DeStarrChart optProgress={progress({ run_id: 2, best_score: 0.2 })} />)
-    expect(screen.getByText('min 0,1000')).toBeInTheDocument()
-    expect(screen.getByText('max 0,2000')).toBeInTheDocument()
-  })
-})
+  it("reprend l'historique du même run après un remount", () => {
+    const { unmount } = render(<DeStarrChart optProgress={progress({
+      total_iterations: 2,
+      iteration: 2,
+      best_score: 0.8,
+      score_history: [point(1, 0.5), point(2, 0.8)],
+    })} />);
+    expect(screen.getByText("2 itérations")).toBeInTheDocument();
+    unmount();
+
+    render(<DeStarrChart optProgress={progress({
+      total_iterations: 2,
+      iteration: 2,
+      best_score: 0.8,
+      score_history: [],
+    })} />);
+    expect(screen.getByText("min 0,5000 · max 0,8000")).toBeInTheDocument();
+  });
+
+  it("ne réutilise pas l'historique d'un autre run", () => {
+    const { unmount } = render(<DeStarrChart optProgress={progress({
+      run_id: 1,
+      total_iterations: 2,
+      iteration: 2,
+      best_score: 0.8,
+      score_history: [point(1, 0.5), point(2, 0.8)],
+    })} />);
+    unmount();
+
+    render(<DeStarrChart optProgress={progress({
+      run_id: 2,
+      total_iterations: 2,
+      iteration: 2,
+      best_score: 0.2,
+      score_history: [point(1, 0.1), point(2, 0.2)],
+    })} />);
+    expect(screen.getByText("min 0,1000 · max 0,2000")).toBeInTheDocument();
+  });
+});

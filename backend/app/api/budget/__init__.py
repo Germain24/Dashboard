@@ -6,9 +6,10 @@ Tous sont montés sous le même préfixe `/budget`.
 """
 from fastapi import APIRouter
 
-from . import analytics, categories, transactions
+from . import analytics, categories, contracts, transactions
 
 router = APIRouter(tags=["budget"])
 router.include_router(transactions.router)
 router.include_router(categories.router)
 router.include_router(analytics.router)
+router.include_router(contracts.router)

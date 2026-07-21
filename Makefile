@@ -1,6 +1,12 @@
 # Mission Control — orchestration dev
 # Usage : make <cible>
 
+# Les processus Python sont capturés par concurrently sous Windows. Sans ces
+# variables, Python choisit parfois CP-1252 tandis que le terminal attend UTF-8.
+export PYTHONUTF8 := 1
+export PYTHONIOENCODING := utf-8
+FRONTEND_HOST ?= 127.0.0.1
+
 .PHONY: help install install-backend install-frontend dev dev-backend dev-frontend \
         migrate migrate-new import seed test test-backend test-frontend gen-types \
         clean fmt lint hooks wait-health up down prod
@@ -36,13 +42,13 @@ install-frontend:
 dev:
 	cd frontend && npx concurrently -n backend,frontend -c blue,magenta \
 	  "cd ../backend && uv run uvicorn app.main:app --reload --reload-dir app --host 127.0.0.1 --port 8000" \
-	  "next dev"
+	  "next dev --hostname $(FRONTEND_HOST)"
 
 dev-backend:
 	cd backend && uv run uvicorn app.main:app --reload --reload-dir app --host 127.0.0.1 --port 8000
 
 dev-frontend:
-	cd frontend && npm run dev
+	cd frontend && npm run dev -- --hostname $(FRONTEND_HOST)
 
 # ---------- DB ----------
 migrate:

@@ -47,18 +47,15 @@ def test_returns_none_when_even_direct_trip_is_infeasible():
     assert result is None
 
 
-def test_fills_remaining_budget_and_days_without_jours_max_cap():
-    """Budget/jours très larges par rapport au séjour minimal -> le solveur ne
-    laisse pas les vacances/le budget inutilisés : il prolonge le séjour dans
-    le lieu retenu jusqu'à épuiser le budget ou les jours disponibles, SANS
-    être plafonné par jours_max=3 (on ne visite plus rien de spécial à ce
-    stade, donc ce plafond touristique ne s'applique pas)."""
+def test_never_fills_remaining_days_beyond_jours_max():
+    """Le solveur ne doit plus inventer un séjour de 28 jours pour une activité
+    dont la durée pertinente maximale est de 3 jours."""
     candidats = [{"id": "X", "jours_min": 1, "jours_max": 3, "cout_jour": 10.0}]
     points = ["DEPART", "X", "ARRIVEE"]
     trajets = _trajets_uniformes(points, prix=10.0, duree_min=60)
     result = solve_itinerary(candidats, trajets, budget_total=1000, jours_disponibles=30)
     assert result is not None
-    assert result[0]["jours"] == 28  # dépasse jours_max=3 : les 27 jours restants (budget largement suffisant) sont tous utilisés
+    assert result[0]["jours"] == 3
 
 
 def test_top_k_returns_distinct_visited_sets_ranked_best_first():
@@ -103,23 +100,20 @@ def test_departure_and_arrival_can_differ():
     assert "DEPART" not in ids_visites and "ARRIVEE" not in ids_visites
 
 
-def test_fills_only_cheapest_candidate_when_several_selected():
-    """2 lieux retenus, coûts/jour différents -> le budget/temps restant est
-    entièrement dépensé sur le MOINS CHER (10$/j), le plus cher (100$/j)
-    gardant sa durée minimale."""
+def test_fills_high_priority_candidate_first_within_caps():
+    """Les jours supplémentaires suivent la priorité, puis respectent les
+    plafonds de chaque activité au lieu de tout verser au lieu le moins cher."""
     candidats = [
-        {"id": "Cher", "jours_min": 1, "jours_max": 10, "cout_jour": 100.0},
-        {"id": "Pascher", "jours_min": 1, "jours_max": 10, "cout_jour": 10.0},
+        {"id": "Cher", "jours_min": 1, "jours_max": 3, "cout_jour": 100.0, "priorite": 5},
+        {"id": "Pascher", "jours_min": 1, "jours_max": 10, "cout_jour": 10.0, "priorite": 2},
     ]
     points = ["DEPART", "Cher", "Pascher", "ARRIVEE"]
     trajets = _trajets_uniformes(points, prix=0.0, duree_min=0)
-    result = solve_itinerary(candidats, trajets, budget_total=200, jours_disponibles=30)
+    result = solve_itinerary(candidats, trajets, budget_total=400, jours_disponibles=30)
     assert result is not None
     par_id = {r["id"]: r["jours"] for r in result}
-    # budget_total=200, 2 jours_min consommés (1 chacun) laisse 190$ -- tout
-    # dépensé sur "Pascher" (10$/j, 9 jours de plus = 90$) avant de toucher à "Cher".
+    assert par_id["Cher"] == 3
     assert par_id["Pascher"] == 10
-    assert par_id["Cher"] == 1  # jours_min : rien ne justifie d'y rester plus cher
 
 
 def test_transit_cost_averages_endpoints_with_majoration():
@@ -170,3 +164,38 @@ def test_top_k_ranks_by_cost_when_tied_on_number_of_lieux():
     max_taille = max(tailles)
     couts_au_max = [c for c, t in zip(couts, tailles) if t == max_taille]
     assert couts_au_max == sorted(couts_au_max)
+
+
+def test_max_destinations_caps_distinct_hubs():
+    candidats = [
+        {"id": str(i), "jours_min": 1, "jours_max": 1, "cout_jour": 10.0,
+         "hub": f"H{i}", "pays": f"P{i}"}
+        for i in range(5)
+    ]
+    points = ["DEPART"] + [c["id"] for c in candidats] + ["ARRIVEE"]
+    trajets = _trajets_uniformes(points, prix=0.0, duree_min=0)
+    result = solve_itinerary(
+        candidats, trajets, budget_total=1000, jours_disponibles=20,
+        max_destinations=2,
+    )
+    assert result is not None
+    assert len({next(c["hub"] for c in candidats if c["id"] == e["id"]) for e in result}) <= 2
+
+
+def test_top_k_replaces_at_least_half_of_hubs():
+    candidats = [
+        {"id": str(i), "jours_min": 1, "jours_max": 1, "cout_jour": 10.0,
+         "hub": f"H{i}", "pays": f"P{i}"}
+        for i in range(8)
+    ]
+    points = ["DEPART"] + [c["id"] for c in candidats] + ["ARRIVEE"]
+    trajets = _trajets_uniformes(points, prix=0.0, duree_min=0)
+    results = solve_top_k_itineraries(
+        candidats, trajets, budget_total=40, jours_disponibles=4,
+        k=4, max_destinations=4,
+    )
+    sets = [{e["id"] for e in result} for result in results]
+    assert len(sets) >= 2
+    for i, left in enumerate(sets):
+        for right in sets[i + 1:]:
+            assert len(left & right) <= len(left) // 2

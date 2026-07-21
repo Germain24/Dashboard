@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePlanifier, useConfirmerVoyage } from "@/lib/queries/voyage";
-import type { Itineraire } from "@/lib/voyage";
+import { buildConfirmerRequest, type Itineraire } from "@/lib/voyage";
 import { notifySuccess } from "@/lib/toast";
 import { DatePicker } from "@/components/ui/date-picker";
 import dynamic from "next/dynamic";
@@ -89,8 +89,14 @@ export function PlanifierTab({
         <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
           <div className="text-sm font-semibold">
             {resultat.etapes.length} lieu(x) retenu(s) · {resultat.cout_total.toFixed(0)} €
-            (transport {resultat.cout_transport.toFixed(0)} € + séjour {resultat.cout_sejour.toFixed(0)} €)
+            (transport {resultat.cout_transport.toFixed(0)} € + hébergement {(resultat.cout_hebergement ?? 0).toFixed(0)} €
+            + nourriture {(resultat.cout_nourriture ?? 0).toFixed(0)} €
+            + activités {(resultat.cout_activites ?? 0).toFixed(0)} € + local {(resultat.cout_transport_local ?? 0).toFixed(0)} €)
           </div>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            {resultat.source_prix_vol === "estimation" ? "Prix de vols estimés" : "Prix de vols vérifiés"}
+            {resultat.transporteur ? ` · ${resultat.transporteur}` : ""}
+          </p>
           <ItineraryMap itineraire={resultat} />
           <ol className="list-decimal space-y-1 pl-5 text-sm">
             {resultat.etapes.map((e) => (
@@ -99,15 +105,23 @@ export function PlanifierTab({
               </li>
             ))}
           </ol>
+          {resultat.avertissements?.map((warning) => (
+            <p key={warning} className="text-xs text-amber-700 dark:text-amber-300">{warning}</p>
+          ))}
           <button
             onClick={() =>
-              confirmerMut.mutate(resultat.etapes.map((e) => e.lieu_id), {
-                onSuccess: () => {
-                  setResultat(null);
-                  notifySuccess("Voyage confirmé !");
-                  onConfirmed?.();
+              confirmerMut.mutate(
+                buildConfirmerRequest(resultat, {
+                  dateDebut, dateFin, departIata, arriveeIata,
+                }),
+                {
+                  onSuccess: () => {
+                    setResultat(null);
+                    notifySuccess("Voyage confirmé — checklist et budget disponibles plus bas.");
+                    onConfirmed?.();
+                  },
                 },
-              })
+              )
             }
             disabled={confirmerMut.isPending}
             className="rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--muted)] disabled:opacity-50"

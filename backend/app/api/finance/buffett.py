@@ -5,17 +5,18 @@ import io
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
-from app.core.db import get_session
 from app.api.schemas_finance import (
-    BuffettRunOut, BuffettRunDetailOut, BuffettProgressOut,
+    BuffettProgressOut,
+    BuffettRunDetailOut,
+    BuffettRunOut,
 )
-from app.models.finance import BuffettRun, BuffettRunResult
-
+from app.core.db import get_session
 from app.core.rate_limit import rate_limit
+from app.models.finance import BuffettRun, BuffettRunResult, BuffettRunStatus
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -35,7 +36,7 @@ def buffett_runs(limit: int = 12, session: Session = Depends(get_session)):
 @router.get("/buffett/latest", response_model=Optional[BuffettRunOut])
 def buffett_latest(session: Session = Depends(get_session)):
     stmt = (select(BuffettRun)
-            .where(BuffettRun.statut == "termine")
+            .where(BuffettRun.statut == BuffettRunStatus.TERMINE.value)
             .order_by(BuffettRun.run_date.desc()))
     return session.exec(stmt).first()
 
@@ -57,11 +58,11 @@ def buffett_progress(session: Session = Depends(get_session)):
     # visible (et de reclasser a tort un run deja "interrompu").
     if not active:
         stuck = session.exec(
-            select(BuffettRun).where(BuffettRun.statut == "en_cours")  # type: ignore[attr-defined]
+            select(BuffettRun).where(BuffettRun.statut == BuffettRunStatus.EN_COURS.value)  # type: ignore[attr-defined]
         ).all()
         changed = False
         for sr in stuck:
-            sr.statut = "interrompu"
+            sr.statut = BuffettRunStatus.INTERROMPU.value
             sr.erreur = "Process interrompu (relancez pour reprendre)"
             session.add(sr)
             changed = True
@@ -70,7 +71,10 @@ def buffett_progress(session: Session = Depends(get_session)):
 
     run = session.exec(
         select(BuffettRun)
-        .where(BuffettRun.statut.in_(["en_cours", "interrompu"]))  # type: ignore[attr-defined]
+        .where(BuffettRun.statut.in_([
+            BuffettRunStatus.EN_COURS.value,
+            BuffettRunStatus.INTERROMPU.value,
+        ]))  # type: ignore[attr-defined]
         .order_by(BuffettRun.created_at.desc())
     ).first()
     if run:
@@ -85,15 +89,16 @@ def buffett_progress(session: Session = Depends(get_session)):
 
 
 @router.get("/portfolio/progress")
-def portfolio_progress():
+def portfolio_progress(history_after: int | None = Query(default=None, ge=0)):
     """Progression de l'optimisation de portefeuille (Differential Evolution).
 
     Alimente la barre de chargement du bouton « Créer le portefeuille optimal ».
     ``convergence`` (0→1) vient du callback DE et croît à mesure que la population
-    converge ; ``progress_pct`` en dérive (0–100).
+    converge ; ``progress_pct`` en dérive (0–100). Quand ``history_after`` est
+    fourni, renvoie aussi chaque point positif créé après cette itération globale.
     """
     from app.services.finance.buffett import optimization_progress as opt_prog
-    snap = opt_prog.snapshot()
+    snap = opt_prog.snapshot(history_after=history_after)
     snap["progress_pct"] = round(snap.get("convergence", 0.0) * 100, 1)
     return snap
 
@@ -127,7 +132,13 @@ def buffett_run_detail(run_id: int, session: Session = Depends(get_session)):
         .where(BuffettRunResult.allocation_pct.isnot(None))
         .order_by(BuffettRunResult.allocation_pct.desc())
     ).all())
-    return BuffettRunDetailOut(run=run, top_results=top, allocation_cible=alloc)
+    optimization = (run.params_json or {}).get("optimization")
+    return BuffettRunDetailOut(
+        run=run,
+        top_results=top,
+        allocation_cible=alloc,
+        optimization=optimization,
+    )
 
 
 @router.delete("/buffett/runs/{run_id}", status_code=204)
@@ -142,7 +153,7 @@ def buffett_run_delete(run_id: int, session: Session = Depends(get_session)):
 def buffett_run_export(run_id: int, session: Session = Depends(get_session)):
     """Exporte les resultats d'un run Buffett en Excel."""
     import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
 
     run = session.get(BuffettRun, run_id)
@@ -288,7 +299,12 @@ def buffett_breakdown(ticker: str):
         "ticker": ticker.upper(),
         "score": score,
         "secteur": metrics.get("Secteur"),
-        "criteres": score_breakdown(ratios),
+        "couverture_pct": metrics.get("score_coverage_pct"),
+        "criteres": score_breakdown(
+            ratios,
+            str(metrics.get("Secteur") or ""),
+            str(metrics.get("Industrie") or ""),
+        ),
     }
 
 
@@ -299,7 +315,9 @@ def backtest_allocation(periode: str = "2y", session: Session = Depends(get_sess
     Renvoie {dates, equity (base 100), rendement_pct, n_points, tickers}.
     """
     run = session.exec(
-        select(BuffettRun).where(BuffettRun.statut == "termine").order_by(BuffettRun.run_date.desc())
+        select(BuffettRun)
+        .where(BuffettRun.statut == BuffettRunStatus.TERMINE.value)
+        .order_by(BuffettRun.run_date.desc())
     ).first()
     if not run:
         raise HTTPException(404, "Aucun run Buffett terminé")
@@ -317,8 +335,8 @@ def backtest_allocation(periode: str = "2y", session: Session = Depends(get_sess
     dates: list[str] = []
     prices: dict[str, list[float]] = {}
     try:
-        from app.services.finance.yf_session import download_with_timeout, yf_session
         from app.services.finance.buffett.allocation import close_prices_from_download
+        from app.services.finance.yf_session import download_with_timeout, yf_session
         t_list = list(weights.keys())
         raw = download_with_timeout(
             tickers=t_list, period=periode, interval="1d", progress=False,
@@ -343,6 +361,115 @@ def backtest_allocation(periode: str = "2y", session: Session = Depends(get_sess
     }
 
 
+@router.get("/backtest/walk-forward")
+def backtest_walk_forward(
+    periode: str = "5y",
+    cost_bps: float = 10.0,
+    session: Session = Depends(get_session),
+):
+    """Backtest trimestriel des allocations réellement connues à chaque date.
+
+    Contrairement au backtest buy-and-hold de la cible actuelle, aucune allocation
+    future n'est appliquée au passé. Avec un seul run historique, la période testable
+    commence donc à ce run — limitation honnête plutôt qu'une fuite temporelle.
+    """
+    runs = list(session.exec(
+        select(BuffettRun)
+        .where(BuffettRun.statut == BuffettRunStatus.TERMINE.value)
+        .order_by(BuffettRun.run_date.asc())
+    ).all())
+    allocations = []
+    all_tickers: set[str] = set()
+    for run in runs:
+        rows = list(session.exec(
+            select(BuffettRunResult)
+            .where(BuffettRunResult.run_id == run.id)
+            .where(BuffettRunResult.allocation_pct.isnot(None))  # type: ignore[attr-defined]
+        ).all())
+        weights = {
+            row.ticker: float(row.allocation_pct or 0.0)
+            for row in rows if float(row.allocation_pct or 0.0) > 0
+        }
+        if weights:
+            allocations.append({"date": run.run_date.isoformat(), "weights": weights})
+            all_tickers.update(weights)
+    if not allocations:
+        return {
+            "mode": "walk_forward", "dates": [], "equity": [], "n_points": 0,
+            "rendement_pct": 0.0, "n_runs": 0, "tickers": [],
+        }
+    # Benchmark investissable commun à l'application. Son ajout n'influence pas
+    # l'univers optimisé ; il sert uniquement à la comparaison hors échantillon.
+    all_tickers.add("CW8.PA")
+
+    dates: list[str] = []
+    prices: dict[str, list[float]] = {}
+    try:
+        from app.services.finance.buffett.allocation import close_prices_from_download
+        from app.services.finance.yf_session import download_with_timeout, yf_session
+
+        ticker_list = sorted(all_tickers)
+        raw = download_with_timeout(
+            tickers=ticker_list,
+            period=periode,
+            interval="1d",
+            progress=False,
+            group_by="ticker",
+            session=yf_session(),
+        )
+        if raw is not None and not raw.empty:
+            close = close_prices_from_download(raw, ticker_list).dropna(how="all").ffill()
+            dates = [value.strftime("%Y-%m-%d") for value in close.index]
+            prices = {
+                ticker: [float(value) for value in close[ticker].to_numpy()]
+                for ticker in close.columns
+            }
+    except Exception as exc:
+        logger.warning("Backtest walk-forward download: %s", exc)
+
+    from app.services.finance.backtest import simulate_walk_forward
+
+    result = simulate_walk_forward(
+        dates, prices, allocations, rebalance_days=80, cost_bps=cost_bps
+    )
+    equal_allocations = [
+        {"date": item["date"], "weights": {ticker: 1.0 for ticker in item["weights"]}}
+        for item in allocations
+    ]
+    equal_result = simulate_walk_forward(
+        dates, prices, equal_allocations, rebalance_days=80, cost_bps=cost_bps
+    )
+    benchmark_allocations = [
+        {"date": item["date"], "weights": {"CW8.PA": 1.0}}
+        for item in allocations
+    ]
+    benchmark_result = simulate_walk_forward(
+        dates, prices, benchmark_allocations, rebalance_days=80, cost_bps=cost_bps
+    )
+
+    def _summary(values: dict) -> dict:
+        return {
+            key: values.get(key, 0.0)
+            for key in (
+                "rendement_pct", "cagr_pct", "max_drawdown_pct", "cvar_5_pct",
+                "turnover", "costs_pct", "n_points",
+            )
+        }
+
+    return {
+        "mode": "walk_forward",
+        **result,
+        "n_runs": len(allocations),
+        "tickers": sorted(prices),
+        "cost_bps": cost_bps,
+        "comparisons": {
+            "optimized": _summary(result),
+            "equal_weight": _summary(equal_result),
+            "CW8.PA": _summary(benchmark_result),
+        },
+    }
+
+
 # --- Bouton 1 : Analyser tous les tickers ---
 
 @router.post("/buffett/run", status_code=202, dependencies=[Depends(_analysis_rl)])
@@ -357,7 +484,7 @@ def buffett_run_start(
     reprend automatiquement le dernier run interrompu (sans refaire les tickers
     deja analyses, sauvegardes un a un) ou en cree un nouveau.
     """
-    from app.services.finance.scheduler_stub import job_monthly_buffett, is_analysis_running
+    from app.services.finance.scheduler_stub import is_analysis_running, job_monthly_buffett
     if is_analysis_running():
         return {"message": "Analyse deja en cours", "status": "running"}
     background_tasks.add_task(job_monthly_buffett, csv_path)
@@ -400,23 +527,42 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
         logger.info("[portfolio_create] Analyse deja en cours dans ce process -> job ignore")
         return
     try:
-        from app.services.finance.buffett.config import Config
-        from app.services.finance.buffett.optimizer import optimize_portfolio_de, prepare_optimization
-        from app.services.finance.buffett.allocation import close_prices_from_download, discretize_allocation, latest_prices
-        from app.services.finance.buffett.broker_availability import merge_broker_columns
-        from app.services.finance.buffett.reporting import update_allocations
-        from app.services.finance.buffett.dedup import deduplicate_tickers
-        from app.services.finance.buffett import optimization_progress as opt_prog
-        from app.core.db import engine
-        from sqlmodel import Session as S, select as sel
         import pandas as pd
-        import numpy as np
+        from sqlmodel import Session as S
+        from sqlmodel import select as sel
+
+        from app.core.db import engine
+        from app.services.finance.buffett import optimization_progress as opt_prog
+        from app.services.finance.buffett.allocation import (
+            close_prices_from_download,
+            discretize_allocation,
+            latest_prices_eur,
+        )
+        from app.services.finance.buffett.broker_availability import (
+            current_target_weights,
+            load_broker_table,
+            merge_broker_columns,
+        )
+        from app.services.finance.buffett.config import Config
+        from app.services.finance.buffett.dedup import deduplicate_tickers
+        from app.services.finance.buffett.optimizer import (
+            optimize_portfolio_de,
+            prepare_optimization,
+        )
+        from app.services.finance.buffett.reporting import (
+            update_allocations,
+            update_run_optimization_diagnostics,
+        )
+        from app.services.finance.buffett.transaction_costs import (
+            ttf_tickers_from_dataframe,
+        )
 
         Config.load_params()
         from app.services.finance.buffett.broker_budgets import apply_live_broker_budgets
         apply_live_broker_budgets()  # budgets = soldes réels des comptes
         opt_prog.start(run_id=run_id, message="Préparation des candidats…")
 
+        held_tickers = set(current_target_weights(load_broker_table()))
         with S(engine) as sess:
             # Tous les candidats: score >= seuil OU ETF (score=200) OU Achat=True
             all_rows = list(sess.exec(
@@ -428,6 +574,7 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
             if (r.chance_moat or 0) >= min_score_val
             or (r.chance_moat or 0) >= 200  # ETF
             or r.achat
+            or r.ticker in held_tickers
         }
         if not candidates:
             logger.warning("[portfolio_create] Aucun candidat eligible.")
@@ -509,6 +656,20 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
             df_m = merge_broker_columns(df_m, ticker_col)
             opt_prog.set_phase("preparation", "Déduplication (cross-listings)…")
             rets = deduplicate_tickers(rets, df_m, ticker_col)
+            from app.services.finance.buffett.dedup import (
+                deduplicate_correlated,
+                returns_in_base_currency,
+            )
+            from app.services.finance.buffett.etf_selection import select_etfs_per_broker
+            rets = returns_in_base_currency(rets, "EUR", strict=True)
+            rets = deduplicate_correlated(
+                rets, df_m, ticker_col, base_ccy="EUR", returns_already_converted=True
+            )
+            rets, df_m, etf_selection_diagnostics = select_etfs_per_broker(
+                rets, df_m, ticker_col, returns_are_base_currency=True
+            )
+            previous_weights = current_target_weights(df_m, ticker_col)
+            ttf_tickers = ttf_tickers_from_dataframe(df_m, ticker_col)
             t_opt = list(rets.columns)
             if len(t_opt) < 2:
                 logger.warning(
@@ -519,21 +680,30 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
                 return
             mat_access, active_b = prepare_optimization(t_opt, df_m)
             opt_prog.set_phase("optimisation", f"Optimisation Differential Evolution ({len(t_opt)} titres)…")
-            weights, sharpe = optimize_portfolio_de(
-                t_opt, rets, mat_access, active_b, progress_cb=opt_prog.update_de,
+            weights, sharpe, diagnostics = optimize_portfolio_de(
+                t_opt, rets, mat_access, active_b,
+                progress_cb=opt_prog.update_de,
+                initialization_cb=opt_prog.update_initialization,
                 should_stop=lambda: opt_prog.snapshot()["stop_requested"],
+                current_weights=previous_weights,
+                ttf_tickers=ttf_tickers,
+                return_diagnostics=True,
             )
+            diagnostics["etf_selection"] = etf_selection_diagnostics
 
             opt_prog.set_phase("finalisation", "Calcul de l'allocation…")
             total_cap = sum(Config.BUDGET_BROKERS.values())
             # Actions entieres (hors Trading212) / pies (Trading212), a partir des prix
-            prices = latest_prices(cd, t_opt)
+            prices = latest_prices_eur(cd, t_opt)
             alloc = discretize_allocation(t_opt, weights, active_b, prices, total_cap)
             with S(engine) as sess:
                 update_allocations(sess, run_id, alloc, reset=True)
+                update_run_optimization_diagnostics(sess, run_id, diagnostics)
             # Écrire le poids (%) de chaque action dans ToutBroker.xlsx (#1)
             try:
-                from app.services.finance.buffett.broker_availability import update_broker_file_weights
+                from app.services.finance.buffett.broker_availability import (
+                    update_broker_file_weights,
+                )
                 n_w = update_broker_file_weights(alloc)
                 logger.info(f"[portfolio_create] {n_w} poids ecrits dans ToutBroker.xlsx")
             except Exception as e:
@@ -559,11 +729,7 @@ def portfolio_create(
     if is_analysis_running():
         raise HTTPException(409, "Une analyse ou optimisation est deja en cours.")
 
-    latest_run = session.exec(
-        select(BuffettRun)
-        .where(BuffettRun.statut == "termine")
-        .order_by(BuffettRun.run_date.desc())
-    ).first()
+    latest_run = _latest_optimizable_run(session)
     if latest_run is None:
         raise HTTPException(404, "Aucun run Buffett termine. Lancer d'abord l'analyse complete.")
 
@@ -573,3 +739,23 @@ def portfolio_create(
         "status": "accepted",
         "run_id": latest_run.id,
     }
+
+
+def _latest_optimizable_run(session: Session) -> BuffettRun | None:
+    """Dernier run dont le scoring est complet, même si son optimisation a échoué.
+
+    Une erreur postérieure au scoring (comme une incompatibilité pandas pendant
+    la présélection ETF) marque le run ``erreur`` mais ses résultats restent
+    complets et réutilisables. Le bouton de création doit reprendre ce run au
+    lieu de retomber silencieusement sur un ancien portefeuille terminé.
+    """
+    return session.exec(
+        select(BuffettRun)
+        .where(BuffettRun.statut.in_([  # type: ignore[attr-defined]
+            BuffettRunStatus.TERMINE.value,
+            BuffettRunStatus.ERREUR.value,
+        ]))
+        .where(BuffettRun.n_tickers_total > 0)  # type: ignore[operator]
+        .where(BuffettRun.n_tickers_analyzed >= BuffettRun.n_tickers_total)  # type: ignore[operator]
+        .order_by(BuffettRun.run_date.desc(), BuffettRun.id.desc())  # type: ignore[attr-defined]
+    ).first()

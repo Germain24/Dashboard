@@ -5,6 +5,7 @@ import { ExternalLink, Target, Trash2 } from "lucide-react";
 import type { LongTermGoal } from "@/lib/objectifs";
 import { useCreateGoal, useDeleteGoal, useGoals, useUpdateGoal } from "@/lib/queries/objectifs";
 import { ModuleHeader } from "@/components/layout";
+import { ObjectifsVie } from "@/components/ObjectifsVie";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 
@@ -166,6 +167,11 @@ export function Objectifs() {
               )}
             </>
           )}
+
+          {/* Objectifs de vie : jalons datés rattachés à une métrique d'un autre
+              module (poids, épargne, habitudes) — complémentaires des objectifs
+              ci-dessus, qui sont suivis à la main. */}
+          <ObjectifsVie />
         </div>
       )}
     </div>

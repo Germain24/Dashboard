@@ -1,12 +1,18 @@
-"""Objectifs de vie inter-modules (#226).
+"""Objectifs de vie inter-modules (#226) + jalons datés (§5.4).
 
 Un objectif de vie (« -5 kg + 2000 $ épargnés en 3 mois ») regroupe plusieurs
-sous-objectifs, chacun rattaché à une métrique d'un autre module. La progression
-est **direction-agnostique** : elle marche pour une cible à la hausse (épargne)
+sous-objectifs, chacun rattaché à une métrique d'un autre module — c'est ce
+`metric` qui fait le « lien vers les modules concernés ». La progression est
+**direction-agnostique** : elle marche pour une cible à la hausse (épargne)
 comme à la baisse (poids).
 
-compute_progress est pur (testable) ; resolve_metrics lit la valeur courante de
-chaque métrique dans son module (best-effort).
+Chaque sous-objectif peut porter une `date` (jalon daté) ; le statut dérivé
+(à venir / en retard / atteint) se calcule depuis cette date et la progression.
+Les objectifs déjà stockés n'ont pas ce champ : ils restent valides et ne
+peuvent simplement jamais être « en retard ».
+
+compute_progress et jalon_statut sont purs (testables) ; resolve_metrics lit la
+valeur courante de chaque métrique dans son module (best-effort).
 """
 
 from __future__ import annotations
@@ -27,17 +33,45 @@ SUPPORTED_METRICS: dict[str, str] = {
 }
 
 
+def _parse_jalon_date(value: Any) -> dt.date | None:
+    """Date d'un jalon, tolérante : champ absent, vide ou illisible -> None
+    (un jalon non daté ne peut pas être en retard)."""
+    if not value:
+        return None
+    if isinstance(value, dt.date):
+        return value
+    try:
+        return dt.date.fromisoformat(str(value))
+    except ValueError:
+        return None
+
+
+def jalon_statut(atteint: bool, date: dt.date | None, today: dt.date) -> str:
+    """Statut dérivé d'un jalon : atteint | en_retard | a_venir.
+
+    L'échéance du jour n'est pas encore un retard (la journée n'est pas finie).
+    """
+    if atteint:
+        return "atteint"
+    if date is not None and date < today:
+        return "en_retard"
+    return "a_venir"
+
+
 def compute_progress(
     objectifs: list[dict[str, Any]], valeurs: dict[str, float],
+    *, today: dt.date | None = None,
 ) -> dict[str, Any]:
-    """Progression de chaque sous-objectif + global.
+    """Progression de chaque sous-objectif + global, et statut de chaque jalon.
 
     pct = (courant - baseline) / (cible - baseline), borné [0, 1]. Fonctionne
     dans les deux sens : si cible < baseline (perdre du poids), le ratio reste
     positif quand on progresse. None si valeur absente ou baseline == cible.
     """
+    today = today or dt.date.today()
     rows: list[dict[str, Any]] = []
     pcts: list[float] = []
+    en_retard = 0
     for o in objectifs:
         cur = valeurs.get(o["metric"])
         baseline = float(o["baseline"])
@@ -47,16 +81,23 @@ def compute_progress(
         else:
             pct = (float(cur) - baseline) / (cible - baseline)
             pct = max(0.0, min(1.0, pct))
+        atteint = pct is not None and pct >= 1.0
+        date = _parse_jalon_date(o.get("date"))
+        statut = jalon_statut(atteint, date, today)
+        if statut == "en_retard":
+            en_retard += 1
         rows.append({
             **o,
             "courant": cur,
             "pct": None if pct is None else round(pct * 100, 1),
-            "atteint": pct is not None and pct >= 1.0,
+            "atteint": atteint,
+            "date": date.isoformat() if date else None,
+            "statut": statut,
         })
         if pct is not None:
             pcts.append(pct)
     overall = round(sum(pcts) / len(pcts) * 100, 1) if pcts else None
-    return {"objectifs": rows, "pct_global": overall}
+    return {"objectifs": rows, "pct_global": overall, "jalons_en_retard": en_retard}
 
 
 def resolve_metrics(session: Session) -> dict[str, float]:

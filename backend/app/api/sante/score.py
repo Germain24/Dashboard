@@ -23,3 +23,16 @@ def get_score_history(days: int = Query(90, ge=2, le=365), session: Session = De
     """Série du score sur les `days` derniers jours (pour la courbe)."""
     from app.services.sante.score import score_history
     return {"days": days, "points": score_history(session, days=days)}
+
+
+@router.get("/score/correlations")
+def get_score_correlations(
+    jours: int = Query(90, ge=2, le=365), session: Session = Depends(get_session)
+):
+    """Corrélations du score avec humeur, énergie et poids.
+
+    Ses propres composantes (sommeil, sport, nutrition) sont exclues : les
+    corréler au score qu'elles produisent ne mesurerait que la formule.
+    """
+    from app.services.sante.score_correlations import score_correlations
+    return score_correlations(session, jours=jours)

@@ -27,6 +27,8 @@ export function BuffettTab() {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const optPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const optHistoryRef = useRef<{ runId: number | null; iteration: number }>({ runId: null, iteration: 0 });
+  const optPollInFlightRef = useRef(false);
 
   const loadRuns = useCallback(async () => {
     try {
@@ -61,7 +63,13 @@ export function BuffettTab() {
   }, []);
 
   const pollOptProgress = useCallback(async (runId: number) => {
-    const p = await financeApi.portfolioProgress().catch(() => null);
+    if (optPollInFlightRef.current) return;
+    optPollInFlightRef.current = true;
+    if (optHistoryRef.current.runId !== runId) {
+      optHistoryRef.current = { runId, iteration: 0 };
+    }
+    const p = await financeApi.portfolioProgress(optHistoryRef.current.iteration).catch(() => null);
+    optPollInFlightRef.current = false;
     // Ne JAMAIS couper le polling ici sur un état inactif : entre la fin du
     // scoring et le vrai début de la phase d'optimisation (écriture
     // ToutBroker.xlsx, téléchargement des cours — plusieurs minutes à heures),
@@ -69,7 +77,13 @@ export function BuffettTab() {
     // fenêtre et arrêtait tout définitivement (#bug : ni seed/génération, ni
     // graphe STARR, ni bouton Arrêter pendant le run mensuel). L'intervalle
     // est arrêté par l'effet appelant quand le run Buffett n'est plus actif.
-    setOptProgress(p && p.active && p.run_id === runId ? p : null);
+    if (p && p.active && p.run_id === runId) {
+      const lastPoint = p.score_history?.at(-1);
+      if (lastPoint) optHistoryRef.current.iteration = lastPoint.iteration;
+      setOptProgress(p);
+    } else {
+      setOptProgress(null);
+    }
   }, []);
 
   // Après le scoring des tickers, le run automatique enchaîne sur la phase
@@ -85,9 +99,8 @@ export function BuffettTab() {
     const runId = progress?.run_id;
     if (progress?.active && runId != null) {
       stopOptPolling();
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- même schéma que loadRuns() ci-dessus (l.39) : sonde fire-and-forget qui met à jour l'état une fois résolue.
       void pollOptProgress(runId);
-      optPollRef.current = setInterval(() => { void pollOptProgress(runId); }, 60_000);
+      optPollRef.current = setInterval(() => { void pollOptProgress(runId); }, 2_000);
     } else {
       stopOptPolling();
       setOptProgress(null);

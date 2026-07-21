@@ -375,6 +375,17 @@ def run_buffett_analysis(
     Config.ensure_dirs()
     _refresh_bond_yields()
 
+    # Taux devise->EUR de la colonne Volume : à précharger avant le scoring
+    # (le garde fx._analysis_running bloque tout fetch FX pendant l'analyse).
+    # Borné dans le temps, jamais bloquant pour le run (cf. currency.py) ; le
+    # run est déjà créé à ce stade -> l'UI affiche la progression pendant ce
+    # warm-up (#bug POST /buffett/run « ne fait rien »).
+    from .currency import warm_fx_cache
+    try:
+        warm_fx_cache()
+    except Exception as e:
+        print(f"[runner] warm-up FX: {e}")
+
     # ETF = AUTORITAIRE depuis ToutBroker.xlsx (colonne 'Secteur 1' == 'ETF').
     # On relit le fichier à chaque run (il a pu être édité).
     from .broker_availability import reset_etf_cache
@@ -434,6 +445,15 @@ def run_buffett_analysis(
     db_lock = threading.Lock()
     n_done = len(done_tickers)
 
+    # Publier immédiatement le total APRÈS exclusion des titres à zéro broker.
+    # Sans cette mise à jour, le run conserve le total brut de tickers.csv et
+    # termine visuellement à 10454/10490 alors que le scoring est bien achevé.
+    if on_progress:
+        try:
+            on_progress(n_done, total)
+        except Exception:
+            pass
+
     def on_result(ticker, score, metrics):
         """Sauvegarde immediate d'un ticker (un a un ; ecritures DB serialisees)."""
         if run_id is None:
@@ -479,8 +499,9 @@ def run_buffett_analysis(
     # precedentes en cas de reprise).
     if run_id is not None:
         try:
-            from app.models.finance import BuffettRunResult
             from sqlmodel import select as _sel
+
+            from app.models.finance import BuffettRunResult
             with session_factory() as session:
                 rows = list(session.exec(
                     _sel(BuffettRunResult).where(BuffettRunResult.run_id == run_id)
@@ -501,9 +522,11 @@ def run_buffett_analysis(
     # disponibilite broker preservee). Une fois, mono-thread, jamais bloquant.
     if run_id is not None:
         try:
-            from .broker_availability import update_broker_file_scores
-            from app.models.finance import BuffettRunResult
             from sqlmodel import select as _sel_b
+
+            from app.models.finance import BuffettRunResult
+
+            from .broker_availability import update_broker_file_scores
             with session_factory() as session:
                 bres = list(session.exec(
                     _sel_b(BuffettRunResult).where(BuffettRunResult.run_id == run_id)
@@ -517,25 +540,41 @@ def run_buffett_analysis(
     from . import optimization_progress as opt_prog
     opt_error: str | None = None
     try:
-        from .dedup import deduplicate_correlated, deduplicate_tickers
-        from .optimizer import optimize_portfolio_de, prepare_optimization
-        from .allocation import close_prices_from_download, discretize_allocation, latest_prices
-        from .broker_availability import merge_broker_columns
-        from .broker_budgets import apply_live_broker_budgets
-        from .reporting import update_allocations
         import pandas as pd
-        import numpy as np
+
+        from .allocation import (
+            close_prices_from_download,
+            discretize_allocation,
+            latest_prices_eur,
+        )
+        from .broker_availability import (
+            current_target_weights,
+            load_broker_table,
+            merge_broker_columns,
+        )
+        from .broker_budgets import apply_live_broker_budgets
+        from .dedup import (
+            deduplicate_correlated,
+            deduplicate_tickers,
+            returns_in_base_currency,
+        )
+        from .etf_selection import select_etfs_per_broker
+        from .optimizer import optimize_portfolio_de, prepare_optimization
+        from .reporting import update_allocations, update_run_optimization_diagnostics
+        from .transaction_costs import ttf_tickers_from_dataframe
 
         # Budgets par broker = soldes RÉELS des comptes (account_balances.json).
         budgets = apply_live_broker_budgets()
         print(f"[runner] Budgets brokers (live): {budgets}")
 
         ticker_col = "Ticker Yahoo Finance"
+        held_tickers = set(current_target_weights(load_broker_table(), ticker_col))
         eligible = {
             t: v for t, v in results.items()
             if v[0] >= Config.SCORE_THRESHOLD
             or v[0] >= 200  # ETF
             or t.upper() in [f.upper() for f in Config.FORCED_BUY_TICKERS]
+            or t in held_tickers
         }
         eligible = {t: v for t, v in eligible.items() if v[1].get("Achat", False)}
         # Filtre de liquidité : on n'alloue pas un titre sous le seuil de volume
@@ -557,8 +596,8 @@ def run_buffett_analysis(
         # diversification long terme. Cf. leverage_filter.is_leveraged_product.
         # Une ACTION ne peut pas être "à effet de levier" (c'est une notion de
         # produit/fonds) -> le filtre ne s'applique qu'aux tickers classés ETF.
-        from .leverage_filter import is_leveraged_product
         from .broker_availability import load_etf_tickers
+        from .leverage_filter import is_leveraged_product
         etf_set = load_etf_tickers()
         before_lev = len(eligible)
         excluded_lev = [
@@ -623,12 +662,27 @@ def run_buffett_analysis(
                     "Déduplication (cross-listings, jumeaux d'indice)…",
                 )
                 rets = deduplicate_tickers(rets, df_m, ticker_col)
-                rets = deduplicate_correlated(rets, df_m, ticker_col)
+                # À partir d'ici, TOUTE l'estimation (moyennes, corrélations,
+                # copules, CVaR et STARR) est faite du point de vue d'un investisseur EUR.
+                rets = returns_in_base_currency(rets, "EUR", strict=True)
+                rets = deduplicate_correlated(
+                    rets, df_m, ticker_col, base_ccy="EUR", returns_already_converted=True
+                )
+                rets, df_m, etf_selection_diagnostics = select_etfs_per_broker(
+                    rets, df_m, ticker_col, returns_are_base_currency=True
+                )
+                previous_weights = current_target_weights(df_m, ticker_col)
+                ttf_tickers = ttf_tickers_from_dataframe(df_m, ticker_col)
+                print(
+                    "[runner] Présélection ETF : "
+                    f"{etf_selection_diagnostics.get('n_etf_before', 0)} -> "
+                    f"{etf_selection_diagnostics.get('n_etf_after', 0)} ETF dans l'union brokers"
+                )
                 t_opt = list(rets.columns)
                 mat_access, active_b = prepare_optimization(t_opt, df_m)
                 total_cap = sum(Config.BUDGET_BROKERS.values())
                 # Discrétisation : actions entières (hors Trading212) / pies (Trading212)
-                prices = latest_prices(cd, t_opt)
+                prices = latest_prices_eur(cd, t_opt)
 
                 _write_lock = threading.Lock()
 
@@ -667,11 +721,17 @@ def run_buffett_analysis(
                     f"Optimisation Differential Evolution ({len(t_opt)} titres)…",
                 )
                 try:
-                    weights, metric = optimize_portfolio_de(
+                    weights, metric, diagnostics = optimize_portfolio_de(
                         t_opt, rets, mat_access, active_b,
-                        progress_cb=opt_prog.update_de, on_new_best=_on_new_best,
+                        progress_cb=opt_prog.update_de,
+                        initialization_cb=opt_prog.update_initialization,
+                        on_new_best=_on_new_best,
                         should_stop=lambda: opt_prog.snapshot()["stop_requested"],
+                        current_weights=previous_weights,
+                        ttf_tickers=ttf_tickers,
+                        return_diagnostics=True,
                     )
+                    diagnostics["etf_selection"] = etf_selection_diagnostics
                 finally:
                     opt_prog.finish(message="Optimisation terminée.")
 
@@ -685,6 +745,7 @@ def run_buffett_analysis(
                     try:
                         with _write_lock, session_factory() as session:
                             update_allocations(session, run_id, alloc)
+                            update_run_optimization_diagnostics(session, run_id, diagnostics)
                         print(f"[runner] Allocations persistees ({len(alloc)} lignes)")
                     except Exception as e:
                         print(f"[runner] Erreur persistance allocations: {e}")
@@ -707,6 +768,7 @@ def run_buffett_analysis(
                 return {
                     "n_analyzed": len(results), "n_eligible": len(eligible),
                     "n_optimized": len(t_opt), "metric": metric,
+                    "optimization": diagnostics,
                     "alloc": alloc, "duree_sec": round(time.time() - start_t, 1),
                     "n_deleted": len(deleted_tickers),
                     "error": None,

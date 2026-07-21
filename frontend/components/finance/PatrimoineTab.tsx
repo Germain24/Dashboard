@@ -6,6 +6,8 @@ import { Trash2, Plus } from "lucide-react";
 import { financeApi, PATRIMOINE_DEVISES, type PatrimoineItem, type PatrimoineItemCreate } from "@/lib/finance";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { CHART_SERIES } from "@/lib/design/colors";
+import { useFire } from "@/lib/queries/budget";
+import { FireCard } from "./FireCard";
 
 const eur = (n: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -33,6 +35,7 @@ export function PatrimoineTab() {
   const create = useMutation({ mutationFn: (b: PatrimoineItemCreate) => financeApi.patrimoineCreate(b), onSuccess: invalidate });
   const update = useMutation({ mutationFn: ({ id, patch }: { id: number; patch: Partial<PatrimoineItemCreate> }) => financeApi.patrimoineUpdate(id, patch), onSuccess: invalidate });
   const remove = useMutation({ mutationFn: (id: number) => financeApi.patrimoineDelete(id), onSuccess: invalidate });
+  const fireQ = useFire();   // rapport FIRE (#268) : croise le budget avec ce patrimoine net
 
   const [type, setType] = useState<"actif" | "passif">("actif");
   const [label, setLabel] = useState("");
@@ -65,6 +68,8 @@ export function PatrimoineTab() {
         <Stat label="Actifs" value={eur(data.actifs_manuels)} />
         <Stat label="Passifs" value={eur(data.passifs)} negative />
       </div>
+
+      <FireCard fire={fireQ.data} />
 
       <CollapsibleSection title="Évolution par compte" defaultOpen={false}>
         <AccountBreakdownChart />

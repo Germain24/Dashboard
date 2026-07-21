@@ -48,6 +48,15 @@ def test_vente_realise_pl():
     assert st["cash_total"] == -400.0
 
 
+def test_sale_fee_reduces_realized_profit():
+    txs = [
+        _tx("achat", ticker="AAPL", quantite=10, prix_unitaire=100, frais=10, jour=1),
+        _tx("vente", ticker="AAPL", quantite=10, prix_unitaire=120, frais=5, jour=2),
+    ]
+    st = compute_portfolio_state(txs, {}, TAXE)
+    assert st["pl_realise"] == 185.0
+
+
 def test_dividende_and_taxes():
     txs = [
         _tx("achat", ticker="AAPL", quantite=10, prix_unitaire=100, jour=1),
@@ -61,6 +70,15 @@ def test_dividende_and_taxes():
     assert st["taxes"]["impot_div"] == 3.0   # 20 * 15 %
     assert st["taxes"]["total"] == 53.0
     assert st["positions"] == []  # tout vendu
+
+
+def test_interest_increases_cash_but_not_dividend_total():
+    txs = [_tx("interet", ticker="CASH", quantite=1, prix_unitaire=2.5)]
+    st = compute_portfolio_state(txs, {}, TAXE)
+    assert st["cash_total"] == 2.5
+    assert st["dividendes_total"] == 0.0
+    assert st["interets_total"] == 2.5
+    assert st["revenus_mobiliers_total"] == 2.5
 
 
 def test_allocation_includes_cash():
@@ -107,6 +125,105 @@ def test_state_from_positions_fallback(monkeypatch):
     assert st["cash_total"] == 0.0               # inconnu sans ledger
     assert st["pl_realise"] == 0.0
     assert st["positions"][0]["ticker"] == "CW8.PA"
+
+
+def test_ledger_and_distinct_manual_positions_are_merged(monkeypatch):
+    """Suivre un titre par transaction ne doit pas masquer les autres comptes."""
+    from sqlmodel import Session, SQLModel, create_engine
+
+    import app.services.finance.prices as prices_mod
+    from app.models.finance import Position, Transaction
+    from app.services.finance.portfolio_state import (
+        get_portfolio_state,
+        invalidate_state,
+    )
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        session.add(
+            Position(
+                ticker="CW8.PA",
+                broker="Bourse Direct",
+                quantite=40,
+                pmu=375.0,
+                devise="EUR",
+            )
+        )
+        session.add(
+            Transaction(
+                date=dt.datetime(2026, 7, 1),
+                ticker="SGLN.L",
+                broker="Trading212",
+                type="achat",
+                quantite=10,
+                prix_unitaire=50.0,
+                devise="EUR",
+            )
+        )
+        session.commit()
+        monkeypatch.setattr(
+            prices_mod,
+            "get_prices",
+            lambda tickers, **kwargs: {"CW8.PA": 680.0, "SGLN.L": 60.0},
+        )
+        invalidate_state()
+
+        state = get_portfolio_state(session)
+
+        assert {position["ticker"] for position in state["positions"]} == {
+            "CW8.PA",
+            "SGLN.L",
+        }
+        assert state["valeur_totale"] == 27_300.0
+        assert state["investi_net"] == 15_000.0
+        invalidate_state()
+
+
+def test_ledger_position_wins_over_same_manual_ticker_and_broker(monkeypatch):
+    from sqlmodel import Session, SQLModel, create_engine
+
+    import app.services.finance.prices as prices_mod
+    from app.models.finance import Position, Transaction
+    from app.services.finance.portfolio_state import (
+        get_portfolio_state,
+        invalidate_state,
+    )
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        session.add(
+            Position(
+                ticker="AAPL",
+                broker="Trading212",
+                quantite=99,
+                pmu=10.0,
+                devise="EUR",
+            )
+        )
+        session.add(
+            Transaction(
+                date=dt.datetime(2026, 7, 1),
+                ticker="AAPL",
+                broker="Trading212",
+                type="achat",
+                quantite=2,
+                prix_unitaire=100.0,
+                devise="EUR",
+            )
+        )
+        session.commit()
+        monkeypatch.setattr(
+            prices_mod, "get_prices", lambda tickers, **kwargs: {"AAPL": 120.0}
+        )
+        invalidate_state()
+
+        state = get_portfolio_state(session)
+
+        assert len(state["positions"]) == 1
+        assert state["positions"][0]["quantite"] == 2
+        invalidate_state()
 
 
 # ── open_position_tickers : ne prix que les positions ENCORE ouvertes --

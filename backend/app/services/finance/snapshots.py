@@ -36,11 +36,23 @@ def get_history(
     return rows
 
 
+def downsample_history(
+    rows: list[SnapshotPortefeuille], max_points: int
+) -> list[SnapshotPortefeuille]:
+    """Réduit uniformément une longue série en conservant ses deux extrémités."""
+    if max_points < 2 or len(rows) <= max_points:
+        return rows
+    last = len(rows) - 1
+    indexes = [round(i * last / (max_points - 1)) for i in range(max_points)]
+    return [rows[index] for index in dict.fromkeys(indexes)]
+
+
 def upsert_snapshot(
     session: Session, date: dt.date, valeur: float, investit: float
 ) -> SnapshotPortefeuille:
     """Crée ou met à jour le snapshot du jour. Idempotent (race condition safe)."""
     from sqlalchemy.exc import IntegrityError
+
     existing = session.exec(
         select(SnapshotPortefeuille).where(SnapshotPortefeuille.date == date)
     ).first()
@@ -82,8 +94,19 @@ def take_snapshot_now(session: Session) -> SnapshotPortefeuille | None:
     que get_positions(), qui gere deja le cache de prix quotidien)."""
     try:
         from app.services.finance.portfolio import get_positions
+
         positions = get_positions(session)
         if not positions:
+            return None
+
+        # Un prix nul sur une position ouverte produit un faux effondrement du
+        # portefeuille. Conserver le snapshot précédent est plus fiable qu'une
+        # valorisation partielle destinée aux métriques et aux graphiques.
+        if any(
+            float(position.get("quantite", 0) or 0) > 0
+            and float(position.get("prix_actuel", 0) or 0) <= 0
+            for position in positions
+        ):
             return None
 
         total_valeur = sum(p["valeur_actuelle"] for p in positions)

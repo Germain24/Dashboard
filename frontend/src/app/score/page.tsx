@@ -9,7 +9,8 @@ import { Gauge, Moon, Dumbbell, Apple } from "lucide-react";
 import { ModuleHeader } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useScore, useScoreHistory } from "@/lib/queries/sante";
+import { useScore, useScoreHistory, useScoreCorrelations } from "@/lib/queries/sante";
+import type { ScoreCorrelation } from "@/lib/sante";
 
 const COMPONENTS = [
   { key: "sommeil", label: "Sommeil", Icon: Moon, color: "var(--info)" },
@@ -111,6 +112,9 @@ function ScoreContent() {
       {/* Évolution */}
       <ScoreCurve points={histQ.data?.points ?? []} />
 
+      {/* Corrélations avec des signaux hors formule du score */}
+      <ScoreCorrelations />
+
       {/* Liens vers les vues détaillées (fusion Vue 360 + Journal de vie) */}
       <div className="flex flex-wrap gap-2">
         {LINKS.map((l) => (
@@ -120,6 +124,73 @@ function ScoreContent() {
           </Link>
         ))}
       </div>
+    </div>
+  );
+}
+
+const CIBLE_LABELS: Record<string, string> = {
+  humeur: "Humeur",
+  energie: "Énergie",
+  poids: "Poids",
+};
+
+function correlationColor(c: ScoreCorrelation): string {
+  if (c.r == null || c.force === "négligeable") return "var(--muted-foreground)";
+  if (c.force === "forte") return "var(--success)";
+  return "var(--foreground)";
+}
+
+function ScoreCorrelations() {
+  const { data, isLoading } = useScoreCorrelations(90);
+  if (isLoading || !data) return <Skeleton className="h-28" />;
+
+  const mesurables = data.correlations.filter((c) => c.r != null);
+
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <p className="text-xs font-semibold text-[var(--muted-foreground)]">
+          Ce qui accompagne ton score · 90 j
+        </p>
+        <span className="text-[10px] text-[var(--muted-foreground)]">{data.caveat}</span>
+      </div>
+      <p className="mb-3 text-[10px] text-[var(--muted-foreground)]">
+        Sommeil, sport et nutrition sont exclus : ce sont les composantes du score.
+      </p>
+
+      {mesurables.length === 0 ? (
+        <p className="text-xs text-[var(--muted-foreground)]">
+          Pas encore assez de données communes pour corréler quoi que ce soit.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {mesurables.map((c) => (
+            <li key={c.cible} className="flex items-center gap-3 text-sm">
+              <span className="w-20 shrink-0 text-[var(--muted-foreground)]">
+                {CIBLE_LABELS[c.cible] ?? c.cible}
+              </span>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--muted)]">
+                <div
+                  className="h-full rounded-full bar-fill"
+                  style={{
+                    width: `${Math.abs(c.r ?? 0) * 100}%`,
+                    background: correlationColor(c),
+                  }}
+                />
+              </div>
+              <span
+                className="w-28 shrink-0 text-right text-xs tabular-nums"
+                style={{ color: correlationColor(c) }}
+              >
+                {c.r?.toFixed(2)} · {c.force}
+              </span>
+              <span className="w-12 shrink-0 text-right text-[10px] text-[var(--muted-foreground)]">
+                n={c.n}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

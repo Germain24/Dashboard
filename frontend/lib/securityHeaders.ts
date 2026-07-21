@@ -11,9 +11,14 @@
 // /api est same-origin, mais on tolère l'appel direct au backend local).
 const BACKEND_ORIGINS = "http://127.0.0.1:8000 http://localhost:8000";
 
+const scriptSrc =
+  process.env.NODE_ENV === "development"
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self' 'unsafe-inline'";
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  scriptSrc,
   "style-src 'self' 'unsafe-inline'",
   // Images livres (Open Library, Amazon, Indigo) + autres sources externes
   `img-src 'self' data: blob: https: ${BACKEND_ORIGINS}`,

@@ -1,102 +1,117 @@
 "use client";
 
-/** Cash + fiscalité : liquidités, plus-value réalisée/latente, taxes estimées (taux éditables). */
+/** Liquidites, performance et revenus mobiliers nets du ledger. */
 
-import { useCallback, useEffect, useState } from "react";
-import { financeApi, type PortfolioStateOut, type FinanceSettingsOut } from "@/lib/finance";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { usePortfolioState } from "@/lib/queries/finance";
+import { Button } from "@/components/ui/button";
 
-const money = (v: number) =>
-  v.toLocaleString("fr-CA", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const money = (value: number) =>
+  value.toLocaleString("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 
 export function CashTaxPanel() {
-  const [state, setState] = useState<PortfolioStateOut | null>(null);
-  const [settings, setSettings] = useState<FinanceSettingsOut | null>(null);
-  const [saving, setSaving] = useState(false);
+  const stateQuery = usePortfolioState();
+  const state = stateQuery.data;
 
-  const load = useCallback(async () => {
-    try {
-      const [st, se] = await Promise.all([financeApi.state(), financeApi.settings()]);
-      setState(st);
-      setSettings(se);
-    } catch { /* toast global */ }
-  }, []);
+  if (stateQuery.isError) {
+    return (
+      <div
+        role="alert"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius)] border border-[var(--destructive)]/30 p-4"
+      >
+        <span className="flex items-center gap-2 text-sm text-[var(--destructive)]">
+          <AlertTriangle className="h-4 w-4" aria-hidden />
+          Liquidités et performance indisponibles.
+        </span>
+        <Button size="sm" variant="ghost" onClick={() => void stateQuery.refetch()}>
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
-  useEffect(() => { load(); }, [load]);
-
-  const saveRate = async (key: "taux_plus_value_pct" | "taux_dividende_pct", value: number) => {
-    if (!settings) return;
-    setSaving(true);
-    try {
-      const updated = await financeApi.patchSettings({ [key]: value });
-      setSettings(updated);
-      setState(await financeApi.state()); // taxes recalculées
-    } catch { /* toast global */ }
-    finally { setSaving(false); }
-  };
-
-  if (!state || !settings) return null;
+  if (!state) {
+    return (
+      <div className="grid gap-3 md:grid-cols-2" aria-label="Chargement des données financières">
+        <div className="skeleton-shimmer h-44 rounded-[var(--radius-lg)]" />
+        <div className="skeleton-shimmer h-44 rounded-[var(--radius-lg)]" />
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      {/* Cash & P&L */}
-      <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4 space-y-2">
-        <h3 className="text-sm font-semibold">Liquidités &amp; performance</h3>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <Stat label="Cash total" value={money(state.cash_total)} />
-          <Stat label="Investi net" value={money(state.investi_net)} />
-          <Stat label="P&L latent" value={money(state.pl_latent_total)} positive={state.pl_latent_total >= 0} />
-          <Stat label="P&L réalisé" value={money(state.pl_realise)} positive={state.pl_realise >= 0} />
+      <section className="glass-card rounded-[var(--radius-lg)] p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Liquidités &amp; performance</h3>
+          <span className="text-[10px] text-[var(--muted-foreground)]">Cumul du ledger</span>
         </div>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <Stat label="Cash disponible" value={money(state.cash_total)} tone={state.cash_total < 0 ? "negative" : undefined} />
+          <Stat label="Versements nets" value={money(state.investi_net)} />
+          <Stat label="P&L latent" value={money(state.pl_latent_total)} tone={state.pl_latent_total >= 0 ? "positive" : "negative"} />
+          <Stat label="P&L réalisé" value={money(state.pl_realise)} tone={state.pl_realise >= 0 ? "positive" : "negative"} />
+        </dl>
         {Object.keys(state.cash_par_broker).length > 0 && (
-          <ul className="text-xs text-[var(--muted-foreground)] pt-1">
-            {Object.entries(state.cash_par_broker).map(([b, v]) => (
-              <li key={b}>{b} : <span className="font-mono">{money(v)}</span></li>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--glass-border)] pt-2 text-xs text-[var(--muted-foreground)]">
+            {Object.entries(state.cash_par_broker).map(([broker, value]) => (
+              <span key={broker}>{broker} <strong className="font-mono font-medium text-[var(--foreground)]">{money(value)}</strong></span>
             ))}
-          </ul>
+          </div>
         )}
-      </div>
+      </section>
 
-      {/* Taxes estimées */}
-      <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4 space-y-2">
-        <h3 className="text-sm font-semibold">Taxes estimées</h3>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <Stat label="Impôt plus-value" value={money(state.taxes.impot_pv)} />
-          <Stat label="Impôt dividendes" value={money(state.taxes.impot_div)} />
-          <Stat label="Total estimé" value={money(state.taxes.total)} />
+      <section className="glass-card rounded-[var(--radius-lg)] p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Revenus mobiliers</h3>
+          <span className="text-[10px] text-[var(--muted-foreground)]">Toutes années</span>
         </div>
-        <div className="flex flex-wrap items-end gap-3 pt-1">
-          <RateInput label="Taux plus-value %" value={settings.taux_plus_value_pct}
-            disabled={saving} onCommit={(v) => saveRate("taux_plus_value_pct", v)} />
-          <RateInput label="Taux dividendes %" value={settings.taux_dividende_pct}
-            disabled={saving} onCommit={(v) => saveRate("taux_dividende_pct", v)} />
-        </div>
-        <p className="text-[10px] text-[var(--muted-foreground)]">Estimation indicative (taux effectif), pas un calcul fiscal officiel.</p>
-      </div>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <Stat label="Dividendes bruts" value={money(state.dividendes_bruts ?? state.dividendes_total)} />
+          <Stat label="Retenue à la source" value={money(state.retenues_source ?? 0)} tone={(state.retenues_source ?? 0) > 0 ? "warning" : undefined} />
+          <Stat label="Dividendes nets" value={money(state.dividendes_total)} />
+          <Stat label="Intérêts nets" value={money(state.interets_total ?? 0)} />
+          <Stat label="Total net encaissé" value={money(state.revenus_mobiliers_total ?? state.dividendes_total)} strong />
+        </dl>
+        <p className="mt-3 border-t border-[var(--glass-border)] pt-2 text-[11px] leading-relaxed text-[var(--muted-foreground)]">
+          Les intérêts sont imposables sans abattement de 40 %. Les retenues étrangères restent séparées et leur crédit dépend de la convention applicable.
+        </p>
+      </section>
     </div>
   );
 }
 
-function Stat({ label, value, positive }: { label: string; value: string; positive?: boolean }) {
+function Stat({
+  label,
+  value,
+  tone,
+  strong,
+}: {
+  label: string;
+  value: string;
+  tone?: "positive" | "negative" | "warning";
+  strong?: boolean;
+}) {
+  const toneClass =
+    tone === "positive"
+      ? "text-[var(--success-foreground)]"
+      : tone === "negative"
+        ? "text-[var(--destructive)]"
+        : tone === "warning"
+          ? "text-[var(--warning-foreground)]"
+          : "text-[var(--foreground)]";
   return (
     <div>
-      <p className="text-xs text-[var(--muted-foreground)]">{label}</p>
-      <p className={`font-mono font-semibold ${positive === undefined ? "" : positive ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}>{value}</p>
+      <dt className="text-xs text-[var(--muted-foreground)]">{label}</dt>
+      <dd className={`mt-0.5 font-mono tabular-nums ${strong ? "text-lg font-semibold" : "font-medium"} ${toneClass}`}>
+        {value}
+      </dd>
     </div>
-  );
-}
-
-function RateInput({ label, value, disabled, onCommit }: { label: string; value: number; disabled: boolean; onCommit: (v: number) => void }) {
-  const [v, setV] = useState(String(value));
-  useEffect(() => setV(String(value)), [value]);
-  return (
-    <label className="flex flex-col gap-0.5">
-      <span className="text-xs text-[var(--muted-foreground)]">{label}</span>
-      <input
-        type="number" value={v} disabled={disabled}
-        onChange={(e) => setV(e.target.value)}
-        onBlur={() => { const n = parseFloat(v); if (!Number.isNaN(n) && n !== value) onCommit(n); }}
-        className="w-24 px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--background)]"
-      />
-    </label>
   );
 }

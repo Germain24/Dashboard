@@ -64,6 +64,13 @@ backend/data/account_balances.json
 .DS_Store
 Thumbs.db
 
+# --- Sorties pytest laissées à la racine par erreur ---
+pytest_out.txt
+pytest_full.txt
+
+# --- Serveurs de développement locaux ---
+.dev-*.log
+
 # --- IDE ---
 .vscode/
 .idea/

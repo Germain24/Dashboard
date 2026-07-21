@@ -1,11 +1,13 @@
-"""Re-tarification des fruits & légumes du catalogue nutrition avec les prix Adonis.
+"""Re-tarification du catalogue nutrition avec les prix Super C.
 
-L'utilisateur achète ses fruits & légumes chez Adonis (meilleure qualité), le
-reste chez Costco. Le site groupeadonis.ca n'affiche pas de prix : on lit la
-vitrine « Adonis powered by Instacart » via le scraper `frontend/.adonis_scrape.mjs`
-(cache JSON), puis on remplace le `Prix` (CAD/100 g comestible) des SEULS fruits
-& légumes dans le DataFrame du catalogue. Les valeurs nutritionnelles (CIQUAL)
-sont conservées. Voir mémoire [[adonis-produce-scraper]].
+Historique : ce module tarifait à l'origine les fruits & légumes avec les prix
+Adonis (le reste venant de Costco). Adonis et Costco sont retirés le
+2026-07-17 (décision user : une seule source de prix, Super C, pour les
+courses ET l'optimiseur nutrition — cf.
+`orchestration/a-faire/2026-07-14-superc-unique-design.md`). Le nom du module
+et des fonctions ci-dessous (`PRODUCE_MAP`, `adonis_price_per_100g_edible`…)
+reste hérité de cette époque pour l'instant ; la logique de matching/conversion
+(pure, testée) est réutilisée telle quelle par les overlays Super C plus bas.
 
 Parties pures (matching, conversion, overlay) testées ; le rafraîchissement
 (scrape navigateur) est best-effort et ne casse jamais l'optimisation.
@@ -17,22 +19,13 @@ import json
 import logging
 import os
 import re
-import subprocess
-import time
 from pathlib import Path
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-def _cache_path() -> Path:
-    """Cache des prix Adonis (écrit par le scraper). Gitignoré (data/imports/*).
-
-    Résolu à l'appel (pas à l'import) pour respecter un `imports_dir`
-    monkeypatché en test → cache absent → re-tarification neutre."""
-    return settings.imports_dir / "Cuisine" / "adonis_fruits_legumes.json"
-
-# Fractions comestibles (cf. README_aliments.md) : le prix Adonis est au poids
+# Fractions comestibles (cf. README_aliments.md) : le prix est au poids
 # BRUT (avec pelure/noyau) ; on le ramène à la portion comestible. 1.0 = tout
 # comestible (baies, frozen, feuilles…).
 _EDIBLE_DEFAULT = 1.0
@@ -188,76 +181,11 @@ def apply_overlay_to_df(df, overlay: dict[str, float]):
     return df, changed
 
 
-# ── Orchestration (best-effort, jamais bloquant pour l'optimisation) ──────────
-
-def load_cached_items() -> list[dict]:
-    path = _cache_path()
-    if not path.exists():
-        return []
-    try:
-        return json.loads(path.read_text(encoding="utf-8")).get("items", [])
-    except Exception:
-        return []
-
-
-def _cache_age_seconds() -> float:
-    try:
-        return time.time() - _cache_path().stat().st_mtime
-    except OSError:
-        return float("inf")
-
-
-def refresh_if_stale(max_age_h: float) -> bool:
-    """Relance le scraper Adonis si le cache est trop vieux. True si rafraîchi.
-
-    Best-effort : node/Edge/réseau absents ou scrape en échec -> on garde le cache.
-    """
-    if _cache_age_seconds() < max_age_h * 3600:
-        return False
-    repo_root = settings.data_dir.parent
-    script = repo_root / "frontend" / ".adonis_scrape.mjs"
-    if not script.exists():
-        return False
-    try:
-        subprocess.run(
-            ["node", script.name, str(_cache_path())],
-            cwd=str(script.parent),
-            timeout=float(os.getenv("ADONIS_SCRAPE_TIMEOUT_SEC", "150")),
-            capture_output=True,
-        )
-        return True
-    except Exception as exc:  # FileNotFoundError (node absent), TimeoutExpired…
-        logger.warning("[adonis] scrape échoué (%s) — prix en cache conservés", exc)
-        return False
-
-
-def apply_adonis_produce_prices(df, *, refresh: bool = True):
-    """Re-tarife les fruits & légumes du DataFrame catalogue avec les prix Adonis.
-
-    `refresh=True` rafraîchit d'abord le cache si périmé (au lancement de
-    l'optimisation). Best-effort : toute erreur laisse `df` inchangé.
-    Retourne (df, liste des aliments re-tarifés).
-    """
-    if os.getenv("ADONIS_PRODUCE_PRICING", "1") not in ("1", "true", "True"):
-        return df, []
-    try:
-        if refresh:
-            refresh_if_stale(float(os.getenv("ADONIS_SCRAPE_MAX_AGE_H", "12")))
-        items = load_cached_items()
-        if not items:
-            return df, []
-        return apply_overlay_to_df(df, build_price_overlay(items))
-    except Exception as exc:
-        logger.warning("[adonis] re-tarification ignorée (%s)", exc)
-        return df, []
-
-
-# ── Super C (magasin unique, Phase 2 « Super C unique ») ──────────────────────
-# Le cache superc.json est du même schéma Instacart qu'Adonis (écrit par
-# frontend/.superc_scrape.mjs via store_pricing.refresh_all_if_stale au
-# démarrage), donc build_price_overlay / adonis_price_per_100g_edible sont
+# ── Super C (magasin unique) ───────────────────────────────────────────────
+# Le cache superc.json est du même schéma Instacart que l'ex-cache Adonis
+# (écrit par frontend/.superc_scrape.mjs via store_pricing.refresh_all_if_stale
+# au démarrage), donc build_price_overlay / adonis_price_per_100g_edible sont
 # réutilisés tels quels : seule la source du cache change.
-# NOTE Phase 3 : renommer ce module (produce_pricing) et retirer le volet Adonis.
 
 def _superc_cache_path() -> Path:
     return settings.imports_dir / "Cuisine" / "superc.json"
@@ -291,4 +219,26 @@ def apply_superc_produce_prices(df):
         return apply_overlay_to_df(df, build_price_overlay(items))
     except Exception as exc:
         logger.warning("[superc] re-tarification produce ignorée (%s)", exc)
+        return df, []
+
+
+def apply_superc_catalog_prices(df):
+    """Re-tarife tout le catalogue avec prix courants ET circulaire Super C.
+
+    L'overlay est appliqué en mémoire : les valeurs nutritionnelles et le CSV
+    source ne sont jamais modifiés. Pour chaque aliment, le prix unitaire le
+    moins cher entre le catalogue courant et la circulaire gagne.
+    """
+    if os.getenv("SUPERC_CATALOG_PRICING", "1") not in ("1", "true", "True"):
+        return df, []
+    try:
+        from app.services.cuisine.store_pricing import load_cached_items
+        from app.services.sante.superc_catalog_rebuild import catalog_price_overlay
+
+        items = [*load_cached_items("superc"), *load_cached_items("superc_flyer")]
+        if not items:
+            return df, []
+        return apply_overlay_to_df(df, catalog_price_overlay(items))
+    except Exception as exc:
+        logger.warning("[superc] re-tarification catalogue ignorée (%s)", exc)
         return df, []

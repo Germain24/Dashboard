@@ -66,10 +66,11 @@ def test_dedup_reutilise_la_table_suffixe():
     assert dedup._SUFFIX_CCY is currency.SUFFIX_CCY
 
 
-def test_warm_fx_cache_precharge_toutes_les_devises(monkeypatch):
+def test_warm_fx_cache_precharge_toutes_les_devises(monkeypatch, tmp_path):
     from app.services.finance import fx
     from app.services.finance.buffett import currency
 
+    monkeypatch.setattr(fx, "_DISK_CACHE_FILE", tmp_path / "fx.json")
     fetched = []
 
     def fake_get_rate(base, quote, **kwargs):
@@ -81,6 +82,51 @@ def test_warm_fx_cache_precharge_toutes_les_devises(monkeypatch):
     currency.warm_fx_cache()
     attendu = sorted(({*currency.SUFFIX_CCY.values()} | {"USD"}) - {"EUR"})
     assert sorted(fetched) == attendu
+
+
+def test_warm_fx_cache_borne_par_le_budget(monkeypatch, tmp_path, capsys):
+    """#bug POST /buffett/run 'ne fait rien' : Yahoo throttlé rendait le
+    warm-up interminable (verrou tenu, aucun log, aucun run créé). Le warm-up
+    doit être borné dans le temps et logger AVANT de commencer."""
+    import time as _t
+
+    from app.services.finance import fx
+    from app.services.finance.buffett import currency
+
+    monkeypatch.setattr(fx, "_DISK_CACHE_FILE", tmp_path / "fx.json")
+
+    calls = []
+
+    def slow_get_rate(base, quote, **kwargs):
+        calls.append(base)
+        _t.sleep(0.15)
+        return 1.0
+
+    monkeypatch.setattr(fx, "get_rate", slow_get_rate)
+    currency.warm_fx_cache(budget_s=0.2)
+    attendu = sorted(({*currency.SUFFIX_CCY.values()} | {"USD"}) - {"EUR"})
+    assert 1 <= len(calls) < len(attendu)             # le budget a coupé net
+    out = capsys.readouterr().out
+    assert "budget" in out                            # log de DÉBUT (annonce le warm-up)
+    assert "manquantes" in out                        # résumé final : paires sautées
+
+
+def test_warm_fx_cache_survit_a_une_paire_qui_pend(monkeypatch, tmp_path):
+    import time as _t
+
+    from app.services.finance import fx
+    from app.services.finance.buffett import currency
+
+    monkeypatch.setattr(fx, "_DISK_CACHE_FILE", tmp_path / "fx.json")
+
+    def hanging_get_rate(base, quote, **kwargs):
+        _t.sleep(5)                     # simule une session Yahoo saturée
+        return 1.0
+
+    monkeypatch.setattr(fx, "get_rate", hanging_get_rate)
+    t0 = _t.monotonic()
+    currency.warm_fx_cache(budget_s=0.3)
+    assert _t.monotonic() - t0 < 2.0    # revient bien avant les 13 x 5 s
 
 
 def test_suffix_ccy_couvre_toutes_les_bourses_de_suffix_map():

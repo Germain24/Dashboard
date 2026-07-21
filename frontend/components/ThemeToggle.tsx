@@ -10,12 +10,13 @@
  * Le script anti-flash dans layout.tsx applique le choix avant le paint.
  */
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Moon, Sun, Monitor } from "lucide-react";
 
 type Theme = "light" | "dark" | "system";
 const STORAGE_KEY = "mc-theme";
 const ORDER: Theme[] = ["system", "light", "dark"];
+const listeners = new Set<() => void>();
 
 function apply(theme: Theme) {
   const root = document.documentElement;
@@ -23,25 +24,38 @@ function apply(theme: Theme) {
   else root.setAttribute("data-theme", theme);
 }
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("system");
-  const [mounted, setMounted] = useState(false);
+function getTheme(): Theme {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === "light" || stored === "dark" ? stored : "system";
+}
 
-  useEffect(() => {
-    const stored = (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? "system";
-    setTheme(stored);
-    setMounted(true);
-  }, []);
+function subscribe(listener: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY) listener();
+  };
+  listeners.add(listener);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function persistTheme(theme: Theme) {
+  localStorage.setItem(STORAGE_KEY, theme);
+  apply(theme);
+  listeners.forEach((listener) => listener());
+}
+
+export function ThemeToggle() {
+  const theme = useSyncExternalStore<Theme>(subscribe, getTheme, () => "system");
 
   function cycle() {
     const next = ORDER[(ORDER.indexOf(theme) + 1) % ORDER.length];
-    setTheme(next);
-    localStorage.setItem(STORAGE_KEY, next);
-    apply(next);
+    persistTheme(next);
   }
 
-  // Évite un mismatch d'hydratation : on n'affiche l'icône réelle qu'après montage.
-  const Icon = !mounted ? Monitor : theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
+  const Icon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
   const label =
     theme === "light" ? "Thème clair" : theme === "dark" ? "Thème sombre" : "Thème système";
 
@@ -51,9 +65,10 @@ export function ThemeToggle() {
       onClick={cycle}
       title={label}
       aria-label={label}
-      className="flex items-center justify-center h-8 w-8 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+      data-ui-control
+      className="flex h-9 w-9 items-center justify-center rounded-md text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
     >
-      <Icon size={16} />
+      <Icon size={16} aria-hidden="true" />
     </button>
   );
 }

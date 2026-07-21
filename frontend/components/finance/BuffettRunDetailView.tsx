@@ -64,7 +64,24 @@ export function BuffettRunDetailView({
    *  « disparaissait » dès qu'on ouvrait le détail du run (#bug rapporté). */
   optProgress?: OptProgress | null;
 }) {
-  const [backtest, setBacktest] = useState<{ rendement_pct: number; equity: number[]; n_points: number } | null>(null);
+  const [backtest, setBacktest] = useState<{
+    rendement_pct: number;
+    equity: number[];
+    n_points: number;
+    mode?: "walk_forward";
+    n_runs?: number;
+    n_rebalances?: number;
+    turnover?: number;
+    costs_pct?: number;
+    max_drawdown_pct?: number;
+    cvar_5_pct?: number;
+    cagr_pct?: number;
+    comparisons?: Record<string, {
+      rendement_pct: number;
+      cagr_pct: number;
+      max_drawdown_pct: number;
+    }>;
+  } | null>(null);
   const [backtesting, setBacktesting] = useState(false);
 
   const runBacktest = async () => {
@@ -73,6 +90,17 @@ export function BuffettRunDetailView({
       setBacktest(await financeApi.backtest("2y"));
     } catch (e: unknown) {
       onError(e instanceof Error ? e.message : "Erreur backtest");
+    } finally {
+      setBacktesting(false);
+    }
+  };
+
+  const runWalkForward = async () => {
+    setBacktesting(true); setBacktest(null);
+    try {
+      setBacktest(await financeApi.backtestWalkForward("5y", 10));
+    } catch (e: unknown) {
+      onError(e instanceof Error ? e.message : "Erreur backtest walk-forward");
     } finally {
       setBacktesting(false);
     }
@@ -111,22 +139,25 @@ export function BuffettRunDetailView({
         <h2 className="text-base font-semibold">Run du {selected.run.run_date}</h2>
         <StatusBadge s={selected.run.statut} />
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={runBacktest} loading={backtesting}>
+          <Button variant="outline" size="sm" onClick={() => { void runBacktest(); }} loading={backtesting}>
             📈 Backtest 2 ans
           </Button>
+          <Button variant="outline" size="sm" onClick={() => { void runWalkForward(); }} loading={backtesting}>
+            🧭 Walk-forward
+          </Button>
           <Button variant="outline" size="sm"
-            onClick={() => exportRun(selected.run.id, selected.run.run_date, "xlsx")}>
+            onClick={() => { void exportRun(selected.run.id, selected.run.run_date, "xlsx"); }}>
             📊 Excel
           </Button>
           <Button variant="outline" size="sm"
-            onClick={() => exportRun(selected.run.id, selected.run.run_date, "csv")}>
+            onClick={() => { void exportRun(selected.run.id, selected.run.run_date, "csv"); }}>
             📄 CSV
           </Button>
         </div>
       </div>
       {selected.run.statut === "en_cours" && (
         <p className="text-xs rounded-[var(--radius)] bg-[var(--info-muted)] text-[var(--info-foreground)] px-3 py-2">
-          🔄 Optimisation en cours — ce portefeuille s&apos;améliore en direct, actualisation automatique.
+          🔄 Optimisation en cours — recherche de meilleures allocations, actualisation automatique.
         </p>
       )}
       {optProgress?.active && optProgress.run_id === selected.run.id && (
@@ -134,7 +165,11 @@ export function BuffettRunDetailView({
       )}
       {backtest && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm flex items-center gap-3 flex-wrap">
-          <span className="text-[var(--muted-foreground)]">Backtest buy-and-hold (2 ans) de l&apos;allocation cible :</span>
+          <span className="text-[var(--muted-foreground)]">
+            {backtest.mode === "walk_forward"
+              ? `Walk-forward trimestriel (${backtest.n_runs ?? 0} runs, frais 10 pb) :`
+              : "Backtest buy-and-hold (2 ans) de l'allocation cible :"}
+          </span>
           {backtest.n_points > 0 ? (
             <span className={`font-mono font-semibold ${backtest.rendement_pct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}>
               {backtest.rendement_pct >= 0 ? "+" : ""}{backtest.rendement_pct.toFixed(2)} %
@@ -142,10 +177,115 @@ export function BuffettRunDetailView({
           ) : (
             <span className="text-[var(--muted-foreground)]">données indisponibles</span>
           )}
+          {backtest.mode === "walk_forward" && backtest.n_points > 0 && (
+            <>
+              <span className="text-xs text-[var(--muted-foreground)]">
+                CAGR {fmt(backtest.cagr_pct)} % · drawdown {fmt(backtest.max_drawdown_pct)} % · CVaR 5 % {fmt(backtest.cvar_5_pct)} % · turnover {fmt((backtest.turnover ?? 0) * 100)} %
+              </span>
+              {backtest.comparisons && (
+                <span className="basis-full text-xs text-[var(--muted-foreground)]">
+                  Comparaison CAGR : optimisé {fmt(backtest.comparisons.optimized?.cagr_pct)} % · équipondéré {fmt(backtest.comparisons.equal_weight?.cagr_pct)} % · CW8 {fmt(backtest.comparisons["CW8.PA"]?.cagr_pct)} %
+                </span>
+              )}
+            </>
+          )}
         </div>
       )}
       {selected.run.resume && (
         <p className="text-sm text-[var(--muted-foreground)]">{selected.run.resume}</p>
+      )}
+      {selected.optimization && (
+        <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+          <h3 className="text-sm font-semibold mb-2">Comparaison reproductible des stratégies</h3>
+          <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
+            <div><span className="text-[var(--muted-foreground)]">Portefeuille réel</span><br /><strong>{fmt(selected.optimization.benchmarks.optimized, 4)}</strong></div>
+            <div><span className="text-[var(--muted-foreground)]">Équipondéré ({selected.optimization.benchmarks.equal_weight_max_lines_per_broker} lignes/broker)</span><br /><strong>{fmt(selected.optimization.benchmarks.equal_weight, 4)}</strong></div>
+            <div><span className="text-[var(--muted-foreground)]">Meilleur candidat simple (top {selected.optimization.benchmarks.best_single_candidates_tested})</span><br /><strong>{selected.optimization.benchmarks.best_single_ticker ?? "—"} · {fmt(selected.optimization.benchmarks.best_single, 4)}</strong></div>
+            <div><span className="text-[var(--muted-foreground)]">Reproductibilité</span><br /><strong>seed {selected.optimization.seed} · {selected.optimization.termination.seeds_run} seed(s)</strong></div>
+          </div>
+          <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+            Score calculé en {selected.optimization.base_currency ?? "EUR"}, après budgets et disponibilités broker · arrêt après {selected.optimization.termination.stagnation_generations} générations sans amélioration.
+          </p>
+          {selected.optimization.regimes && (
+            <div className="border-t border-[var(--border)] pt-3">
+              <h4 className="text-xs font-semibold mb-2">Régimes historiques et stress</h4>
+              <div className="flex flex-wrap gap-2">
+                {selected.optimization.regimes.windows.map(window => (
+                  <span key={window.label} className="rounded-full bg-[var(--muted)] px-2.5 py-1 text-xs">
+                    {window.label} · {window.observations} j · {(window.weight * 100).toFixed(0)} %
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {selected.optimization.etf_selection?.enabled && (
+            <div className="border-t border-[var(--border)] pt-3">
+              <h4 className="text-xs font-semibold mb-2">
+                Présélection ETF · {selected.optimization.etf_selection.n_etf_before} → {selected.optimization.etf_selection.n_etf_after} dans l&apos;union
+              </h4>
+              <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
+                {Object.entries(selected.optimization.etf_selection.brokers).map(([broker, info]) => (
+                  <div key={broker} className="rounded-lg bg-[var(--muted)] px-3 py-2">
+                    <strong>{brokerShort(broker)}</strong><br />
+                    <span className="text-[var(--muted-foreground)]">
+                      {info.candidates_before} candidats → {info.selected} retenus
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(selected.optimization.estimation || selected.optimization.turnover) && (
+            <div className="grid gap-2 border-t border-[var(--border)] pt-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
+              {selected.optimization.estimation && (
+                <>
+                  <div><span className="text-[var(--muted-foreground)]">Signal rendement propre</span><br /><strong>{(selected.optimization.estimation.mean_signal_weight * 100).toFixed(0)} %</strong></div>
+                  <div><span className="text-[var(--muted-foreground)]">Shrinkage corrélations</span><br /><strong>{(selected.optimization.estimation.correlation_shrinkage * 100).toFixed(0)} %</strong></div>
+                </>
+              )}
+              {selected.optimization.turnover && (
+                <>
+                  <div><span className="text-[var(--muted-foreground)]">Turnover estimé</span><br /><strong>{(selected.optimization.turnover.estimated_one_way * 100).toFixed(1)} %</strong></div>
+                  <div><span className="text-[var(--muted-foreground)]">Bande sans intervention</span><br /><strong>{(selected.optimization.turnover.rebalance_band * 100).toFixed(1)} %</strong></div>
+                </>
+              )}
+            </div>
+          )}
+          {selected.optimization.transaction_costs?.enabled && (
+            <div className="border-t border-[var(--border)] pt-3 text-xs">
+              <h4 className="mb-2 font-semibold">Frais intégrés à l’optimisation</h4>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <div><span className="text-[var(--muted-foreground)]">Prochain rebalancement</span><br /><strong>{selected.optimization.transaction_costs.trade_cost_eur.toFixed(2)} €</strong></div>
+                <div><span className="text-[var(--muted-foreground)]">Coût annualisé</span><br /><strong>{selected.optimization.transaction_costs.annualized_cost_eur.toFixed(2)} €</strong></div>
+                <div><span className="text-[var(--muted-foreground)]">Impact annuel</span><br /><strong>{(selected.optimization.transaction_costs.annualized_cost_pct * 100).toFixed(2)} %</strong></div>
+                <div><span className="text-[var(--muted-foreground)]">Garde étrangère annuelle</span><br /><strong>{selected.optimization.transaction_costs.annual_custody_eur.toFixed(2)} €</strong></div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-[var(--muted-foreground)]">
+                {selected.optimization.transaction_costs.brokers.map(info => (
+                  <span key={info.broker} className="rounded-full border border-[var(--border)] px-2 py-1">
+                    {brokerShort(info.broker)} · ordre {info.trade_cost_eur.toFixed(2)} €
+                    {info.annual_custody_eur > 0 ? ` · garde ${info.annual_custody_eur.toFixed(2)} €` : ""}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {selected.optimization.regimes?.correlation_stability?.available && (
+            <div className="border-t border-[var(--border)] pt-3 text-xs">
+              <h4 className="font-semibold mb-1">Stabilité des corrélations</h4>
+              <p className="text-[var(--muted-foreground)]">
+                {selected.optimization.regimes.correlation_stability.unstable_pairs ?? 0} paires instables · {selected.optimization.regimes.correlation_stability.major_shift_pairs ?? 0} changements majeurs
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(selected.optimization.regimes.correlation_stability.top_pairs ?? []).slice(0, 5).map(pair => (
+                  <span key={`${pair.ticker_a}-${pair.ticker_b}`} className="rounded-full border border-[var(--border)] px-2 py-1">
+                    {pair.ticker_a}/{pair.ticker_b} · Δ {pair.max_delta.toFixed(2)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
       <div>
         <h3 className="text-sm font-semibold mb-2 flex items-baseline gap-2 flex-wrap">

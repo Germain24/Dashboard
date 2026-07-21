@@ -45,7 +45,7 @@ function Tabs({ value, onValueChange, children, className }: TabsProps) {
 
 function TabsList({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <nav
+    <div
       className={cn(
         // Contrôle segmenté en verre : rail encastré (.glass-inset),
         // l'actif est une pastille soulevée.
@@ -56,7 +56,7 @@ function TabsList({ children, className }: { children: React.ReactNode; classNam
       role="tablist"
     >
       {children}
-    </nav>
+    </div>
   );
 }
 
@@ -84,7 +84,9 @@ function TabsTrigger({ value, children, className }: TabsTriggerProps) {
     else if (e.key === "End") next = ctx.tabs.length - 1;
     if (next !== -1) {
       e.preventDefault();
-      ctx.onChange(ctx.tabs[next]);
+      const nextValue = ctx.tabs[next];
+      ctx.onChange(nextValue);
+      document.getElementById(ctx.id + "-tab-" + nextValue)?.focus();
     }
   };
 

@@ -1,24 +1,39 @@
 """Modèles Finance — CONV 4 : BuffettRun, BuffettRunResult, snapshots, positions, transactions."""
 
 import datetime as dt
-from app.core.timeutil import utcnow
+from enum import Enum
 from typing import Optional
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, Column, UniqueConstraint
 from sqlmodel import Field, SQLModel
+
+from app.core.timeutil import utcnow
+
+
+class BuffettRunStatus(str, Enum):
+    """Statuts persistés pour une analyse Buffett.
+
+    Les valeurs sont volontairement les chaînes historiques déjà présentes en
+    base et exposées au frontend. Ne pas renommer sans migration explicite.
+    """
+
+    EN_COURS = "en_cours"
+    TERMINE = "termine"
+    INTERROMPU = "interrompu"
+    ERREUR = "erreur"
 
 
 class BuffettRun(SQLModel, table=True):
     """Une analyse mensuelle Buffett complète.
 
-    Statuts : pending → running → completed | error
+    Statuts : en_cours → termine | interrompu | erreur
     """
 
     __tablename__ = "buffett_run"
 
     id: Optional[int] = Field(default=None, primary_key=True)
     run_date: dt.date = Field(index=True)
-    statut: str = Field(default="pending")  # pending | running | completed | error
+    statut: str = Field(default=BuffettRunStatus.EN_COURS.value)
     n_tickers_total: int = Field(default=0)
     n_tickers_analyzed: int = Field(default=0)
     progress_pct: float = Field(default=0.0)
@@ -38,11 +53,14 @@ class BuffettRunResult(SQLModel, table=True):
     """
 
     __tablename__ = "buffett_run_result"
+    __table_args__ = (
+        UniqueConstraint("run_id", "ticker", name="uq_buffett_run_result_run_ticker"),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     run_id: Optional[int] = Field(default=None, foreign_key="buffett_run.id", index=True)
 
-    ticker: str = Field(unique=True, index=True)
+    ticker: str = Field(index=True)
     nom: Optional[str] = None
     pays: Optional[str] = None
     secteur: Optional[str] = None
@@ -84,7 +102,7 @@ class SnapshotPortefeuille(SQLModel, table=True):
 
 
 class Transaction(SQLModel, table=True):
-    """Transaction individuelle : achat / vente / dividende / frais."""
+    """Transaction individuelle du grand livre Finance."""
 
     __tablename__ = "transaction"
 
@@ -92,11 +110,13 @@ class Transaction(SQLModel, table=True):
     date: dt.datetime = Field(index=True)
     ticker: str = Field(index=True)
     broker: Optional[str] = None
-    type: str  # achat | vente | dividende | frais
+    type: str  # achat | vente | dividende | interet | depot | retrait | frais
     quantite: float
     prix_unitaire: float
     devise: str = "EUR"
     frais: float = 0.0
+    montant_brut: Optional[float] = None
+    retenue_source: float = 0.0
     note: Optional[str] = None
     created_at: dt.datetime = Field(default_factory=utcnow)
 

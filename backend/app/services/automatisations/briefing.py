@@ -59,9 +59,12 @@ def build_morning_briefing(session: Session, today: dt.date | None = None) -> st
         ).first()
         if latest and latest.poids:
             from app.services.sante.targets import calculate_daily_targets
-            targets = calculate_daily_targets(float(latest.poids), today)
-            kcal = int(targets.get("calories", 0))
-            prot = int(targets.get("proteines_g", 0))
+            # Renvoie un tuple (base, compensé) à clés capitalisées/accentuées.
+            # On garde le compensé : c'est la cible réellement à manger
+            # aujourd'hui, gap de la veille inclus.
+            _, comp = calculate_daily_targets(float(latest.poids), today)
+            kcal = int(comp.get("Calories", 0))
+            prot = int(comp.get("Protéines", 0))
             if kcal:
                 lines.append(f"🍽️ Objectif : {kcal} kcal / {prot}g protéines")
     except Exception:

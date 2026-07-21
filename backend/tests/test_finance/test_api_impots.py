@@ -41,7 +41,7 @@ def test_get_calcul_impots(client, session):
     assert r.status_code == 200
     data = r.json()
     assert data["gain_brut"] == 500.0
-    assert data["pfu"]["total"] == 150.0
+    assert data["pfu"]["total"] == 157.0
     assert data["recommande"] == "bareme"
 
 
@@ -68,7 +68,8 @@ def test_get_ventes_detail(client, session):
     assert data[0]["prix_achat_moyen"] == 100.0
     assert data[0]["prix_vente"] == 150.0
     assert data[0]["plus_value"] == 500.0
-    assert data[0]["impot_estime_pfu"] == 150.0
+    assert data[0]["calculable"] is True
+    assert data[0]["produit_net"] == 1500.0
 
 
 def test_get_ventes_detail_empty_when_no_sales(client):

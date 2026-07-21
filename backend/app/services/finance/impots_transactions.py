@@ -1,210 +1,380 @@
-"""Plus/moins-values réalisées par année, calculées en FIFO depuis le grand
-livre des transactions (`app.models.finance.Transaction`).
+"""Calcul fiscal des transactions de valeurs mobilieres.
 
-FIFO par ticker : chaque vente consomme les lots d'achat les plus anciens en
-premier (méthode retenue par l'administration fiscale française à défaut de
-justificatif contraire). Conversion en EUR au taux du jour (best-effort,
-cohérent avec le reste du code — `patrimoine.to_eur`, `voyage._prix_en_eur` —
-qui n'utilise pas non plus de taux FX historique daté). GBX (pence
-sterling, Trading212) est divisé par 100 avant conversion GBP→EUR.
-
-`t.frais` (frais de transaction) entre dans le calcul de la plus-value :
-à l'achat, il est réparti sur les unités achetées et vient augmenter le
-coût de base par unité du lot ; à la vente, il réduit le produit net de la
-cession (une seule fois par vente, quel que soit le nombre de lots FIFO
-consommés).
-
-`compute_realized_gains_fifo` est pur sur une liste de transactions déjà
-chargée (testable sans DB) ; `realized_gains_by_year` lit la DB.
+Pour les titres fongibles, le prix d'acquisition fiscal est le prix moyen
+pondere (PMP), calcule compte par compte. Les transactions doivent etre
+stockees en EUR au taux de l'operation ; une devise etrangere sans montant EUR
+historique est signalee et exclue plutot que convertie au cours du jour.
 """
 
 from __future__ import annotations
 
-import datetime as dt
-from collections import defaultdict, deque
+from collections import defaultdict
 from typing import Any
 
 
 def _to_eur_per_unit(prix: float, devise: str | None) -> float:
+    """Convertit un prix natif vers EUR pour les imports historiques PDF.
+
+    Trading 212 exprime les instruments londoniens en GBX (pence). Le CSV
+    complet reste preferable car sa colonne Total contient la conversion de
+    l'operation ; ce helper maintient le chemin PDF historique fonctionnel.
+    """
     from app.services.finance.fx import convert
-    devise = (devise or "EUR").upper()
-    if devise == "GBX":  # pence sterling -> livres -> EUR
+
+    currency = (devise or "EUR").upper()
+    if currency == "GBX":
         return convert(prix / 100, "GBP", "EUR")
-    return convert(prix, devise, "EUR")
+    return convert(prix, currency, "EUR")
 
 
-def compute_realized_sales_fifo(transactions: list[Any]) -> list[dict]:
-    """Détail VENTE PAR VENTE (FIFO) : une ligne par vente, dans l'ordre
-    chronologique -- `compute_realized_gains_fifo` s'obtient en agrégeant ces
-    lignes par année (cf. plus bas), pour un tableau "date, ticker, prix
-    d'achat moyen, prix de vente, plus-value" par cession.
+def _sort_key(transaction: Any) -> tuple:
+    return transaction.date, getattr(transaction, "id", 0) or 0
 
-    `transactions` : objets avec `.date` (datetime), `.ticker`, `.type`
-    ("achat"/"vente"), `.quantite`, `.prix_unitaire`, `.devise`, `.frais`
-    (frais de transaction, en `devise`, ajusté le coût de base à l'achat et
-    réduit le produit net à la vente). Une vente à découvert (rien à
-    consommer) n'a pas de coût de base connu -> ignorée
-    (best-effort). `prix_achat_moyen` est la moyenne pondérée des lots FIFO
-    consommés par CETTE vente (peut mélanger plusieurs achats à prix
-    différents si la vente dépasse le lot le plus ancien). L'impôt PFU
-    (30 %, taux plein -- l'imputation des moins-values antérieures se fait au
-    niveau ANNUEL, pas ligne par ligne, cf. `compute_tax_summary`) est estimé
-    par ligne pour une lecture directe, uniquement informative sur une
-    plus-value isolée."""
-    from app.services.finance.impots import PFU_RATE
 
-    lots: dict[str, deque[list[float]]] = defaultdict(deque)  # ticker -> [[qty, cost_eur], ...]
+def _account_key(transaction: Any) -> tuple[str, str]:
+    ticker = str(getattr(transaction, "ticker", "") or "").upper()
+    broker = str(getattr(transaction, "broker", "") or "default").casefold()
+    return ticker, broker
+
+
+def _is_eur(transaction: Any) -> bool:
+    return str(getattr(transaction, "devise", "EUR") or "EUR").upper() == "EUR"
+
+
+def compute_realized_sales_pmp(transactions: list[Any]) -> list[dict]:
+    """Renvoie une ligne par vente avec un cout d'acquisition au PMP.
+
+    Une vente sans stock d'achat suffisant reste visible avec
+    ``calculable=False``. Elle n'entre pas dans le gain annuel afin de ne pas
+    fabriquer une assiette fiscale fausse.
+    """
+    books: dict[tuple[str, str], dict[str, float | bool]] = defaultdict(
+        lambda: {"quantite": 0.0, "cout": 0.0, "devise_invalide": False}
+    )
     sales: list[dict] = []
 
-    for t in sorted(transactions, key=lambda t: t.date):
-        if t.type not in ("achat", "vente"):
+    for transaction in sorted(transactions, key=_sort_key):
+        kind = str(getattr(transaction, "type", "") or "").lower()
+        if kind not in ("achat", "vente"):
             continue
-        prix_eur = _to_eur_per_unit(t.prix_unitaire, t.devise)
-        queue = lots[t.ticker]
-        if t.type == "achat":
-            frais_eur = _to_eur_per_unit(t.frais or 0.0, t.devise)
-            cout_unitaire = prix_eur + (frais_eur / t.quantite if t.quantite else 0.0)
-            queue.append([t.quantite, cout_unitaire])
+
+        ticker, broker_key = _account_key(transaction)
+        broker = getattr(transaction, "broker", None) or "default"
+        quantity = float(getattr(transaction, "quantite", 0) or 0)
+        unit_price = float(getattr(transaction, "prix_unitaire", 0) or 0)
+        fees = float(getattr(transaction, "frais", 0) or 0)
+        book = books[(ticker, broker_key)]
+
+        if kind == "achat":
+            if quantity <= 0:
+                continue
+            if not _is_eur(transaction):
+                book["devise_invalide"] = True
+                continue
+            book["quantite"] = float(book["quantite"]) + quantity
+            book["cout"] = float(book["cout"]) + quantity * unit_price + fees
             continue
-        qty_to_sell = t.quantite
-        realized = 0.0
-        cout_total = 0.0
-        qty_vendue = 0.0
-        while qty_to_sell > 1e-9 and queue:
-            lot = queue[0]
-            sold = min(qty_to_sell, lot[0])
-            realized += sold * (prix_eur - lot[1])
-            cout_total += sold * lot[1]
-            qty_vendue += sold
-            lot[0] -= sold
-            qty_to_sell -= sold
-            if lot[0] <= 1e-9:
-                queue.popleft()
-        if qty_vendue <= 1e-9:
+
+        reason: str | None = None
+        available = float(book["quantite"])
+        if quantity <= 0:
+            reason = "Quantite de vente invalide"
+        elif not _is_eur(transaction) or bool(book["devise_invalide"]):
+            reason = "Conversion EUR historique manquante"
+        elif available + 1e-8 < quantity:
+            reason = "Historique d'achat incomplet"
+
+        pmp = float(book["cout"]) / available if available > 1e-9 else 0.0
+        if reason is not None:
+            sales.append({
+                "date": transaction.date,
+                "ticker": ticker,
+                "broker": broker,
+                "quantite": round(quantity, 6),
+                "prix_achat_moyen": round(pmp, 4),
+                "prix_vente": round(unit_price, 4),
+                "produit_net": None,
+                "cout_acquisition": None,
+                "frais_vente": round(fees, 2),
+                "plus_value": None,
+                "calculable": False,
+                "raison": reason,
+            })
             continue
-        frais_eur = _to_eur_per_unit(t.frais or 0.0, t.devise)
-        realized -= frais_eur
-        plus_value = round(realized, 2)
+
+        acquisition_cost = pmp * quantity
+        net_proceeds = unit_price * quantity - fees
+        realized = net_proceeds - acquisition_cost
+        book["quantite"] = max(0.0, available - quantity)
+        book["cout"] = max(0.0, float(book["cout"]) - acquisition_cost)
+        if float(book["quantite"]) <= 1e-8:
+            book["quantite"] = 0.0
+            book["cout"] = 0.0
+
         sales.append({
-            "date": t.date,
-            "ticker": t.ticker,
-            "quantite": round(qty_vendue, 6),
-            "prix_achat_moyen": round(cout_total / qty_vendue, 4),
-            "prix_vente": round(prix_eur, 4),
-            "plus_value": plus_value,
-            "impot_estime_pfu": round(max(0.0, plus_value) * PFU_RATE, 2),
+            "date": transaction.date,
+            "ticker": ticker,
+            "broker": broker,
+            "quantite": round(quantity, 6),
+            "prix_achat_moyen": round(pmp, 4),
+            "prix_vente": round(unit_price, 4),
+            "produit_net": round(net_proceeds, 2),
+            "cout_acquisition": round(acquisition_cost, 2),
+            "frais_vente": round(fees, 2),
+            "plus_value": round(realized, 2),
+            "calculable": True,
+            "raison": None,
         })
+
     return sales
 
 
-def compute_realized_gains_fifo(transactions: list[Any]) -> dict[int, float]:
-    """`{année: gain_net_realise_eur}` (positif = plus-value, négatif =
-    moins-value), agrégé depuis `compute_realized_sales_fifo`."""
+def compute_realized_gains_pmp(transactions: list[Any]) -> dict[int, float]:
     gains_by_year: dict[int, float] = defaultdict(float)
-    for sale in compute_realized_sales_fifo(transactions):
-        gains_by_year[sale["date"].year] += sale["plus_value"]
-    return {y: round(g, 2) for y, g in gains_by_year.items()}
+    for sale in compute_realized_sales_pmp(transactions):
+        if sale["calculable"]:
+            gains_by_year[sale["date"].year] += float(sale["plus_value"])
+    return {year: round(gain, 2) for year, gain in gains_by_year.items()}
 
 
-def realized_sales_detail(session, *, broker: str | None = None, annee: int | None = None) -> list[dict]:
-    """Lit le grand livre des transactions et renvoie le détail vente par
-    vente (FIFO), le plus récent en premier. `annee` filtre sur l'année de la
-    VENTE (pas des achats, qui peuvent être antérieurs)."""
+# Compatibilite temporaire avec les imports internes et les extensions locales.
+compute_realized_sales_fifo = compute_realized_sales_pmp
+compute_realized_gains_fifo = compute_realized_gains_pmp
+
+
+def _ledger_transactions(session, *, broker: str | None = None) -> list[Any]:
     from sqlmodel import select
+
     from app.models.finance import Transaction
 
     stmt = select(Transaction).where(Transaction.type.in_(["achat", "vente"]))
     if broker:
         stmt = stmt.where(Transaction.broker == broker)
-    txs = session.exec(stmt).all()
-    sales = compute_realized_sales_fifo(txs)
+    return list(session.exec(stmt).all())
+
+
+def realized_sales_detail(
+    session, *, broker: str | None = None, annee: int | None = None,
+) -> list[dict]:
+    sales = compute_realized_sales_pmp(_ledger_transactions(session, broker=broker))
     if annee is not None:
-        sales = [s for s in sales if s["date"].year == annee]
-    return sorted(sales, key=lambda s: s["date"], reverse=True)
+        sales = [sale for sale in sales if sale["date"].year == annee]
+    return sorted(sales, key=lambda sale: sale["date"], reverse=True)
 
 
 def realized_gains_by_year(session, *, broker: str | None = None) -> dict[int, float]:
-    """Lit le grand livre des transactions (optionnellement filtré par
-    broker) et calcule les plus/moins-values réalisées par année (FIFO)."""
+    return compute_realized_gains_pmp(_ledger_transactions(session, broker=broker))
+
+
+def investment_income_by_year(
+    session, *, broker: str | None = None,
+) -> tuple[dict[int, dict[str, float]], dict[int, int]]:
+    """Revenus mobiliers par annee et nombre de lignes non converties en EUR."""
     from sqlmodel import select
+
     from app.models.finance import Transaction
 
-    stmt = select(Transaction).where(Transaction.type.in_(["achat", "vente"]))
+    stmt = select(Transaction).where(Transaction.type.in_(["dividende", "interet"]))
     if broker:
         stmt = stmt.where(Transaction.broker == broker)
-    txs = session.exec(stmt).all()
-    return compute_realized_gains_fifo(txs)
+    result: dict[int, dict[str, float]] = defaultdict(
+        lambda: {
+            "dividendes_bruts": 0.0,
+            "dividendes_eligibles_bruts": 0.0,
+            "dividendes_nets": 0.0,
+            "interets_bruts": 0.0,
+            "interets_nets": 0.0,
+            "retenue_source": 0.0,
+        }
+    )
+    excluded: dict[int, int] = defaultdict(int)
+    for transaction in session.exec(stmt).all():
+        if not _is_eur(transaction):
+            excluded[transaction.date.year] += 1
+            continue
+        fallback = float(transaction.quantite or 0) * float(transaction.prix_unitaire or 0)
+        gross = getattr(transaction, "montant_brut", None)
+        gross = float(gross) if gross is not None else fallback
+        withholding = float(getattr(transaction, "retenue_source", 0) or 0)
+        fees = float(transaction.frais or 0)
+        year = transaction.date.year
+        if transaction.type == "interet":
+            result[year]["interets_bruts"] += gross
+            result[year]["interets_nets"] += gross - fees
+            continue
+        result[year]["dividendes_bruts"] += gross
+        if "manufactured" not in str(transaction.note or "").casefold():
+            result[year]["dividendes_eligibles_bruts"] += gross
+        result[year]["retenue_source"] += withholding
+        result[year]["dividendes_nets"] += gross - withholding - fees
+    rounded = {
+        year: {key: round(value, 2) for key, value in row.items()}
+        for year, row in result.items()
+    }
+    return rounded, dict(excluded)
+
+
+def dividends_by_year(session, *, broker: str | None = None) -> dict[int, dict[str, float]]:
+    """Alias structure pour les extensions locales historiques."""
+    rows, _ = investment_income_by_year(session, broker=broker)
+    return rows
 
 
 def compute_tax_summary(
-    session, *, annee: int, autres_revenus: float = 0.0, parts: float = 1.0,
-    moins_values_anterieures: float = 0.0, broker: str | None = None,
+    session,
+    *,
+    annee: int,
+    autres_revenus: float = 0.0,
+    parts: float = 1.0,
+    moins_values_anterieures: float = 0.0,
+    moins_values_anterieures_annee: int | None = None,
+    dividendes_eligibles_abattement: bool = True,
+    broker: str | None = None,
 ) -> dict:
-    """Vue complète pour l'onglet Impôts : plus-value réalisée de `annee`
-    (FIFO depuis les transactions), report de moins-values imputé
-    chronologiquement depuis `moins_values_anterieures` (solde AVANT
-    l'historique connu du grand livre) à travers toutes les années
-    disponibles jusqu'à `annee` incluse, puis comparaison PFU / barème
-    progressif sur le gain net résultant.
+    from app.services.finance.impots import (
+        bareme_for_income_year,
+        compare_regimes,
+        social_rate_for_income_year,
+    )
 
-    Le report est suivi par "vintage" (année d'origine, montant restant) au
-    lieu d'un simple solde roulant : chaque perte expire 10 ans après son
-    année d'origine (jamais au-delà, cf. `impots.py`), et l'imputation
-    consomme les vintages les plus anciens en premier (les plus proches de
-    l'expiration)."""
-    from app.services.finance.impots import compare_regimes
+    transactions = _ledger_transactions(session, broker=broker)
+    sales = compute_realized_sales_pmp(transactions)
+    gains: dict[int, float] = defaultdict(float)
+    for sale in sales:
+        if sale["calculable"] and sale["date"].year <= annee:
+            gains[sale["date"].year] += float(sale["plus_value"])
+    gains = {year: round(value, 2) for year, value in gains.items()}
+    years = sorted({year for year in gains if year <= annee} | {annee})
 
-    gains = realized_gains_by_year(session, broker=broker)
-    annees = sorted(y for y in gains if y <= annee)
+    origin = moins_values_anterieures_annee or annee - 1
+    vintages: list[list[float | int]] = []
 
-    # Le solde "anterieur" fourni par l'appelant (avant le debut du grand
-    # livre connu) est traite comme originaire de l'annee juste avant la
-    # premiere annee connue -- il expire donc lui aussi au bout de 10 ans
-    # comme n'importe quel autre vintage, au lieu de rester eternellement
-    # valide.
-    premiere_annee_connue = annees[0] if annees else annee
-    vintages: list[list] = []  # [[origin_year, montant_restant], ...] ordre croissant = plus ancien d'abord
-    if moins_values_anterieures > 0:
-        vintages.append([premiere_annee_connue - 1, moins_values_anterieures])
-
-    net_annee = 0.0
-    par_annee: dict[int, dict] = {}
-    for y in annees:
-        vintages = [v for v in vintages if y - v[0] <= 10]  # purge expiration
-        gain = gains[y]
+    net_year = 0.0
+    history: dict[int, dict] = {}
+    for year in years:
+        vintages = [vintage for vintage in vintages if year - int(vintage[0]) <= 10]
+        # La saisie manuelle represente un report disponible au debut de
+        # l'annee demandee. Elle ne doit jamais effacer retroactivement un
+        # gain deja realise dans l'historique du ledger.
+        if (
+            year == annee
+            and moins_values_anterieures > 0
+            and annee - origin <= 10
+        ):
+            vintages.append([origin, moins_values_anterieures])
+            vintages.sort(key=lambda vintage: int(vintage[0]))
+        gain = gains.get(year, 0.0)
         if gain <= 0:
-            vintages.append([y, -gain])
+            vintages.append([year, -gain])
             net = 0.0
         else:
-            restant = gain
-            for v in vintages:  # plus ancien d'abord (liste deja triee par construction)
-                if restant <= 0:
+            remaining = gain
+            for vintage in vintages:
+                if remaining <= 0:
                     break
-                impute = min(restant, v[1])
-                v[1] -= impute
-                restant -= impute
-            vintages = [v for v in vintages if v[1] > 1e-9]
-            net = round(restant, 2)
-        par_annee[y] = {
-            "gain_brut": gain, "gain_net_imposable": net,
-            "report_apres": round(sum(v[1] for v in vintages), 2),
+                offset = min(remaining, float(vintage[1]))
+                vintage[1] = float(vintage[1]) - offset
+                remaining -= offset
+            vintages = [vintage for vintage in vintages if float(vintage[1]) > 1e-9]
+            net = round(remaining, 2)
+        history[year] = {
+            "gain_brut": gain,
+            "gain_net_imposable": net,
+            "report_apres": round(sum(float(vintage[1]) for vintage in vintages), 2),
         }
-        if y == annee:
-            net_annee = net
+        if year == annee:
+            net_year = net
 
-    # Purge finale relative a `annee` (pas seulement a la derniere annee
-    # avec transactions) -- si `annee` n'a elle-meme aucun gain/perte, le
-    # temps a quand meme pu faire expirer un vintage depuis la derniere
-    # annee traitee.
-    vintages = [v for v in vintages if annee - v[0] <= 10]
-    report = round(sum(v[1] for v in vintages), 2)
+    vintages = [vintage for vintage in vintages if annee - int(vintage[0]) <= 10]
+    report = round(sum(float(vintage[1]) for vintage in vintages), 2)
+    income_by_year, excluded_income = investment_income_by_year(
+        session, broker=broker
+    )
+    income = income_by_year.get(
+        annee,
+        {
+            "dividendes_bruts": 0.0,
+            "dividendes_eligibles_bruts": 0.0,
+            "dividendes_nets": 0.0,
+            "interets_bruts": 0.0,
+            "interets_nets": 0.0,
+            "retenue_source": 0.0,
+        },
+    )
+    regimes = compare_regimes(
+        autres_revenus,
+        net_year,
+        parts,
+        annee=annee,
+        dividendes_bruts=income["dividendes_bruts"],
+        dividendes_eligibles_abattement=dividendes_eligibles_abattement,
+        dividendes_eligibles_bruts=income["dividendes_eligibles_bruts"],
+        interets_bruts=income["interets_bruts"],
+    )
+    _, bareme_reference, bareme_provisoire = bareme_for_income_year(annee)
+    incomplete = [sale for sale in sales if not sale["calculable"] and sale["date"].year <= annee]
 
-    regimes = compare_regimes(autres_revenus, net_annee, parts)
+    warnings: list[str] = []
+    if incomplete:
+        warnings.append(
+            f"{len(incomplete)} vente(s) exclue(s) : historique d'achat ou conversion EUR incomplet."
+        )
+    excluded_income_total = sum(
+        count for year, count in excluded_income.items() if year <= annee
+    )
+    if excluded_income_total:
+        warnings.append(
+            f"{excluded_income_total} revenu(s) mobilier(s) exclu(s) : conversion EUR historique manquante."
+        )
+    if income["retenue_source"] > 0:
+        warnings.append(
+            "La retenue etrangere est affichee separement ; son credit d'impot depend de la convention fiscale."
+        )
+    non_eligible_dividends = round(
+        income["dividendes_bruts"] - income["dividendes_eligibles_bruts"], 2
+    )
+    if non_eligible_dividends > 0:
+        warnings.append(
+            f"{non_eligible_dividends:.2f} EUR de paiement(s) compensatoire(s) de dividende sont exclus de l'abattement de 40 %."
+        )
+    if bareme_provisoire:
+        warnings.append(
+            f"Le bareme de l'annee {annee} n'est pas encore publie ; estimation avec le bareme des revenus {bareme_reference}."
+        )
+
     return {
         "annee": annee,
+        "methode_cout": "PMP",
         "gain_brut": round(gains.get(annee, 0.0), 2),
-        "gain_net_imposable": net_annee,
+        "gain_net_imposable": net_year,
         "report_moins_values_restant": report,
-        "historique_par_annee": par_annee,
+        "dividendes_bruts": income["dividendes_bruts"],
+        "dividendes_eligibles_bruts": income["dividendes_eligibles_bruts"],
+        "dividendes_nets": income["dividendes_nets"],
+        "interets_bruts": income["interets_bruts"],
+        "interets_nets": income["interets_nets"],
+        "revenus_mobiliers_bruts": round(
+            income["dividendes_bruts"] + income["interets_bruts"], 2
+        ),
+        "revenus_mobiliers_nets": round(
+            income["dividendes_nets"] + income["interets_nets"], 2
+        ),
+        "retenue_source_etrangere": income["retenue_source"],
+        "historique_par_annee": history,
+        "taux_sociaux_pct": round(social_rate_for_income_year(annee) * 100, 1),
+        "bareme_reference_revenus": bareme_reference,
+        "bareme_provisoire": bareme_provisoire,
+        "dividendes_eligibles_abattement": dividendes_eligibles_abattement,
+        "data_quality": {
+            "ventes_total": sum(1 for sale in sales if sale["date"].year == annee),
+            "ventes_calculables": sum(
+                1 for sale in sales if sale["date"].year == annee and sale["calculable"]
+            ),
+            "ventes_exclues": sum(
+                1 for sale in sales if sale["date"].year == annee and not sale["calculable"]
+            ),
+            "revenus_exclus": excluded_income.get(annee, 0),
+        },
+        "avertissements": warnings,
         **regimes,
     }

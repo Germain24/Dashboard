@@ -10,6 +10,11 @@ import math
 from typing import Optional
 
 
+# À incrémenter dès qu'une formule MOAT change. Le cache conserve les ETF à 200,
+# mais force alors le recalcul de toutes les actions avec le nouveau modèle.
+SCORING_MODEL_VERSION = 2
+
+
 # ── Thresholds (issues de WarrenBuffetMensuel.py) ──────────────────────────
 THRESHOLD_GPM = 0.60       # Gross Profit Margin idéale ≥ 60 %
 THRESHOLD_SGA = 0.80       # SGA/Gross Profit idéale ≤ 80 %
@@ -32,17 +37,115 @@ GROWTH_EXTREME = 0.50
 
 
 def exponential_weights(n: int) -> list[float]:
-    """Poids exponentiels décroissants (le plus récent = poids le plus fort)."""
+    """Poids exponentiels croissants pour une série ancien → récent."""
     if n <= 0:
         return []
     if n == 1:
         return [1.0]
-    raw = [math.exp(-0.1 * i) for i in range(n)]
+    raw = [math.exp(0.1 * i) for i in range(n)]
     total = sum(raw)
     return [w / total for w in raw]
 
 
-def score_year(ratios: dict) -> float:
+_CRITERIA: dict[str, tuple[str, float | None]] = {
+    "gpm": ("min", THRESHOLD_GPM),
+    "sga": ("max", THRESHOLD_SGA),
+    "rd": ("max", THRESHOLD_RD),
+    "depr": ("max", THRESHOLD_DEPR),
+    "interest_exp": ("max", THRESHOLD_INT),
+    "pretax_growth": ("bool", None),
+    "net_income_growth": ("bool", None),
+    "net_income_positive": ("bool", None),
+    "nim": ("min", THRESHOLD_NIM),
+    "eps_growth": ("bool", None),
+    "cash_growth": ("bool", None),
+    "debt_ratio": ("max", 0.60),
+    "liab_ratio": ("min", 1.0),
+    "lt_debt_ratio": ("max", 0.25),
+    "debt_eq": ("max", THRESHOLD_DEBT_EQ),
+    "retained_growth": ("bool", None),
+    "cap_stock_var": ("bool", None),
+    "roe": ("min", THRESHOLD_ROE),
+    "roic": ("min", THRESHOLD_ROIC),
+    "capex": ("max", THRESHOLD_CAPEX),
+    "buybacks": ("bool", None),
+}
+
+# Certains ratios industriels n'ont pas la même signification pour les sociétés
+# financières, les REIT et les utilities. On retire uniquement les critères non
+# comparables ; les critères restants gardent les mêmes seuils stricts.
+_SECTOR_EXCLUDED: dict[str, set[str]] = {
+    "financial services": {
+        "gpm", "sga", "rd", "depr", "interest_exp", "debt_ratio",
+        "liab_ratio", "lt_debt_ratio", "debt_eq", "roic", "capex",
+    },
+    "utilities": {"rd", "capex"},
+}
+_REIT_EXCLUDED = {
+    "depr", "nim", "net_income_growth", "eps_growth", "roe", "roic", "capex",
+    "lt_debt_ratio",
+}
+_GROWTH_KEYS = {
+    "pretax_growth", "net_income_growth", "eps_growth", "cash_growth",
+    "retained_growth",
+}
+
+
+def _applicable_criteria(secteur: str = "", industrie: str = "") -> set[str]:
+    keys = set(_CRITERIA)
+    keys -= _SECTOR_EXCLUDED.get(str(secteur or "").strip().lower(), set())
+    if "reit" in str(industrie or "").lower():
+        keys -= _REIT_EXCLUDED
+    return keys
+
+
+def _criterion_subscore(value: object, direction: str, threshold: float | None) -> float | None:
+    try:
+        val = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(val):
+        return None
+    if direction == "bool":
+        return 1.0 if bool(value) else 0.0
+    if threshold is None or threshold <= 0:
+        return None
+    if direction == "min":
+        return max(0.0, min(1.0, val / threshold))
+    # Critère « max » : score plein jusqu'au seuil, puis décroissance linéaire
+    # jusqu'à zéro à 2 × le seuil. Le seuil annoncé correspond ainsi réellement
+    # à la frontière du score maximal.
+    if val <= threshold:
+        return 1.0 if val >= 0 else None
+    return max(0.0, 2.0 - val / threshold)
+
+
+def _score_year_components(
+    ratios: dict,
+    secteur: str = "",
+    industrie: str = "",
+) -> tuple[float, float]:
+    applicable = _applicable_criteria(secteur, industrie)
+    scores: list[float] = []
+    first = bool(ratios.get("first_year", False))
+    for key in applicable:
+        if first and key in _GROWTH_KEYS:
+            scores.append(1.0)
+            continue
+        direction, threshold = _CRITERIA[key]
+        subscore = _criterion_subscore(ratios.get(key), direction, threshold)
+        if subscore is not None:
+            scores.append(subscore)
+    if not scores or not applicable:
+        return 0.0, 0.0
+    coverage = len(scores) / len(applicable)
+    # Une donnée absente n'est plus confondue avec un mauvais ratio, mais reste
+    # pénalisée : impossible d'obtenir un excellent score sur quelques champs.
+    confidence = math.sqrt(coverage)
+    return sum(scores) / len(scores) * confidence, coverage
+
+
+def score_year(ratios: dict, secteur: str = "", industrie: str = "") -> float:
     """Score MOAT pour une année donnée (0-1).
 
     ratios: dict avec clés optionnelles :
@@ -53,54 +156,37 @@ def score_year(ratios: dict) -> float:
         retained_growth, cap_stock_var, roe, roic, capex, buybacks,
         first_year (bool — pour les critères de croissance)
     """
-    s = 0.0
-    n = 0
-
-    def add(val: Optional[float]) -> None:
-        nonlocal s, n
-        if val is not None and math.isfinite(val):
-            s += max(0.0, min(1.0, val))
-            n += 1
-
-    add(ratios.get("gpm", 0.0) / THRESHOLD_GPM)
-    add((1.0 - ratios.get("sga", 1.0)) / THRESHOLD_SGA)
-    add((1.0 - ratios.get("rd", 1.0)) / THRESHOLD_RD)
-    add((1.0 - ratios.get("depr", 1.0)) / THRESHOLD_DEPR)
-    add((1.0 - ratios.get("interest_exp", 1.0)) / THRESHOLD_INT)
-
-    first = ratios.get("first_year", False)
-    add(1.0 if first else float(ratios.get("pretax_growth", False)))
-    add(1.0 if first else float(ratios.get("net_income_growth", False)))
-    add(float(ratios.get("net_income_positive", False)))
-    add(ratios.get("nim", 0.0) / THRESHOLD_NIM)
-    add(1.0 if first else float(ratios.get("eps_growth", False)))
-    add(1.0 if first else float(ratios.get("cash_growth", False)))
-
-    add((1.0 - ratios.get("debt_ratio", 1.0)) / 0.60)
-    add(min(ratios.get("liab_ratio", 0.0), 1.0))
-    add((1.0 - ratios.get("lt_debt_ratio", 1.0)) / 0.25)
-    add((1.0 - ratios.get("debt_eq", 1.0)) / THRESHOLD_DEBT_EQ)
-    add(float(ratios.get("retained_growth", False)) if not first else 1.0)
-    add(float(ratios.get("cap_stock_var", False)))
-    add(ratios.get("roe", 0.0) / THRESHOLD_ROE)
-    add(ratios.get("roic", 0.0) / THRESHOLD_ROIC)
-    add((1.0 - ratios.get("capex", 1.0)) / THRESHOLD_CAPEX)
-    add(float(ratios.get("buybacks", False)))
-
-    return s / n if n > 0 else 0.0
+    return _score_year_components(ratios, secteur, industrie)[0]
 
 
-def compute_moat_score(yearly_ratios: list[dict]) -> float:
+def compute_moat_score(
+    yearly_ratios: list[dict], secteur: str = "", industrie: str = "",
+) -> float:
     """Score MOAT global pondéré exponentiellement (0-100)."""
     n = len(yearly_ratios)
     if n == 0:
         return 0.0
     weights = exponential_weights(n)
     total = sum(
-        score_year({**r, "first_year": i == 0}) * weights[i]
+        score_year({**r, "first_year": i == 0}, secteur, industrie) * weights[i]
         for i, r in enumerate(yearly_ratios)
     )
     return round(total * 100.0, 2)
+
+
+def compute_score_coverage(
+    yearly_ratios: list[dict], secteur: str = "", industrie: str = "",
+) -> float:
+    """Couverture pondérée des critères applicables, en pourcentage."""
+    if not yearly_ratios:
+        return 0.0
+    weights = exponential_weights(len(yearly_ratios))
+    coverage = sum(
+        _score_year_components({**r, "first_year": i == 0}, secteur, industrie)[1]
+        * weights[i]
+        for i, r in enumerate(yearly_ratios)
+    )
+    return round(coverage * 100.0, 2)
 
 
 # Critères lisibles pour le détail du score (clé ratio, label, catégorie, seuil,
@@ -123,23 +209,22 @@ _BREAKDOWN_CRITERIA = [
 ]
 
 
-def score_breakdown(ratios: dict) -> list[dict]:
+def score_breakdown(ratios: dict, secteur: str = "", industrie: str = "") -> list[dict]:
     """Détail par critère du score MOAT pour une année de ratios.
 
     Retourne une liste de dicts : {cle, label, categorie, valeur, seuil, sens,
     ok, sous_score (0-1), explication}.
     """
     out: list[dict] = []
+    applicable = _applicable_criteria(secteur, industrie)
     for cle, label, cat, seuil, sens, expl in _BREAKDOWN_CRITERIA:
+        if cle not in applicable:
+            continue
         val = ratios.get(cle)
         if val is None or not math.isfinite(val):
             continue
-        if sens == "min":
-            ok = val >= seuil
-            sous = max(0.0, min(1.0, val / seuil)) if seuil else 0.0
-        else:  # "max" : il faut être sous le seuil
-            ok = val <= seuil
-            sous = max(0.0, min(1.0, (1.0 - val) / seuil)) if seuil else 0.0
+        ok = val >= seuil if sens == "min" else val <= seuil
+        sous = _criterion_subscore(val, sens, seuil)
         out.append({
             "cle": cle,
             "label": label,

@@ -83,6 +83,37 @@ def compute_sharpe(
     return round((ann_ret - taux_sans_risque) / ann_vol, 3) if ann_vol > 0 else 0.0
 
 
+def compute_sortino(
+    rendements: list[float],
+    taux_sans_risque: float = 0.04,
+) -> float | None:
+    """Ratio de Sortino annualisé : comme Sharpe, mais le dénominateur ne
+    retient que la volatilité *baissière* (rendements sous le MAR).
+
+    Renvoie ``None`` quand aucun rendement n'est sous le MAR : le ratio est alors
+    mathématiquement infini, et 0.0 (la valeur que ``compute_sharpe`` renvoie
+    pour un dénominateur nul) se lirait à tort comme « mauvais » alors que la
+    série n'a subi aucune baisse. ``None`` = « non défini », déjà le contrat de
+    ``sharpe`` côté API (``Optional[float]``).
+    """
+    if len(rendements) < 2:
+        return 0.0
+    n = len(rendements)
+    mean = sum(rendements) / n
+    # MAR quotidien équivalent au taux annuel, cohérent avec l'annualisation
+    # géométrique de ann_ret ci-dessous.
+    mar = (1 + taux_sans_risque) ** (1 / 252) - 1
+    pertes = [r - mar for r in rendements if r < mar]
+    if not pertes:
+        return None
+    # Dénominateur n-1 sur l'échantillon complet (même correction de Bessel que
+    # compute_sharpe) : seule la *somme* est restreinte aux rendements baissiers.
+    downside = math.sqrt(sum(p ** 2 for p in pertes) / (n - 1))
+    ann_ret = (1 + mean) ** 252 - 1
+    ann_downside = downside * math.sqrt(252)
+    return round((ann_ret - taux_sans_risque) / ann_downside, 3) if ann_downside > 0 else None
+
+
 def get_risk_metrics(
     snapshots: list[dict],
     positions: list[dict],
@@ -90,8 +121,8 @@ def get_risk_metrics(
     """Calcule toutes les métriques de risque depuis les snapshots et positions."""
     valeurs = [s["valeur"] for s in snapshots if s.get("valeur")]
     if not valeurs:
-        return {"max_drawdown_pct": 0, "volatilite_pct": 0, "hhi": 0, "sharpe": 0,
-                "n_positions": 0, "concentration": "inconnu"}
+        return {"max_drawdown_pct": 0, "volatilite_annualisee_pct": 0, "hhi": 0, "sharpe": 0,
+                "sortino": None, "n_positions": 0, "concentration": "inconnu"}
 
     has_investit = all("investit" in s for s in snapshots)
     if has_investit:
@@ -102,6 +133,7 @@ def get_risk_metrics(
     mdd = compute_max_drawdown(valeurs)
     vol = compute_volatility(rendements=rets)
     sharpe = compute_sharpe(rets)
+    sortino = compute_sortino(rets)
 
     # HHI sur les valeurs actuelles des positions
     poids_pos = [p.get("valeur_actuelle", 0) for p in positions if p.get("valeur_actuelle", 0) > 0]
@@ -113,6 +145,7 @@ def get_risk_metrics(
         "volatilite_annualisee_pct": vol,
         "hhi": hhi,
         "sharpe": sharpe,
+        "sortino": sortino,
         "n_positions": len(positions),
         "concentration": concentration,
     }
@@ -158,14 +191,14 @@ def compute_sector_diversification(items: list[dict], seuil_pct: float = 30.0) -
 
 def get_sector_diversification(session, seuil_pct: float = 30.0) -> dict:
     """Diversification sectorielle réelle : joint les positions aux secteurs Buffett."""
+    from app.services.finance.buffett.reporting import get_latest_results_by_ticker
     from app.services.finance.portfolio import get_positions
-    from app.models.finance import BuffettRunResult
-    from sqlmodel import select
 
     positions = get_positions(session)
+    latest = get_latest_results_by_ticker(session, (p["ticker"] for p in positions))
     secteur_par_ticker = {
         r.ticker: r.secteur
-        for r in session.exec(select(BuffettRunResult)).all()
+        for r in latest.values()
         if r.secteur
     }
     items = [

@@ -27,7 +27,10 @@ class MealPlanPatch(BaseModel):
 
 class GeneratePlanRequest(BaseModel):
     semaine: str
-    cibles: dict = {"calories": 2500, "proteines": 180, "glucides": 300, "lipides": 80}
+    # Omises = dérivées des cibles Santé du dernier poids connu. Surtout pas de
+    # profil par défaut codé en dur ici : c'était 2500 kcal / 180 g de protéines
+    # pour un utilisateur de ~57 kg, appliqué silencieusement.
+    cibles: dict | None = None
 
 
 class PantryItemIn(BaseModel):

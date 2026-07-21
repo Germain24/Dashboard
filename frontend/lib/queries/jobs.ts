@@ -39,6 +39,8 @@ export function useNotifications(limit = 10) {
   return useQuery({
     queryKey: notificationsKeys.list(limit),
     queryFn: () => fetchNotifications(limit),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 }
 export function useNotifPrefs() {

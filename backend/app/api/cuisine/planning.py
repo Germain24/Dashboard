@@ -13,6 +13,36 @@ from app.services.cuisine import shopping_list as shop_svc
 router = APIRouter()
 
 
+def _cibles_sante_du_jour(session: Session) -> dict:
+    """Cibles macros du jour, même source que l'onglet Santé.
+
+    `calculate_daily_targets` renvoie `(base, compensé)` avec des clés
+    capitalisées et accentuées ; la cuisine travaille en minuscules sans accent.
+    """
+    import datetime as dt
+
+    from app.models.sante import MesureSante
+    from app.services.sante.targets import calculate_daily_targets
+
+    latest = session.exec(
+        select(MesureSante)
+        .where(MesureSante.poids.isnot(None))  # type: ignore[attr-defined]
+        .order_by(MesureSante.date.desc())  # type: ignore[attr-defined]
+    ).first()
+    if not latest or not latest.poids:
+        raise HTTPException(
+            400,
+            "Aucun poids connu : renseigne une mesure dans Santé ou fournis des cibles.",
+        )
+    _, comp = calculate_daily_targets(float(latest.poids), dt.date.today())
+    return {
+        "calories": comp["Calories"],
+        "proteines": comp["Protéines"],
+        "glucides": comp["Glucides"],
+        "lipides": comp["Lipides"],
+    }
+
+
 @router.get("/meal-plan")
 def get_plan(week: str, session: Session = Depends(get_session)):
     return session.exec(select(MealPlanEntry).where(MealPlanEntry.semaine == week)).all()
@@ -20,7 +50,8 @@ def get_plan(week: str, session: Session = Depends(get_session)):
 
 @router.post("/meal-plan/generate")
 def generate_plan(body: GeneratePlanRequest, session: Session = Depends(get_session)):
-    return plan_svc.generate_meal_plan(session, body.semaine, body.cibles)
+    cibles = body.cibles or _cibles_sante_du_jour(session)
+    return plan_svc.generate_meal_plan(session, body.semaine, cibles)
 
 
 @router.patch("/meal-plan/{id}")

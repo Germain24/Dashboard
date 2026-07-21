@@ -43,6 +43,7 @@ export type OptProgress = Awaited<ReturnType<typeof financeApi.portfolioProgress
 const PHASE_LABEL: Record<OptProgress["phase"], string> = {
   idle: "",
   preparation: "Préparation…",
+  initialisation: "Recherche aléatoire d’un portefeuille positif…",
   optimisation: "Optimisation (Differential Evolution)…",
   finalisation: "Finalisation…",
 };
@@ -99,7 +100,7 @@ export function DeProgressBar({
               {stopping ? "Arrêt demandé…" : "⏹ Arrêter"}
             </button>
           )}
-          {optProgress.active && optProgress.phase === "optimisation" && (
+          {optProgress.active && (optProgress.phase === "initialisation" || optProgress.phase === "optimisation") && (
             <span className="font-mono text-[var(--muted-foreground)]">
               {fmt(optProgress.progress_pct, 0)}%
             </span>
@@ -114,7 +115,7 @@ export function DeProgressBar({
           style={{
             width: !optProgress.active
               ? "100%"
-              : optProgress.phase === "optimisation"
+              : optProgress.phase === "optimisation" || optProgress.phase === "initialisation"
                 ? `${Math.max(optProgress.progress_pct, 2)}%`
                 : "100%",
           }}

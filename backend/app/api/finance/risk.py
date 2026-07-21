@@ -4,15 +4,18 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from app.core.db import get_session
-from app.core.cache import TTLCache
 from app.api.schemas_finance import (
-    BenchmarkOut, BenchmarkSeriePoint, RiskMetricsOut, TreemapNodeOut,
+    BenchmarkOut,
+    BenchmarkSeriePoint,
+    RiskMetricsOut,
+    TreemapNodeOut,
 )
-from app.services.finance.snapshots import get_history
-from app.services.finance.portfolio import get_positions
+from app.core.cache import TTLCache
+from app.core.db import get_session
 from app.services.finance.benchmarks import get_portfolio_vs_benchmarks
-from app.services.finance.risk import get_risk_metrics, get_treemap_data, get_sector_diversification
+from app.services.finance.portfolio import get_positions
+from app.services.finance.risk import get_risk_metrics, get_sector_diversification, get_treemap_data
+from app.services.finance.snapshots import get_history
 
 router = APIRouter()
 
@@ -28,7 +31,7 @@ def benchmarks(session: Session = Depends(get_session)):
     from app.services.finance.benchmarks import BENCHMARKS
     rows = get_history(session, limit=10000)  # tout l'historique pour la simulation CW8
     snapshots = [{"date": str(r.date), "valeur": r.valeur, "investit": r.investit} for r in rows]
-    data = get_portfolio_vs_benchmarks(snapshots)
+    data = get_portfolio_vs_benchmarks(snapshots, background_refresh=True)
     bench = data.get("benchmarks", {})
     result = []
     for nom, info in bench.items():
@@ -68,11 +71,12 @@ def treemap(group_by: str = "secteur", session: Session = Depends(get_session)):
     label_by_ticker: dict[str, str] = {}
     frac_by_ticker: dict[str, dict[str, float]] = {}
     if group_by in ("secteur", "pays"):
-        from sqlmodel import select
-        from app.models.finance import BuffettRunResult
+        from app.services.finance.buffett.reporting import get_latest_results_by_ticker
+
+        latest = get_latest_results_by_ticker(session, (p["ticker"] for p in positions))
         label_by_ticker = {
             r.ticker: getattr(r, group_by)
-            for r in session.exec(select(BuffettRunResult)).all()
+            for r in latest.values()
             if getattr(r, group_by)
         }
         if group_by == "pays":

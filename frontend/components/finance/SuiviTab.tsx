@@ -1,23 +1,30 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle, Camera, RefreshCw, Trash2 } from "lucide-react";
+import { financeApi, type HistoryPoint, type PriceAlertDirection } from "@/lib/finance";
+import { capitalBreakIndexes } from "@/lib/finance-chart";
 import {
-  financeApi, type SnapshotOut, type PerfMetrics,
-  type HistoryPoint, type BenchmarkOut,
-} from "@/lib/finance";
+  useAlertsStatus,
+  useBenchmarks,
+  useCreateAlert,
+  useDeleteAlert,
+  useHistory,
+  usePerf,
+  useRisk,
+  useSnapshot,
+} from "@/lib/queries/finance";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProjectionTool } from "./ProjectionTool";
 import { CashTaxPanel } from "./CashTaxPanel";
+import { RiskMetricsRow } from "./RiskMetricsRow";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { StaggerGroup, StaggerItem } from "@/lib/motion/Stagger";
 
 // Couleur de série du benchmark CW8 — token thémé, identique au chart et au
 // tableau (cellule "text-[var(--warning)]" ci-dessous) dans les deux thèmes.
 const CW8_COLOR = "var(--warning)";
-
-const formatCAD = (v: number) =>
-  new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(v);
 
 const formatPct = (v: number) => `${v >= 0 ? "+" : ""}${v.toFixed(2)} %`;
 
@@ -27,7 +34,8 @@ function fmt(n?: number | null, dec = 2) {
 }
 
 function kEur(n: number) {
-  if (Math.abs(n) >= 1000) return `${(n / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} k€`;
+  if (Math.abs(n) >= 1000)
+    return `${(n / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} k€`;
   return `${Math.round(n)} €`;
 }
 
@@ -42,7 +50,12 @@ function StatCardSkeleton() {
 
 function PerfBadge({ v }: { v?: number | null }) {
   if (v == null) return <span className="text-xs text-[var(--muted-foreground)]">—</span>;
-  return <Badge variant={v >= 0 ? "success" : "destructive"}>{v >= 0 ? "+" : ""}{fmt(v)}%</Badge>;
+  return (
+    <Badge variant={v >= 0 ? "success" : "destructive"}>
+      {v >= 0 ? "+" : ""}
+      {fmt(v)}%
+    </Badge>
+  );
 }
 
 interface ChartProps {
@@ -59,11 +72,17 @@ function PortfolioChart({ history, cw8Serie }: ChartProps) {
     );
   }
 
-  const W = 800, H = 260, PL = 56, PR = 56, PT = 14, PB = 30;
-  const iW = W - PL - PR, iH = H - PT - PB;
+  const W = 800,
+    H = 260,
+    PL = 56,
+    PR = 56,
+    PT = 14,
+    PB = 30;
+  const iW = W - PL - PR,
+    iH = H - PT - PB;
 
-  const vVals = history.map(d => d.valeur);
-  const iVals = history.map(d => d.investit);
+  const vVals = history.map((d) => d.valeur);
+  const iVals = history.map((d) => d.investit);
   const allVals = [...vVals, ...iVals];
 
   // CW8 = simulation d'un portefeuille 100 % CW8.PA (mêmes apports), déjà en € et
@@ -71,9 +90,9 @@ function PortfolioChart({ history, cw8Serie }: ChartProps) {
   // de la dernière valeur connue pour les jours sans point).
   let cw8Norm: number[] = [];
   if (cw8Serie.length > 1) {
-    const byDate = new Map(cw8Serie.map(c => [c.date, c.valeur]));
+    const byDate = new Map(cw8Serie.map((c) => [c.date, c.valeur]));
     let last: number | null = null;
-    cw8Norm = history.map(h => {
+    cw8Norm = history.map((h) => {
       const v = byDate.get(h.date);
       if (v != null) last = v;
       return last ?? cw8Serie[0].valeur;
@@ -87,15 +106,30 @@ function PortfolioChart({ history, cw8Serie }: ChartProps) {
 
   const toX = (i: number, total: number) => PL + (i / (total - 1)) * iW;
   const toY = (v: number) => PT + (1 - (v - minV) / range) * iH;
-  const line = (vals: number[]) => vals.map((v, i) => `${toX(i, vals.length)},${toY(v)}`).join(" ");
+  const line = (vals: number[], start = 0) =>
+    vals.map((v, i) => `${toX(start + i, history.length)},${toY(v)}`).join(" ");
+  const breakIndexes = capitalBreakIndexes(history);
+  const splitSeries = (vals: number[]) => {
+    const starts = [0, ...breakIndexes];
+    return starts.map((start, segmentIndex) => {
+      const end = breakIndexes[segmentIndex] ?? vals.length;
+      return { start, values: vals.slice(start, end) };
+    });
+  };
+  const valueSegments = splitSeries(vVals);
+  const investedSegments = splitSeries(iVals);
+  const cw8Segments = splitSeries(cw8Norm);
 
   const ticks = [minV, minV + range * 0.25, minV + range * 0.5, minV + range * 0.75, maxV];
-  const xIdx = [0, Math.floor(history.length / 3), Math.floor((2 * history.length) / 3), history.length - 1];
+  const xIdx = [
+    0,
+    Math.floor(history.length / 3),
+    Math.floor((2 * history.length) / 3),
+    history.length - 1,
+  ];
 
   const isUp = vVals[vVals.length - 1] >= vVals[0];
   const valColor = isUp ? "var(--success)" : "var(--destructive)";
-  const area = `${line(vVals)} ${toX(vVals.length - 1, vVals.length)},${toY(minV)} ${toX(0, vVals.length)},${toY(minV)}`;
-
   const lastX = toX(vVals.length - 1, vVals.length);
 
   return (
@@ -111,54 +145,139 @@ function PortfolioChart({ history, cw8Serie }: ChartProps) {
         {/* Grille + axe Y (€) */}
         {ticks.map((t, i) => (
           <g key={i}>
-            <line x1={PL} x2={W - PR} y1={toY(t)} y2={toY(t)}
-              stroke="var(--border)" strokeWidth="1" strokeDasharray="2 3" />
-            <text x={PL - 8} y={toY(t) + 3} textAnchor="end" fontSize="10" fill="var(--muted-foreground)">
+            <line
+              x1={PL}
+              x2={W - PR}
+              y1={toY(t)}
+              y2={toY(t)}
+              stroke="var(--border)"
+              strokeWidth="1"
+              strokeDasharray="2 3"
+            />
+            <text
+              x={PL - 8}
+              y={toY(t) + 3}
+              textAnchor="end"
+              fontSize="10"
+              fill="var(--muted-foreground)"
+            >
               {kEur(t)}
             </text>
           </g>
         ))}
 
         {/* Axe X (dates) */}
-        {xIdx.map(i => (
-          <text key={i} x={toX(i, history.length)} y={H - 8} textAnchor="middle"
-            fontSize="10" fill="var(--muted-foreground)">
+        {xIdx.map((i) => (
+          <text
+            key={i}
+            x={toX(i, history.length)}
+            y={H - 8}
+            textAnchor="middle"
+            fontSize="10"
+            fill="var(--muted-foreground)"
+          >
             {history[i]?.date?.slice(0, 7) ?? ""}
           </text>
         ))}
 
         {/* Aire sous la valeur */}
-        <polygon points={area} fill="url(#valFill)" />
+        {valueSegments.map(({ start, values }) => {
+          if (values.length < 2) return null;
+          const end = start + values.length - 1;
+          const area = `${line(values, start)} ${toX(end, history.length)},${toY(minV)} ${toX(start, history.length)},${toY(minV)}`;
+          return <polygon key={start} points={area} fill="url(#valFill)" />;
+        })}
 
         {/* Benchmark CW8 (orange, tireté) */}
-        {cw8Norm.length > 1 && (
-          <polyline fill="none" stroke={CW8_COLOR} strokeWidth="2"
-            strokeDasharray="5 3" points={line(cw8Norm)} />
-        )}
+        {cw8Norm.length > 1 &&
+          cw8Segments.map(({ start, values }) =>
+            values.length > 1 ? (
+              <polyline
+                key={start}
+                fill="none"
+                stroke={CW8_COLOR}
+                strokeWidth="2"
+                strokeDasharray="5 3"
+                points={line(values, start)}
+              />
+            ) : null,
+          )}
 
         {/* Investi (gris, tireté) */}
-        <polyline fill="none" stroke="var(--muted-foreground)" strokeWidth="1.5"
-          strokeDasharray="4 4" points={line(iVals)} />
+        {investedSegments.map(({ start, values }) =>
+          values.length > 1 ? (
+            <polyline
+              key={start}
+              fill="none"
+              stroke="var(--muted-foreground)"
+              strokeWidth="1.5"
+              strokeDasharray="4 4"
+              points={line(values, start)}
+            />
+          ) : null,
+        )}
 
         {/* Valeur portefeuille (plein) */}
-        <polyline fill="none" stroke={valColor} strokeWidth="2.5" points={line(vVals)} />
+        {valueSegments.map(({ start, values }) =>
+          values.length > 1 ? (
+            <polyline
+              key={start}
+              fill="none"
+              stroke={valColor}
+              strokeWidth="2.5"
+              points={line(values, start)}
+            />
+          ) : null,
+        )}
         <circle cx={lastX} cy={toY(vVals[vVals.length - 1])} r="3.5" fill={valColor} />
       </svg>
 
       {/* Légende */}
       <div className="flex flex-wrap gap-4 text-xs text-[var(--muted-foreground)] mt-2 px-1">
         <span className="flex items-center gap-1.5">
-          <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke={valColor} strokeWidth="2.5" /></svg>
+          <svg width="22" height="6">
+            <line x1="0" y1="3" x2="22" y2="3" stroke={valColor} strokeWidth="2.5" />
+          </svg>
           Valeur portefeuille
         </span>
         <span className="flex items-center gap-1.5">
-          <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeDasharray="4 4" /></svg>
+          <svg width="22" height="6">
+            <line
+              x1="0"
+              y1="3"
+              x2="22"
+              y2="3"
+              stroke="var(--muted-foreground)"
+              strokeWidth="1.5"
+              strokeDasharray="4 4"
+            />
+          </svg>
           Investi
         </span>
         {cw8Norm.length > 1 && (
           <span className="flex items-center gap-1.5">
-            <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke={CW8_COLOR} strokeWidth="2" strokeDasharray="5 3" /></svg>
+            <svg width="22" height="6">
+              <line
+                x1="0"
+                y1="3"
+                x2="22"
+                y2="3"
+                stroke={CW8_COLOR}
+                strokeWidth="2"
+                strokeDasharray="5 3"
+              />
+            </svg>
             CW8.PA (100% simulé)
+          </span>
+        )}
+        {breakIndexes.length > 0 && (
+          <span
+            className="flex items-center gap-1.5 text-[var(--warning-foreground)]"
+            title="La courbe est interrompue lors des changements de capital supérieurs à 50 %."
+          >
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+            {breakIndexes.length} variation{breakIndexes.length > 1 ? "s" : ""} majeure
+            {breakIndexes.length > 1 ? "s" : ""} du capital
           </span>
         )}
       </div>
@@ -166,24 +285,162 @@ function PortfolioChart({ history, cw8Serie }: ChartProps) {
   );
 }
 
+function MarketAlertsCard() {
+  const alertsQuery = useAlertsStatus();
+  const createAlert = useCreateAlert();
+  const deleteAlert = useDeleteAlert();
+  const alerts = alertsQuery.data ?? [];
+
+  const [ticker, setTicker] = useState("");
+  const [seuil, setSeuil] = useState("");
+  const [direction, setDirection] = useState<PriceAlertDirection>("au_dessus");
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    const seuilNum = Number(seuil);
+    if (!ticker.trim() || !Number.isFinite(seuilNum) || seuilNum <= 0) {
+      setFormError("Ticker et seuil (> 0) requis.");
+      return;
+    }
+    try {
+      await createAlert.mutateAsync({ ticker: ticker.trim().toUpperCase(), seuil: seuilNum, direction });
+      setTicker("");
+      setSeuil("");
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Erreur lors de la création de l'alerte");
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+      <p className="text-sm font-semibold mb-3">Alertes de marché</p>
+
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 mb-4">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="alert-ticker" className="text-xs text-[var(--muted-foreground)]">
+            Ticker
+          </label>
+          <input
+            id="alert-ticker"
+            type="text"
+            value={ticker}
+            onChange={(e) => setTicker(e.target.value)}
+            placeholder="AAPL"
+            className="w-24 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="alert-direction" className="text-xs text-[var(--muted-foreground)]">
+            Condition
+          </label>
+          <select
+            id="alert-direction"
+            value={direction}
+            onChange={(e) => setDirection(e.target.value as PriceAlertDirection)}
+            className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-sm"
+          >
+            <option value="au_dessus">au-dessus de</option>
+            <option value="en_dessous">en-dessous de</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="alert-seuil" className="text-xs text-[var(--muted-foreground)]">
+            Seuil
+          </label>
+          <input
+            id="alert-seuil"
+            type="number"
+            step="0.01"
+            value={seuil}
+            onChange={(e) => setSeuil(e.target.value)}
+            placeholder="200"
+            className="w-24 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-sm"
+          />
+        </div>
+        <Button type="submit" size="sm" variant="secondary" loading={createAlert.isPending}>
+          Ajouter
+        </Button>
+      </form>
+
+      {formError && <p className="text-xs text-[var(--destructive)] mb-3">{formError}</p>}
+
+      {alertsQuery.isPending ? (
+        <div className="skeleton-shimmer h-10 w-full rounded-lg" />
+      ) : alerts.length === 0 ? (
+        <p className="text-xs text-[var(--muted-foreground)]">Aucune alerte configurée.</p>
+      ) : (
+        <ul className="space-y-2">
+          {alerts.map((a) => (
+            <li
+              key={a.id}
+              className="flex items-center justify-between gap-2 rounded-md border border-[var(--border)] px-3 py-2 text-sm"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="font-medium">{a.ticker}</span>
+                <span className="text-[var(--muted-foreground)]">
+                  {a.direction === "au_dessus" ? "au-dessus de" : "en-dessous de"} {fmt(a.seuil)}
+                </span>
+                <span className="text-[var(--muted-foreground)]">
+                  · actuel {a.prix_actuel != null ? fmt(a.prix_actuel) : "—"}
+                </span>
+              </span>
+              <span className="flex items-center gap-2 shrink-0">
+                <Badge variant={a.declenchee ? "destructive" : "outline"}>
+                  {a.declenchee ? "déclenchée" : "en veille"}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`Supprimer l'alerte ${a.ticker}`}
+                  onClick={() => {
+                    void deleteAlert.mutateAsync(a.id);
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                </Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function SuiviTab() {
-  const [snap, setSnap] = useState<SnapshotOut | null>(null);
-  const [perf, setPerf] = useState<PerfMetrics | null>(null);
-  const [history, setHistory] = useState<HistoryPoint[]>([]);
-  const [benchmarks, setBenchmarks] = useState<BenchmarkOut[]>([]);
-  const [loading, setLoading] = useState(true);
+  const snapshotQuery = useSnapshot();
+  const perfQuery = usePerf();
+  const historyQuery = useHistory(10_000);
+  const benchmarksQuery = useBenchmarks();
+  const riskQuery = useRisk();
+  const snap = snapshotQuery.data ?? null;
+  const perf = perfQuery.data ?? null;
+  const history = historyQuery.data ?? [];
+  const benchmarks = benchmarksQuery.data ?? [];
+  const loading = snapshotQuery.isPending || perfQuery.isPending || historyQuery.isPending;
+  const refetchSnapshot = snapshotQuery.refetch;
+  const refetchPerf = perfQuery.refetch;
+  const refetchHistory = historyQuery.refetch;
+  const refetchBenchmarks = benchmarksQuery.refetch;
   const [error, setError] = useState<string | null>(null);
   const [snapping, setSnapping] = useState(false);
   const [currency, setCurrency] = useState<"EUR" | "USD" | "CAD">("EUR");
-  const [rate, setRate] = useState(1);
+  const [remoteRate, setRemoteRate] = useState(1);
+  const rate = currency === "EUR" ? 1 : remoteRate;
+  const autoSnapshotRequested = useRef(false);
 
   useEffect(() => {
-    if (currency === "EUR") { setRate(1); return; }
+    if (currency === "EUR") return;
     let cancelled = false;
-    financeApi.fx("EUR", currency)
-      .then((r) => !cancelled && setRate(r.rates[currency] || 1))
-      .catch(() => !cancelled && setRate(1));
-    return () => { cancelled = true; };
+    financeApi
+      .fx("EUR", currency)
+      .then((r) => !cancelled && setRemoteRate(r.rates[currency] || 1))
+      .catch(() => !cancelled && setRemoteRate(1));
+    return () => {
+      cancelled = true;
+    };
   }, [currency]);
 
   const money = useCallback(
@@ -192,45 +449,71 @@ export function SuiviTab() {
   );
 
   const load = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const [s, p, h, b] = await Promise.all([
-        financeApi.snapshot(), financeApi.perf(),
-        financeApi.history(10000), financeApi.benchmarks(),  // tout l'historique
-      ]);
-      setSnap(s); setPerf(p); setHistory(h); setBenchmarks(b);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erreur réseau");
-    } finally { setLoading(false); }
-  }, []);
+    setError(null);
+    await Promise.allSettled([
+      refetchSnapshot(),
+      refetchPerf(),
+      refetchHistory(),
+      refetchBenchmarks(),
+    ]);
+  }, [refetchSnapshot, refetchPerf, refetchHistory, refetchBenchmarks]);
 
   useEffect(() => {
-    load().then(async () => {
-      try {
-        const today = new Date().toISOString().split("T")[0];
-        const s = await financeApi.snapshot();
-        if (!s || s.date < today) {
-          await financeApi.snapshotAuto();
-          load();
-        }
-      } catch { /* silencieux */ }
-    });
-  }, [load]);
+    if (loading || autoSnapshotRequested.current) return;
+    const today = new Date().toISOString().split("T")[0];
+    if (snap && snap.date >= today) return;
+    autoSnapshotRequested.current = true;
+    financeApi
+      .snapshotAuto()
+      .then(() => load())
+      .catch(() => {
+        autoSnapshotRequested.current = false;
+      });
+  }, [load, loading, snap]);
 
   const handleSnapshot = async () => {
     setSnapping(true);
-    try { await financeApi.snapshotCreate(); await load(); }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : "Erreur snapshot"); }
-    finally { setSnapping(false); }
+    try {
+      await financeApi.snapshotCreate();
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erreur snapshot");
+    } finally {
+      setSnapping(false);
+    }
   };
 
   const valeur = perf?.valeur ?? 0;
   const investit = perf?.investit ?? 0;
   const plTotal = perf?.pl_total ?? 0;
   const plPct = perf?.pl_pct ?? 0;
-  const cw8 = benchmarks.find(b => b.nom === "CW8" || b.ticker === "CW8.PA");
+  const cw8 = benchmarks.find((b) => b.nom === "CW8" || b.ticker === "CW8.PA");
+  const coreError = snapshotQuery.error ?? perfQuery.error ?? historyQuery.error;
+  const errorMessage = error ?? (coreError instanceof Error ? coreError.message : null);
 
-  if (error) return <p className="text-sm text-[var(--destructive)]">⚠ {error}</p>;
+  if (errorMessage) {
+    return (
+      <div
+        role="alert"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius)] border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 p-4"
+      >
+        <div className="flex min-w-0 items-center gap-2 text-sm text-[var(--destructive)]">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+          <span>{errorMessage}</span>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            void load();
+          }}
+        >
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -239,9 +522,11 @@ export function SuiviTab() {
         <span className="text-xs text-[var(--muted-foreground)]">Devise</span>
         {(["EUR", "USD", "CAD"] as const).map((c) => (
           <button
+            type="button"
             key={c}
             onClick={() => setCurrency(c)}
-            className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+            aria-pressed={currency === c}
+            className={`cursor-pointer rounded-md px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)] ${
               currency === c
                 ? "bg-[var(--accent)] text-[var(--foreground)]"
                 : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
@@ -265,7 +550,7 @@ export function SuiviTab() {
           <>
             {[
               { label: "Valeur totale", value: money(valeur), color: "" },
-              { label: "Investi",       value: money(investit), color: "" },
+              { label: "Investi", value: money(investit), color: "" },
               {
                 label: "+/- latente",
                 value: money(plTotal),
@@ -276,7 +561,7 @@ export function SuiviTab() {
                 value: formatPct(plPct),
                 color: plPct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]",
               },
-            ].map(stat => (
+            ].map((stat) => (
               <StaggerItem key={stat.label}>
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 card-hover">
                   <p className="text-xs text-[var(--muted-foreground)] font-medium mb-1">
@@ -294,7 +579,9 @@ export function SuiviTab() {
       {!loading && perf?.twr_annualise_pct != null && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
           <span className="text-[var(--muted-foreground)]">Rendement annualisé (TWR)</span>
-          <span className={`font-mono font-semibold ${perf.twr_annualise_pct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}>
+          <span
+            className={`font-mono font-semibold ${perf.twr_annualise_pct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}
+          >
             {formatPct(perf.twr_annualise_pct)}
           </span>
           {cw8?.perf_1a_pct != null && (
@@ -307,18 +594,32 @@ export function SuiviTab() {
         </div>
       )}
 
+      {/* Ratios de risque (Sharpe / Sortino / drawdown) */}
+      {!loading && riskQuery.data && <RiskMetricsRow metrics={riskQuery.data} />}
+
       {/* Chart */}
       <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div>
             <p className="text-sm font-semibold">Évolution du portefeuille</p>
             <p className="text-xs text-[var(--muted-foreground)]">
-              {loading ? "Chargement…" : `${history.length} snapshots · vs 100 % CW8.PA (mêmes apports)`}
+              {loading
+                ? "Chargement…"
+                : `${history.length} snapshots${cw8?.serie.length ? " · vs 100 % CW8.PA (mêmes apports)" : ""}`}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={handleSnapshot} disabled={snapping || loading}>
-              {snapping ? "..." : "Snapshot maintenant"}
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                void handleSnapshot();
+              }}
+              loading={snapping}
+              disabled={loading}
+            >
+              <Camera className="h-3.5 w-3.5" aria-hidden />
+              Snapshot maintenant
             </Button>
           </div>
         </div>
@@ -336,38 +637,75 @@ export function SuiviTab() {
       )}
 
       {/* Benchmarks */}
-      {!loading && benchmarks.length > 0 && (
+      {!loading && (
         <CollapsibleSection title="Benchmarks" defaultOpen={false}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--muted-foreground)]">
-                  <th className="pb-1 pr-4">Indice</th>
-                  <th className="pb-1 pr-4">6 mois</th>
-                  <th className="pb-1 pr-4">MTD</th>
-                  <th className="pb-1">1 an</th>
-                </tr>
-              </thead>
-              <tbody>
-                {benchmarks.map(b => (
-                  <tr key={b.ticker ?? b.nom} className="border-b border-[var(--border)]">
-                    <td className={`py-1.5 pr-4 font-medium ${
-                      (b.nom === "CW8" || b.ticker === "CW8.PA") ? "text-[var(--warning)]" : ""
-                    }`}>
-                      {b.nom}{(b.nom === "CW8" || b.ticker === "CW8.PA") ? " (CW8.PA)" : ""}
-                    </td>
-                    <td className="py-1.5 pr-4"><PerfBadge v={b.perf_6m_pct} /></td>
-                    <td className="py-1.5 pr-4"><PerfBadge v={b.perf_mtd_pct} /></td>
-                    <td className="py-1.5"><PerfBadge v={b.perf_1a_pct} /></td>
+          {benchmarksQuery.isError ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm text-[var(--muted-foreground)]">
+              <span>Les indices sont momentanément indisponibles.</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  void benchmarksQuery.refetch();
+                }}
+              >
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                Réessayer
+              </Button>
+            </div>
+          ) : benchmarks.length === 0 ? (
+            <div
+              className="flex items-center gap-2 py-3 text-sm text-[var(--muted-foreground)]"
+              aria-live="polite"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${benchmarksQuery.isFetching ? "animate-spin" : ""}`}
+                aria-hidden
+              />
+              Actualisation des indices en arrière-plan…
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--muted-foreground)]">
+                    <th className="pb-1 pr-4">Indice</th>
+                    <th className="pb-1 pr-4">6 mois</th>
+                    <th className="pb-1 pr-4">MTD</th>
+                    <th className="pb-1">1 an</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {benchmarks.map((b) => (
+                    <tr key={b.ticker ?? b.nom} className="border-b border-[var(--border)]">
+                      <td
+                        className={`py-1.5 pr-4 font-medium ${
+                          b.nom === "CW8" || b.ticker === "CW8.PA" ? "text-[var(--warning)]" : ""
+                        }`}
+                      >
+                        {b.nom}
+                        {b.nom === "CW8" || b.ticker === "CW8.PA" ? " (CW8.PA)" : ""}
+                      </td>
+                      <td className="py-1.5 pr-4">
+                        <PerfBadge v={b.perf_6m_pct} />
+                      </td>
+                      <td className="py-1.5 pr-4">
+                        <PerfBadge v={b.perf_mtd_pct} />
+                      </td>
+                      <td className="py-1.5">
+                        <PerfBadge v={b.perf_1a_pct} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CollapsibleSection>
       )}
 
       <CashTaxPanel />
+      <MarketAlertsCard />
       <ProjectionTool />
     </div>
   );

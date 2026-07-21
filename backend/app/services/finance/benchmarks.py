@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+import copy
 import datetime as dt
+import hashlib
+import json
+import logging
+import threading
+import time
+from pathlib import Path
 
 BENCHMARKS = {
     "CW8": "CW8.PA",          # Amundi MSCI World
@@ -10,9 +17,69 @@ BENCHMARKS = {
     "MSCI_WORLD": "URTH",     # iShares MSCI World
 }
 CACHE_TTL_H = 4  # heures
+REFRESH_RETRY_S = 300.0
+
+logger = logging.getLogger(__name__)
+
+_cache: dict[str, tuple[float, dict]] = {}  # ticker -> (timestamp, data)
+_simulation_cache: dict[str, tuple[float, list[dict]]] = {}
+_lock = threading.Lock()
+_refreshing = False
+_simulation_refreshing: set[str] = set()
+_last_refresh_attempt = 0.0
+_simulation_last_attempt: dict[str, float] = {}
+_disk_loaded = False
+_CACHE_FILE = Path(__file__).resolve().parents[4] / "data" / "cache" / "benchmarks.json"
 
 
-_cache: dict[str, tuple[float, list]] = {}  # ticker → (timestamp, data)
+def _analysis_running() -> bool:
+    try:
+        from app.services.finance.scheduler_stub import is_analysis_running
+
+        return is_analysis_running()
+    except Exception:
+        return False
+
+
+def _load_disk_cache() -> None:
+    global _disk_loaded
+    with _lock:
+        if _disk_loaded:
+            return
+        _disk_loaded = True
+    try:
+        raw = json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
+        metrics = {
+            ticker: (float(entry[0]), entry[1])
+            for ticker, entry in raw.get("metrics", {}).items()
+        }
+        simulations = {
+            key: (float(entry[0]), entry[1])
+            for key, entry in raw.get("simulations", {}).items()
+        }
+        with _lock:
+            for ticker, entry in metrics.items():
+                _cache.setdefault(ticker, entry)
+            for key, entry in simulations.items():
+                _simulation_cache.setdefault(key, entry)
+    except Exception:
+        pass
+
+
+def _save_disk_cache() -> None:
+    try:
+        with _lock:
+            payload = {
+                "metrics": copy.deepcopy(_cache),
+                "simulations": copy.deepcopy(_simulation_cache),
+            }
+        _CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _CACHE_FILE.write_text(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+    except Exception:
+        logger.debug("Cache benchmark disque indisponible", exc_info=True)
 
 
 def _fetch_perf(ticker: str, period: str = "1y") -> dict | None:
@@ -54,28 +121,81 @@ def _fetch_perf(ticker: str, period: str = "1y") -> dict | None:
             "perf_mtd_pct": round(perf_mtd, 2),
             "serie": serie,
         }
-    except Exception as e:
-        print(f"[benchmarks] Erreur {ticker}: {e}")
+    except Exception as exc:
+        logger.warning("Benchmark %s indisponible: %s", ticker, exc)
         return None
 
 
-def get_benchmarks() -> dict:
-    """Retourne les métriques des 3 benchmarks (avec cache 4h)."""
-    import time
-    now = time.time()
-    result = {}
-    for name, ticker in BENCHMARKS.items():
-        cached = _cache.get(ticker)
-        if cached and (now - cached[0]) < CACHE_TTL_H * 3600:
-            result[name] = cached[1]
-            continue
+def _fetch_and_store_benchmarks(tickers: list[str]) -> None:
+    changed = False
+    for ticker in tickers:
         data = _fetch_perf(ticker)
         if data:
-            _cache[ticker] = (now, data)
-            result[name] = data
-        else:
-            result[name] = None
-    return result
+            with _lock:
+                _cache[ticker] = (time.time(), data)
+            changed = True
+    if changed:
+        _save_disk_cache()
+
+
+def _refresh_benchmarks(tickers: list[str]) -> None:
+    global _refreshing
+    try:
+        _fetch_and_store_benchmarks(tickers)
+    finally:
+        with _lock:
+            _refreshing = False
+
+
+def _schedule_benchmark_refresh(tickers: list[str]) -> None:
+    global _last_refresh_attempt, _refreshing
+    if not tickers or _analysis_running():
+        return
+    now = time.time()
+    with _lock:
+        if _refreshing or now - _last_refresh_attempt < REFRESH_RETRY_S:
+            return
+        _refreshing = True
+        _last_refresh_attempt = now
+    threading.Thread(
+        target=_refresh_benchmarks,
+        args=(tickers,),
+        name="finance-benchmark-refresh",
+        daemon=True,
+    ).start()
+
+
+def _benchmark_result() -> dict:
+    with _lock:
+        return {
+            name: copy.deepcopy(_cache[ticker][1]) if ticker in _cache else None
+            for name, ticker in BENCHMARKS.items()
+        }
+
+
+def get_benchmarks(*, background_refresh: bool = False) -> dict:
+    """Retourne les métriques des benchmarks avec cache persistant 4 h.
+
+    En mode interactif, les données périmées sont rendues immédiatement et la
+    mise à jour réseau part en arrière-plan. Le mode synchrone reste disponible
+    pour les jobs qui exigent une valeur fraîche avant de poursuivre.
+    """
+    _load_disk_cache()
+    now = time.time()
+    with _lock:
+        stale = [
+            ticker
+            for ticker in BENCHMARKS.values()
+            if ticker not in _cache or now - _cache[ticker][0] >= CACHE_TTL_H * 3600
+        ]
+    if not stale:
+        return _benchmark_result()
+    if background_refresh:
+        _schedule_benchmark_refresh(stale)
+        return _benchmark_result()
+
+    _fetch_and_store_benchmarks(stale)
+    return _benchmark_result()
 
 
 def simulate_benchmark_dca(portfolio_snapshots: list, ticker: str = "CW8.PA") -> list:
@@ -109,8 +229,8 @@ def simulate_benchmark_dca(portfolio_snapshots: list, ticker: str = "CW8.PA") ->
         idx = idx.tz_localize(None) if getattr(idx, "tz", None) is not None else idx
         price_dates = [d.date().isoformat() for d in idx]
         price_vals = [float(v) for v in closes.values]
-    except Exception as e:
-        print(f"[benchmarks] simulation {ticker}: {e}")
+    except Exception as exc:
+        logger.warning("Simulation benchmark %s indisponible: %s", ticker, exc)
         return []
 
     def price_on_or_before(date_str: str):
@@ -139,16 +259,98 @@ def simulate_benchmark_dca(portfolio_snapshots: list, ticker: str = "CW8.PA") ->
     return serie
 
 
-def get_portfolio_vs_benchmarks(portfolio_snapshots: list, period_days: int = 365) -> dict:
+def _simulation_key(portfolio_snapshots: list, ticker: str) -> str:
+    payload = [
+        (str(snapshot.get("date")), float(snapshot.get("investit") or 0))
+        for snapshot in sorted(portfolio_snapshots, key=lambda item: item.get("date", ""))
+    ]
+    digest = hashlib.sha256(
+        json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return f"{ticker}:{digest}"
+
+
+def _store_simulation(key: str, simulation: list[dict]) -> None:
+    if not simulation:
+        return
+    with _lock:
+        _simulation_cache[key] = (time.time(), simulation)
+    _save_disk_cache()
+
+
+def _refresh_simulation(key: str, snapshots: list, ticker: str) -> None:
+    try:
+        _store_simulation(key, simulate_benchmark_dca(snapshots, ticker))
+    finally:
+        with _lock:
+            _simulation_refreshing.discard(key)
+
+
+def _schedule_simulation_refresh(key: str, snapshots: list, ticker: str) -> None:
+    if _analysis_running():
+        return
+    now = time.time()
+    with _lock:
+        last_attempt = _simulation_last_attempt.get(key, 0.0)
+        if key in _simulation_refreshing or now - last_attempt < REFRESH_RETRY_S:
+            return
+        _simulation_refreshing.add(key)
+        _simulation_last_attempt[key] = now
+    threading.Thread(
+        target=_refresh_simulation,
+        args=(key, copy.deepcopy(snapshots), ticker),
+        name="finance-cw8-simulation-refresh",
+        daemon=True,
+    ).start()
+
+
+def _cached_simulation(key: str) -> tuple[list[dict] | None, bool]:
+    with _lock:
+        entry = _simulation_cache.get(key)
+        if entry is None:
+            return None, False
+        return copy.deepcopy(entry[1]), time.time() - entry[0] < CACHE_TTL_H * 3600
+
+
+def clear_cache() -> None:
+    """Vide les caches mémoire; utilisé par les tests et le rafraîchissement forcé."""
+    global _disk_loaded, _last_refresh_attempt, _refreshing
+    with _lock:
+        _cache.clear()
+        _simulation_cache.clear()
+        _simulation_last_attempt.clear()
+        _disk_loaded = False
+        _last_refresh_attempt = 0.0
+        _refreshing = False
+
+
+def get_portfolio_vs_benchmarks(
+    portfolio_snapshots: list,
+    period_days: int = 365,
+    *,
+    background_refresh: bool = False,
+) -> dict:
     """Compare les snapshots portefeuille aux benchmarks sur une période."""
-    benchmarks = get_benchmarks()
+    benchmarks = get_benchmarks(background_refresh=background_refresh)
 
     # Remplace la serie CW8 par une SIMULATION 100 % CW8 (memes apports), en EUR
     # alignee sur les dates du portefeuille (et non le prix brut de CW8).
-    if portfolio_snapshots and benchmarks.get("CW8"):
-        sim = simulate_benchmark_dca(portfolio_snapshots, BENCHMARKS["CW8"])
-        if sim:
-            benchmarks["CW8"] = {**benchmarks["CW8"], "serie": sim, "simule": True}
+    if portfolio_snapshots:
+        ticker = BENCHMARKS["CW8"]
+        key = _simulation_key(portfolio_snapshots, ticker)
+        simulation, fresh = _cached_simulation(key)
+        if not fresh:
+            if background_refresh:
+                _schedule_simulation_refresh(key, portfolio_snapshots, ticker)
+            else:
+                simulation = simulate_benchmark_dca(portfolio_snapshots, ticker)
+                _store_simulation(key, simulation)
+        if benchmarks.get("CW8"):
+            benchmarks["CW8"] = {
+                **benchmarks["CW8"],
+                "serie": simulation or [],
+                "simule": bool(simulation),
+            }
 
     if not portfolio_snapshots:
         return {"portfolio": [], "benchmarks": benchmarks}

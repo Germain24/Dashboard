@@ -18,6 +18,288 @@ from scipy import stats
 from .vine_copula import DVineCopula
 
 
+def shrink_correlation(corr: np.ndarray, intensity: float = 0.15) -> np.ndarray:
+    """Régularise une matrice vers une cible à corrélation constante.
+
+    La transformation conserve la diagonale à 1 et réduit les corrélations
+    extrêmes dues au bruit d'échantillonnage. ``intensity=0`` laisse la matrice
+    inchangée ; ``1`` utilise uniquement la corrélation hors diagonale moyenne.
+    """
+    C = np.asarray(corr, dtype=float)
+    if C.ndim != 2 or C.shape[0] != C.shape[1] or C.shape[0] < 2:
+        return C.copy()
+    lam = min(max(float(intensity), 0.0), 1.0)
+    tri = C[np.triu_indices(C.shape[0], 1)]
+    finite = tri[np.isfinite(tri)]
+    rho = float(np.mean(finite)) if finite.size else 0.0
+    rho = float(np.clip(rho, -1.0 / max(C.shape[0] - 1, 1) + 1e-6, 0.999))
+    target = np.full_like(C, rho)
+    np.fill_diagonal(target, 1.0)
+    out = (1.0 - lam) * np.nan_to_num(C, nan=rho) + lam * target
+    out = np.clip((out + out.T) / 2.0, -0.999, 0.999)
+    np.fill_diagonal(out, 1.0)
+    return out
+
+
+def resolve_regime_windows(
+    n_obs: int,
+    windows: list[dict] | None = None,
+    min_coverage: float | None = None,
+) -> list[dict]:
+    """Résout les fenêtres 1/3/5 ans réellement utilisables.
+
+    Les poids des fenêtres indisponibles sont redistribués entre les fenêtres
+    restantes. Le seuil de couverture tolère les petites différences de calendrier
+    boursier (un téléchargement Yahoo de 5 ans contient rarement exactement 1260
+    séances). Pour un petit échantillon de test, on conserve une fenêtre unique.
+    """
+    from .config import Config
+
+    specs = windows if windows is not None else Config.STARR_REGIME_WINDOWS
+    coverage = float(
+        Config.STARR_REGIME_MIN_COVERAGE if min_coverage is None else min_coverage
+    )
+    coverage = min(max(coverage, 0.0), 1.0)
+    usable: list[dict] = []
+    for raw in specs:
+        try:
+            label = str(raw["label"])
+            days = int(raw["days"])
+            weight = float(raw["weight"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if days <= 0 or weight <= 0:
+            continue
+        required = max(50, int(np.ceil(days * coverage)))
+        if n_obs >= required:
+            usable.append({
+                "label": label,
+                "target_days": days,
+                "observations": min(days, n_obs),
+                "raw_weight": weight,
+            })
+
+    if not usable:
+        return [{
+            "label": "available",
+            "target_days": int(n_obs),
+            "observations": int(n_obs),
+            "raw_weight": 1.0,
+            "weight": 1.0,
+        }]
+
+    total = sum(item["raw_weight"] for item in usable)
+    for item in usable:
+        item["weight"] = item["raw_weight"] / total
+    return usable
+
+
+def simulate_regime_scenarios(
+    returns,
+    n_sim: int = 50_000,
+    seed: int = 42,
+    windows: list[dict] | None = None,
+    min_coverage: float | None = None,
+    stress_weight: float | None = None,
+    stress_vol_multiplier: float | None = None,
+    stress_correlation: float | None = None,
+) -> tuple[np.ndarray, dict]:
+    """Simule un mélange pondé des régimes 1/3/5 ans.
+
+    Le nombre total de scénarios reste exactement ``n_sim`` : le coût mémoire et
+    celui des évaluations STARR ne croissent donc pas avec le nombre de fenêtres.
+    """
+    R = np.asarray(returns, dtype=float)
+    if R.ndim == 1:
+        R = R.reshape(-1, 1)
+    from .config import Config
+
+    regimes = resolve_regime_windows(R.shape[0], windows, min_coverage)
+    stress_w = float(Config.STARR_STRESS_WEIGHT if stress_weight is None else stress_weight)
+    stress_w = min(max(stress_w, 0.0), 0.50)
+    vol_mult = float(
+        Config.STARR_STRESS_VOL_MULTIPLIER
+        if stress_vol_multiplier is None else stress_vol_multiplier
+    )
+    target_corr = float(
+        Config.STARR_STRESS_EQUITY_CORRELATION
+        if stress_correlation is None else stress_correlation
+    )
+
+    mixture = [
+        {**regime, "mixture_weight": regime["weight"] * (1.0 - stress_w)}
+        for regime in regimes
+    ]
+    if stress_w > 0:
+        mixture.append({
+            "label": "stress",
+            "target_days": min(252, R.shape[0]),
+            "observations": min(252, R.shape[0]),
+            "raw_weight": stress_w,
+            "weight": stress_w,
+            "mixture_weight": stress_w,
+            "stress": True,
+        })
+
+    raw_counts = np.array([r["mixture_weight"] * n_sim for r in mixture], dtype=float)
+    counts = np.floor(raw_counts).astype(int)
+    remainder = int(n_sim - counts.sum())
+    if remainder > 0:
+        order = np.argsort(-(raw_counts - counts), kind="stable")
+        counts[order[:remainder]] += 1
+
+    blocks: list[np.ndarray] = []
+    used: list[dict] = []
+    for idx, (regime, count) in enumerate(zip(mixture, counts, strict=True)):
+        if count <= 0:
+            continue
+        observations = int(regime["observations"])
+        if regime.get("stress"):
+            block = simulate_stress_scenarios(
+                R[-observations:],
+                n_sim=int(count),
+                seed=int(seed + idx * 1009),
+                vol_multiplier=vol_mult,
+                target_correlation=target_corr,
+            )
+        else:
+            block = simulate_scenarios(
+                R[-observations:], n_sim=int(count), seed=int(seed + idx * 1009)
+            )
+        blocks.append(block)
+        used.append({
+            "label": regime["label"],
+            "target_days": int(regime["target_days"]),
+            "observations": observations,
+            "weight": float(regime["mixture_weight"]),
+            "n_sim": int(count),
+        })
+
+    simulated = np.concatenate(blocks, axis=0)
+    diagnostics = {
+        "method": "weighted_1y_3y_5y_plus_stress_scenario_mixture",
+        "n_observations_available": int(R.shape[0]),
+        "windows": used,
+    }
+    return simulated, diagnostics
+
+
+def simulate_stress_scenarios(
+    returns,
+    n_sim: int,
+    seed: int = 42,
+    vol_multiplier: float = 2.0,
+    target_correlation: float = 0.85,
+) -> np.ndarray:
+    """Construit des scénarios de crise à partir des pires journées observées.
+
+    Les actifs procycliques (corrélation positive avec la moyenne de l'univers)
+    reçoivent un facteur commun afin que leur corrélation augmente en crise. Les
+    actifs historiquement défensifs conservent leurs observations empiriques.
+    Les pertes sont ensuite amplifiées par ``vol_multiplier``.
+    """
+    R = np.asarray(returns, dtype=float)
+    if R.ndim == 1:
+        R = R.reshape(-1, 1)
+    if not len(R) or n_sim <= 0:
+        return np.empty((0, R.shape[1]), dtype=float)
+    rng = np.random.default_rng(seed)
+    market = np.nanmean(R, axis=1)
+    cutoff = np.nanpercentile(market, 20)
+    tail_idx = np.flatnonzero(market <= cutoff)
+    if not len(tail_idx):
+        tail_idx = np.arange(len(R))
+    idx = rng.choice(tail_idx, size=n_sim, replace=True)
+    block = np.nan_to_num(R[idx], nan=0.0)
+
+    if R.shape[1] >= 2:
+        market_std = float(np.nanstd(market))
+        asset_std = np.nanstd(R, axis=0)
+        cov = np.nanmean((R - np.nanmean(R, axis=0)) * (market - np.nanmean(market))[:, None], axis=0)
+        denom = np.maximum(asset_std * max(market_std, 1e-12), 1e-12)
+        procyclical = (cov / denom) > 0.20
+        if int(procyclical.sum()) >= 2:
+            Z = block[:, procyclical] / np.maximum(asset_std[procyclical], 1e-12)
+            common = np.mean(Z, axis=1)
+            common = (common - common.mean()) / max(float(common.std()), 1e-12)
+            rho = min(max(float(target_correlation), 0.0), 0.99)
+            Z = np.sqrt(rho) * common[:, None] + np.sqrt(1.0 - rho) * Z
+            block[:, procyclical] = Z * asset_std[procyclical]
+
+    multiplier = max(float(vol_multiplier), 1.0)
+    return np.where(block < 0.0, block * multiplier, block)
+
+
+def correlation_stability_diagnostics(
+    returns,
+    tickers: list[str] | None = None,
+    windows: list[dict] | None = None,
+    min_coverage: float | None = None,
+    top_n: int = 20,
+) -> dict:
+    """Résume les divergences de corrélation de Spearman entre les régimes."""
+    R = np.asarray(returns, dtype=float)
+    if R.ndim == 1:
+        R = R.reshape(-1, 1)
+    n_assets = R.shape[1]
+    names = list(tickers or [str(i) for i in range(n_assets)])
+    regimes = resolve_regime_windows(R.shape[0], windows, min_coverage)
+    matrices: list[np.ndarray] = []
+    labels: list[str] = []
+    observations: dict[str, int] = {}
+    for regime in regimes:
+        n = int(regime["observations"])
+        ranks = np.apply_along_axis(stats.rankdata, 0, R[-n:])
+        corr = np.atleast_2d(np.corrcoef(ranks, rowvar=False))
+        matrices.append(corr)
+        labels.append(str(regime["label"]))
+        observations[str(regime["label"])] = n
+
+    base = {
+        "method": "spearman",
+        "windows": observations,
+        "thresholds": {"unstable": 0.25, "major_shift": 0.40},
+        "available": len(matrices) >= 2 and n_assets >= 2,
+    }
+    if not base["available"]:
+        return {**base, "reason": "at_least_two_windows_and_assets_required"}
+
+    tri_i, tri_j = np.triu_indices(n_assets, 1)
+    pair_values = np.stack([m[tri_i, tri_j] for m in matrices], axis=0)
+    deltas = np.nanmax(pair_values, axis=0) - np.nanmin(pair_values, axis=0)
+    valid = np.isfinite(deltas)
+    if not valid.any():
+        return {**base, "available": False, "reason": "no_finite_pair"}
+
+    valid_idx = np.flatnonzero(valid)
+    ranked = valid_idx[np.argsort(-deltas[valid_idx], kind="stable")[:max(0, top_n)]]
+    top_pairs = []
+    for k in ranked:
+        top_pairs.append({
+            "ticker_a": names[int(tri_i[k])],
+            "ticker_b": names[int(tri_j[k])],
+            "max_delta": float(deltas[k]),
+            "correlations": {
+                label: float(pair_values[pos, k])
+                for pos, label in enumerate(labels)
+                if np.isfinite(pair_values[pos, k])
+            },
+        })
+
+    finite = deltas[valid]
+    return {
+        **base,
+        "n_pairs": int(finite.size),
+        "mean_delta": float(np.mean(finite)),
+        "median_delta": float(np.median(finite)),
+        "p90_delta": float(np.percentile(finite, 90)),
+        "max_delta": float(np.max(finite)),
+        "unstable_pairs": int(np.sum(finite >= 0.25)),
+        "major_shift_pairs": int(np.sum(finite >= 0.40)),
+        "top_pairs": top_pairs,
+    }
+
+
 def portfolio_cvar(port_returns: np.ndarray, alpha: float = 0.05) -> float:
     """CVaR(α) d'une série de rendements de portefeuille (perte moyenne, >0).
 
@@ -60,6 +342,8 @@ def _gaussian_copula_uniforms(R: np.ndarray, n_sim: int, rng) -> np.ndarray:
     ranks = np.apply_along_axis(stats.rankdata, 0, R)
     rho_s = np.corrcoef(ranks, rowvar=False)
     rho = 2.0 * np.sin(np.pi / 6.0 * np.clip(rho_s, -1.0, 1.0))
+    from .config import Config
+    rho = shrink_correlation(rho, float(Config.STARR_CORRELATION_SHRINKAGE))
     np.fill_diagonal(rho, 1.0)
     if not is_pos_def(rho):
         rho = nearest_pos_def(rho)
@@ -131,7 +415,7 @@ def simulate_scenarios(returns, n_sim: int = 50_000, seed: int = 42) -> np.ndarr
 
 def neg_starr(raw_weights: np.ndarray, sim_rets: np.ndarray, mean_daily: np.ndarray,
               alpha: float = 0.05, downside_weight: float = 1.0,
-              target: float = 0.0) -> float:
+              target: float = 0.0, annual_cost: float = 0.0) -> float:
     """-(ratio) pour la minimisation. ``raw_weights`` normalisé sur le simplexe.
 
     ratio = rendement annualisé / (CVaR annualisé + λ · downside-deviation annualisée).
@@ -143,7 +427,7 @@ def neg_starr(raw_weights: np.ndarray, sim_rets: np.ndarray, mean_daily: np.ndar
     if s <= 1e-12:
         return 1e6
     w = raw_weights / s
-    ann_ret = float(mean_daily @ w) * 252.0
+    ann_ret = float(mean_daily @ w) * 252.0 - max(float(annual_cost), 0.0)
     port = sim_rets @ w
     cvar = portfolio_cvar(port, alpha)
     dd = downside_deviation(port, target)
@@ -157,7 +441,7 @@ def neg_starr(raw_weights: np.ndarray, sim_rets: np.ndarray, mean_daily: np.ndar
 
 def neg_starr_batch(raw_weights: np.ndarray, sim_rets: np.ndarray, mean_daily: np.ndarray,
                     alpha: float = 0.05, downside_weight: float = 1.0,
-                    target: float = 0.0) -> np.ndarray:
+                    target: float = 0.0, annual_costs=0.0) -> np.ndarray:
     """Version VECTORISÉE de ``neg_starr`` sur une population entière.
 
     ``raw_weights`` : [n_actifs × S], une colonne par candidat (convention scipy
@@ -179,7 +463,10 @@ def neg_starr_batch(raw_weights: np.ndarray, sim_rets: np.ndarray, mean_daily: n
     if not ok.any():
         return out
     W = X[:, ok] / s[ok]
-    ann_ret = (mean_daily @ W) * 252.0
+    cost_array = np.broadcast_to(
+        np.asarray(annual_costs, dtype=float), (X.shape[1],)
+    )[ok]
+    ann_ret = (mean_daily @ W) * 252.0 - np.maximum(cost_array, 0.0)
     port = sim_rets @ W.astype(sim_rets.dtype)     # (n_sim × S_ok), gros matmul BLAS
     k = max(1, int(round(alpha * n_sim)))
     tail = np.partition(port, k - 1, axis=0)[:k]

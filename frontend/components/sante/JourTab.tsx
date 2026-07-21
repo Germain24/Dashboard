@@ -30,7 +30,7 @@ type Props = {
 };
 
 export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }: Props) {
-  const [intensity, setIntensity] = useState<string>(plan?.intensite ?? "medium");
+  const [intensity, setIntensity] = useState<string>("auto");
   const [budget, setBudget] = useState<string>(
     plan?.budget_max_daily !== undefined ? String(plan.budget_max_daily) : "18",
   );
@@ -45,7 +45,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
     setErr(null);
     try {
       await onGenerate({
-        intensity,
+        intensity: intensity === "auto" ? undefined : intensity,
         budget_max_daily: budget ? parseFloat(budget) : undefined,
         force,
       });
@@ -88,6 +88,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
                 onChange={(e) => setIntensity(e.target.value)}
                 className="mt-1 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm"
               >
+                <option value="auto">Automatique (Agenda + sport)</option>
                 {Object.entries(INTENSITY_LABELS).map(([k, label]) => (
                   <option key={k} value={k}>{label}</option>
                 ))}
@@ -148,11 +149,15 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
         <span className="text-[var(--muted-foreground)]">
           Intensité : <strong>{INTENSITY_LABELS[plan.intensite] ?? plan.intensite}</strong>
           {plan.intensity_was_default && (
-            <span className="ml-1 text-xs opacity-70">(défaut)</span>
+            <span className="ml-1 text-xs opacity-70">(Agenda + sport)</span>
           )}
         </span>
         <span className="text-[var(--muted-foreground)]">
           Budget : {plan.budget_max_daily.toFixed(2)} CAD
+        </span>
+        <span className="text-[var(--muted-foreground)]" title="Prix courants et rabais de la circulaire">
+          Prix : Super C + circulaire
+          {plan.pricing_context?.matched_foods != null && ` (${plan.pricing_context.matched_foods} aliments)`}
         </span>
         <span
           className={`text-xs rounded px-2 py-0.5 ${
@@ -174,6 +179,7 @@ export function JourTab({ plan, goal, onGenerate, onPlanUpdated, onOpenMicros }:
             onChange={(e) => setIntensity(e.target.value)}
             className="rounded border border-[var(--border)] bg-transparent px-2 py-1 text-xs"
           >
+            <option value="auto">Automatique (Agenda + sport)</option>
             {Object.entries(INTENSITY_LABELS).map(([k, label]) => (
               <option key={k} value={k}>{label}</option>
             ))}

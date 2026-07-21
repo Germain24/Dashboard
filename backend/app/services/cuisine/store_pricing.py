@@ -7,8 +7,8 @@ orchestration/a-faire/2026-07-14-superc-unique-design.md (Phase 1).
 Historique : le système comparait autrefois Super C / Adonis / Lufa par
 catégorie. Lufa retiré le 2026-07-07 (compte impossible sans commande), puis
 passage à Super C unique le 2026-07-14 (décision user : éviter de faire
-plusieurs magasins). Adonis n'est plus une source de prix pour les courses ;
-la branche `adonis` de `load_cached_items` reste en place mais dormante.
+plusieurs magasins). Adonis retiré définitivement le 2026-07-17 (décision
+user : plus aucune source de prix que Super C, courses et optimiseur).
 
 Best-effort partout : un cache manquant, un item non catégorisé, ou une
 erreur inattendue ne casse jamais la liste de courses — l'item reste juste
@@ -60,10 +60,7 @@ def _cache_path(store: str) -> Path:
 
 def load_cached_items(store: str) -> list[dict]:
     """Items en cache pour `store` ("superc", "superc_flyer"), ou liste vide
-    si absent/illisible. "adonis" réutilise le cache existant d'adonis_pricing.py."""
-    if store == "adonis":
-        from app.services.sante.adonis_pricing import load_cached_items as _adonis_load
-        return _adonis_load()
+    si absent/illisible."""
     path = _cache_path(store)
     if not path.exists():
         return []

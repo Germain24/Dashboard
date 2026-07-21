@@ -61,6 +61,19 @@ class Config:
     # est recalculé sur les STARR_N_SIM scénarios complets en float64.
     STARR_N_SIM_SEARCH: int = 8_000
     STARR_DOWNSIDE_WEIGHT: float = 1.0  # λ : poids de la variance baissière (Sortino)
+    # Trois régimes historiques sont simulés séparément puis concaténés.
+    # La fenêtre 3 ans reste centrale ; 1 an capte le régime récent et 5 ans
+    # apporte les épisodes plus anciens. Une fenêtre n'est utilisée que si au
+    # moins 90 % de ses séances sont disponibles, puis les poids sont renormalisés.
+    STARR_REGIME_WINDOWS: list = [
+        {"label": "1y", "days": 252, "weight": 0.25},
+        {"label": "3y", "days": 756, "weight": 0.50},
+        {"label": "5y", "days": 1260, "weight": 0.25},
+    ]
+    STARR_REGIME_MIN_COVERAGE: float = 0.90
+    # Le rendement espéré (numérateur STARR) reste volontairement centré
+    # sur 3 ans ; l'estimation 1 an serait beaucoup trop volatile.
+    STARR_MEAN_WINDOW_DAYS: int = 756
     # Malus exponentiel au-delà du plafond de positions : pousse l'optimiseur à
     # regrouper les ETF redondants (même indice) et limiter les micro-lignes, sans
     # supprimer d'ETF (respecte la dispo broker). penalty = exp(β·(n_lignes−max))−1.
@@ -79,6 +92,12 @@ class Config:
     # critère d'arrêt normal en pratique.
     STARR_DE_MIN_GENERATIONS: int = 30
     STARR_DE_MAX_GENERATIONS: int = 50_000
+    # Un seed qui n'améliore plus réellement le score est abandonné au lieu de
+    # consommer des milliers de générations identiques. Plusieurs seeds bornés
+    # gardent l'exploration reproductible sans boucle infinie.
+    STARR_DE_STAGNATION_GENERATIONS: int = 250
+    STARR_DE_MIN_IMPROVEMENT: float = 1e-6
+    STARR_DE_MAX_SEEDS: int = 3
     # Tolérance de convergence (écart-type des scores de la population / |moyenne|
     # <= tol). Choix délibéré de garder 1e-6 (précision maximale) malgré le coût :
     # sur un cas de test à 29 titres, la convergence naturelle demande ~730
@@ -92,6 +111,11 @@ class Config:
     # peut dépasser ce nombre si la couverture de l'univers l'exige (chaque titre
     # doit apparaître dans au moins un individu, cf. build_init_population).
     STARR_DE_POPSIZE: int = 515
+    # Avant de lancer le DE, évalue des lots de portefeuilles 100 % aléatoires
+    # jusqu'à obtenir un objectif pénalisé strictement positif. Le plafond évite
+    # une boucle infinie si les données ou contraintes rendent cela impossible.
+    STARR_DE_POSITIVE_INIT_BATCH_SIZE: int = 256
+    STARR_DE_POSITIVE_INIT_MAX_BATCHES: int = 200
     # Ticker imposé comme individu de départ « 1 seule ligne » (ex. un ETF monde) ;
     # vide = ETF au meilleur score standalone, à défaut meilleur titre standalone.
     STARR_DE_SEED_TICKER: str = ""
@@ -112,13 +136,43 @@ class Config:
     # entreprises corrélées restent deux entreprises distinctes. Ajustable via
     # params.json.
     CORRELATION_DEDUP_THRESHOLD: float = 0.95
+    # Présélection avant STARR : l'optimiseur final conserve 20 lignes maximum
+    # par broker, donc 50 ETF candidats apportent assez de choix sans laisser des
+    # centaines de fonds redondants exploser le coût du DE.
+    ETF_MAX_CANDIDATES_PER_BROKER: int = 50
+    ETF_SELECTION_CORRELATION_DAYS: int = 756
+    # Régularisation des corrélations vers la corrélation moyenne : stabilise les
+    # valeurs extrêmes, particulièrement quand le nombre de titres est élevé.
+    STARR_CORRELATION_SHRINKAGE: float = 0.15
+    # Le signal de rendement historique est ramené vers la moyenne transversale.
+    # 0,25 = 25 % de moyenne propre au titre, 75 % de prior commun.
+    STARR_MEAN_SIGNAL_WEIGHT: float = 0.25
+    # Scénarios de stress ajoutés au mélange historique sans augmenter N_SIM.
+    STARR_STRESS_WEIGHT: float = 0.10
+    STARR_STRESS_VOL_MULTIPLIER: float = 2.0
+    STARR_STRESS_EQUITY_CORRELATION: float = 0.85
+    # Coût de changement d'allocation dans l'objectif. Exprimé en unités de score
+    # STARR par unité de turnover bilatéral (Σ|w_nouveau-w_actuel| / 2).
+    STARR_TURNOVER_PENALTY: float = 0.05
+    STARR_REBALANCE_BAND_PCT: float = 0.05
+    REBALANCES_PER_YEAR: int = 4
+    TRANSACTION_COSTS_ENABLED: bool = True
+    # Frais brokers applicables aux ordres de rebalancement (tarifs BD au
+    # 06-01-2026 ; Trading 212 communiqué par l'utilisateur).
+    TRADING212_FX_FEE_RATE: float = 0.0015
+    BOURSE_DIRECT_FX_FEE_RATE: float = 0.0008
+    BOURSE_DIRECT_FOREIGN_CUSTODY_RATE: float = 0.00036
+    FRENCH_TRANSACTION_TAX_RATE: float = 0.004
+    # La TTF ne concerne qu'une liste légale d'actions françaises, jamais tous
+    # les titres `.PA`. À renseigner via params.json ou colonne `TTF` du tableur.
+    FRENCH_TTF_TICKERS: list = []
     # Historique de cours minimal (jours de bourse) pour entrer dans l'optimisation.
     # Sans ce filtre, un seul fonds récent (lancé il y a quelques semaines) tronque
     # la fenêtre COMMUNE de rendements de tout l'univers (le dropna aligne tout le
     # monde sur le plus jeune) -> corrélations et STARR calculés sur quelques
     # semaines au lieu de 5 ans (#bug rapporté : ETF assurance fusionné avec
     # l'action Adobe à corr 0,96, EEM absorbé par EWY...).
-    STARR_MIN_HISTORY_DAYS: int = 252
+    STARR_MIN_HISTORY_DAYS: int = 756
     BUDGET_BROKERS: dict = {
         "Trading212": 733.70,
         "BoursDirect": 0.0,

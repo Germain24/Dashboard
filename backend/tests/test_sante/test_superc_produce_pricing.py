@@ -43,6 +43,25 @@ def test_apply_superc_produce_prices_disabled_by_env(monkeypatch):
     assert changed == []
 
 
+def test_catalog_prices_include_regular_and_flyer(monkeypatch):
+    import pandas as pd
+
+    df = pd.DataFrame({"Prix": [1.50, 2.00]}, index=["Poitrine de poulet", "Brocoli"])
+    regular = [{"name": "Chicken Breast", "price": 12.0, "format": "1 kg"}]
+    flyer = [{"name": "Broccoli", "price": 4.0, "format": "1 kg", "on_sale": True}]
+
+    from app.services.cuisine import store_pricing
+    monkeypatch.setattr(
+        store_pricing,
+        "load_cached_items",
+        lambda store: regular if store == "superc" else flyer,
+    )
+    out, changed = adonis_pricing.apply_superc_catalog_prices(df)
+    assert out.loc["Poitrine de poulet", "Prix"] == 1.2
+    assert out.loc["Brocoli", "Prix"] == 0.4
+    assert set(changed) == {"Poitrine de poulet", "Brocoli"}
+
+
 def test_load_superc_cached_items_reads_cache_file(monkeypatch, tmp_path):
     cuisine = tmp_path / "Cuisine"
     cuisine.mkdir(parents=True)

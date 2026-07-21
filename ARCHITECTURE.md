@@ -1,6 +1,7 @@
 # Architecture — Mission Control
 
 Vue d'ensemble technique du dashboard. Pour l'usage, voir [README.md](README.md).
+Specs et plans d'implémentation détaillés : voir [orchestration/README.md](orchestration/README.md).
 
 ## 1. Vue macro
 

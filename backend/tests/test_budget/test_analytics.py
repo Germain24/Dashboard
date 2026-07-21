@@ -9,6 +9,7 @@ from app.services.budget.analytics import (
     aggregate_expenses_by_category,
     aggregate_expenses_by_tag,
     build_annual_csv,
+    cash_flow_forecast,
     category_share_series,
     detect_recurring,
     month_keys,
@@ -57,6 +58,44 @@ def test_aggregate_uncategorised_fallback():
 
 def test_aggregate_empty():
     assert aggregate_expenses_by_category([], {}) == []
+
+
+def test_cash_flow_forecast_projects_average_and_cumul():
+    history = [
+        {"mois": "2026-05", "revenus": 3000.0, "depenses": 2000.0},
+        {"mois": "2026-06", "revenus": 3200.0, "depenses": 2400.0},
+    ]
+    out = cash_flow_forecast(history, months_ahead=3)
+    assert out["moyenne_revenus"] == 3100.0
+    assert out["moyenne_depenses"] == 2200.0
+    assert out["solde_mensuel_moyen"] == 900.0
+    assert [p["mois"] for p in out["points"]] == ["2026-07", "2026-08", "2026-09"]
+    assert [p["solde_mensuel"] for p in out["points"]] == [900.0, 900.0, 900.0]
+    assert [p["cumul"] for p in out["points"]] == [900.0, 1800.0, 2700.0]
+
+
+def test_cash_flow_forecast_crosses_year_boundary():
+    history = [{"mois": "2026-11", "revenus": 1000.0, "depenses": 500.0}]
+    out = cash_flow_forecast(history, months_ahead=3)
+    assert [p["mois"] for p in out["points"]] == ["2026-12", "2027-01", "2027-02"]
+
+
+def test_cash_flow_forecast_applies_scenario_deltas():
+    history = [{"mois": "2026-06", "revenus": 2000.0, "depenses": 1000.0}]
+    out = cash_flow_forecast(
+        history, months_ahead=1,
+        scenario={"revenus_delta_pct": 10, "depenses_delta_pct": -20},
+    )
+    assert out["moyenne_revenus"] == 2200.0
+    assert out["moyenne_depenses"] == 800.0
+    assert out["solde_mensuel_moyen"] == 1400.0
+
+
+def test_cash_flow_forecast_empty_history():
+    assert cash_flow_forecast([], months_ahead=6) == {
+        "moyenne_revenus": 0.0, "moyenne_depenses": 0.0,
+        "solde_mensuel_moyen": 0.0, "points": [],
+    }
 
 
 def test_month_keys_walks_back_across_year_boundary():

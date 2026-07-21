@@ -1,6 +1,8 @@
 """Backtest buy-and-hold d'une allocation cible (cœur pur)."""
 
-from app.services.finance.backtest import simulate_allocation
+import datetime as dt
+
+from app.services.finance.backtest import simulate_allocation, simulate_walk_forward
 
 
 def test_single_asset_doubles():
@@ -29,3 +31,39 @@ def test_weights_renormalized():
 def test_empty_inputs():
     assert simulate_allocation({}, {})["equity"] == []
     assert simulate_allocation({"AAA": [100.0]}, {"BBB": 100.0})["equity"] == []
+
+
+def test_walk_forward_never_uses_allocation_before_its_run_date():
+    start = dt.date(2025, 1, 1)
+    dates = [(start + dt.timedelta(days=i)).isoformat() for i in range(120)]
+    prices = {"AAA": [100.0 + i for i in range(120)]}
+    allocations = [{"date": dates[60], "weights": {"AAA": 100.0}}]
+
+    result = simulate_walk_forward(dates, prices, allocations)
+
+    assert result["dates"][0] == dates[60]
+    assert result["n_rebalances"] == 1
+    assert result["rendement_pct"] > 0
+
+
+def test_walk_forward_rebalances_quarterly_and_charges_turnover_costs():
+    start = dt.date(2025, 1, 1)
+    dates = [(start + dt.timedelta(days=i)).isoformat() for i in range(200)]
+    prices = {
+        "AAA": [100.0 * (1.002 ** i) for i in range(200)],
+        "BBB": [100.0 for _ in range(200)],
+    }
+    allocations = [
+        {"date": dates[0], "weights": {"AAA": 100.0}},
+        {"date": dates[30], "weights": {"BBB": 100.0}},  # trop tôt : ignoré
+        {"date": dates[90], "weights": {"BBB": 100.0}},
+    ]
+
+    free = simulate_walk_forward(dates, prices, allocations, cost_bps=0.0)
+    costly = simulate_walk_forward(dates, prices, allocations, cost_bps=100.0)
+
+    assert free["n_rebalances"] == 2
+    assert costly["n_rebalances"] == 2
+    assert costly["turnover"] > 0
+    assert costly["costs_pct"] > 0
+    assert costly["rendement_pct"] < free["rendement_pct"]

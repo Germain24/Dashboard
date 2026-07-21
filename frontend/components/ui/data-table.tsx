@@ -16,7 +16,9 @@
  *   />
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type Key, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "./button";
 
 export type Column<T> = {
   key: keyof T & string;
@@ -32,6 +34,8 @@ type Props<T> = {
   searchKeys?: (keyof T & string)[];
   pageSize?: number;
   emptyLabel?: string;
+  ariaLabel?: string;
+  getRowId?: (row: T, index: number) => Key;
 };
 
 export function DataTable<T extends Record<string, unknown>>({
@@ -40,7 +44,10 @@ export function DataTable<T extends Record<string, unknown>>({
   searchKeys = [],
   pageSize = 20,
   emptyLabel = "Aucune donnée",
+  ariaLabel = "Tableau de données",
+  getRowId,
 }: Props<T>) {
+  const searchId = useId();
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -50,7 +57,11 @@ export function DataTable<T extends Record<string, unknown>>({
     if (!query || searchKeys.length === 0) return data;
     const q = query.toLowerCase();
     return data.filter((row) =>
-      searchKeys.some((k) => String(row[k] ?? "").toLowerCase().includes(q)),
+      searchKeys.some((k) =>
+        String(row[k] ?? "")
+          .toLowerCase()
+          .includes(q),
+      ),
     );
   }, [data, query, searchKeys]);
 
@@ -68,9 +79,13 @@ export function DataTable<T extends Record<string, unknown>>({
     return copy;
   }, [filtered, sortKey, sortDir]);
 
-  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const normalizedPageSize = Math.max(1, pageSize);
+  const pageCount = Math.max(1, Math.ceil(sorted.length / normalizedPageSize));
   const safePage = Math.min(page, pageCount - 1);
-  const rows = sorted.slice(safePage * pageSize, safePage * pageSize + pageSize);
+  const rows = sorted.slice(
+    safePage * normalizedPageSize,
+    safePage * normalizedPageSize + normalizedPageSize,
+  );
 
   function toggleSort(key: string) {
     if (sortKey === key) {
@@ -84,26 +99,67 @@ export function DataTable<T extends Record<string, unknown>>({
   return (
     <div className="space-y-3">
       {searchKeys.length > 0 && (
-        <input
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setPage(0); }}
-          placeholder="Rechercher…"
-          className="w-full max-w-xs px-3 py-1.5 text-sm rounded-[var(--radius)] border border-[var(--border)] bg-[var(--field)] transition-[border-color,box-shadow] duration-200 focus:outline-none focus:border-[var(--ring)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ring)_12%,transparent)]"
-        />
+        <div>
+          <label htmlFor={searchId} className="sr-only">
+            Rechercher dans le tableau
+          </label>
+          <input
+            id={searchId}
+            data-ui-control
+            type="search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(0);
+            }}
+            placeholder="Rechercher…"
+            className="h-9 w-full max-w-xs rounded-[var(--radius)] border border-[var(--border)] bg-[var(--field)] px-3 text-sm transition-[border-color,box-shadow] duration-200 focus:border-[var(--ring)] focus:outline-none focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ring)_12%,transparent)]"
+          />
+        </div>
       )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
+          <caption className="sr-only">{ariaLabel}</caption>
           <thead>
             <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--muted-foreground)]">
               {columns.map((c) => (
                 <th
                   key={c.key}
-                  className={`pb-1.5 pr-3 ${c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : ""} ${c.sortable ? "cursor-pointer select-none hover:text-[var(--foreground)]" : ""}`}
-                  onClick={c.sortable ? () => toggleSort(c.key) : undefined}
+                  scope="col"
+                  aria-sort={
+                    c.sortable && sortKey === c.key
+                      ? sortDir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : undefined
+                  }
+                  className={`pb-1.5 pr-3 ${c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : ""}`}
                 >
-                  {c.header}
-                  {c.sortable && sortKey === c.key && (sortDir === "asc" ? " ▲" : " ▼")}
+                  {c.sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(c.key)}
+                      className={`inline-flex w-full items-center gap-1 rounded-[var(--radius-sm)] py-1 hover:text-[var(--foreground)] ${
+                        c.align === "right"
+                          ? "justify-end"
+                          : c.align === "center"
+                            ? "justify-center"
+                            : "justify-start"
+                      }`}
+                    >
+                      <span>{c.header}</span>
+                      {sortKey !== c.key ? (
+                        <ArrowUpDown className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : sortDir === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                    </button>
+                  ) : (
+                    c.header
+                  )}
                 </th>
               ))}
             </tr>
@@ -111,15 +167,27 @@ export function DataTable<T extends Record<string, unknown>>({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="py-6 text-center text-[var(--muted-foreground)]">
+                <td
+                  colSpan={columns.length}
+                  className="py-6 text-center text-[var(--muted-foreground)]"
+                >
                   {emptyLabel}
                 </td>
               </tr>
             ) : (
               rows.map((row, i) => (
-                <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--muted)]">
+                <tr
+                  key={
+                    getRowId?.(row, safePage * normalizedPageSize + i) ??
+                    (typeof row.id === "string" || typeof row.id === "number" ? row.id : i)
+                  }
+                  className="border-b border-[var(--border)] hover:bg-[var(--muted)]"
+                >
                   {columns.map((c) => (
-                    <td key={c.key} className={`py-1.5 pr-3 ${c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : ""}`}>
+                    <td
+                      key={c.key}
+                      className={`py-1.5 pr-3 ${c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : ""}`}
+                    >
                       {c.render ? c.render(row) : String(row[c.key] ?? "—")}
                     </td>
                   ))}
@@ -134,21 +202,31 @@ export function DataTable<T extends Record<string, unknown>>({
         <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
           <span>{sorted.length} éléments</span>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={safePage === 0}
-              className="rounded-md border border-[var(--border)] px-2 py-1 disabled:opacity-40 hover:bg-[var(--muted)]"
+              aria-label="Page précédente"
+              title="Page précédente"
             >
-              Précédent
-            </button>
-            <span>{safePage + 1} / {pageCount}</span>
-            <button
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <span aria-live="polite">
+              {safePage + 1} / {pageCount}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
               onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
               disabled={safePage >= pageCount - 1}
-              className="rounded-md border border-[var(--border)] px-2 py-1 disabled:opacity-40 hover:bg-[var(--muted)]"
+              aria-label="Page suivante"
+              title="Page suivante"
             >
-              Suivant
-            </button>
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
           </div>
         </div>
       )}

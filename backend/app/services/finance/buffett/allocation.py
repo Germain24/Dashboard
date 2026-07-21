@@ -12,10 +12,14 @@ Règle métier (CONV 4 — révision) :
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from .config import Config
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 def _int_pct_largest_remainder(rel: dict[str, float]) -> dict[str, int]:
@@ -96,6 +100,47 @@ def latest_prices(close_df, tickers: list[str]) -> dict[str, float]:
     return prices
 
 
+def latest_prices_eur(close_df, tickers: list[str]) -> dict[str, float]:
+    """Derniers cours convertis en EUR pour la discrétisation des budgets brokers.
+
+    Les poids et budgets sont en EUR : comparer directement un cours USD/GBP à un
+    budget EUR produirait un nombre d'actions incorrect. Les cotations LSE en pence
+    sont ramenées en livres avant application du taux GBP/EUR.
+    """
+    from app.services.finance import fx
+
+    from .dedup import _ticker_currency
+
+    native = latest_prices(close_df, tickers)
+    converted: dict[str, float] = {}
+    for ticker, price in native.items():
+        currency = _ticker_currency(ticker)
+        factor = 1.0
+        if ticker.upper().endswith(".L"):
+            try:
+                import yfinance as yf
+
+                from app.services.finance.yf_session import yf_session
+
+                fast_info = yf.Ticker(ticker, session=yf_session()).fast_info
+                try:
+                    raw_currency = fast_info["currency"]
+                except Exception:
+                    raw_currency = getattr(fast_info, "currency", None)
+                if raw_currency in ("GBp", "GBX"):
+                    factor = 0.01
+            except Exception:
+                # La plupart des historiques `.L` Yahoo sont en pence. En absence
+                # d'information explicite, ne pas appliquer un facteur arbitraire.
+                factor = 1.0
+        rate = float(fx.get_rate(currency, "EUR", stale_ok=True) or 0.0)
+        if currency == "EUR":
+            rate = 1.0
+        if rate > 0 and price > 0:
+            converted[ticker] = float(price) * factor * rate
+    return converted
+
+
 def discretize_allocation(
     tickers: list[str],
     weights,                 # np.ndarray [n_tickers x n_brokers] : fraction du capital TOTAL
@@ -116,7 +161,7 @@ def discretize_allocation(
     weights = np.asarray(weights, dtype=float)
     if weights.ndim == 1:
         weights = weights.reshape(len(tickers), len(active_brokers))
-    num_t, num_b = len(tickers), len(active_brokers)
+    num_t = len(tickers)
     if total_cap is None:
         total_cap = float(sum(Config.BUDGET_BROKERS.values())) or 1.0
 

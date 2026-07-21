@@ -13,10 +13,20 @@ _COLS = {
     "ville": "Ville (ou ville la plus proche)",
     "pays": "Pays",
     "visite": "Visité",
+    "ordre": "Ordre",
     "aeroport_iata": "Aéroport (IATA)",
     "jours_min": "Jours min",
     "jours_max": "Jours max",
     "cout_jour_estime": "Coût/jour estimé",
+    "progression": "Progression",
+    "priorite": "Priorité",
+    "cout_activite": "Coût activité",
+    "cout_transport_local": "Transport local",
+    "mois_disponibles": "Mois disponibles",
+    "cout_hebergement_jour": "Coût hébergement/jour",
+    "cout_nourriture_jour": "Coût nourriture/jour",
+    "statut": "Statut",
+    "raison_indisponible": "Raison indisponible",
 }
 
 
@@ -37,6 +47,17 @@ def _clean_float(v: Any) -> float | None:
     if v is None or str(v).strip() == "":
         return None
     return float(v)
+
+
+def _infer_progression(nom: str, ordre: int | None) -> str | None:
+    """Compatibilité avec le fichier actuel, qui a `Ordre` mais pas encore
+    `Progression`. Les groupes explicites dans Excel restent prioritaires."""
+    if ordre is None:
+        return None
+    n = nom.casefold()
+    if any(token in n for token in ("marathon", "run", "spartathlon")):
+        return "course"
+    return "montagne"
 
 
 def parse_voyage_xlsx(path: Path) -> list[dict]:
@@ -66,6 +87,8 @@ def parse_voyage_xlsx(path: Path) -> list[dict]:
         nom = _clean_str(_cell(row, "nom"))
         if not nom:
             continue
+        ordre = _clean_int(_cell(row, "ordre"))
+        progression = _clean_str(_cell(row, "progression"))
         out.append({
             "nom": nom,
             "ville": _clean_str(_cell(row, "ville")),
@@ -75,6 +98,16 @@ def parse_voyage_xlsx(path: Path) -> list[dict]:
             "jours_min": _clean_int(_cell(row, "jours_min")),
             "jours_max": _clean_int(_cell(row, "jours_max")),
             "cout_jour_estime": _clean_float(_cell(row, "cout_jour_estime")),
+            "ordre": ordre,
+            "progression": progression or _infer_progression(nom, ordre),
+            "priorite": _clean_int(_cell(row, "priorite")) or 3,
+            "cout_activite": _clean_float(_cell(row, "cout_activite")),
+            "cout_transport_local": _clean_float(_cell(row, "cout_transport_local")),
+            "mois_disponibles": _clean_str(_cell(row, "mois_disponibles")),
+            "cout_hebergement_jour": _clean_float(_cell(row, "cout_hebergement_jour")),
+            "cout_nourriture_jour": _clean_float(_cell(row, "cout_nourriture_jour")),
+            "statut": _clean_str(_cell(row, "statut")) or "possible",
+            "raison_indisponible": _clean_str(_cell(row, "raison_indisponible")),
         })
     return out
 

@@ -2,39 +2,54 @@
 
 from __future__ import annotations
 
+import math
+
 from .cache_manager import infer_country
 from .config import Config
-from .scoring_pure import compute_buy_signal, compute_moat_score, robust_growth, select_growth
+from .scoring_pure import (
+    compute_buy_signal,
+    compute_moat_score,
+    compute_score_coverage,
+    robust_growth,
+    select_growth,
+)
 
 
 def _v(s, i):
     """Valeur scalaire sécurisée depuis Series ou scalaire."""
     try:
-        return float(s.iloc[i]) if hasattr(s, "iloc") else float(s)
+        value = float(s.iloc[i]) if hasattr(s, "iloc") else float(s)
+        return value if math.isfinite(value) else None
     except Exception:
-        return 0.0
+        return None
 
 
 def _b(s, i, growth=False):
-    """Valeur booléenne (croissance ou signe)."""
+    """Valeur booléenne (croissance ou signe), None si donnée absente."""
     try:
-        if growth:
-            return bool(s.diff().iloc[i] > 0) if hasattr(s, "diff") else False
-        return bool(s.iloc[i] > 0) if hasattr(s, "iloc") else False
+        value = s.diff().iloc[i] if growth and hasattr(s, "diff") else s.iloc[i]
+        value = float(value)
+        return bool(value > 0) if math.isfinite(value) else None
     except Exception:
-        return False
+        return None
 
 
-def _safe(func, default=0, n=1):
+def _safe(func, n=1, index=None):
+    """Série numérique sans inventer de zéro pour une donnée absente."""
+    import numpy as np
+    import pandas as pd
+
     try:
-        import pandas as pd
         r = func()
         if isinstance(r, (pd.Series, pd.DataFrame)):
             r = pd.to_numeric(r, errors="coerce")
-        return r.fillna(default) if hasattr(r, "fillna") else (r if r is not None else default)
+            return r.replace([np.inf, -np.inf], np.nan)
+        value = pd.to_numeric(r, errors="coerce")
+        return pd.Series([value] * n, index=index, dtype=float).replace(
+            [np.inf, -np.inf], np.nan
+        )
     except Exception:
-        import pandas as pd
-        return pd.Series([default] * n)
+        return pd.Series([float("nan")] * n, index=index, dtype=float)
 
 
 def extract_metrics(symbol: str, info: dict) -> dict:
@@ -63,7 +78,8 @@ def extract_metrics(symbol: str, info: dict) -> dict:
         # Marqueur d'unité : permet au cache chaud de distinguer ces métriques
         # des historiques en nb d'actions (cf. currency.ensure_volume_eur).
         "VolumeDevise": "EUR",
-        "Secteur": secteur, "QuoteType": qt,
+        "Secteur": secteur, "Industrie": info.get("industry", "Inconnu"),
+        "QuoteType": qt,
     }
 
 
@@ -138,48 +154,122 @@ def analyze_financials(symbol: str, data: dict, etf_tickers: set | None = None) 
     cashflow = cashflow.loc[common] if not cashflow.empty else cashflow
     for df_ in [income, balance, cashflow]:
         for col in df_.columns:
-            df_[col] = pd.to_numeric(df_[col], errors="coerce").fillna(0)
+            # Conserver les NaN : zéro est une vraie valeur financière, pas un
+            # synonyme de « Yahoo n'a pas fourni ce poste ».
+            df_[col] = pd.to_numeric(df_[col], errors="coerce")
 
     n = len(income)
-    gpm  = _safe(lambda: income["Gross Profit"] / income["Total Revenue"], 0, n)
-    sga  = _safe(lambda: income["Selling General And Administration"] / income["Gross Profit"], 1, n)
-    rd   = _safe(lambda: income["Research And Development"] / income["Gross Profit"], 1, n)
-    dep  = _safe(lambda: income["Reconciled Depreciation"] / income["Gross Profit"], 1, n)
-    inx  = _safe(lambda: income["Interest Expense"] / income["Operating Income"], 1, n)
-    pt   = _safe(lambda: income["Pretax Income"], 0, n)
-    ni   = _safe(lambda: income["Net Income"], 0, n)
-    nim  = _safe(lambda: income["Net Income"] / income["Total Revenue"], 1, n)
-    sc   = "Ordinary Shares Number" if "Ordinary Shares Number" in balance.columns else balance.columns[0]
-    eps_ = _safe(lambda: income["Net Income"] / balance[sc], 1, n)
-    cash = pd.Series([0.0] * n, index=income.index)
-    for _cc in ["Cash Cash Equivalents And Short Term Investments", "Inventory", "Accounts Receivable"]:
-        if _cc in balance.columns:
-            cash = cash + balance[_cc].fillna(0)
+    idx = income.index
+
+    def _col(df, *names):
+        for name in names:
+            if name in df.columns:
+                return df[name]
+        raise KeyError(names[0])
+
+    gpm = _safe(
+        lambda: income["Gross Profit"].abs() / income["Total Revenue"].abs(), n, idx
+    )
+    sga = _safe(
+        lambda: income["Selling General And Administration"].abs()
+        / income["Gross Profit"].abs(), n, idx
+    )
+    rd = _safe(
+        lambda: income["Research And Development"].abs() / income["Gross Profit"].abs(),
+        n, idx,
+    )
+    dep = _safe(
+        lambda: income["Reconciled Depreciation"].abs() / income["Gross Profit"].abs(),
+        n, idx,
+    )
+    inx = _safe(
+        lambda: income["Interest Expense"].abs() / income["Operating Income"].abs(),
+        n, idx,
+    )
+    pt = _safe(lambda: income["Pretax Income"], n, idx)
+    ni = _safe(lambda: income["Net Income"], n, idx)
+    nim = _safe(lambda: income["Net Income"] / income["Total Revenue"].abs(), n, idx)
+    eps_ = _safe(
+        lambda: income["Net Income"] / balance["Ordinary Shares Number"], n, idx
+    )
+    cash_columns = [
+        c for c in [
+            "Cash Cash Equivalents And Short Term Investments",
+            "Inventory",
+            "Accounts Receivable",
+        ]
+        if c in balance.columns
+    ]
+    cash = (
+        balance[cash_columns].sum(axis=1, min_count=1)
+        if cash_columns
+        else pd.Series(float("nan"), index=idx)
+    )
+
     def _roic():
-        d = balance.get("Total Debt", balance.get("Current Debt", 0) + balance.get("Long Term Debt And Capital Lease Obligation", 0))
-        return income["Operating Income"] / (d + balance["Common Stock Equity"] - balance.get("Cash Cash Equivalents And Short Term Investments", 0))
-    roic = _safe(_roic, 0, n)
-    dr   = _safe(lambda: balance["Current Debt"] / balance["Long Term Debt And Capital Lease Obligation"], 1, n)
-    lr   = _safe(lambda: balance["Total Assets"] / balance["Current Liabilities"], 0, n)
-    ltd  = _safe(lambda: balance["Current Debt"] / balance["Pretax Income"], 1, n)
-    deq  = _safe(lambda: balance["Total Liabilities Net Minority Interest"] / balance["Common Stock Equity"], 1, n)
-    ret  = _safe(lambda: balance["Retained Earnings"], 0, n)
-    cv   = _safe(lambda: cashflow["Issuance Of Capital Stock"] + cashflow["Repurchase Of Capital Stock"], 0, n)
-    roe_ = _safe(lambda: income["Net Income"] / balance["Stockholders Equity"], 0, n)
-    cpx  = _safe(lambda: cashflow["Capital Expenditure"] / income["Net Income"], 1, n)
-    bb   = _safe(lambda: -cashflow["Repurchase Of Capital Stock"], 0, n)
+        tax_rate = (income["Tax Provision"] / income["Pretax Income"]).clip(0.0, 0.35)
+        nopat = income["Operating Income"] * (1.0 - tax_rate)
+        invested = _col(balance, "Invested Capital")
+        return nopat / invested.abs()
+
+    total_debt = _safe(
+        lambda: _col(balance, "Total Debt", "Net Debt"), n, idx
+    )
+    long_term_debt = _safe(
+        lambda: _col(
+            balance,
+            "Long Term Debt And Capital Lease Obligation",
+            "Long Term Debt",
+        ),
+        n,
+        idx,
+    )
+    roic = _safe(_roic, n, idx)
+    dr = _safe(lambda: total_debt / balance["Total Assets"].abs(), n, idx)
+    lr = _safe(lambda: balance["Current Assets"] / balance["Current Liabilities"], n, idx)
+    ltd = _safe(lambda: long_term_debt / income["Pretax Income"].abs(), n, idx)
+    deq = _safe(
+        lambda: total_debt / _col(balance, "Stockholders Equity", "Common Stock Equity").abs(),
+        n,
+        idx,
+    )
+    ret = _safe(lambda: balance["Retained Earnings"], n, idx)
+    cv = _safe(
+        lambda: cashflow["Issuance Of Capital Stock"]
+        + cashflow["Repurchase Of Capital Stock"],
+        n,
+        idx,
+    )
+    roe_ = _safe(
+        lambda: income["Net Income"]
+        / _col(balance, "Stockholders Equity", "Common Stock Equity").abs(),
+        n,
+        idx,
+    )
+    cpx = _safe(
+        lambda: cashflow["Capital Expenditure"].abs() / income["Net Income"].abs(),
+        n,
+        idx,
+    )
+    bb = _safe(lambda: -cashflow["Repurchase Of Capital Stock"], n, idx)
+
+    def _truth(value, predicate):
+        return None if value is None else bool(predicate(value))
 
     yearly = [{"gpm":_v(gpm,i),"sga":_v(sga,i),"rd":_v(rd,i),"depr":_v(dep,i),"interest_exp":_v(inx,i),
                "pretax_growth":_b(pt,i,True),"net_income_growth":_b(ni,i,True),"net_income_positive":_b(ni,i),
                "nim":_v(nim,i),"eps_growth":_b(eps_,i,True),"cash_growth":_b(cash,i,True),
                "debt_ratio":_v(dr,i),"liab_ratio":_v(lr,i),"lt_debt_ratio":_v(ltd,i),"debt_eq":_v(deq,i),
-               "retained_growth":_b(ret,i,True),"cap_stock_var":(_v(cv,i)<0),"roe":_v(roe_,i),
-               "roic":_v(roic,i),"capex":_v(cpx,i),"buybacks":(_v(bb,i)>0)} for i in range(n)]
+               "retained_growth":_b(ret,i,True),"cap_stock_var":_truth(_v(cv,i), lambda v: v < 0),"roe":_v(roe_,i),
+               "roic":_v(roic,i),"capex":_v(cpx,i),"buybacks":_truth(_v(bb,i), lambda v: v > 0)} for i in range(n)]
 
-    score = compute_moat_score(yearly)
-    # Ratios de l'année la plus récente (index 0 = poids le plus fort) -> détail du score.
+    secteur = str(metrics.get("Secteur") or "")
+    industrie = str(metrics.get("Industrie") or "")
+    score = compute_moat_score(yearly, secteur, industrie)
+    metrics["score_coverage_pct"] = compute_score_coverage(yearly, secteur, industrie)
+    # Les séries sont triées ancien → récent : la dernière ligne est la plus récente.
     if yearly:
-        metrics["ratios_recents"] = yearly[0]
+        metrics["ratios_recents"] = yearly[-1]
     growth = growth_rev = growth_eps = forward = None
     growth_reliable = True
     try:

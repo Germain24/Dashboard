@@ -80,11 +80,14 @@ def month_keys(today: dt.date, months: int) -> list[str]:
     return list(reversed(keys))
 
 
-def detect_recurring(
-    txs, *, min_occurrences: int = 3, amount_tolerance: float = 0.15
-) -> list[dict[str, Any]]:
-    """Détecte les dépenses récurrentes (abonnements) : même marchand, montant
-    stable (±`amount_tolerance`) et cadence ~mensuelle (#116). Pur."""
+def _monthly_cadence_groups(txs, *, min_occurrences: int = 3) -> list[list]:
+    """Groupes de dépenses d'un même marchand à cadence ~mensuelle, triés par date.
+
+    Brique partagée par `detect_recurring` (#116) et les alertes d'abonnement
+    (#260) : seule la cadence est vérifiée ici, PAS la stabilité du montant —
+    une hausse de prix doit rester détectable même quand elle fait sortir
+    l'abonnement du filtre de stabilité.
+    """
     groups: dict[str, list] = {}
     for t in txs:
         if t.montant >= 0:
@@ -93,19 +96,34 @@ def detect_recurring(
         if key:
             groups.setdefault(key, []).append(t)
 
-    out: list[dict[str, Any]] = []
+    out: list[list] = []
     for items in groups.values():
         if len(items) < min_occurrences:
             continue
         items.sort(key=lambda t: t.date)
-        amounts = [abs(t.montant) for t in items]
-        avg = sum(amounts) / len(amounts)
-        if avg <= 0 or any(abs(a - avg) / avg > amount_tolerance for a in amounts):
-            continue  # montant instable -> pas un abonnement
         gaps = [(items[i + 1].date - items[i].date).days for i in range(len(items) - 1)]
-        med_gap = statistics.median(gaps)
-        if not (26 <= med_gap <= 35):
-            continue  # cadence non mensuelle
+        if 26 <= statistics.median(gaps) <= 35:
+            out.append(items)
+    return out
+
+
+def _amounts_are_stable(amounts: list[float], tolerance: float) -> bool:
+    """Vrai si tous les montants tiennent dans ±`tolerance` de leur moyenne."""
+    avg = sum(amounts) / len(amounts) if amounts else 0.0
+    return avg > 0 and all(abs(a - avg) / avg <= tolerance for a in amounts)
+
+
+def detect_recurring(
+    txs, *, min_occurrences: int = 3, amount_tolerance: float = 0.15
+) -> list[dict[str, Any]]:
+    """Détecte les dépenses récurrentes (abonnements) : même marchand, montant
+    stable (±`amount_tolerance`) et cadence ~mensuelle (#116). Pur."""
+    out: list[dict[str, Any]] = []
+    for items in _monthly_cadence_groups(txs, min_occurrences=min_occurrences):
+        amounts = [abs(t.montant) for t in items]
+        if not _amounts_are_stable(amounts, amount_tolerance):
+            continue  # montant instable -> pas un abonnement
+        avg = sum(amounts) / len(amounts)
         out.append({
             "marchand": items[0].marchand,
             "montant_moyen": round(avg, 2),
@@ -274,6 +292,224 @@ def recurring_summary(session) -> dict[str, Any]:
     return recurring_vs_oneoff(tx_svc.get_transactions(session))
 
 
+# ─── Alertes sur abonnements : hausses de prix & doublons (#260) ─────────────
+
+# Une hausse n'est signalée que si elle franchit À LA FOIS un plancher absolu et
+# un plancher relatif : l'absolu écarte les arrondis et écarts de change de
+# quelques centimes, le relatif écarte les micro-ajustements (taxes) sur les gros
+# montants. Fenêtre de comparaison de 13 mois : le prix d'il y a deux ans ne doit
+# plus déclencher d'alerte aujourd'hui.
+HAUSSE_MIN_ABS = 1.0
+HAUSSE_MIN_PCT = 5.0
+HAUSSE_FENETRE_JOURS = 395
+
+# Passerelles de paiement / places de marché : leur nom occupe le 1er token du
+# libellé (« PAYPAL *NETFLIX »), donc deux abonnements sans rapport y partagent
+# la même clé de service. Jamais un doublon sur ces clés-là.
+_PASSERELLES = frozenset({
+    "PAYPAL", "SQUARE", "STRIPE", "GOOGLE", "APPLE", "ITUNES", "AMAZON", "AMZN",
+    "MICROSOFT", "MSFT", "SHOPIFY", "PADDLE", "VISA", "MASTERCARD", "INTERAC",
+    "ACHAT", "PAIEMENT", "PRELEVEMENT", "PRLV", "RETRAIT", "VIREMENT",
+})
+
+
+def _service_key(marchand: Optional[str]) -> Optional[str]:
+    """Clé de service d'un libellé bancaire (même normalisation que les règles)."""
+    from app.services.budget.rules import merchant_key
+    return merchant_key(marchand or "")
+
+
+def detect_price_increases(
+    txs, *, min_occurrences: int = 3, min_abs: float = HAUSSE_MIN_ABS,
+    min_pct: float = HAUSSE_MIN_PCT, fenetre_jours: int = HAUSSE_FENETRE_JOURS,
+) -> list[dict[str, Any]]:
+    """Abonnements dont le prix a augmenté par rapport à leur propre historique. Pur.
+
+    Compare le dernier prélèvement à la MÉDIANE des précédents (robuste à un
+    prélèvement aberrant isolé), sur la fenêtre des `fenetre_jours` derniers
+    jours du marchand. Volontairement basé sur la cadence seule, pas sur
+    `detect_recurring` : une forte hausse rend le montant « instable » et
+    ferait justement disparaître l'abonnement du filtre de stabilité.
+    """
+    out: list[dict[str, Any]] = []
+    for items in _monthly_cadence_groups(txs, min_occurrences=min_occurrences):
+        cutoff = items[-1].date - dt.timedelta(days=fenetre_jours)
+        recents = [t for t in items if t.date >= cutoff]
+        if len(recents) < max(3, min_occurrences):
+            continue  # il faut au moins 2 prélèvements de référence + le dernier
+        actuel = abs(recents[-1].montant)
+        precedent = statistics.median(abs(t.montant) for t in recents[:-1])
+        delta = actuel - precedent
+        if precedent <= 0 or delta < min_abs or delta / precedent * 100 < min_pct:
+            continue
+        out.append({
+            "marchand": recents[-1].marchand,
+            "montant_precedent": round(precedent, 2),
+            "montant_actuel": round(actuel, 2),
+            "delta": round(delta, 2),
+            "delta_pct": round(delta / precedent * 100, 1),
+            "date": recents[-1].date.isoformat(),
+            "occurrences": len(recents),
+            "category_id": recents[-1].category_id,
+        })
+    out.sort(key=lambda h: h["delta"], reverse=True)
+    return out
+
+
+def detect_duplicate_subscriptions(
+    txs, *, min_occurrences: int = 3, amount_tolerance: float = 0.15,
+    doublon_tolerance: float = 0.10,
+) -> list[dict[str, Any]]:
+    """Abonnements vraisemblablement payés en double (#260). Pur.
+
+    Deux familles, toutes deux volontairement conservatrices — sur des données
+    bancaires réelles un faux doublon coûte plus cher qu'un oubli :
+
+    - `double_prelevement` : le même marchand débité ≥2× dans le même mois
+      calendaire, chaque fois AU PRIX de l'abonnement (±`doublon_tolerance`).
+      Exiger le prix de l'abonnement écarte les marchands simplement fréquents.
+    - `meme_service` : deux marchands récurrents distincts partageant la même clé
+      de service, à un prix comparable (±`amount_tolerance`) et prélevés au moins
+      un mois EN COMMUN. Le mois commun est décisif : sans lui, un simple
+      changement de libellé bancaire (« NETFLIX » → « NETFLIX.COM ») serait
+      signalé comme un doublon alors que c'est le même abonnement qui continue.
+    """
+    groups = _monthly_cadence_groups(txs, min_occurrences=min_occurrences)
+    out: list[dict[str, Any]] = []
+
+    for items in groups:
+        median_amt = statistics.median(abs(t.montant) for t in items)
+        if median_amt <= 0:
+            continue
+        by_month: dict[str, list[float]] = {}
+        for t in items:
+            by_month.setdefault(t.date.strftime("%Y-%m"), []).append(abs(t.montant))
+        for mois, amounts in sorted(by_month.items()):
+            au_prix = [a for a in amounts if abs(a - median_amt) / median_amt <= doublon_tolerance]
+            if len(au_prix) < 2:
+                continue
+            out.append({
+                "type": "double_prelevement",
+                "service": _service_key(items[0].marchand) or items[0].marchand,
+                "marchands": [items[0].marchand],
+                "mois": mois,
+                "occurrences": len(au_prix),
+                "montant_redondant": round(median_amt * (len(au_prix) - 1), 2),
+            })
+
+    mois_par_marchand: dict[str, set[str]] = {}
+    for t in txs:
+        key = (getattr(t, "marchand", "") or "").strip().lower()
+        if t.montant < 0 and key:
+            mois_par_marchand.setdefault(key, set()).add(t.date.strftime("%Y-%m"))
+
+    par_service: dict[str, list[dict[str, Any]]] = {}
+    for s in detect_recurring(txs, min_occurrences=min_occurrences,
+                              amount_tolerance=amount_tolerance):
+        key = _service_key(s["marchand"])
+        if key and key not in _PASSERELLES:
+            par_service.setdefault(key, []).append(s)
+
+    for service, membres in par_service.items():
+        if len(membres) < 2:
+            continue
+        membres.sort(key=lambda s: s["montant_moyen"], reverse=True)
+        for i, a in enumerate(membres):
+            for b in membres[i + 1:]:
+                hi, lo = a["montant_moyen"], b["montant_moyen"]
+                if lo <= 0 or (hi - lo) / hi > amount_tolerance:
+                    continue  # prix trop éloignés -> deux services différents
+                communs = (mois_par_marchand.get(a["marchand"].strip().lower(), set())
+                           & mois_par_marchand.get(b["marchand"].strip().lower(), set()))
+                if not communs:
+                    continue  # jamais prélevés le même mois -> libellé renommé
+                out.append({
+                    "type": "meme_service",
+                    "service": service,
+                    "marchands": [a["marchand"], b["marchand"]],
+                    "mois": max(communs),
+                    "occurrences": len(communs),
+                    "montant_redondant": round(lo, 2),
+                })
+
+    out.sort(key=lambda d: d["montant_redondant"], reverse=True)
+    return out
+
+
+def subscription_alerts(
+    txs, *, min_occurrences: int = 3, amount_tolerance: float = 0.15,
+    hausse_min_abs: float = HAUSSE_MIN_ABS, hausse_min_pct: float = HAUSSE_MIN_PCT,
+) -> dict[str, Any]:
+    """Alertes sur les abonnements détectés : hausses de prix + doublons (#260). Pur.
+
+    `surcout_mensuel` = ce que ces alertes coûtent par mois (hausses subies +
+    prélèvements redondants), c'est-à-dire l'économie potentielle.
+    """
+    hausses = detect_price_increases(
+        txs, min_occurrences=min_occurrences,
+        min_abs=hausse_min_abs, min_pct=hausse_min_pct,
+    )
+    doublons = detect_duplicate_subscriptions(
+        txs, min_occurrences=min_occurrences, amount_tolerance=amount_tolerance,
+    )
+    surcout = sum(h["delta"] for h in hausses) + sum(d["montant_redondant"] for d in doublons)
+    return {
+        "hausses": hausses,
+        "doublons": doublons,
+        "nb_alertes": len(hausses) + len(doublons),
+        "surcout_mensuel": round(surcout, 2),
+    }
+
+
+def subscription_alerts_summary(session) -> dict[str, Any]:
+    from app.services.budget import transactions as tx_svc
+    return subscription_alerts(tx_svc.get_transactions(session))
+
+
+def cash_flow_forecast(
+    monthly_history: list[dict[str, Any]], *,
+    months_ahead: int = 6, scenario: Optional[dict[str, float]] = None,
+) -> dict[str, Any]:
+    """Prévision de trésorerie (#259) : projette le solde net mensuel sur
+    `months_ahead` mois à partir de la moyenne revenus/dépenses des mois
+    historiques fournis (ex. `spending_trend`). Pur.
+
+    `scenario` ajuste la moyenne en % : {"revenus_delta_pct": 10,
+    "depenses_delta_pct": -5} simule +10% de revenus et -5% de dépenses.
+    """
+    if not monthly_history:
+        return {
+            "moyenne_revenus": 0.0, "moyenne_depenses": 0.0,
+            "solde_mensuel_moyen": 0.0, "points": [],
+        }
+    scenario = scenario or {}
+    avg_rev = sum(m["revenus"] for m in monthly_history) / len(monthly_history)
+    avg_dep = sum(m["depenses"] for m in monthly_history) / len(monthly_history)
+    avg_rev *= 1 + scenario.get("revenus_delta_pct", 0.0) / 100
+    avg_dep *= 1 + scenario.get("depenses_delta_pct", 0.0) / 100
+    solde_mensuel = avg_rev - avg_dep
+
+    y, m = (int(x) for x in monthly_history[-1]["mois"].split("-"))
+    points: list[dict[str, Any]] = []
+    cumul = 0.0
+    for _ in range(months_ahead):
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
+        cumul += solde_mensuel
+        points.append({
+            "mois": f"{y:04d}-{m:02d}",
+            "solde_mensuel": round(solde_mensuel, 2),
+            "cumul": round(cumul, 2),
+        })
+    return {
+        "moyenne_revenus": round(avg_rev, 2),
+        "moyenne_depenses": round(avg_dep, 2),
+        "solde_mensuel_moyen": round(solde_mensuel, 2),
+        "points": points,
+    }
+
+
 def spending_trend(session, months: int = 6, *, today: Optional[dt.date] = None) -> list[dict[str, Any]]:
     from app.services.budget import transactions as tx_svc
 
@@ -297,3 +533,13 @@ def spending_trend(session, months: int = 6, *, today: Optional[dt.date] = None)
     while len(out) > 1 and out[0]["revenus"] == 0 and out[0]["depenses"] == 0:
         out.pop(0)
     return out
+
+
+def cash_flow_projection(
+    session, *, months_ahead: int = 6, history_months: int = 6,
+    scenario: Optional[dict[str, float]] = None, today: Optional[dt.date] = None,
+) -> dict[str, Any]:
+    """Prévision de trésorerie (#259) basée sur la tendance des `history_months`
+    derniers mois réels (`spending_trend`)."""
+    history = spending_trend(session, history_months, today=today)
+    return cash_flow_forecast(history, months_ahead=months_ahead, scenario=scenario)

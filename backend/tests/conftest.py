@@ -16,12 +16,14 @@ import app.models  # noqa: F401  — enregistre toutes les tables sur SQLModel.m
 @pytest.fixture(autouse=True)
 def _isolate_external_side_effects(monkeypatch, tmp_path):
     """Garde-fous de test (aucun navigateur/réseau, aucun fichier réel) :
-    - re-tarification Adonis désactivée (sinon scraper navigateur en subprocess) ;
+    - rafraîchissement des prix Super C désactivé (sinon scraper navigateur en subprocess) ;
     - fichier des soldes de comptes isolé en tmp (sinon net_worth_summary lit le
       vrai data/account_balances.json et fausse les tests patrimoine).
     Le code de prod reste actif par défaut."""
-    monkeypatch.setenv("ADONIS_PRODUCE_PRICING", "0")
     monkeypatch.setenv("STORE_PRICING_REFRESH", "0")
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "musique_ollama_autostart", False)
     from app.services.finance import account_balances as _ab
     monkeypatch.setattr(_ab, "_default_path", lambda: tmp_path / "account_balances.json")
     # L'historique par compte scanne/parse les vrais relevés (PDF) → désactivé en

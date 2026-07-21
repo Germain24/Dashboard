@@ -12,6 +12,9 @@ export type Book = {
   genre: string
   langue: string
   format: string
+  // serie vide = ouvrage isolé ; renseignée = tome regroupé avec ses pairs.
+  serie: string
+  tome: number | null
   note: number | null
   page_courante: number | null
   date_debut: string | null

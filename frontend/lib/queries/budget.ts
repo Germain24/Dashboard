@@ -6,16 +6,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { financeKeys } from "@/lib/queries/finance";
 import {
   applyRules,
+  createContract,
+  deleteContract,
   fetchByCategory,
   fetchByTag,
   fetchCashflow,
   fetchCategories,
+  fetchContracts,
+  fetchContractsSummary,
   fetchDisposable,
   fetchEnvelopes,
   fetchCategoryShare,
+  fetchForecast,
+  fetchFire,
   fetchRecurring,
   fetchRecurringProjection,
   fetchRollingSummary,
+  fetchSubscriptionAlerts,
   fetchRules,
   fetchRuleSuggestions,
   learnRules,
@@ -27,6 +34,8 @@ import {
   importCsv,
   setSavingsGoal,
   setTransactionTags,
+  updateContract,
+  type Contract,
 } from "@/lib/budget";
 
 export const budgetKeys = {
@@ -44,11 +53,18 @@ export const budgetKeys = {
   trend: (months: number) => [...budgetKeys.all, "trend", months] as const,
   rollingSummary: (days: number) => [...budgetKeys.all, "rolling-summary", days] as const,
   categoryShare: (days: number, window: number) => [...budgetKeys.all, "category-share", days, window] as const,
+  forecast: (monthsAhead: number, historyMonths: number, revenusDeltaPct: number, depensesDeltaPct: number) =>
+    [...budgetKeys.all, "forecast", monthsAhead, historyMonths, revenusDeltaPct, depensesDeltaPct] as const,
   recurring: () => [...budgetKeys.all, "recurring"] as const,
   recurringProjection: () => [...budgetKeys.all, "recurring-projection"] as const,
+  recurringAlerts: () => [...budgetKeys.all, "recurring-alerts"] as const,
+  fire: (months: number, tauxRetrait: number, rendementReel: number) =>
+    [...budgetKeys.all, "fire", months, tauxRetrait, rendementReel] as const,
   savingsGoal: () => [...budgetKeys.all, "savings-goal"] as const,
   rules: () => [...budgetKeys.all, "rules"] as const,
   ruleSuggestions: () => [...budgetKeys.all, "rule-suggestions"] as const,
+  contracts: (statut?: string) => [...budgetKeys.all, "contracts", statut ?? ""] as const,
+  contractsSummary: () => [...budgetKeys.all, "contracts-summary"] as const,
 };
 
 export function useBudgetTransactions(params?: { from?: string; to?: string; category_id?: number }) {
@@ -87,11 +103,31 @@ export function useRollingSummary(days = 30) {
 export function useCategoryShare(days = 180, window = 30) {
   return useQuery({ queryKey: budgetKeys.categoryShare(days, window), queryFn: () => fetchCategoryShare(days, window) });
 }
+export function useForecast(
+  monthsAhead = 6, historyMonths = 6,
+  scenario?: { revenusDeltaPct?: number; depensesDeltaPct?: number },
+) {
+  const revenusDeltaPct = scenario?.revenusDeltaPct ?? 0;
+  const depensesDeltaPct = scenario?.depensesDeltaPct ?? 0;
+  return useQuery({
+    queryKey: budgetKeys.forecast(monthsAhead, historyMonths, revenusDeltaPct, depensesDeltaPct),
+    queryFn: () => fetchForecast(monthsAhead, historyMonths, { revenusDeltaPct, depensesDeltaPct }),
+  });
+}
 export function useRecurring() {
   return useQuery({ queryKey: budgetKeys.recurring(), queryFn: fetchRecurring });
 }
 export function useRecurringProjection() {
   return useQuery({ queryKey: budgetKeys.recurringProjection(), queryFn: fetchRecurringProjection });
+}
+export function useSubscriptionAlerts() {
+  return useQuery({ queryKey: budgetKeys.recurringAlerts(), queryFn: fetchSubscriptionAlerts });
+}
+export function useFire(months = 12, tauxRetrait = 0.04, rendementReel = 0.05) {
+  return useQuery({
+    queryKey: budgetKeys.fire(months, tauxRetrait, rendementReel),
+    queryFn: () => fetchFire(months, tauxRetrait, rendementReel),
+  });
 }
 export function useSavingsGoal() {
   return useQuery({ queryKey: budgetKeys.savingsGoal(), queryFn: fetchSavingsGoal });
@@ -139,4 +175,36 @@ export function useRuleSuggestions() {
 export function useLearnRules() {
   const invalidate = useInvalidateAll();
   return useMutation({ mutationFn: () => learnRules(), onSuccess: invalidate });
+}
+
+// Suivi manuel des abonnements/contrats (#362)
+export function useContracts(statut?: string) {
+  return useQuery({ queryKey: budgetKeys.contracts(statut), queryFn: () => fetchContracts(statut) });
+}
+export function useContractsSummary() {
+  return useQuery({ queryKey: budgetKeys.contractsSummary(), queryFn: fetchContractsSummary });
+}
+export function useCreateContract() {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (data: {
+      nom: string; categorie: string; montant: number; periodicite: string
+      date_echeance?: string | null; notes?: string
+    }) => createContract(data),
+    onSuccess: invalidate,
+  });
+}
+export function useUpdateContract() {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (p: { id: number; patch: Partial<Contract> }) => updateContract(p.id, p.patch),
+    onSuccess: invalidate,
+  });
+}
+export function useDeleteContract() {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (id: number) => deleteContract(id),
+    onSuccess: invalidate,
+  });
 }

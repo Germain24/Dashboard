@@ -12,10 +12,14 @@
 
 param(
     [Parameter(Position = 0)]
-    [string]$Command = "help"
+    [string]$Command = "help",
+    [string]$FrontendHost = "127.0.0.1"
 )
 
 $ErrorActionPreference = "Stop"
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 $RepoRoot = $PSScriptRoot
 $Backend  = Join-Path $RepoRoot "backend"
 $Frontend = Join-Path $RepoRoot "frontend"
@@ -95,14 +99,14 @@ switch ($Command.ToLower()) {
 
     "dev-frontend" {
         Push-Location $Frontend
-        try { & npm run dev }
+        try { & npm run dev -- --hostname $FrontendHost }
         finally { Pop-Location }
     }
 
     "dev" {
         Write-Host "Lancement backend (:8000) + frontend (:3000) dans 2 fenêtres PowerShell..." -ForegroundColor Cyan
         $backCmd  = "Set-Location '$Backend';  uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
-        $frontCmd = "Set-Location '$Frontend'; npm run dev"
+        $frontCmd = "Set-Location '$Frontend'; npm run dev -- --hostname '$FrontendHost'"
         Start-Process powershell -ArgumentList "-NoExit", "-Command", $backCmd  | Out-Null
         Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontCmd | Out-Null
         Write-Host "✓ Deux fenêtres ouvertes. Ferme-les pour arrêter les serveurs." -ForegroundColor Green

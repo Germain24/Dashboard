@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { LieuxTab } from "./LieuxTab";
 import { PlanifierTab } from "./PlanifierTab";
 import { PlanifierAutoTab } from "./PlanifierAutoTab";
+import { VoyagesConfirmesTab } from "./VoyagesConfirmesTab";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { useSuggererLieux } from "@/lib/queries/voyage";
 
@@ -67,6 +68,10 @@ export function Voyage() {
           <LieuxTab selected={selected} onToggle={toggle} />
           <PlanifierTab candidats={[...selected]} onConfirmed={() => setSelected(new Set())} />
         </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Voyages confirmés — checklist & budget" defaultOpen={true}>
+        <VoyagesConfirmesTab />
       </CollapsibleSection>
     </div>
   );
