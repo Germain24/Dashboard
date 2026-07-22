@@ -136,6 +136,10 @@ def _seed_one_eligible_ticker(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(runner, "CacheManager", lambda: isolated_cache)
     monkeypatch.setattr(broker_budgets, "apply_live_broker_budgets", lambda: {"IBKR": 1000.0})
+    # Ce test porte sur le téléchargement/erreur d'optimisation, pas sur la
+    # calibration relative qui exige désormais >=5 pairs. Forcer AAPL conserve
+    # volontairement le chemin mono-ticker synthétique.
+    monkeypatch.setattr(Config, "FORCED_BUY_TICKERS", ["AAPL"])
 
 
 def test_run_buffett_analysis_empty_download_surfaces_error(tmp_path, monkeypatch):
@@ -147,6 +151,7 @@ def test_run_buffett_analysis_empty_download_surfaces_error(tmp_path, monkeypatc
     que Task 1, chemin different : un DataFrame vide n'est pas une exception,
     donc le try/except seul ne suffisait pas a le detecter)."""
     import pandas as pd
+
     from app.services.finance import yf_session as yf_session_module
 
     _isolate_buffett_paths(monkeypatch, tmp_path)
@@ -185,6 +190,7 @@ def test_run_buffett_analysis_pauses_then_retries_before_giving_up(tmp_path, mon
     reseau, plutot un rate-limit transitoire qu'une nouvelle tentative peut
     resoudre)."""
     import pandas as pd
+
     from app.services.finance import yf_session as yf_session_module
 
     _isolate_buffett_paths(monkeypatch, tmp_path)

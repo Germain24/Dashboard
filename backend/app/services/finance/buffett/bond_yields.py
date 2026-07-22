@@ -1,10 +1,11 @@
-"""Taux obligataires souverains (10 ans) — rafraîchis automatiquement.
+"""Taux obligataires souverains (10 ans) — utilitaire historique.
 
-Le critère d'achat Buffett compare le prix à un plafond `EPS / (0,02 + taux)`,
-où `taux` est le rendement obligataire du pays. Historiquement ces taux étaient
-des constantes figées ; ce module les rafraîchit pour **tous les pays exposés
-par FRED** (API publique, CSV sans clé), avec **repli sur les valeurs statiques**
-quand le réseau échoue (offline-friendly).
+Les modèles Buffett v1/v2 comparaient le prix à un plafond
+``EPS / (0,02 + taux)``. Le modèle v3 utilise des médianes PER/PEG par
+secteur/région et ne rafraîchit donc plus ces taux au lancement d'un run. Le
+module reste disponible pour compatibilité et pour d'éventuels diagnostics : il
+peut rafraîchir les pays exposés par FRED (API publique, CSV sans clé), avec
+repli sur les valeurs statiques quand le réseau échoue.
 
 Yahoo n'expose proprement que le 10 ans US (^TNX) ; FRED couvre ~18 pays via les
 séries `IRLTLT01<ISO>M156N` (rendements souverains 10 ans, source OCDE) et

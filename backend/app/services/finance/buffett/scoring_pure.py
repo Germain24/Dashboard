@@ -7,12 +7,12 @@ et retournent des scalaires. Testable sans DB en < 1 s.
 from __future__ import annotations
 
 import math
-from typing import Optional
-
+import statistics
+import unicodedata
 
 # À incrémenter dès qu'une formule MOAT change. Le cache conserve les ETF à 200,
 # mais force alors le recalcul de toutes les actions avec le nouveau modèle.
-SCORING_MODEL_VERSION = 2
+SCORING_MODEL_VERSION = 3
 
 
 # ── Thresholds (issues de WarrenBuffetMensuel.py) ──────────────────────────
@@ -34,6 +34,11 @@ THRESHOLD_DEBT_EQ = 0.80   # Debt/Equity idéale ≤ 80 %
 PEG_GROWTH_CAP = 0.30
 # Au-delà de ce seuil, une croissance est jugée NON fiable (rebond de base, bruit).
 GROWTH_EXTREME = 0.50
+# Plus petit groupe impair avec deux observations de chaque côté de la médiane.
+# En dessous, une médiane locale serait presque le titre lui-même : repli secteur,
+# puis global. Quelques nouvelles actions Chine/Japon ne peuvent donc pas déplacer
+# artificiellement leur propre référence.
+RELATIVE_MIN_PEERS = 5
 
 
 def exponential_weights(n: int) -> list[float]:
@@ -57,6 +62,9 @@ _CRITERIA: dict[str, tuple[str, float | None]] = {
     "net_income_growth": ("bool", None),
     "net_income_positive": ("bool", None),
     "nim": ("min", THRESHOLD_NIM),
+    # Signal unique lié aux rachats/dilution : la croissance PAR ACTION mesure
+    # leur effet net. Les anciens `buybacks` (flux brut) et `cap_stock_var` (flux
+    # net) récompensaient une deuxième et une troisième fois la même opération.
     "eps_growth": ("bool", None),
     "cash_growth": ("bool", None),
     "debt_ratio": ("max", 0.60),
@@ -64,11 +72,9 @@ _CRITERIA: dict[str, tuple[str, float | None]] = {
     "lt_debt_ratio": ("max", 0.25),
     "debt_eq": ("max", THRESHOLD_DEBT_EQ),
     "retained_growth": ("bool", None),
-    "cap_stock_var": ("bool", None),
     "roe": ("min", THRESHOLD_ROE),
     "roic": ("min", THRESHOLD_ROIC),
     "capex": ("max", THRESHOLD_CAPEX),
-    "buybacks": ("bool", None),
 }
 
 # Certains ratios industriels n'ont pas la même signification pour les sociétés
@@ -91,9 +97,87 @@ _GROWTH_KEYS = {
 }
 
 
+def _fold_label(value: object) -> str:
+    """Libellé comparable (casse/accents/espaces neutralisés)."""
+    folded = (
+        unicodedata.normalize("NFKD", str(value or "").strip())
+        .encode("ascii", "ignore")
+        .decode()
+        .casefold()
+    )
+    return " ".join(folded.split())
+
+
+_FINANCIAL_SECTOR_ALIASES = {
+    "finance", "financial", "financial services", "financials",
+    "services financiers", "service financier",
+}
+
+
+def normalize_sector(secteur: object) -> str | None:
+    """Clé sectorielle stable; ``None`` pour les libellés non exploitables."""
+    key = _fold_label(secteur)
+    if key in {"", "nan", "none", "inconnu", "unknown", "todo", "etf"}:
+        return None
+    if key in _FINANCIAL_SECTOR_ALIASES:
+        return "financial services"
+    return key
+
+
+# Régions larges : elles corrigent les niveaux de valorisation propres aux
+# marchés sans créer de cible de rendement/volatilité. La liste couvre les pays
+# actuellement présents dans ToutBroker et reste volontairement explicite.
+_COUNTRIES_BY_REGION: dict[str, set[str]] = {
+    "north_america": {
+        "united states", "canada", "bermuda", "bahamas",
+    },
+    "latin_america": {
+        "argentina", "brazil", "chile", "colombia", "costa rica", "curacao",
+        "mexico", "martinique", "panama", "peru", "uruguay",
+    },
+    "europe": {
+        "austria", "belgium", "bulgaria", "cyprus", "czech republic", "denmark",
+        "finland", "france", "germany", "gibraltar", "greece", "guernsey",
+        "hungary", "iceland", "ireland", "isle of man", "italy", "jersey",
+        "lithuania", "luxembourg", "malta", "monaco", "netherlands", "norway",
+        "poland", "portugal", "romania", "russia", "spain", "sweden",
+        "switzerland", "turkey", "united kingdom",
+    },
+    "asia_pacific": {
+        "australia", "british virgin islands", "cambodia", "cayman islands",
+        "china", "hong kong", "india", "indonesia", "japan", "kazakhstan",
+        "macau", "malaysia", "myanmar", "new zealand", "philippines",
+        "singapore", "south korea", "taiwan", "thailand", "vietnam",
+    },
+    "middle_east_africa": {
+        "gabon", "israel", "jordan", "mauritius", "morocco", "saudi arabia",
+        "south africa", "united arab emirates",
+    },
+}
+_REGION_BY_COUNTRY = {
+    country: region
+    for region, countries in _COUNTRIES_BY_REGION.items()
+    for country in countries
+}
+_COUNTRY_ALIASES = {
+    "au": "australia", "br": "brazil", "ca": "canada", "ch": "switzerland",
+    "cn": "china", "de": "germany", "es": "spain", "fr": "france",
+    "gb": "united kingdom", "hk": "hong kong", "in": "india", "it": "italy",
+    "jp": "japan", "kr": "south korea", "mx": "mexico", "nl": "netherlands",
+    "no": "norway", "sg": "singapore", "tw": "taiwan", "uk": "united kingdom",
+    "us": "united states",
+}
+
+
+def region_for_country(pays: object) -> str | None:
+    """Région de comparaison d'un pays Yahoo Finance, sinon ``None``."""
+    key = _fold_label(pays)
+    return _REGION_BY_COUNTRY.get(_COUNTRY_ALIASES.get(key, key))
+
+
 def _applicable_criteria(secteur: str = "", industrie: str = "") -> set[str]:
     keys = set(_CRITERIA)
-    keys -= _SECTOR_EXCLUDED.get(str(secteur or "").strip().lower(), set())
+    keys -= _SECTOR_EXCLUDED.get(normalize_sector(secteur) or "", set())
     if "reit" in str(industrie or "").lower():
         keys -= _REIT_EXCLUDED
     return keys
@@ -153,7 +237,7 @@ def score_year(ratios: dict, secteur: str = "", industrie: str = "") -> float:
         pretax_growth, net_income_growth, net_income_positive,
         nim, eps_growth, cash_growth,
         debt_ratio, liab_ratio, lt_debt_ratio, debt_eq,
-        retained_growth, cap_stock_var, roe, roic, capex, buybacks,
+        retained_growth, roe, roic, capex,
         first_year (bool — pour les critères de croissance)
     """
     return _score_year_components(ratios, secteur, industrie)[0]
@@ -239,7 +323,7 @@ def score_breakdown(ratios: dict, secteur: str = "", industrie: str = "") -> lis
     return out
 
 
-def robust_growth(values) -> Optional[float]:
+def robust_growth(values) -> float | None:
     """Croissance annualisée ROBUSTE d'une série chronologique (ancien → récent).
 
     Médiane des croissances annuelles (YoY) sur les paires consécutives strictement
@@ -272,11 +356,11 @@ def robust_growth(values) -> Optional[float]:
 
 
 def select_growth(
-    forward: Optional[float],
-    growth_rev: Optional[float],
-    growth_eps: Optional[float],
+    forward: float | None,
+    growth_rev: float | None,
+    growth_eps: float | None,
     extreme: float = GROWTH_EXTREME,
-) -> tuple[Optional[float], bool]:
+) -> tuple[float | None, bool]:
     """Choisit la croissance pour le PEG et juge sa fiabilité.
 
     Priorité à la croissance FUTURE prévue (``forward``) si positive, sinon repli
@@ -300,53 +384,276 @@ def select_growth(
     return None, True        # aucune donnée → neutre
 
 
+def _finite_float(value: object) -> float | None:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return None
+    return result if math.isfinite(result) else None
+
+
+def _positive_float(value: object) -> float | None:
+    result = _finite_float(value)
+    return result if result is not None and result > 0 else None
+
+
+def _group_medians(rows: list[dict], field: str, group: str) -> tuple[dict[str, float], dict[str, int]]:
+    values: dict[str, list[float]] = {}
+    for row in rows:
+        key = row.get(group)
+        value = _positive_float(row.get(field))
+        if key and value is not None:
+            values.setdefault(str(key), []).append(value)
+    return (
+        {key: float(statistics.median(items)) for key, items in values.items()},
+        {key: len(items) for key, items in values.items()},
+    )
+
+
+def _hierarchical_reference(
+    sector: str | None,
+    region: str | None,
+    by_sector_region: dict[str, float],
+    sector_region_counts: dict[str, int],
+    by_sector: dict[str, float],
+    sector_counts: dict[str, int],
+    global_median: float | None,
+    global_count: int,
+) -> tuple[float | None, str, int]:
+    """Référence stable : secteur×région → secteur → univers global.
+
+    Une strate locale n'est utilisée qu'avec :data:`RELATIVE_MIN_PEERS`
+    observations valides. Cela évite qu'un singleton soit sa propre référence
+    (ratio 1,0 garanti) et rend l'ajout progressif de nouveaux pays inoffensif.
+    """
+    intersection = f"{sector or ''}\x1f{region or ''}"
+    local_n = sector_region_counts.get(intersection, 0)
+    if local_n >= RELATIVE_MIN_PEERS:
+        return by_sector_region.get(intersection), "sector_region", local_n
+    sector_n = sector_counts.get(sector or "", 0)
+    if sector_n >= RELATIVE_MIN_PEERS:
+        return by_sector.get(sector or ""), "sector", sector_n
+    if global_count >= RELATIVE_MIN_PEERS:
+        return global_median, "global", global_count
+    return None, "insufficient", global_count
+
+
+def selection_score(raw_score: object, metrics: dict | None = None) -> float:
+    """Score comparable entre secteurs/régions, avec repli sur le score brut."""
+    metrics = metrics or {}
+    value = _finite_float(metrics.get("ScoreSelection"))
+    if value is None:
+        relative = metrics.get("valuation_relative") or {}
+        value = _finite_float(relative.get("score_selection"))
+    if value is None:
+        value = _finite_float(raw_score) or 0.0
+    return max(0.0, min(200.0, value))
+
+
+def is_selection_eligible(
+    raw_score: object,
+    metrics: dict | None,
+    threshold: float,
+    *,
+    is_etf: bool = False,
+    is_forced: bool = False,
+    is_held: bool = False,
+) -> bool:
+    """Décision finale du crible avant les filtres de liquidité/produit.
+
+    Une action ordinaire doit satisfaire les deux conditions indépendantes :
+    qualité relative au-dessus du seuil ET valorisation relative achetable.
+    ETF, titres explicitement forcés et positions déjà présentes dans la cible
+    restent dans l'univers afin que l'optimiseur puisse les conserver ou les
+    réduire. Ils restent soumis aux filtres aval qui leur sont applicables.
+    """
+    if is_etf or is_forced or is_held:
+        return True
+    return bool(
+        selection_score(raw_score, metrics) >= threshold
+        and (metrics or {}).get("Achat", False)
+    )
+
+
+def calibrate_relative_selection(
+    results: dict[str, tuple[float, dict]],
+    *,
+    always_buy: set[str] | None = None,
+) -> dict[str, tuple[float, dict]]:
+    """Normalise qualité, PER et PEG relativement au secteur ET à la région.
+
+    La population de référence contient toutes les actions valides du run, pas
+    seulement celles qui dépassent déjà le score de sélection. Cela évite un
+    cercle vicieux où le filtre financier détermine lui-même sa médiane.
+
+    - le score de qualité est recentré sur la médiane de ses pairs, puis
+      ré-ancré sur la médiane globale ;
+    - PER et PEG sont divisés par leur médiane de pairs ; ``1`` signifie donc
+      exactement « au niveau des pairs » ;
+    - les pairs sont cherchés dans secteur×région avec au moins 5 observations,
+      sinon dans le secteur mondial, sinon dans tout l'univers ;
+    - ``Achat`` exige PER relatif <= 1 et, si calculable, PEG relatif <= 1.
+
+    Aucun objectif de rendement/volatilité ni plafond PER/PEG universel n'entre
+    dans cette fonction. Le dictionnaire d'entrée n'est pas muté.
+    """
+    forced = {str(t).strip().upper() for t in (always_buy or set())}
+    rows: list[dict] = []
+    for ticker, (raw_score, source_metrics) in results.items():
+        metrics = dict(source_metrics or {})
+        score = _finite_float(raw_score) or 0.0
+        is_etf = score >= 200.0 or _fold_label(metrics.get("Secteur")) == "etf"
+        sector = None if is_etf else normalize_sector(metrics.get("Secteur"))
+        region = None if is_etf else region_for_country(metrics.get("Pays"))
+        rows.append({
+            "ticker": str(ticker),
+            "score": score,
+            "metrics": metrics,
+            "is_etf": is_etf,
+            "sector": sector,
+            "region": region,
+            "peer_group": f"{sector or ''}\x1f{region or ''}",
+            "per": _positive_float(metrics.get("PER")),
+            "peg": _positive_float(metrics.get("PEG")),
+        })
+
+    peers = [row for row in rows if not row["is_etf"] and row["sector"] and row["region"]]
+
+    score_peers = [row for row in peers if 0.0 < row["score"] < 200.0]
+    score_global = (
+        float(statistics.median(row["score"] for row in score_peers))
+        if score_peers else None
+    )
+    score_pair, score_pair_n = _group_medians(score_peers, "score", "peer_group")
+    score_sector, score_sector_n = _group_medians(score_peers, "score", "sector")
+
+    per_pair, per_pair_n = _group_medians(peers, "per", "peer_group")
+    per_sector, per_sector_n = _group_medians(peers, "per", "sector")
+    per_values = [row["per"] for row in peers if row["per"] is not None]
+    per_global = float(statistics.median(per_values)) if per_values else None
+
+    peg_pair, peg_pair_n = _group_medians(peers, "peg", "peer_group")
+    peg_sector, peg_sector_n = _group_medians(peers, "peg", "sector")
+    peg_values = [row["peg"] for row in peers if row["peg"] is not None]
+    peg_global = float(statistics.median(peg_values)) if peg_values else None
+
+    calibrated: dict[str, tuple[float, dict]] = {}
+    for row in rows:
+        ticker = row["ticker"]
+        raw_score = row["score"]
+        metrics = row["metrics"]
+        if row["is_etf"] or ticker.strip().upper() in forced:
+            metrics["Achat"] = True
+            metrics["ScoreSelection"] = raw_score
+            calibrated[ticker] = (raw_score, metrics)
+            continue
+
+        sector = row["sector"]
+        region = row["region"]
+        quality_ref, quality_scope, quality_n = _hierarchical_reference(
+            sector, region,
+            score_pair, score_pair_n, score_sector, score_sector_n,
+            score_global, len(score_peers),
+        )
+        if quality_ref is not None and score_global is not None:
+            adjusted_score = raw_score + score_global - quality_ref
+        else:
+            adjusted_score = raw_score
+        adjusted_score = max(0.0, min(100.0, adjusted_score))
+
+        per_ref, per_scope, per_n = _hierarchical_reference(
+            sector, region,
+            per_pair, per_pair_n, per_sector, per_sector_n,
+            per_global, len(per_values),
+        )
+        peg_ref, peg_scope, peg_n = _hierarchical_reference(
+            sector, region,
+            peg_pair, peg_pair_n, peg_sector, peg_sector_n,
+            peg_global, len(peg_values),
+        )
+        per_relative = row["per"] / per_ref if row["per"] is not None and per_ref else None
+        peg_relative = row["peg"] / peg_ref if row["peg"] is not None and peg_ref else None
+
+        base_eligible = metrics.get("valuation_base_eligible")
+        if base_eligible is None:
+            base_eligible = bool(
+                sector and region and row["per"] is not None
+                and metrics.get("growth_reliable", True) is not False
+            )
+        achat = bool(
+            base_eligible
+            and per_relative is not None and per_relative <= 1.0
+            and (peg_relative is None or peg_relative <= 1.0)
+        )
+
+        relative = {
+            "model": "sector_region_median_v1",
+            "region": region,
+            "score_selection": round(adjusted_score, 4),
+            "quality_reference": round(quality_ref, 4) if quality_ref is not None else None,
+            "quality_global_median": round(score_global, 4) if score_global is not None else None,
+            "quality_peer_scope": quality_scope,
+            "quality_peer_count": quality_n,
+            "per_reference": round(per_ref, 6) if per_ref is not None else None,
+            "per_relative": round(per_relative, 6) if per_relative is not None else None,
+            "per_peer_scope": per_scope,
+            "per_peer_count": per_n,
+            "peg_reference": round(peg_ref, 6) if peg_ref is not None else None,
+            "peg_relative": round(peg_relative, 6) if peg_relative is not None else None,
+            "peg_peer_scope": peg_scope,
+            "peg_peer_count": peg_n,
+        }
+        metrics["Achat"] = achat
+        metrics["valuation_base_eligible"] = bool(base_eligible)
+        metrics["ScoreSelection"] = adjusted_score
+        metrics["valuation_relative"] = relative
+        calibrated[ticker] = (raw_score, metrics)
+    return calibrated
+
+
 def compute_buy_signal(
     secteur: str,
     pays: str,
     prix: float,
     eps: float,
     per: float,
-    growth: Optional[float],
+    growth: float | None,
     taux_obligataires: dict,
     taux_defaut: float,
     per_max: float,
     peg_max: float,
     growth_reliable: bool = True,
     peg_growth_cap: float = PEG_GROWTH_CAP,
-) -> tuple[bool, Optional[float]]:
-    """Calcule le signal d'achat et le PEG (pur Python).
+) -> tuple[bool, float | None]:
+    """Calcule l'admissibilité de base et le PEG (pur Python).
 
     ``growth`` : croissance annualisée (fraction) déjà sélectionnée (forward →
     historique conservatrice, cf. ``select_growth``). Elle est BORNÉE à
-    ``peg_growth_cap`` au dénominateur du PEG (#3). ``growth_reliable`` : si la
-    croissance n'est pas fiable, un PEG non calculable (None) ne donne PAS de
-    laissez-passer (#4).
+    ``peg_growth_cap`` au dénominateur du PEG. ``growth_reliable=False`` bloque
+    l'admissibilité, y compris lorsqu'un PEG numérique a pu être calculé.
 
-    Retourne (achat: bool, peg: Optional[float]).
+    ``taux_obligataires``, ``taux_defaut``, ``per_max`` et ``peg_max`` restent dans
+    la signature pour compatibilité avec les anciens appels, mais ne décident plus
+    du signal. Les plafonds absolus biaisaient structurellement les secteurs et les
+    pays. La décision finale est prise par :func:`calibrate_relative_selection`,
+    contre les médianes secteur/région du run complet.
+
+    Retourne (admissible_de_base: bool, peg: float | None).
     """
     if "ETF" in str(secteur).upper():
         return True, None
 
-    taux = taux_obligataires.get(pays, taux_defaut)
-    seuil_prix = eps / (0.02 + taux) if eps and eps > 0 else 0.0
-
-    peg: Optional[float] = None
+    peg: float | None = None
     if growth and growth > 0 and per > 0:
         g = min(growth, peg_growth_cap)   # #3 : bornage anti-PEG-aberrant
         peg = per / (g * 100)
 
-    if peg is not None:
-        peg_ok = peg < peg_max
-    else:
-        # PEG non calculable (croissance absente ou ≤ 0) : laissez-passer seulement
-        # si la croissance est jugée fiable (#4).
-        peg_ok = bool(growth_reliable)
-
     achat = (
-        pays != "Inconnu"
+        region_for_country(pays) is not None
+        and normalize_sector(secteur) is not None
+        and bool(growth_reliable)
+        and prix > 0
+        and eps > 0
         and per > 0
-        and per < per_max
-        and peg_ok
-        and prix < seuil_prix
     )
     return achat, peg

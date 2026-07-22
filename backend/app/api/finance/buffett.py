@@ -298,8 +298,10 @@ def buffett_breakdown(ticker: str):
     return {
         "ticker": ticker.upper(),
         "score": score,
+        "score_selection": metrics.get("ScoreSelection", score),
         "secteur": metrics.get("Secteur"),
         "couverture_pct": metrics.get("score_coverage_pct"),
+        "valorisation_relative": metrics.get("valuation_relative"),
         "criteres": score_breakdown(
             ratios,
             str(metrics.get("Secteur") or ""),
@@ -562,19 +564,39 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
         apply_live_broker_budgets()  # budgets = soldes réels des comptes
         opt_prog.start(run_id=run_id, message="Préparation des candidats…")
 
-        held_tickers = set(current_target_weights(load_broker_table()))
+        held_tickers = {
+            str(t).strip().upper()
+            for t in current_target_weights(load_broker_table())
+        }
         with S(engine) as sess:
             # Tous les candidats: score >= seuil OU ETF (score=200) OU Achat=True
             all_rows = list(sess.exec(
                 sel(BuffettRunResult).where(BuffettRunResult.run_id == run_id)
             ).all())
 
+        from app.services.finance.buffett.scoring_pure import is_selection_eligible
+
+        forced = {str(t).strip().upper() for t in Config.FORCED_BUY_TICKERS}
+
+        def _is_candidate(row) -> bool:
+            score = float(row.chance_moat or 0)
+            relative = (row.secteurs_extra or {}).get("valuation_relative")
+            metrics = {
+                "Achat": bool(row.achat),
+                "valuation_relative": relative,
+            }
+            return is_selection_eligible(
+                score,
+                metrics,
+                min_score_val,
+                is_etf=(row.secteur == "ETF") or score >= 200,
+                is_forced=row.ticker.upper() in forced,
+                is_held=row.ticker.upper() in held_tickers,
+            )
+
         candidates = {
             r.ticker: r for r in all_rows
-            if (r.chance_moat or 0) >= min_score_val
-            or (r.chance_moat or 0) >= 200  # ETF
-            or r.achat
-            or r.ticker in held_tickers
+            if _is_candidate(r)
         }
         if not candidates:
             logger.warning("[portfolio_create] Aucun candidat eligible.")
@@ -589,22 +611,20 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
         # par le run (en DB). Le seul appel réseau restant est le download groupé
         # des cours pour la matrice de covariance (impersoné via yf_session).
         from app.services.finance.buffett.liquidity import is_liquid
-        forced = [t.upper() for t in Config.FORCED_BUY_TICKERS]
         verified: dict[str, tuple[float, dict]] = {}
         n_illiquid = 0
         for ticker, r in candidates.items():
             score = float(r.chance_moat or 0)
-            is_etf = (r.secteur == "ETF") or score >= 200
             is_forced = ticker.upper() in forced
-            eligible = score >= min_score_val or is_etf or is_forced
+            eligible = _is_candidate(r)
             # Filtre de liquidité (sauf forcés) : volume échangé €/jour >= seuil.
             # r.volume est en euros depuis le passage de la colonne Volume en €
             # (runs anterieurs : nb d'actions brut, pas de migration -- spec).
             if not is_forced and not is_liquid(r.volume):
-                if eligible and r.achat:
+                if eligible:
                     n_illiquid += 1
                 continue
-            if eligible and r.achat:
+            if eligible:
                 verified[ticker] = (score, {
                     "Nom": r.nom or "", "Secteur": r.secteur or "",
                     "Volume": r.volume or 0, "Achat": True,

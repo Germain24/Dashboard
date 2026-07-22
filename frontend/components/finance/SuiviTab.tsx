@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Camera, RefreshCw, Trash2 } from "lucide-react";
 import { financeApi, type HistoryPoint, type PriceAlertDirection } from "@/lib/finance";
-import { capitalBreakIndexes } from "@/lib/finance-chart";
+import {
+  annualizedCapitalReturn,
+  capitalBreakIndexes,
+  moneyWeightedAnnualizedReturn,
+} from "@/lib/finance-chart";
 import {
   useAlertsStatus,
   useBenchmarks,
@@ -305,7 +309,11 @@ function MarketAlertsCard() {
       return;
     }
     try {
-      await createAlert.mutateAsync({ ticker: ticker.trim().toUpperCase(), seuil: seuilNum, direction });
+      await createAlert.mutateAsync({
+        ticker: ticker.trim().toUpperCase(),
+        seuil: seuilNum,
+        direction,
+      });
       setTicker("");
       setSeuil("");
     } catch (err: unknown) {
@@ -317,7 +325,12 @@ function MarketAlertsCard() {
     <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
       <p className="text-sm font-semibold mb-3">Alertes de marché</p>
 
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 mb-4">
+      <form
+        onSubmit={(event) => {
+          void handleSubmit(event);
+        }}
+        className="flex flex-wrap items-end gap-2 mb-4"
+      >
         <div className="flex flex-col gap-1">
           <label htmlFor="alert-ticker" className="text-xs text-[var(--muted-foreground)]">
             Ticker
@@ -488,6 +501,21 @@ export function SuiviTab() {
   const plTotal = perf?.pl_total ?? 0;
   const plPct = perf?.pl_pct ?? 0;
   const cw8 = benchmarks.find((b) => b.nom === "CW8" || b.ticker === "CW8.PA");
+  const hasMoneyWeightedReturn = perf?.mwr_annualise_pct != null;
+  const annualizedReturn = hasMoneyWeightedReturn
+    ? perf.mwr_annualise_pct
+    : (perf?.cagr_pct ?? null);
+  const cw8MoneyWeighted = cw8 ? moneyWeightedAnnualizedReturn(cw8.serie, history) : null;
+  const cw8CapitalReturn =
+    cw8?.serie.length && history.length
+      ? annualizedCapitalReturn(
+          cw8.serie[cw8.serie.length - 1].valeur,
+          investit,
+          history[0].date,
+          history[history.length - 1].date,
+        )
+      : null;
+  const cw8Annualized = hasMoneyWeightedReturn ? cw8MoneyWeighted : cw8CapitalReturn;
   const coreError = snapshotQuery.error ?? perfQuery.error ?? historyQuery.error;
   const errorMessage = error ?? (coreError instanceof Error ? coreError.message : null);
 
@@ -575,22 +603,40 @@ export function SuiviTab() {
         )}
       </StaggerGroup>
 
-      {/* Rendement annualisé (TWR) vs benchmark */}
-      {!loading && perf?.twr_annualise_pct != null && (
+      {/* TRI pondéré par les flux ; ancien CAGR seulement si le MWR est indisponible. */}
+      {!loading && annualizedReturn != null && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
-          <span className="text-[var(--muted-foreground)]">Rendement annualisé (TWR)</span>
           <span
-            className={`font-mono font-semibold ${perf.twr_annualise_pct >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}
+            className="text-[var(--muted-foreground)]"
+            title={
+              hasMoneyWeightedReturn
+                ? "TRI/XIRR annualisé : chaque apport ou retrait est pondéré par son montant et sa date."
+                : "CAGR simplifié du rapport entre la valeur actuelle et le capital net investi ; les dates des apports ne sont pas neutralisées."
+            }
           >
-            {formatPct(perf.twr_annualise_pct)}
+            {hasMoneyWeightedReturn
+              ? "Rendement annualisé (TRI)"
+              : "Rendement annualisé (CAGR simplifié)"}
           </span>
-          {cw8?.perf_1a_pct != null && (
+          <span
+            className={`font-mono font-semibold ${annualizedReturn >= 0 ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}
+          >
+            {formatPct(annualizedReturn)}
+          </span>
+          {cw8Annualized != null && (
             <span className="text-[var(--muted-foreground)]">
-              vs <strong className="text-[var(--foreground)]">CW8</strong> (1 an){" "}
-              <span className="font-mono">{formatPct(cw8.perf_1a_pct)}</span>
+              vs <strong className="text-[var(--foreground)]">CW8</strong>{" "}
+              <span className="font-mono">{formatPct(cw8Annualized)}</span>
             </span>
           )}
-          <span className="text-xs text-[var(--muted-foreground)]">· hors effet des apports</span>
+          <span className="text-xs text-[var(--muted-foreground)]">
+            · même période · mêmes apports
+          </span>
+          {!hasMoneyWeightedReturn && (
+            <span className="text-xs text-[var(--warning-foreground)]">
+              · TRI indisponible : dates d&apos;apports incomplètes
+            </span>
+          )}
         </div>
       )}
 

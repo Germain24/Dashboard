@@ -19,6 +19,11 @@ DEFAULT_PREFS: dict = {
     "mode_vacances": False,
     # Objectif patrimonial d'investissement (montant cible en EUR)
     "objectif_patrimoine_eur": 300_000,
+    # Réserve court terme pour le Japon / la fin des études. Le montant cible
+    # n'est pas figé : il correspond au nombre de jours restant jusqu'à la date
+    # cible multiplié par le budget quotidien.
+    "objectif_japon_date_cible": "2028-09-01",
+    "objectif_japon_budget_quotidien_cad": 65.0,
     # Kill switch global des automatisations (#217) : si True, aucune routine
     # ne s'exécute (manuelle ou planifiée) — chaque tentative est journalisée.
     "automatisations_kill_switch": False,

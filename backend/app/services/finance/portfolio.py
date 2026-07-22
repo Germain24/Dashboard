@@ -7,7 +7,15 @@ import datetime as dt
 from sqlmodel import Session, select
 
 from app.core.timeutil import utcnow
-from app.models.finance import Position, SnapshotPortefeuille, Transaction
+from app.models.finance import Position, Transaction
+from app.services.finance.metrics import (
+    MAX_RELIABLE_DAILY_RETURN,
+    adjusted_wealth_index,
+    annualized_capital_return,
+    money_weighted_annual_return,
+    prepare_metric_snapshots,
+    return_observations,
+)
 
 
 def get_positions(session: Session) -> list[dict]:
@@ -163,24 +171,28 @@ def time_weighted_return(snaps: list[tuple]) -> dict:
     Le TWR retire l'effet des apports/retraits : pour chaque sous-période, le
     facteur de rendement est ``(valeur_i - apport_i) / valeur_{i-1}`` où
     ``apport_i = investit_i - investit_{i-1}``. On chaîne les facteurs puis on
-    annualise sur la durée totale.
+    annualise sur la durée totale. Les deux rendements sont ``None`` si une
+    rupture rend la chronologie des flux non défendable.
     """
-    if len(snaps) < 2:
-        return {"twr_pct": 0.0, "twr_annualise_pct": 0.0, "n_jours": 0}
+    prepared = prepare_metric_snapshots(snaps)
+    if len(prepared) < 2:
+        return {"twr_pct": None, "twr_annualise_pct": None, "n_jours": 0}
+
+    observations = return_observations(prepared, prepared=True)
+    n_jours = (prepared[-1].date - prepared[0].date).days
+    reliable = bool(observations) and all(
+        observation.valid
+        and abs(observation.daily_return) <= MAX_RELIABLE_DAILY_RETURN
+        for observation in observations
+    )
+    if not reliable or n_jours <= 0:
+        return {"twr_pct": None, "twr_annualise_pct": None, "n_jours": n_jours}
 
     factor = 1.0
-    for (_, v_prev, inv_prev), (_, v_cur, inv_cur) in zip(snaps, snaps[1:]):
-        if v_prev <= 0:
-            continue
-        apport = inv_cur - inv_prev
-        factor *= (v_cur - apport) / v_prev
-
-    twr_pct = (factor - 1) * 100
-    n_jours = (snaps[-1][0] - snaps[0][0]).days
-    if n_jours > 0 and factor > 0:
-        twr_annualise = (factor ** (365.25 / n_jours) - 1) * 100
-    else:
-        twr_annualise = twr_pct
+    for observation in observations:
+        factor *= observation.factor
+    twr_pct = (factor - 1.0) * 100.0
+    twr_annualise = (factor ** (365.25 / n_jours) - 1.0) * 100.0
     return {
         "twr_pct": round(twr_pct, 2),
         "twr_annualise_pct": round(twr_annualise, 2),
@@ -190,9 +202,12 @@ def time_weighted_return(snaps: list[tuple]) -> dict:
 
 def get_perf_metrics(session: Session) -> dict:
     """Métriques de performance depuis l'historique des snapshots."""
-    snaps = list(session.exec(
-        select(SnapshotPortefeuille).order_by(SnapshotPortefeuille.date.asc())
-    ).all())
+    # ``get_history`` réconcilie notamment le capital investi depuis les flux
+    # documentés. La carte de performance doit consommer la même série que le
+    # graphique et les métriques de risque, pas les lignes brutes divergentes.
+    from app.services.finance.snapshots import get_history
+
+    snaps = get_history(session, limit=10_000)
     if not snaps:
         return {}
     latest = snaps[-1]
@@ -201,9 +216,18 @@ def get_perf_metrics(session: Session) -> dict:
     pl_total = valeur - investit
     pl_pct = (pl_total / investit * 100) if investit else 0.0
 
-    # Max drawdown depuis le plus haut
-    peak = max(s.valeur for s in snaps)
-    mdd = ((valeur - peak) / peak * 100) if peak > 0 else 0.0
+    prepared = prepare_metric_snapshots(snaps)
+    observations = return_observations(prepared, prepared=True)
+
+    # Drawdown de l'indice de performance, pas de la valeur brute : un apport,
+    # un retrait ou un sous-compte momentanément absent n'est pas une perte.
+    wealth = adjusted_wealth_index(observations)
+    peak = wealth[0]
+    mdd = 0.0
+    for point in wealth:
+        peak = max(peak, point)
+        if peak > 0:
+            mdd = max(mdd, (peak - point) / peak * 100.0)
 
     # YTD
     today = dt.date.today()
@@ -214,6 +238,13 @@ def get_perf_metrics(session: Session) -> dict:
     # Rendement pondéré dans le temps (retire l'effet des apports)
     twr = time_weighted_return([(s.date, s.valeur, s.investit) for s in snaps])
 
+    # CAGR demandé par l'interface : annualisation explicite du multiple
+    # valeur/capital investi. Il reste séparé du TWR, qui est nullable lorsque
+    # la chronologie des flux n'est pas suffisamment fiable.
+    start_date = prepared[0].date if prepared else snaps[0].date
+    cagr = annualized_capital_return(valeur, investit, start_date, latest.date)
+    mwr = money_weighted_annual_return(prepared, prepared=True)
+
     return {
         "valeur": valeur,
         "investit": investit,
@@ -221,6 +252,8 @@ def get_perf_metrics(session: Session) -> dict:
         "pl_pct": round(pl_pct, 2),
         "max_drawdown_pct": round(mdd, 2),
         "ytd_pct": round(ytd, 2),
+        "cagr_pct": cagr,
+        "mwr_annualise_pct": mwr,
         "twr_pct": twr["twr_pct"],
         "twr_annualise_pct": twr["twr_annualise_pct"],
         "date_snapshot": latest.date.isoformat(),

@@ -5,10 +5,8 @@ import json
 import numpy as np
 import pandas as pd
 
-from app.services.finance.buffett.cache_manager import json_default
-from app.services.finance.buffett.runner import _check_is_etf
 from app.services.finance.buffett.broker_availability import aggregate_weights
-
+from app.services.finance.buffett.cache_manager import json_default
 
 # ── #3 : encodeur JSON tolérant numpy ────────────────────────────────────────
 
@@ -120,6 +118,32 @@ def test_buffett_result_out_exposes_score_from_chance_moat():
     out = BuffettResultOut.model_validate(row)
     assert out.score == 87.5
     assert out.model_dump()["score"] == 87.5
+
+
+def test_buffett_result_out_exposes_auditable_relative_selection_score():
+    from app.api.schemas_finance import BuffettResultOut
+    from app.models.finance import BuffettRunResult
+
+    relative = {
+        "model": "sector_region_median_v1",
+        "score_selection": 82.4,
+        "per_relative": 0.91,
+        "per_peer_scope": "sector_region",
+    }
+    row = BuffettRunResult(
+        id=1,
+        run_id=1,
+        ticker="AAPL",
+        chance_moat=79.0,
+        secteurs_extra={"valuation_relative": relative},
+    )
+
+    dumped = BuffettResultOut.model_validate(row).model_dump()
+
+    assert dumped["score"] == 79.0
+    assert dumped["score_selection"] == 82.4
+    assert dumped["valorisation_relative"] == relative
+    assert "secteurs_extra" not in dumped
 
 
 def test_buffett_result_out_exposes_per_broker_allocations():

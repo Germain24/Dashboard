@@ -109,7 +109,6 @@ def _norm_date_index(df):
 
 def _filter_incomplete(df):
     """Filtre les lignes (dates) à >50% de valeurs manquantes puis normalise l'index."""
-    import pandas as pd
     num = df.select_dtypes(include=["number"]).columns
     f = df[df[num].isnull().mean(axis=1) < 0.5] if len(num) else df
     return _norm_date_index(f)
@@ -234,12 +233,6 @@ def analyze_financials(symbol: str, data: dict, etf_tickers: set | None = None) 
         idx,
     )
     ret = _safe(lambda: balance["Retained Earnings"], n, idx)
-    cv = _safe(
-        lambda: cashflow["Issuance Of Capital Stock"]
-        + cashflow["Repurchase Of Capital Stock"],
-        n,
-        idx,
-    )
     roe_ = _safe(
         lambda: income["Net Income"]
         / _col(balance, "Stockholders Equity", "Common Stock Equity").abs(),
@@ -251,17 +244,12 @@ def analyze_financials(symbol: str, data: dict, etf_tickers: set | None = None) 
         n,
         idx,
     )
-    bb = _safe(lambda: -cashflow["Repurchase Of Capital Stock"], n, idx)
-
-    def _truth(value, predicate):
-        return None if value is None else bool(predicate(value))
-
     yearly = [{"gpm":_v(gpm,i),"sga":_v(sga,i),"rd":_v(rd,i),"depr":_v(dep,i),"interest_exp":_v(inx,i),
                "pretax_growth":_b(pt,i,True),"net_income_growth":_b(ni,i,True),"net_income_positive":_b(ni,i),
                "nim":_v(nim,i),"eps_growth":_b(eps_,i,True),"cash_growth":_b(cash,i,True),
                "debt_ratio":_v(dr,i),"liab_ratio":_v(lr,i),"lt_debt_ratio":_v(ltd,i),"debt_eq":_v(deq,i),
-               "retained_growth":_b(ret,i,True),"cap_stock_var":_truth(_v(cv,i), lambda v: v < 0),"roe":_v(roe_,i),
-               "roic":_v(roic,i),"capex":_v(cpx,i),"buybacks":_truth(_v(bb,i), lambda v: v > 0)} for i in range(n)]
+               "retained_growth":_b(ret,i,True),"roe":_v(roe_,i),
+               "roic":_v(roic,i),"capex":_v(cpx,i)} for i in range(n)]
 
     secteur = str(metrics.get("Secteur") or "")
     industrie = str(metrics.get("Industrie") or "")
@@ -296,5 +284,9 @@ def analyze_financials(symbol: str, data: dict, etf_tickers: set | None = None) 
         growth_reliable=growth_reliable,
     )
     metrics["Achat"] = achat
+    # Ce booléen ne signifie plus « valorisation sous un plafond universel » :
+    # c'est seulement l'admissibilité des données. Le runner fixe le signal final
+    # après comparaison aux médianes secteur/région du run complet.
+    metrics["valuation_base_eligible"] = achat
     metrics["PEG"] = peg
     return score, metrics

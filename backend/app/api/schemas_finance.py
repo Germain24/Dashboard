@@ -5,9 +5,9 @@ Field names match the actual model/service outputs to avoid mapping bugs.
 from __future__ import annotations
 
 import datetime as dt
-from typing import Any, Optional
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from typing import Optional
 
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 # ---------------------------------------------------------------------------
 # Snapshot / History  (model fields: valeur, investit)
@@ -70,8 +70,13 @@ class PerfMetricsOut(BaseModel):
     pl_pct: float = 0.0
     max_drawdown_pct: float = 0.0
     ytd_pct: float = 0.0
-    twr_pct: float = 0.0
-    twr_annualise_pct: float = 0.0
+    # Annualisation du multiple valeur/capital investi, distincte du TWR.
+    cagr_pct: Optional[float] = None
+    # TRI/XIRR : annualisation pondérée par les montants et dates des apports.
+    mwr_annualise_pct: Optional[float] = None
+    # Un TWR n'est publié que si la chronologie des flux est exploitable.
+    twr_pct: Optional[float] = None
+    twr_annualise_pct: Optional[float] = None
     date_snapshot: Optional[str] = None
 
 
@@ -213,6 +218,21 @@ class BuffettResultOut(BaseModel):
     def score(self) -> Optional[float]:
         """Alias de `chance_moat` attendu par le front (colonne Score)."""
         return self.chance_moat
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_selection(self) -> Optional[float]:
+        """Score recentré secteur/région réellement utilisé par le filtre."""
+        relative = (self.secteurs_extra or {}).get("valuation_relative") or {}
+        value = relative.get("score_selection")
+        return float(value) if value is not None else self.chance_moat
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def valorisation_relative(self) -> Optional[dict]:
+        """Repères PER/PEG auditables, sans exposer tout ``secteurs_extra``."""
+        relative = (self.secteurs_extra or {}).get("valuation_relative")
+        return dict(relative) if relative else None
 
     @computed_field  # type: ignore[prop-decorator]
     @property

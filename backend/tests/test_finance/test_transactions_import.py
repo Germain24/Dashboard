@@ -8,8 +8,12 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from sqlmodel.pool import StaticPool
 
 from app.models.finance import Transaction
-from app.services.finance.transactions import _parse_trading212_row, import_csv
 from app.services.finance.portfolio_state import compute_portfolio_state
+from app.services.finance.transactions import (
+    _parse_boursedirect_row,
+    _parse_trading212_row,
+    import_csv,
+)
 
 
 def _row(**overrides) -> dict:
@@ -168,6 +172,95 @@ def test_deposit_then_buy_gives_correct_cash_and_investi_net():
     assert state["cash_total"] == 20.0  # 50 déposés - 30 dépensés
     assert state["investi_net"] == 50.0
     assert state["cash_par_broker"]["trading212"] == 20.0
+
+
+def test_boursedirect_cash_statement_parses_deposit_with_french_amount():
+    parsed = _parse_boursedirect_row({
+        "Date opération": "03/07/2026",
+        "Nature": "Virement reçu",
+        "Montant": "1 250,40 EUR",
+        "Référence": "BD-42",
+    })
+
+    assert parsed is not None
+    assert parsed["date"] == dt.datetime(2026, 7, 3)
+    assert parsed["broker"] == "BoursDirect"
+    assert parsed["ticker"] == "CASH"
+    assert parsed["type"] == "depot"
+    assert parsed["quantite"] == 1.0
+    assert parsed["prix_unitaire"] == 1_250.40
+
+
+def test_boursedirect_cash_statement_parses_documented_withdrawal():
+    parsed = _parse_boursedirect_row({
+        "Date": "04/07/2026",
+        "Libellé": "Retrait vers compte bancaire",
+        "Débit": "300,00",
+    })
+
+    assert parsed is not None
+    assert parsed["type"] == "retrait"
+    assert parsed["prix_unitaire"] == 300.0
+
+
+def test_boursedirect_cash_csv_is_auto_detected_and_imported():
+    session = _make_session()
+    try:
+        content = (
+            "Date opération;Nature;Montant;Référence\n"
+            "03/07/2026;Versement;1250,40;BD-42\n"
+        )
+        result = import_csv(session, content, broker_hint="auto")
+
+        assert result["imported"] == 1
+        transaction = session.exec(select(Transaction)).one()
+        assert transaction.type == "depot"
+        assert transaction.prix_unitaire == 1_250.40
+    finally:
+        session.close()
+
+
+def test_reimporting_boursedirect_cash_csv_is_idempotent():
+    session = _make_session()
+    try:
+        content = (
+            "Date opération;Nature;Montant;Référence\n"
+            "03/07/2026;Versement;1250,40;BD-42\n"
+        )
+
+        first = import_csv(session, content, broker_hint="boursedirect")
+        second = import_csv(session, content, broker_hint="boursedirect")
+
+        assert first == {"imported": 1, "updated": 0, "skipped": 0, "errors": []}
+        assert second == {"imported": 0, "updated": 0, "skipped": 1, "errors": []}
+        transaction = session.exec(select(Transaction)).one()
+        assert transaction.retenue_source == 0.0
+    finally:
+        session.close()
+
+
+def test_boursedirect_same_day_cash_flows_are_distinguished_by_amount_and_reference():
+    session = _make_session()
+    try:
+        content = (
+            "Date opération;Nature;Montant;Référence\n"
+            "03/07/2026;Versement;100,00;BD-100\n"
+            "03/07/2026;Versement;200,00;BD-200\n"
+            "03/07/2026;Versement;200,00;BD-201\n"
+        )
+
+        result = import_csv(session, content, broker_hint="boursedirect")
+
+        assert result == {"imported": 3, "updated": 0, "skipped": 0, "errors": []}
+        transactions = list(session.exec(select(Transaction)).all())
+        assert sorted(transaction.prix_unitaire for transaction in transactions) == [100, 200, 200]
+        assert {transaction.note for transaction in transactions} == {
+            "Bourse Direct BD-100",
+            "Bourse Direct BD-200",
+            "Bourse Direct BD-201",
+        }
+    finally:
+        session.close()
 
 
 # ── import_csv : dédup en cas de réimport d'un export déjà traité ───────────

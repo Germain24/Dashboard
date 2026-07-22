@@ -36,13 +36,16 @@ class Config:
     # Pause max (s) quand le quota horaire est atteint (borne anti-attente longue).
     RATE_LIMIT_MAX_PAUSE_SEC: float = settings.buffett_rate_limit_max_pause_sec
 
-    # Filtres valorisation
+    # Paramètres historiques conservés pour compatibilité de configuration.
+    # Depuis le modèle de score v3, ils ne filtrent plus les actions : PER/PEG
+    # sont comparés aux médianes secteur×région (scoring_pure).
     PER_MAX: float = settings.buffett_per_max
     PEG_MAX: float = settings.buffett_peg_max
     TAUX_DEFAUT: float = settings.buffett_taux_defaut
 
-    # Valeurs de repli ; rafraîchies en direct au lancement du run (cf.
-    # bond_yields.get_bond_yields appelé dans runner.run_buffett_analysis).
+    # Valeurs historiques conservées pour compatibilité de signature. Depuis le
+    # modèle v3, le run ne les rafraîchit plus : elles ne participent plus à la
+    # décision, fondée sur les médianes PER/PEG secteur×région.
     TAUX_OBLIGATAIRES: dict = dict(STATIC_BOND_YIELDS)
 
     # Optimiseur

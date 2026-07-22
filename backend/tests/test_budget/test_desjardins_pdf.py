@@ -7,6 +7,7 @@ import datetime as dt
 from app.services.budget.desjardins_pdf import (
     _unwrap_pdf,
     latest_eop_balance,
+    latest_eop_total_balance,
     parse_desjardins_eop,
     parse_desjardins_mastercard,
 )
@@ -138,6 +139,19 @@ def test_latest_eop_balance_is_last_solde():
 
 def test_latest_eop_balance_none_without_dates():
     assert latest_eop_balance("aucune ligne datée") is None
+
+
+def test_latest_eop_total_balance_adds_savings_with_carry_forward():
+    text = _EOP_TEXT.replace(
+        "                Solde reporte                                                       0.00",
+        """                Solde reporte                                                    1 144.04
+  30 OCTIET    Interet sur ET                                      0.51      1 144.55
+
+CSPART DE QUALIFICATION (B)
+                Solde reporte                                                        5.00""",
+    )
+
+    assert latest_eop_total_balance(text) == (dt.date(2025, 10, 31), 6912.98)
 
 
 def test_unwrap_passthrough_real_pdf():

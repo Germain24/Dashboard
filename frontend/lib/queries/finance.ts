@@ -130,12 +130,20 @@ export function useCreatePosition() {
 /** Objectif patrimoine — lecture + mise à jour. */
 export const financeObjectifKeys = {
   objectif: () => [...financeKeys.all, "objectif-patrimoine"] as const,
+  japon: () => [...financeKeys.all, "objectif-japon"] as const,
 };
 
 export function useObjectifPatrimoine() {
   return useQuery({
     queryKey: financeObjectifKeys.objectif(),
     queryFn: () => financeApi.objectifPatrimoine(),
+  });
+}
+
+export function useObjectifJapon() {
+  return useQuery({
+    queryKey: financeObjectifKeys.japon(),
+    queryFn: () => financeApi.objectifJapon(),
   });
 }
 
@@ -170,6 +178,17 @@ export function useSetObjectifPatrimoine() {
     mutationFn: (objectif_eur: number) => financeApi.setObjectifPatrimoine(objectif_eur),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: financeObjectifKeys.objectif() });
+    },
+  });
+}
+
+export function useSetObjectifJapon() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (settings: { date_cible: string; budget_quotidien_cad: number }) =>
+      financeApi.setObjectifJapon(settings),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: financeObjectifKeys.japon() });
     },
   });
 }

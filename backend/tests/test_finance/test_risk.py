@@ -5,7 +5,9 @@ massif et fausse toutes les metriques)."""
 from __future__ import annotations
 
 from app.services.finance.risk import (
+    _cashflow_adjusted_daily_returns,
     _cashflow_adjusted_returns,
+    compute_sharpe,
     compute_volatility,
     get_risk_metrics,
 )
@@ -97,3 +99,43 @@ def test_get_risk_metrics_without_investit_falls_back_to_raw_ratios():
              {"date": "2026-01-03", "valeur": 99.0}]
     metrics = get_risk_metrics(snaps, [])
     assert metrics["volatilite_annualisee_pct"] >= 0
+
+
+def test_irregular_snapshots_are_normalized_over_actual_elapsed_days():
+    snapshots = [
+        {"date": "2026-01-01", "valeur": 100.0, "investit": 100.0},
+        {"date": "2026-01-11", "valeur": 110.0, "investit": 100.0},
+    ]
+
+    returns = _cashflow_adjusted_daily_returns(snapshots)
+
+    expected_daily = 1.10 ** (1 / 10) - 1
+    assert len(returns) == 10
+    assert all(abs(value - expected_daily) < 1e-12 for value in returns)
+
+
+def test_partial_account_snapshot_does_not_create_fake_crash_or_risk_spike():
+    """Séquence réelle, avec capital déjà réconcilié/carry-forward en amont."""
+    snapshots = [
+        {"date": "2026-07-12", "valeur": 27_468.80, "investit": 16_057.41271976},
+        {"date": "2026-07-13", "valeur": 861.54, "investit": 16_057.41271976},
+        {"date": "2026-07-14", "valeur": 859.36, "investit": 16_057.41271976},
+        {"date": "2026-07-15", "valeur": 28_344.75, "investit": 16_057.41271976},
+        {"date": "2026-07-16", "valeur": 28_208.58, "investit": 16_057.41271976},
+        {"date": "2026-07-17", "valeur": 28_025.52, "investit": 16_057.41271976},
+    ]
+
+    metrics = get_risk_metrics(snapshots, [], diversified_tickers=set())
+
+    assert metrics["max_drawdown_pct"] < 2.0
+    assert metrics["volatilite_annualisee_pct"] < 25.0
+    assert metrics["sharpe"] is None or abs(metrics["sharpe"]) < 10.0
+    assert metrics["sortino"] is None or abs(metrics["sortino"]) < 10.0
+
+
+def test_standard_sharpe_does_not_exponentiate_a_large_observation():
+    # L'ancienne formule (1 + moyenne)^252 explosait à plusieurs milliers.
+    value = compute_sharpe([0.0] * 20 + [1.0], taux_sans_risque=0.0)
+
+    assert value is not None
+    assert 0.0 < value < 5.0

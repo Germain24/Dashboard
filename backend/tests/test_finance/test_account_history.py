@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as dt
 
 from app.services.finance.account_history import (
+    aggregate_subaccounts,
     aggregate_wise,
     build_daily_series,
     build_monthly_series,
@@ -61,6 +62,23 @@ def test_aggregate_wise_sums_currencies_with_carry_forward():
         (dt.date(2024, 1, 1), 100.0),   # EUR 100 + CAD 0
         (dt.date(2024, 2, 1), 120.0),   # EUR 100 + CAD 20
         (dt.date(2024, 3, 1), 220.0),   # EUR 200 + CAD 20 (report)
+    ]
+
+
+def test_aggregate_subaccounts_carries_each_balance_forward_before_summing():
+    per_account = {
+        "Compte chèque": [
+            (dt.date(2026, 1, 31), 100.0),
+            (dt.date(2026, 3, 31), 125.0),
+        ],
+        "Livret A": [(dt.date(2026, 2, 28), 50.0)],
+        "Livret Jeune": [(dt.date(2026, 1, 31), 10.0)],
+    }
+
+    assert aggregate_subaccounts(per_account) == [
+        (dt.date(2026, 1, 31), 110.0),
+        (dt.date(2026, 2, 28), 160.0),
+        (dt.date(2026, 3, 31), 185.0),
     ]
 
 

@@ -192,6 +192,56 @@ def latest_eop_balance(text: str) -> tuple[dt.date, float] | None:
     return None
 
 
+def latest_eop_total_balance(text: str) -> tuple[dt.date, float] | None:
+    """Solde bancaire total d'un relevé EOP (chèque + épargne), si lisible.
+
+    Les relevés ``Débit + Épargne`` regroupent le compte chèque, le compte
+    d'épargne ``ET 1`` et parfois une part de qualification. Chaque sous-compte
+    commence par un ``Solde reporté`` ; sa dernière ligne datée, lorsqu'elle
+    existe, porte le solde de clôture. Les sous-comptes sans mouvement conservent
+    simplement leur solde reporté.
+
+    La date reste celle du dernier solde daté du compte chèque, qui correspond
+    à la date de valeur du relevé utilisée historiquement par le module.
+    """
+    checking = latest_eop_balance(text)
+    if checking is None:
+        return None
+
+    sections = re.split(r"COMPTE D['’]EPARGNE", text, maxsplit=1, flags=re.IGNORECASE)
+    if len(sections) == 1:
+        return checking
+
+    savings = sections[1]
+    openings = list(
+        re.finditer(
+            r"Solde report\S*\s+([\d \xa0]+\.\d{2})",
+            savings,
+            flags=re.IGNORECASE,
+        )
+    )
+    total = float(checking[1])
+    for index, opening in enumerate(openings):
+        balance = _eop_num(opening.group(1))
+        end = openings[index + 1].start() if index + 1 < len(openings) else len(savings)
+        segment = savings[opening.end():end]
+
+        rows: list[str] = []
+        for line in segment.splitlines():
+            if _EOP_LINE.match(line):
+                rows.append(line)
+            elif rows and line.strip() and not _EOP_AMT.search(rows[-1]):
+                rows[-1] += " " + line.strip()
+        for row in rows:
+            match = _EOP_LINE.match(row)
+            amounts = _EOP_AMT.findall(match.group(4)) if match else []
+            if amounts:
+                balance = _eop_num(amounts[-1])
+        total += balance
+
+    return checking[0], round(total, 2)
+
+
 def _unwrap_pdf(data: bytes) -> bytes | None:
     """Renvoie les octets PDF de `data`.
 
@@ -247,9 +297,9 @@ def import_desjardins_pdf(
         parsed = parse_desjardins_eop(layout)
         fmt = "desjardins-eop"
     compte = compte or fmt
-    # Compte chèque : mémorise le solde courant pour auto-remplir le patrimoine.
+    # Compte EOP : mémorise le total chèque + épargne pour le patrimoine.
     if fmt == "desjardins-eop":
-        bal = latest_eop_balance(layout)
+        bal = latest_eop_total_balance(layout)
         if bal is not None:
             try:
                 from app.services.finance.account_balances import set_balance

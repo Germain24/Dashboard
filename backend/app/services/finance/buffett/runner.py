@@ -37,6 +37,11 @@ RETRY_WAIT_SEC = 30
 # Finance se calmer (secondes).
 POST_SCORING_COOLDOWN_S = 30.0
 
+# Un cache complet pèse plusieurs mégaoctets : les checkpoints bornent à la
+# fois la quantité de travail perdue en cas de crash et le coût des écritures.
+CACHE_CHECKPOINT_EVERY_RESULTS = 100
+CACHE_CHECKPOINT_INTERVAL_S = 60.0
+
 from .cache_manager import CacheManager, infer_country
 from .config import Config
 from .data_fetch import (
@@ -51,9 +56,28 @@ from .rate_limiter import RateLimiter
 from .scoring import analyze_financials
 
 
+def _cache_checkpoint_due(completed_since_save: int, elapsed_s: float) -> bool:
+    """Indique si le prochain checkpoint progressif doit être tenté."""
+    return (
+        completed_since_save >= CACHE_CHECKPOINT_EVERY_RESULTS
+        or elapsed_s >= CACHE_CHECKPOINT_INTERVAL_S
+    )
+
+
+def _persist_cache_checkpoint(cache: CacheManager, reason: str) -> bool:
+    """Sauvegarde best-effort, uniquement si le cache a réellement changé."""
+    try:
+        saved = cache.save_if_dirty()
+    except Exception as exc:
+        print(f"[runner] checkpoint cache ({reason}) impossible: {exc}")
+        return False
+    if saved:
+        print(f"[runner] checkpoint cache ({reason})")
+    return saved
+
+
 def _refresh_bond_yields() -> None:
-    """Rafraîchit Config.TAUX_OBLIGATAIRES en direct (cache quotidien, repli
-    sur les valeurs courantes/statiques si le réseau échoue). Best-effort."""
+    """Helper historique explicite, non appelé par le scoring relatif v3."""
     try:
         from .bond_yields import get_bond_yields
         Config.TAUX_OBLIGATAIRES = get_bond_yields(defaults=Config.TAUX_OBLIGATAIRES)
@@ -373,7 +397,6 @@ def run_buffett_analysis(
     """
     Config.load_params()
     Config.ensure_dirs()
-    _refresh_bond_yields()
 
     # Taux devise->EUR de la colonne Volume : à précharger avant le scoring
     # (le garde fx._analysis_running bloque tout fetch FX pendant l'analyse).
@@ -468,8 +491,17 @@ def run_buffett_analysis(
 
     def task(t):
         nonlocal n_done
-        ok = _analyze_one(t, results, cache, rate_limiter,
-                          deleted_tickers, deleted_lock, on_result=on_result)
+        # La progression doit avancer pour CHAQUE ticker traité, y compris ceux
+        # abandonnés (données vides, delisté) ou qui lèvent une exception non
+        # prévue : sinon `n_done` perd définitivement ces tickers, la barre
+        # plafonne sous 100 % et on ne sait jamais quand le scoring est fini.
+        # `as_completed` n'appelle pas `.result()` -> l'exception serait muette.
+        ok = False
+        try:
+            ok = _analyze_one(t, results, cache, rate_limiter,
+                              deleted_tickers, deleted_lock, on_result=on_result)
+        except Exception as e:
+            print(f"[runner] Echec inattendu {t}: {type(e).__name__}: {e}")
         with lock:
             n_done += 1
             if on_progress:
@@ -481,15 +513,26 @@ def run_buffett_analysis(
 
     from .rate_limiter import set_active_limiter
     set_active_limiter(rate_limiter)
+    completed_since_checkpoint = 0
+    last_checkpoint = time.monotonic()
     try:
         with ThreadPoolExecutor(max_workers=max_workers) as ex:
             futures = {ex.submit(task, t): t for t in todo}
             for _ in as_completed(futures):
-                pass
+                completed_since_checkpoint += 1
+                now = time.monotonic()
+                if _cache_checkpoint_due(
+                    completed_since_checkpoint,
+                    now - last_checkpoint,
+                ):
+                    _persist_cache_checkpoint(cache, "progression")
+                    completed_since_checkpoint = 0
+                    last_checkpoint = now
     finally:
         set_active_limiter(None)
-
-    cache.save()
+        # Couvre la fin de lot et les exceptions : au pire, seules les mises à
+        # jour depuis le checkpoint précédent restent à refaire.
+        _persist_cache_checkpoint(cache, "fin du scoring")
 
     if deleted_tickers:
         remove_stale_tickers(csv_path, deleted_tickers)
@@ -509,14 +552,61 @@ def run_buffett_analysis(
             results = {
                 r.ticker: (
                     r.chance_moat or 0.0,
-                    {"Nom": r.nom, "Secteur": r.secteur, "Volume": r.volume,
-                     "Achat": bool(r.achat), "Prix": r.prix},
+                    {
+                        "Nom": r.nom,
+                        "Pays": r.pays,
+                        "Secteur": r.secteur,
+                        "Volume": r.volume,
+                        "Achat": bool(r.achat),
+                        "Prix": r.prix,
+                        "EPS": r.eps,
+                        "PER": r.per,
+                        "PEG": r.peg,
+                        "CAGR": (r.croissance / 100.0) if r.croissance is not None else None,
+                        "growth_reliable": bool(
+                            ((r.secteurs_extra or {}).get("scoring_inputs") or {}).get(
+                                "growth_reliable", True
+                            )
+                        ),
+                        "valuation_base_eligible": (
+                            ((r.secteurs_extra or {}).get("scoring_inputs") or {}).get(
+                                "valuation_base_eligible"
+                            )
+                        ),
+                        "valuation_relative": (r.secteurs_extra or {}).get(
+                            "valuation_relative"
+                        ),
+                    },
                 )
                 for r in rows
             }
             print(f"[runner] {len(results)} resultats charges depuis la DB pour optimisation")
         except Exception as e:
             print(f"[runner] Rechargement DB: {e}")
+
+    # Second passage transversal : les plafonds PER/PEG absolus sont remplacés
+    # par des médianes de pairs secteur×région (repli secteur, puis global).
+    # Il doit se faire APRES la reprise DB pour inclure aussi les tickers analysés
+    # lors d'une session précédente du même run.
+    from .scoring_pure import calibrate_relative_selection
+
+    results = calibrate_relative_selection(
+        results,
+        always_buy={str(t).upper() for t in Config.FORCED_BUY_TICKERS},
+    )
+    for ticker, (score, metrics) in results.items():
+        cache.replace_cached_metrics(ticker, score, metrics)
+    _persist_cache_checkpoint(cache, "calibration relative")
+    if run_id is not None:
+        from .reporting import update_relative_selections
+
+        with session_factory() as session:
+            update_relative_selections(session, run_id, results)
+    n_relative = sum(
+        1 for score, metrics in results.values()
+        if score < 200 and metrics.get("Achat", False)
+    )
+    print(f"[runner] Valorisation relative secteur/région : {n_relative} actions admissibles")
 
     # Reporter les scores/indicateurs dans ToutBroker.xlsx (upsert par ticker,
     # disponibilite broker preservee). Une fois, mono-thread, jamais bloquant.
@@ -568,19 +658,31 @@ def run_buffett_analysis(
         print(f"[runner] Budgets brokers (live): {budgets}")
 
         ticker_col = "Ticker Yahoo Finance"
-        held_tickers = set(current_target_weights(load_broker_table(), ticker_col))
+        held_tickers = {
+            str(t).strip().upper()
+            for t in current_target_weights(load_broker_table(), ticker_col)
+        }
+        from .scoring_pure import is_selection_eligible
+
+        forced_tickers = {str(t).strip().upper() for t in Config.FORCED_BUY_TICKERS}
         eligible = {
             t: v for t, v in results.items()
-            if v[0] >= Config.SCORE_THRESHOLD
-            or v[0] >= 200  # ETF
-            or t.upper() in [f.upper() for f in Config.FORCED_BUY_TICKERS]
-            or t in held_tickers
+            if is_selection_eligible(
+                v[0],
+                v[1],
+                Config.SCORE_THRESHOLD,
+                is_etf=(
+                    v[0] >= 200
+                    or str(v[1].get("Secteur") or "").upper() == "ETF"
+                ),
+                is_forced=t.upper() in forced_tickers,
+                is_held=t.upper() in held_tickers,
+            )
         }
-        eligible = {t: v for t, v in eligible.items() if v[1].get("Achat", False)}
         # Filtre de liquidité : on n'alloue pas un titre sous le seuil de volume
         # échangé €/jour (sauf titres forcés). Évite la sur-pondération d'illiquides.
         from .liquidity import is_liquid
-        _forced = [f.upper() for f in Config.FORCED_BUY_TICKERS]
+        _forced = forced_tickers
         before_liq = len(eligible)
         eligible = {
             t: v for t, v in eligible.items()
@@ -832,7 +934,6 @@ def analyze_single_ticker(
     """
     Config.load_params()
     Config.ensure_dirs()
-    _refresh_bond_yields()
     if cache is None:
         cache = CacheManager()
     rate_limiter = RateLimiter(max_requests_per_hour=Config.MAX_REQUESTS_PER_HOUR)
@@ -842,6 +943,39 @@ def analyze_single_ticker(
 
     ok = _analyze_one(ticker, results, cache, rate_limiter, dummy_deleted, dummy_lock)
     if ok and ticker in results:
+        # Un ticker isolé ne peut pas fabriquer sa propre médiane. Le dernier
+        # ToutBroker fournit la population de pairs; la valeur fraîche du ticker
+        # analysé remplace sa ligne historique avant la calibration.
+        from .broker_availability import _find_ticker_col, load_broker_table
+        from .scoring_pure import calibrate_relative_selection
+
+        peers: dict[str, tuple[float, dict]] = {}
+        table = load_broker_table()
+        if table is not None and not table.empty:
+            ticker_col = _find_ticker_col(table.columns, "Ticker Yahoo Finance")
+            if ticker_col is not None:
+                for _, row in table.iterrows():
+                    peer_ticker = str(row.get(ticker_col) or "").strip()
+                    if not peer_ticker or peer_ticker.lower() == "nan":
+                        continue
+                    peers[peer_ticker] = (
+                        row.get("Chance MOAT"),
+                        {
+                            "Pays": row.get("Pays"),
+                            "Secteur": row.get("Secteur"),
+                            "Prix": row.get("Prix"),
+                            "EPS": row.get("EPS"),
+                            "PER": row.get("PER"),
+                            "PEG": row.get("PEG"),
+                        },
+                    )
+        peers[ticker] = results[ticker]
+        calibrated = calibrate_relative_selection(
+            peers,
+            always_buy={str(t).upper() for t in Config.FORCED_BUY_TICKERS},
+        )
+        results[ticker] = calibrated[ticker]
+        cache.replace_cached_metrics(ticker, *results[ticker])
         cache.save()
         return results[ticker]
     return None

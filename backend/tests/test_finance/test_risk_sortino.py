@@ -21,17 +21,16 @@ def test_compute_sortino_known_series():
     rendements = [+2 %, -1 %, +3 %, -2 %, +1 %] -> moyenne = 0.6 %/jour.
     Seuls -1 % et -2 % sont sous le MAR : deviation baissiere =
     sqrt((0.01^2 + 0.02^2) / (5 - 1)) = sqrt(0.000125) = 0.01118034.
-    Annualisation identique a compute_sharpe : ret = 1.006^252 - 1,
-    denominateur = deviation * sqrt(252).
+    Annualisation arithmétique standard : moyenne * sqrt(252) / deviation.
     """
     rends = [0.02, -0.01, 0.03, -0.02, 0.01]
 
     dd_ann = math.sqrt((0.01 ** 2 + 0.02 ** 2) / 4) * math.sqrt(252)
-    expected = round(((1.006 ** 252) - 1) / dd_ann, 3)
+    expected = round(0.006 * 252 / dd_ann, 3)
 
     assert compute_sortino(rends, taux_sans_risque=0.0) == expected
-    # Garde-fou d'ordre de grandeur (verifie a la main) : ~19.8
-    assert 19.0 < expected < 20.5
+    # Garde-fou d'ordre de grandeur (vérifié à la main) : ~8,52.
+    assert 8.0 < expected < 9.0
 
 
 def test_compute_sortino_no_downside_returns_none():

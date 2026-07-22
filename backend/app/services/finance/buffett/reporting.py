@@ -187,6 +187,14 @@ def upsert_result(session: Session, run_id: int, ticker: str, score: float, metr
     ).first()
     growth = metrics.get("CAGR")
     peg = metrics.get("PEG")
+    extra = dict(existing.secteurs_extra or {}) if existing else {}
+    extra["scoring_inputs"] = {
+        "growth_reliable": bool(metrics.get("growth_reliable", True)),
+        "valuation_base_eligible": bool(metrics.get("valuation_base_eligible", False)),
+    }
+    if metrics.get("valuation_relative"):
+        extra["valuation_relative"] = dict(metrics["valuation_relative"])
+
     values: dict[str, Any] = {
         "run_id": run_id,
         "nom": metrics.get("Nom"),
@@ -200,6 +208,7 @@ def upsert_result(session: Session, run_id: int, ticker: str, score: float, metr
         "volume": float(metrics.get("Volume") or 0),
         "chance_moat": round(score, 2),
         "achat": bool(metrics.get("Achat", False)),
+        "secteurs_extra": extra or None,
         "updated_at": utcnow(),
     }
     if existing:
@@ -213,6 +222,41 @@ def upsert_result(session: Session, run_id: int, ticker: str, score: float, metr
         session.commit()
     except IntegrityError:
         session.rollback()
+
+
+def update_relative_selections(
+    session: Session,
+    run_id: int,
+    results: dict[str, tuple[float, dict]],
+) -> None:
+    """Persiste le signal et les repères secteur/région après le second passage.
+
+    Le scoring individuel est sauvegardé immédiatement pour permettre la reprise
+    d'un long run. Les médianes de pairs ne sont connues qu'une fois tous les titres
+    analysés : cette mise à jour groupée constitue donc volontairement un second
+    passage, sans nouvelle requête financière.
+    """
+    rows = session.exec(
+        select(BuffettRunResult).where(BuffettRunResult.run_id == run_id)
+    ).all()
+    for row in rows:
+        result = results.get(row.ticker)
+        if result is None:
+            continue
+        _, metrics = result
+        row.achat = bool(metrics.get("Achat", False))
+        extra = dict(row.secteurs_extra or {})
+        extra["scoring_inputs"] = {
+            "growth_reliable": bool(metrics.get("growth_reliable", True)),
+            "valuation_base_eligible": bool(metrics.get("valuation_base_eligible", False)),
+        }
+        relative = metrics.get("valuation_relative")
+        if relative:
+            extra["valuation_relative"] = dict(relative)
+        row.secteurs_extra = extra or None
+        row.updated_at = utcnow()
+        session.add(row)
+    session.commit()
 
 
 def update_allocations(

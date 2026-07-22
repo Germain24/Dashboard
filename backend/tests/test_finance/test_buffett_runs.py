@@ -89,7 +89,8 @@ def test_optimization_diagnostics_are_persisted_with_readable_benchmarks():
         assert refreshed.params_json["csv_path"] == "tickers.csv"
         assert refreshed.params_json["optimization"] == diagnostics
         assert refreshed.resume == (
-            "STARR réel 1.2346 · équipondéré 0.9877 · meilleur candidat simple CW8.PA 1.1111"
+            "score vs CW8.PA +1.23 pts · équipondéré +0.99 "
+            "· meilleur candidat simple CW8.PA +1.11"
         )
 
 

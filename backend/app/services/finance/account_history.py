@@ -7,8 +7,10 @@ lit la valeur de clôture de chaque relevé mensuel :
   point "aujourd'hui" dérivé du ledger de transactions (cf. `_t212_ledger_point`)
   -- pas d'historique mois par mois reconstruit depuis le CSV (nécessiterait les
   cours historiques de chaque titre à chaque date).
-- Desjardins (compte chèque) : dernier solde du CSV AccèsD (col 13), CAD→EUR.
-- Banque Populaire : « SOLDE CREDITEUR AU … * » de chaque Extrait de compte (PDF).
+- Desjardins : solde total chèque + épargne des relevés PDF (repli CSV AccèsD),
+  CAD→EUR.
+- Banque Populaire : somme avec report du dernier solde de chaque sous-compte
+  (compte chèque, Livret A, Livret Jeune).
 - Wise : non géré pour l'instant (XLSX multi-devises) → repli valeur courante.
 
 Les points par compte sont reportés (carry-forward) entre deux relevés et valent
@@ -129,6 +131,37 @@ def aggregate_wise(
                 else:
                     break
             total += fx(bal, dev)
+        out.append((day, round(total, 2)))
+    return out
+
+
+def aggregate_subaccounts(
+    per_account: dict[str, list[tuple[dt.date, float]]],
+) -> list[tuple[dt.date, float]]:
+    """Somme des sous-comptes à chaque date, avec report du dernier solde.
+
+    Un relevé mensuel n'existe pas nécessairement pour chaque sous-compte au
+    même mois. Le dernier solde connu de chacun doit donc rester constant
+    jusqu'au relevé suivant. Les doublons d'un même sous-compte et d'une même
+    date sont dédupliqués en conservant le dernier point fourni.
+    """
+    normalized = {
+        account: sorted(dict(points).items())
+        for account, points in per_account.items()
+        if points
+    }
+    all_dates = sorted({day for points in normalized.values() for day, _ in points})
+    out: list[tuple[dt.date, float]] = []
+    for day in all_dates:
+        total = 0.0
+        for points in normalized.values():
+            balance = 0.0
+            for point_day, value in points:
+                if point_day <= day:
+                    balance = value
+                else:
+                    break
+            total += balance
         out.append((day, round(total, 2)))
     return out
 
@@ -300,17 +333,22 @@ def account_history_points(*, force: bool = False) -> dict[str, list[tuple[dt.da
 
     t212_pdf = _glob("Tradding212", "Activity-Statement-*.pdf")
     t212_csv = _glob("Tradding212", "*.csv")
-    desj = _glob("Desjardins/Debit", "*.csv")
+    desj_csv = _glob("Desjardins/Debit", "*.csv")
+    desj_pdf = _glob("Desjardins/Debit + Epargne", "*.pdf")
     bp = _glob("Banque populaire", "*.pdf")
     wise = _glob("Wise", "*.xlsx")
     westpac = _glob("Westpac", "*.pdf")
-    sig = [p.name for p in (*t212_pdf, *desj, *bp, *wise, *westpac)]
+    source_files = (*t212_pdf, *t212_csv, *desj_csv, *desj_pdf, *bp, *wise, *westpac)
+    sig = [
+        "bank-subaccounts-v2",
+        *(str(path.relative_to(base)).replace("\\", "/") for path in source_files),
+    ]
     if not t212_pdf and t212_csv:
         # Pas de PDF Activity Statement (remplacés par un export CSV complet) :
         # le point de repli (valeur du jour dérivée du ledger, cf.
         # `_t212_ledger_point`) doit se rafraîchir à chaque jour ET à chaque
         # ré-import CSV, pas seulement quand la liste de fichiers change.
-        sig = sig + [p.name for p in t212_csv] + [dt.date.today().isoformat()]
+        sig.append(dt.date.today().isoformat())
 
     cache = _cache_path()
     if not force and cache.exists():
@@ -324,7 +362,11 @@ def account_history_points(*, force: bool = False) -> dict[str, list[tuple[dt.da
         except Exception:
             pass
 
-    from app.services.budget.desjardins_pdf import extract_pdf_text
+    from app.services.budget.desjardins_pdf import (
+        _unwrap_pdf,
+        extract_pdf_text,
+        latest_eop_total_balance,
+    )
     from app.services.finance.patrimoine import to_eur
     from app.services.finance.trading212 import parse_trading212_statement
 
@@ -345,26 +387,39 @@ def account_history_points(*, force: bool = False) -> dict[str, list[tuple[dt.da
     if pts:
         out["Trading 212"] = sorted(set(pts))
 
-    pts = []
-    for f in desj:
+    desj_by_date: dict[dt.date, float] = {}
+    for f in desj_csv:
         try:
             for d, solde in parse_desjardins_csv_all(f.read_text(encoding="utf-8-sig")):
-                pts.append((d, round(to_eur(solde, "CAD"), 2)))   # daily (1 pt/jour)
+                desj_by_date[d] = round(to_eur(solde, "CAD"), 2)
         except Exception:
             pass
-    if pts:
-        out["Desjardins"] = sorted(set(pts))
+    for pdf in desj_pdf:
+        try:
+            raw = _unwrap_pdf(pdf.read_bytes())
+            result = latest_eop_total_balance(
+                extract_pdf_text(raw, layout=True) if raw else ""
+            )
+            if result:
+                desj_by_date[result[0]] = round(to_eur(result[1], "CAD"), 2)
+        except Exception:
+            pass
+    if desj_by_date:
+        out["Desjardins"] = sorted(desj_by_date.items())
 
-    pts = []
+    bp_base = base / "Banque populaire"
+    bp_by_account: dict[str, list[tuple[dt.date, float]]] = {}
     for pdf in bp:
         try:
             r = parse_bp_closing(extract_pdf_text(pdf.read_bytes()))
             if r:
-                pts.append((r[0], round(r[1], 2)))
+                relative = pdf.relative_to(bp_base)
+                account = relative.parts[0] if len(relative.parts) > 1 else "Compte"
+                bp_by_account.setdefault(account, []).append((r[0], round(r[1], 2)))
         except Exception:
             pass
-    if pts:
-        out["Banque Populaire"] = sorted(set(pts))
+    if bp_by_account:
+        out["Banque Populaire"] = aggregate_subaccounts(bp_by_account)
 
     wpts = _wise_points()
     if wpts:

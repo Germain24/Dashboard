@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -59,6 +60,38 @@ def json_default(o):
     raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
 
+def _atomic_json_dump(data: dict, destination: str | Path) -> None:
+    """Écrit un JSON sans jamais exposer un fichier cible partiel.
+
+    Le fichier temporaire est créé dans le même répertoire que la cible afin
+    que ``os.replace`` reste une opération atomique, y compris sous Windows.
+    """
+    target = Path(destination)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            json.dump(data, handle, indent=2, default=json_default)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, target)
+        temporary = None
+    finally:
+        if temporary is not None:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
 def purge_misclassified_etf_cache(
     cache_file: str | None = None, output_dir: str | None = None,
     etf_tickers: set | None = None,
@@ -105,8 +138,7 @@ def purge_misclassified_etf_cache(
             pass
 
     if victims:
-        with open(cache_file, "w") as f:
-            json.dump(cache, f, indent=2, default=json_default)
+        _atomic_json_dump(cache, cache_file)
 
     return {"removed": len(victims), "tickers": sorted(victims), "files_deleted": files_deleted}
 
@@ -118,6 +150,7 @@ class CacheManager:
         self.cache_file = cache_file
         self.lock = threading.Lock()
         self.cache: dict = self._load()
+        self._dirty = False
 
     def _load(self) -> dict:
         if os.path.exists(self.cache_file):
@@ -130,8 +163,17 @@ class CacheManager:
 
     def save(self) -> None:
         with self.lock:
-            with open(self.cache_file, "w") as f:
-                json.dump(self.cache, f, indent=2, default=json_default)
+            _atomic_json_dump(self.cache, self.cache_file)
+            self._dirty = False
+
+    def save_if_dirty(self) -> bool:
+        """Persiste seulement si une mise à jour n'est pas encore sur disque."""
+        with self.lock:
+            if not self._dirty:
+                return False
+            _atomic_json_dump(self.cache, self.cache_file)
+            self._dirty = False
+            return True
 
     def update(
         self, ticker: str, latest_year: int, score: float, metrics: dict
@@ -145,6 +187,29 @@ class CacheManager:
                 "status": "success",
                 "score_model_version": SCORING_MODEL_VERSION,
             }
+            self._dirty = True
+
+    def replace_cached_metrics(self, ticker: str, score: float, metrics: dict) -> None:
+        """Remplace seulement le résultat scoré, sans rajeunir les données.
+
+        Utilisé après la calibration secteur/région : ``latest_year`` et
+        ``last_update`` décrivent le téléchargement des comptes et ne doivent pas
+        changer pendant ce second passage purement transversal.
+        """
+        with self.lock:
+            info = self.cache.get(ticker)
+            if not info or info.get("status") != "success":
+                return
+            # Le rechargement DB utilisé par le second passage ne contient
+            # qu'un sous-ensemble des métriques. Une substitution complète
+            # perdrait notamment VolumeDevise, Industrie et les ratios bruts,
+            # puis convertirait Volume une seconde fois au prochain cache hit.
+            merged_metrics = dict(info.get("metrics") or {})
+            merged_metrics.update(metrics)
+            info["score"] = score
+            info["metrics"] = merged_metrics
+            info["score_model_version"] = SCORING_MODEL_VERSION
+            self._dirty = True
 
     def get_cached_result(self, ticker: str) -> tuple[float, dict] | None:
         """Retourne (score, metrics) si le cache est valide, sinon None.

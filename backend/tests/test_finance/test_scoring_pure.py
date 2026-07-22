@@ -1,27 +1,21 @@
 """Tests pur Python — scoring MOAT sans DB, sans pandas, en < 1 s.
 
 Couvre : exponential_weights, score_year, compute_moat_score,
-         compute_buy_signal (logic from WarrenBuffetMensuel.py).
+         admissibilité individuelle avant calibration relative.
 """
 from __future__ import annotations
 
-import math
 import pytest
 
 from app.services.finance.buffett.scoring_pure import (
-    exponential_weights,
-    score_year,
-    compute_moat_score,
-    compute_buy_signal,
-    robust_growth,
-    select_growth,
     PEG_GROWTH_CAP,
-    THRESHOLD_GPM,
-    THRESHOLD_NIM,
-    THRESHOLD_ROE,
-    THRESHOLD_ROIC,
+    compute_buy_signal,
+    compute_moat_score,
+    exponential_weights,
+    robust_growth,
+    score_year,
+    select_growth,
 )
-
 
 # ── exponential_weights ─────────────────────────────────────────────────────
 
@@ -67,11 +61,9 @@ def _perfect_year() -> dict:
         "lt_debt_ratio": 0.05,
         "debt_eq": 0.30,    # < 80%
         "retained_growth": True,
-        "cap_stock_var": True,
         "roe": 0.30,        # > 20%
         "roic": 0.20,       # > 10%
         "capex": 0.10,      # < 25%
-        "buybacks": True,
         "first_year": False,
     }
 
@@ -179,13 +171,36 @@ def test_financial_profile_ignores_industrial_gross_margin():
         "eps_growth": True,
         "cash_growth": True,
         "retained_growth": True,
-        "cap_stock_var": True,
         "roe": 0.25,
-        "buybacks": True,
     }
     low_margin = score_year({**relevant, "gpm": 0.01}, "Financial Services")
     high_margin = score_year({**relevant, "gpm": 0.90}, "Financial Services")
     assert low_margin == high_margin
+
+
+@pytest.mark.parametrize("sector", ["Financial Services", "Finance", "Services financiers"])
+def test_financial_profile_ignores_non_comparable_debt_ratios(sector):
+    base = {
+        "net_income_positive": True,
+        "nim": 0.25,
+        "roe": 0.20,
+        "eps_growth": True,
+    }
+    prudent = score_year({**base, "debt_ratio": 0.05, "debt_eq": 0.10}, sector)
+    leveraged = score_year({**base, "debt_ratio": 3.0, "debt_eq": 20.0}, sector)
+    assert prudent == leveraged
+
+
+def test_buybacks_are_counted_once_through_per_share_growth():
+    """Les deux anciens flux de rachat n'ajoutent plus deux voix à EPS growth."""
+    base = {"net_income_positive": True, "eps_growth": False}
+    without_flows = score_year(base)
+    with_both_old_flows = score_year({
+        **base, "buybacks": True, "cap_stock_var": True,
+    })
+    with_per_share_growth = score_year({**base, "eps_growth": True})
+    assert with_both_old_flows == without_flows
+    assert with_per_share_growth > without_flows
 
 
 # ── compute_buy_signal ──────────────────────────────────────────────────────
@@ -202,13 +217,27 @@ def test_buy_signal_etf_always_buy():
     assert peg is None
 
 
-def test_buy_signal_per_too_high():
+def test_buy_signal_does_not_apply_a_global_per_cap_before_peer_calibration():
     ok, _ = compute_buy_signal(
         secteur="Tech", pays="US", prix=100.0, eps=1.0,
         per=50.0, growth=0.10, taux_obligataires=TAUX,
         taux_defaut=0.05, per_max=30.0, peg_max=1.5,
     )
-    assert ok is False
+    assert ok is True
+
+
+def test_buy_signal_is_independent_of_legacy_bond_yields_and_caps():
+    common = dict(
+        secteur="Tech", pays="US", prix=100.0, eps=1.0,
+        per=50.0, growth=0.10, taux_defaut=0.05,
+    )
+    low_rate = compute_buy_signal(
+        **common, taux_obligataires={"US": 0.01}, per_max=10.0, peg_max=0.1,
+    )
+    high_rate = compute_buy_signal(
+        **common, taux_obligataires={"US": 0.20}, per_max=100.0, peg_max=10.0,
+    )
+    assert low_rate == high_rate
 
 
 def test_buy_signal_peg_computed():
@@ -297,12 +326,13 @@ def test_select_growth_decline_is_unreliable():
 
 def test_buy_signal_clamps_extreme_growth_peg():
     # croissance 375 % -> PEG borné (30 %), ne s'effondre PAS vers 0
-    _, peg = compute_buy_signal(
+    ok, peg = compute_buy_signal(
         secteur="Tech", pays="US", prix=50.0, eps=5.0,
         per=15.0, growth=3.75, taux_obligataires=TAUX,
         taux_defaut=0.05, per_max=30.0, peg_max=2.0, growth_reliable=False,
     )
     assert peg is not None
+    assert ok is False
     assert abs(peg - 15.0 / (PEG_GROWTH_CAP * 100)) < 1e-9
     assert peg > 0.4
 

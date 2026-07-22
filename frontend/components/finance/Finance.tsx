@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { TabLoading } from "@/components/ui/tab-loading";
 import { SuiviTab } from "./SuiviTab";
+import { JapanGoalWidget } from "./JapanGoalWidget";
 import { useObjectifPatrimoine, useSetObjectifPatrimoine } from "@/lib/queries/finance";
 
 const PortefeuilleTab = dynamic(
@@ -118,7 +119,14 @@ function ObjectifWidget() {
             {fmt(data.valeur_eur)} / {fmt(data.objectif_eur)}
           </span>
         </div>
-        <div className="mt-1 h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
+        <div
+          className="mt-1 h-1.5 bg-[var(--border)] rounded-full overflow-hidden"
+          role="progressbar"
+          aria-label="Progression de l'objectif patrimoine"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+        >
           <div
             className="h-full rounded-full bar-fill"
             style={{ width: `${pct}%`, background: color }}
@@ -225,14 +233,15 @@ export function Finance() {
     <div className="space-y-0">
       <ModuleHeader
         title="Finance"
-        subtitle="Portefeuille long terme"
+        subtitle="Investissements, patrimoine & objectifs"
         tabs={TABS.map((t) => ({ id: t.id, label: t.label, icon: t.icon }))}
         active={active}
         onChange={(id) => setActive(id as Tab)}
       />
 
-      <div className="px-6 pt-6">
+      <div className="grid gap-3 px-6 pt-6 lg:grid-cols-2">
         <ObjectifWidget />
+        <JapanGoalWidget />
       </div>
 
       {/* Content — re-mounts on tab change for fade-in-up */}

@@ -8,9 +8,13 @@ from types import SimpleNamespace
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
-from app.models.patrimoine import PatrimoineItem, PatrimoineSnapshot  # noqa: F401 (enregistre les tables)
 from app.models.finance import SnapshotPortefeuille
+from app.models.patrimoine import (  # noqa: F401 (enregistre les tables)
+    PatrimoineItem,
+    PatrimoineSnapshot,
+)
 from app.services.finance.patrimoine import (
+    bank_value_cad,
     compute_net_worth,
     create_item,
     delete_item,
@@ -96,6 +100,96 @@ def test_investment_value_eur_uses_auto_balance_over_manual(session, monkeypatch
 def test_investment_value_eur_zero_when_no_investment_accounts(session):
     create_item(session, type="actif", label="Desjardins", valeur=2000.0, devise="EUR", categorie="Compte en banque")
     assert investment_value_eur(session) == 0.0
+
+
+def test_bank_value_cad_only_sums_liquid_accounts(session, monkeypatch):
+    rates = {("EUR", "CAD"): 1.5, ("USD", "CAD"): 1.3}
+    monkeypatch.setattr(
+        "app.services.finance.fx.convert",
+        lambda amount, base, quote: round(amount * rates[(base, quote)], 2),
+    )
+    create_item(session, type="actif", label="Desjardins", valeur=2_000,
+                categorie="liquidités", devise="CAD")
+    create_item(session, type="actif", label="Banque Populaire", valeur=1_000,
+                categorie="Compte en banque", devise="EUR")
+    create_item(session, type="actif", label="Bourse Direct", valeur=25_000,
+                categorie="compte-titres", devise="EUR")
+    create_item(session, type="passif", label="Carte", valeur=500,
+                categorie="Compte en banque", devise="CAD")
+
+    total, count = bank_value_cad(session)
+
+    assert total == 3_500
+    assert count == 2
+
+
+def test_bank_value_cad_uses_latest_imported_balance(session, monkeypatch):
+    monkeypatch.setattr(
+        "app.services.finance.account_balances.get_balances",
+        lambda: {"desjardins-eop": {
+            "solde": 5_763.43, "devise": "CAD", "date": "2025-10-31",
+        }},
+    )
+    create_item(session, type="actif", label="Desjardins", valeur=10,
+                categorie="liquidités", devise="CAD")
+
+    assert bank_value_cad(session) == (5_763.43, 1)
+
+
+def test_bank_value_cad_uses_latest_bank_statement_over_manual(session, monkeypatch):
+    monkeypatch.setattr(
+        "app.services.finance.account_history.account_history_points",
+        lambda: {"Banque Populaire": [
+            (dt.date(2026, 5, 31), 900.0),
+            (dt.date(2026, 6, 30), 779.94),
+        ]},
+    )
+    monkeypatch.setattr(
+        "app.services.finance.fx.convert",
+        lambda amount, base, quote: round(amount * 1.5, 2),
+    )
+    create_item(session, type="actif", label="Banque Populaire", valeur=1_500,
+                categorie="liquidités", devise="EUR")
+
+    assert bank_value_cad(session) == (1_169.91, 1)
+
+
+def test_bank_value_cad_prefers_aggregated_history_over_partial_import(
+    session, monkeypatch,
+):
+    monkeypatch.setattr(
+        "app.services.finance.account_balances.get_balances",
+        lambda: {
+            "banquepopulaire": {
+                "solde": 779.94,
+                "devise": "EUR",
+                "date": "2026-06-30",
+            }
+        },
+    )
+    monkeypatch.setattr(
+        "app.services.finance.account_history.account_history_points",
+        lambda: {
+            "Banque Populaire": [
+                (dt.date(2026, 4, 30), 1_600.0),
+                (dt.date(2026, 6, 30), 1_674.33),
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        "app.services.finance.fx.convert",
+        lambda amount, base, quote: round(amount * 1.5, 2),
+    )
+    create_item(
+        session,
+        type="actif",
+        label="Banque Populaire",
+        valeur=1_500,
+        categorie="liquidités",
+        devise="EUR",
+    )
+
+    assert bank_value_cad(session) == (2_511.49, 1)
 
 
 def test_breakdown_history_daily_backfill_for_manual_accounts(session):

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import re
+import unicodedata
 from types import SimpleNamespace
 from typing import Any
 
@@ -43,7 +44,8 @@ def _norm_key(s: str | None) -> str:
 
     Ainsi « Trading 212 » (libellé) == clé « trading212 », et « desjardins-eop »
     == « Desjardins »."""
-    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+    ascii_text = unicodedata.normalize("NFKD", (s or "").lower()).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]", "", ascii_text)
 
 
 def _load_auto_balances() -> dict[str, dict]:
@@ -205,6 +207,95 @@ def net_worth_summary(
 # (mêmes critères que le graphe "Évolution du patrimoine net · investissement"
 # du frontend, cf. PatrimoineTab.tsx NetWorthChart -- garder synchronisé).
 _INVEST_KEYWORDS = ("boursedirect", "trading", "realt")
+
+# Les comptes à consacrer à l'objectif court terme sont identifiés par leur
+# catégorie, jamais par leur banque : Desjardins, Banque Populaire, Wise et
+# Westpac sont ainsi traités de la même façon. Les catégories historiques du
+# projet utilisent les deux formes ci-dessous.
+_BANK_CATEGORIES = {"liquidites", "compteenbanque", "comptebancaire"}
+
+
+def _is_bank_account(item: PatrimoineItem) -> bool:
+    category = _norm_key(item.categorie)
+    return category in _BANK_CATEGORIES or ("compte" in category and "banque" in category)
+
+
+def _to_cad(amount: float, devise: str | None) -> float:
+    """Convertit un solde en CAD, avec le même cache FX que le patrimoine.
+
+    Un cache indisponible ne doit pas faire disparaître un compte : on repasse
+    alors par sa valeur EUR best-effort et le taux de repli CAD/EUR déjà utilisé
+    par le module Patrimoine.
+    """
+    currency = (devise or "EUR").upper()
+    if currency == "CAD":
+        return round(float(amount), 2)
+    try:
+        from app.services.finance.fx import convert
+
+        try:
+            converted = convert(float(amount), currency, "CAD", stale_ok=True)
+        except TypeError as exc:
+            if "stale_ok" not in str(exc):
+                raise
+            converted = convert(float(amount), currency, "CAD")
+        if converted:
+            return round(float(converted), 2)
+    except Exception:
+        pass
+
+    # Repli cohérent avec `_cad_to_eur` (1 CAD ≈ 0,68 EUR). `to_eur`
+    # conserve au minimum la valeur saisie si aucun autre taux n'est connu.
+    return round(to_eur(amount, currency) / 0.68, 2)
+
+
+def bank_value_cad(session: Session) -> tuple[float, int]:
+    """Liquidités bancaires disponibles pour l'objectif Japon, en CAD.
+
+    Les séries reconstruites depuis les relevés priment sur le cache d'un import
+    isolé puis sur la valeur manuelle. Elles peuvent agréger plusieurs
+    sous-comptes (ex. les trois comptes Banque Populaire). Les comptes-titres et
+    autres actifs sont volontairement exclus.
+    """
+    auto_balances = _load_auto_balances()
+    # Les relevés bancaires déjà parsés sont une source plus fraîche que la
+    # saisie manuelle. `account_history_points` renvoie des valeurs EUR et
+    # maintient son propre cache de fichiers ; un compte absent reste manuel.
+    try:
+        from app.services.finance.account_history import account_history_points
+
+        account_history = account_history_points()
+    except Exception:
+        account_history = {}
+    total = 0.0
+    count = 0
+    for item in list_items(session):
+        if item.type != "actif" or not _is_bank_account(item):
+            continue
+        item_key = _norm_key(item.label)
+        historical = [
+            points
+            for label, points in account_history.items()
+            if points and (
+                _norm_key(label) in item_key or item_key in _norm_key(label)
+            )
+        ]
+        if historical:
+            # Chaque série est déjà en EUR et porte le dernier solde de son
+            # compte par carry-forward. Plusieurs séries correspondantes sont
+            # additionnées au lieu de ne prendre arbitrairement que la première.
+            amount = sum(float(points[-1][1]) for points in historical)
+            currency = "EUR"
+        else:
+            auto = _match_auto_balance(item.label, auto_balances)
+            if auto is not None:
+                amount = float(auto["solde"])
+                currency = auto.get("devise") or item.devise
+            else:
+                amount, currency = item.valeur, item.devise
+        total += _to_cad(amount, currency)
+        count += 1
+    return round(total, 2), count
 
 
 def investment_value_eur(session: Session) -> float:

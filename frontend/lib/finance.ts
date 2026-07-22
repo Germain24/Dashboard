@@ -62,6 +62,18 @@ export interface NetWorthBreakdown {
   total: number[];
 }
 
+export interface JapanGoal {
+  date_cible: string;
+  budget_quotidien_cad: number;
+  jours_restants: number;
+  objectif_restant_cad: number;
+  liquidites_cad: number;
+  ecart_cad: number;
+  progression_pct: number;
+  atteint: boolean;
+  n_comptes: number;
+}
+
 // Marge de crédit
 export interface CreditProfile {
   id: number;
@@ -208,8 +220,10 @@ export interface PerfMetrics {
   pl_pct: number;
   max_drawdown_pct: number;
   ytd_pct: number;
-  twr_pct?: number;
-  twr_annualise_pct?: number;
+  cagr_pct?: number | null;
+  mwr_annualise_pct?: number | null;
+  twr_pct?: number | null;
+  twr_annualise_pct?: number | null;
   date_snapshot?: string;
 }
 
@@ -243,7 +257,14 @@ export interface TreemapNode {
   label: string;
 }
 
-export type TransactionType = "achat" | "vente" | "dividende" | "interet" | "depot" | "retrait" | "frais";
+export type TransactionType =
+  | "achat"
+  | "vente"
+  | "dividende"
+  | "interet"
+  | "depot"
+  | "retrait"
+  | "frais";
 
 export interface TransactionOut {
   id: number;
@@ -433,12 +454,15 @@ export interface BuffettRunDetail {
       n_etf_before: number;
       n_etf_after: number;
       n_removed_from_union: number;
-      brokers: Record<string, {
-        candidates_before: number;
-        selected: number;
-        removed: number;
-        bucket_counts: Record<string, number>;
-      }>;
+      brokers: Record<
+        string,
+        {
+          candidates_before: number;
+          selected: number;
+          removed: number;
+          bucket_counts: Record<string, number>;
+        }
+      >;
     };
     termination: {
       reason: string;
@@ -771,15 +795,18 @@ export const financeApi = {
       cvar_5_pct: number;
       cagr_pct: number;
       tickers: string[];
-      comparisons: Record<string, {
-        rendement_pct: number;
-        cagr_pct: number;
-        max_drawdown_pct: number;
-        cvar_5_pct: number;
-        turnover: number;
-        costs_pct: number;
-        n_points: number;
-      }>;
+      comparisons: Record<
+        string,
+        {
+          rendement_pct: number;
+          cagr_pct: number;
+          max_drawdown_pct: number;
+          cvar_5_pct: number;
+          turnover: number;
+          costs_pct: number;
+          n_points: number;
+        }
+      >;
     }>(`/backtest/walk-forward?periode=${periode}&cost_bps=${costBps}`),
   dividendes: () =>
     get<{
@@ -792,7 +819,14 @@ export const financeApi = {
       revenus_nets: number;
       par_ticker: Record<string, number>;
       par_mois: Record<string, number>;
-      lignes: { date: string; ticker: string; montant: number; montant_brut: number; retenue_source: number; devise: string }[];
+      lignes: {
+        date: string;
+        ticker: string;
+        montant: number;
+        montant_brut: number;
+        retenue_source: number;
+        devise: string;
+      }[];
     }>("/dividendes"),
   projection: (p: {
     initial: number;
@@ -880,9 +914,11 @@ export const financeApi = {
         seed_iteration: number;
         score: number;
       }>;
-    }>(historyAfter == null
-      ? "/portfolio/progress"
-      : `/portfolio/progress?history_after=${Math.max(0, Math.trunc(historyAfter))}`),
+    }>(
+      historyAfter == null
+        ? "/portfolio/progress"
+        : `/portfolio/progress?history_after=${Math.max(0, Math.trunc(historyAfter))}`,
+    ),
   /** Arrête l'optimisation DE en cours (run auto ou bouton manuel) */
   optimizationStop: () => post<{ message: string }>("/buffett/optimization/stop"),
 
@@ -900,6 +936,11 @@ export const financeApi = {
     }>("/objectif-patrimoine"),
   setObjectifPatrimoine: (objectif_eur: number) =>
     post<{ objectif_eur: number }>("/objectif-patrimoine", { objectif_eur }),
+
+  // Objectif court terme Japon / fin d'études
+  objectifJapon: () => get<JapanGoal>("/objectif-japon"),
+  setObjectifJapon: (settings: { date_cible: string; budget_quotidien_cad: number }) =>
+    post<{ date_cible: string; budget_quotidien_cad: number }>("/objectif-japon", settings),
 
   // Patrimoine net (RealT, emprunts…)
   patrimoine: () => get<NetWorth>("/patrimoine"),

@@ -5,9 +5,10 @@ from __future__ import annotations
 import csv
 import datetime as dt
 import io
+import re
+import unicodedata
 from typing import Optional
 
-from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.models.finance import Transaction
@@ -238,29 +239,120 @@ def _parse_trading212_row(row: dict) -> Optional[dict]:
 
 
 def _parse_boursedirect_row(row: dict) -> Optional[dict]:
-    """Ligne CSV Bourse Direct → dict Transaction."""
+    """Ligne CSV Bourse Direct → dict Transaction.
+
+    Les exports d'ordres utilisent ``Sens/Quantité/Cours`` tandis que les
+    relevés d'espèces utilisent plutôt ``Nature (ou Libellé)/Montant``. Les
+    deux formats passent par le même import afin que les versements/retraits,
+    et pas les achats/ventes de titres, alimentent l'historique de l'investi.
+    """
+
+    def first(*keys: str):
+        for key in keys:
+            value = row.get(key)
+            if value not in (None, ""):
+                return value
+        return ""
+
+    def number(value) -> float:
+        cleaned = str(value or "").strip().replace("\xa0", "").replace(" ", "")
+        cleaned = re.sub(r"[^0-9,.-]", "", cleaned)
+        if not cleaned:
+            return 0.0
+        if "," in cleaned and "." in cleaned:
+            # Format français usuel : 1.234,56.
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        else:
+            cleaned = cleaned.replace(",", ".")
+        return float(cleaned)
+
+    def normalized(value) -> str:
+        ascii_value = unicodedata.normalize("NFKD", str(value or ""))
+        return " ".join(
+            "".join(char for char in ascii_value if not unicodedata.combining(char))
+            .upper()
+            .split()
+        )
+
+    def operation_date() -> dt.datetime:
+        date_str = str(first("Date opération", "Date operation", "Date", "Date de valeur")).strip()
+        for fmt in ("%d/%m/%Y", "%d/%m/%Y %H:%M:%S", "%Y-%m-%d"):
+            try:
+                return dt.datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+        return dt.datetime.fromisoformat(date_str)
+
     try:
-        sens = str(row.get("Sens", "")).upper()
+        sens = normalized(first("Sens"))
+        description = normalized(" ".join(
+            str(row.get(key) or "")
+            for key in (
+                "Nature", "Type d'opération", "Type d'operation", "Opération",
+                "Operation", "Libellé", "Libelle",
+            )
+        ))
+        operation_id = first("N° opération", "No operation", "Référence", "Reference")
+        operation_note = f"Bourse Direct {operation_id}" if operation_id else None
+
+        deposit_markers = (
+            "VERSEMENT", "DEPOT", "APPORT", "VIREMENT RECU",
+            "VIREMENT CREDITEUR", "CREDIT ESPECES",
+        )
+        withdrawal_markers = (
+            "RETRAIT", "VIREMENT EMIS", "VIREMENT DEBITEUR",
+            "DEBIT ESPECES",
+        )
+        cash_type = None
+        if any(marker in description for marker in deposit_markers):
+            cash_type = "depot"
+        elif any(marker in description for marker in withdrawal_markers):
+            cash_type = "retrait"
+        elif "VIREMENT" in description:
+            if sens in {"C", "CREDIT", "CREDITEUR"}:
+                cash_type = "depot"
+            elif sens in {"D", "DEBIT", "DEBITEUR"}:
+                cash_type = "retrait"
+
+        if cash_type:
+            credit = number(first("Crédit", "Credit"))
+            debit = number(first("Débit", "Debit"))
+            raw_amount = number(first("Montant net", "Montant", "Net"))
+            amount = abs(credit or debit or raw_amount)
+            if amount <= 0:
+                return None
+            return {
+                "date": operation_date(),
+                "ticker": "CASH",
+                "broker": "BoursDirect",
+                "type": cash_type,
+                "quantite": 1.0,
+                "prix_unitaire": amount,
+                "devise": "EUR",
+                "frais": 0.0,
+                "montant_brut": None,
+                "retenue_source": 0.0,
+                "note": operation_note or description or None,
+            }
+
         if "ACHAT" in sens or "A" == sens:
             type_ = "achat"
         elif "VENTE" in sens or "V" == sens:
             type_ = "vente"
         else:
             return None
-        date_str = row.get("Date opération", "") or row.get("Date", "")
-        try:
-            date_ = dt.datetime.strptime(date_str.strip(), "%d/%m/%Y")
-        except Exception:
-            date_ = dt.datetime.fromisoformat(date_str.strip())
         return {
-            "date": date_,
+            "date": operation_date(),
             "ticker": str(row.get("Code ISIN", row.get("Libellé", ""))).strip().upper(),
             "broker": "BoursDirect",
             "type": type_,
-            "quantite": float(str(row.get("Quantité", 0)).replace(",", ".") or 0),
-            "prix_unitaire": float(str(row.get("Cours", 0)).replace(",", ".") or 0),
+            "quantite": number(row.get("Quantité", 0)),
+            "prix_unitaire": number(row.get("Cours", 0)),
             "devise": "EUR",
-            "frais": float(str(row.get("Frais", 0)).replace(",", ".") or 0),
+            "frais": number(row.get("Frais", 0)),
+            "montant_brut": None,
+            "retenue_source": 0.0,
+            "note": operation_note,
         }
     except Exception:
         return None
@@ -271,7 +363,7 @@ def _find_existing(session: Session, parsed: dict) -> Transaction | None:
     quantite+prix_unitaire correspondent exactement -- evite de dupliquer
     gains/pertes et impot calcule quand un export deja traite est reimporte
     (cas plausible : reexport "tout l'historique" depuis un broker)."""
-    exact = session.exec(
+    exact_candidates = list(session.exec(
         select(Transaction).where(
             Transaction.broker == parsed.get("broker"),
             Transaction.ticker == parsed.get("ticker"),
@@ -279,9 +371,61 @@ def _find_existing(session: Session, parsed: dict) -> Transaction | None:
             Transaction.date == parsed.get("date"),
             Transaction.quantite == parsed.get("quantite"),
         )
-    ).first()
-    if exact is not None:
-        return exact
+    ).all())
+
+    incoming_note = parsed.get("note")
+    incoming_price = float(parsed.get("prix_unitaire") or 0)
+
+    # Les mouvements d'espèces ont tous ticker=CASH et quantite=1. Deux flux
+    # du même type peuvent légitimement tomber le même jour : la référence du
+    # relevé est leur identité la plus fiable, puis le montant en repli pour
+    # les anciens exports sans référence.
+    if (
+        parsed.get("ticker") == "CASH"
+        and parsed.get("type") in {"depot", "retrait"}
+    ):
+        if incoming_note:
+            by_reference = [
+                candidate
+                for candidate in exact_candidates
+                if candidate.note == incoming_note
+            ]
+            if len(by_reference) == 1:
+                return by_reference[0]
+
+            # Migration d'une ligne historique importée avant la conservation
+            # des références : on ne l'adopte que si le montant est identique.
+            legacy = [
+                candidate
+                for candidate in exact_candidates
+                if not candidate.note
+                and abs(float(candidate.prix_unitaire or 0) - incoming_price) <= 1e-9
+            ]
+            return legacy[0] if len(legacy) == 1 else None
+
+        by_amount = [
+            candidate
+            for candidate in exact_candidates
+            if abs(float(candidate.prix_unitaire or 0) - incoming_price) <= 1e-9
+        ]
+        return by_amount[0] if by_amount else None
+
+    if incoming_note:
+        by_reference = [
+            candidate
+            for candidate in exact_candidates
+            if candidate.note == incoming_note
+        ]
+        if len(by_reference) == 1:
+            return by_reference[0]
+
+    by_price = [
+        candidate
+        for candidate in exact_candidates
+        if abs(float(candidate.prix_unitaire or 0) - incoming_price) <= 1e-9
+    ]
+    if len(by_price) == 1:
+        return by_price[0]
 
     # Les anciennes versions importaient "Interest on cash" comme dividende.
     # Cette correspondance permet une migration idempotente par reimport CSV.
@@ -324,7 +468,12 @@ def _update_existing(existing: Transaction, parsed: dict) -> bool:
         "type", "prix_unitaire", "frais", "devise", "montant_brut",
         "retenue_source", "note",
     ):
-        incoming = parsed.get(field)
+        # Un export partiel ne doit jamais effacer une valeur déjà stockée.
+        # C'était notamment le cas de retenue_source (NOT NULL) avec les CSV
+        # Bourse Direct qui n'exposent pas cette colonne.
+        if field not in parsed or parsed[field] is None:
+            continue
+        incoming = parsed[field]
         current = getattr(existing, field, None)
         if isinstance(incoming, float) and isinstance(current, (int, float)):
             equal = abs(float(current) - incoming) <= 1e-9
@@ -342,7 +491,11 @@ def import_csv(session: Session, content: str, broker_hint: str = "auto") -> dic
     broker_hint : 'trading212' | 'boursedirect' | 'auto' (détection automatique).
     Retourne {"imported": N, "updated": N, "skipped": N, "errors": [...]}.
     """
-    reader = csv.DictReader(io.StringIO(content))
+    try:
+        dialect = csv.Sniffer().sniff(content[:4096], delimiters=",;\t")
+    except csv.Error:
+        dialect = csv.excel
+    reader = csv.DictReader(io.StringIO(content), dialect=dialect)
     rows = list(reader)
     if not rows:
         return {"imported": 0, "skipped": 0, "errors": ["CSV vide"]}
@@ -352,7 +505,14 @@ def import_csv(session: Session, content: str, broker_hint: str = "auto") -> dic
     if broker_hint == "auto":
         if "Action" in headers and "No. of shares" in headers:
             broker_hint = "trading212"
-        elif "Sens" in headers or "Quantité" in headers:
+        elif (
+            "Sens" in headers
+            or "Quantité" in headers
+            or bool(headers & {
+                "Nature", "Type d'opération", "Type d'operation",
+                "Opération", "Operation",
+            })
+        ):
             broker_hint = "boursedirect"
         else:
             return {"imported": 0, "skipped": 0, "errors": ["Format CSV non reconnu"]}
@@ -373,8 +533,13 @@ def import_csv(session: Session, content: str, broker_hint: str = "auto") -> dic
         if existing is not None:
             if _update_existing(existing, parsed):
                 session.add(existing)
-                session.commit()
-                updated += 1
+                try:
+                    session.commit()
+                    updated += 1
+                except Exception as e:
+                    session.rollback()
+                    errors.append(f"Ligne {i+2}: {e}")
+                    skipped += 1
             else:
                 skipped += 1
             continue
