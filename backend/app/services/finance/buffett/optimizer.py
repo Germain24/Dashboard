@@ -653,6 +653,7 @@ def optimize_portfolio_de(
     min_position: float | None = None,
     current_weights: dict[str, float] | None = None,
     ttf_tickers: set[str] | None = None,
+    benchmark_returns=None,   # pd.Series de rendements EUR du benchmark
     return_diagnostics: bool = False,
 ):
     """Optimise le portefeuille via Differential Evolution sur l'objectif **STARR**.
@@ -682,6 +683,21 @@ def optimize_portfolio_de(
         neg_starr_batch,
         simulate_regime_scenarios,
     )
+
+    # Le benchmark n'appartient PAS a l'univers d'optimisation : verifie sur le run
+    # #51, select_etfs_per_broker l'ecarte (855 ETF -> 58). Ses rendements sont donc
+    # injectes par le runner. Sans lui le score n'a aucun sens -> echec explicite.
+    if benchmark_returns is None or len(benchmark_returns) < 2:
+        raise ValueError(
+            f"benchmark introuvable ({Config.STARR_BENCHMARK_TICKER}) : "
+            "le score relatif ne peut pas etre calcule"
+        )
+    bench_series = np.asarray(benchmark_returns, dtype=float)
+    if len(bench_series) < int(Config.STARR_MIN_HISTORY_DAYS):
+        raise ValueError(
+            f"benchmark {Config.STARR_BENCHMARK_TICKER} : "
+            f"{len(bench_series)} jours < {Config.STARR_MIN_HISTORY_DAYS} requis"
+        )
 
     n_sim = int(Config.STARR_N_SIM if n_sim is None else n_sim)
     alpha = float(Config.STARR_ALPHA if alpha is None else alpha)

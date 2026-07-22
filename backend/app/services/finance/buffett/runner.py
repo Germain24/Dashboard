@@ -610,9 +610,18 @@ def run_buffett_analysis(
         if excluded_lev:
             print(f"[runner] Effet de levier/inverse: {before_lev - len(eligible)} titres "
                   f"ecartes ({', '.join(excluded_lev)})")
+        # Le benchmark doit etre telecharge meme s'il n'est pas eligible : c'est la
+        # reference du score, pas un candidat a l'allocation.
+        bench_ticker = str(Config.STARR_BENCHMARK_TICKER).strip().upper()
         t_list = list(eligible.keys())
+        if bench_ticker and bench_ticker not in {t.upper() for t in t_list}:
+            t_list.append(bench_ticker)
 
-        if t_list:
+        # Le portail reste conditionne aux candidats REELS (eligible), pas a
+        # t_list : sinon le seul ajout du benchmark (ci-dessus) empecherait a
+        # tort ce garde-fou de se declencher quand il n'y a aucun candidat
+        # (t_list ne serait alors plus jamais vide).
+        if eligible:
             # Signale le début de la phase de préparation AVANT le téléchargement
             # (potentiellement long, ~600 titres) -- sans ça, `optimization_progress`
             # reste à "idle" pendant toute cette étape et l'UI n'affiche RIEN
@@ -646,15 +655,40 @@ def run_buffett_analysis(
                           f"{len(too_young)} titres écartés (ex. {too_young[:8]})")
                 cd = cd.ffill()
                 rets = cd.pct_change().dropna().clip(-0.5, 0.5)
+                # Extraction du benchmark AVANT dedup/selection : ces etapes peuvent
+                # l'ecarter (jumeau d'indice, plafond de 50 ETF/broker) alors qu'il
+                # doit rester la reference du score.
+                bench_rets = None
+                bench_col = next(
+                    (c for c in rets.columns if str(c).upper() == bench_ticker), None
+                )
+                if bench_col is not None:
+                    bench_rets = returns_in_base_currency(
+                        rets[[bench_col]], "EUR", strict=True
+                    )[bench_col]
+                    print(f"[runner] Benchmark {bench_ticker} : {len(bench_rets)} jours")
+                    if bench_ticker not in {t.upper() for t in eligible}:
+                        # Ajoute uniquement pour extraire son rendement (pas eligible,
+                        # cf. plus haut) : ne doit pas rester un candidat a
+                        # l'allocation, sinon prepare_optimization lui accorderait un
+                        # acces broker par defaut (ticker absent de df_m -> True) et
+                        # le DE pourrait l'acheter reellement.
+                        rets = rets.drop(columns=[bench_col])
+                else:
+                    print(f"[runner] ATTENTION : benchmark {bench_ticker} absent des cours")
                 if len(rets):
                     print(f"[runner] Fenêtre commune de rendements : {len(rets)} jours "
                           f"({rets.index[0].date()} -> {rets.index[-1].date()})")
+                # bench_ticker peut avoir ete ajoute a t_list sans etre eligible (cf.
+                # plus haut) : il n'a alors aucune entree dans `eligible`, donc on
+                # l'exclut ici (sinon KeyError) -- ce tableau ne decrit que les
+                # candidats reels a l'allocation.
                 df_m = pd.DataFrame([{
                     ticker_col: t, "Nom": eligible[t][1].get("Nom", ""),
                     "Secteur": eligible[t][1].get("Secteur", ""),
                     "Volume": eligible[t][1].get("Volume", 0),
                     "Chance MOAT": eligible[t][0], "Achat": True,
-                } for t in t_list])
+                } for t in t_list if t in eligible])
                 # Disponibilite par broker depuis ToutBroker.xlsx (sinon tout dispo)
                 df_m = merge_broker_columns(df_m, ticker_col)
                 opt_prog.set_phase(
@@ -729,6 +763,7 @@ def run_buffett_analysis(
                         should_stop=lambda: opt_prog.snapshot()["stop_requested"],
                         current_weights=previous_weights,
                         ttf_tickers=ttf_tickers,
+                        benchmark_returns=bench_rets,
                         return_diagnostics=True,
                     )
                     diagnostics["etf_selection"] = etf_selection_diagnostics
