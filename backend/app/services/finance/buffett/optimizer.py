@@ -566,12 +566,26 @@ def find_positive_random_seed(
     max_batches: int,
     progress_cb=None,
     should_stop=None,
+    feasible=None,
 ) -> tuple[np.ndarray, float, int]:
-    """Cherche un portefeuille aléatoire dont l'objectif pénalisé est positif.
+    """Cherche un portefeuille aléatoire ADMISSIBLE pour amorcer le DE.
 
     ``objective`` suit la convention de scipy et retourne une énergie à minimiser;
-    le score affiché est donc ``-énergie``. Une absence de solution positive est
-    signalée avant le DE afin de ne pas gaspiller des milliers de générations.
+    le score affiché est donc ``-énergie``. ``feasible`` reçoit la même population
+    et renvoie un masque booléen : ``True`` là où le candidat respecte TOUTES les
+    contraintes (défensif, plafond par pays, cardinalité), c'est-à-dire là où la
+    pénalité est nulle.
+
+    Le critère d'admissibilité est la **pénalité nulle**, et non un score positif.
+    Tant que l'objectif était le ratio ``rendement / risque``, « positif » voulait
+    simplement dire « rendement > 0 » — presque toujours vrai, donc un garde-fou
+    quasi gratuit. Depuis que le score mesure l'ÉCART AU BENCHMARK, « positif »
+    voudrait dire « battre CW8.PA dès le tirage au sort » : ce serait exiger d'un
+    point de départ qu'il résolve déjà le problème que le DE doit résoudre.
+
+    L'échec (``PositiveSeedNotFound``) garde en revanche tout son sens : il signale
+    qu'aucun portefeuille aléatoire ne respecte les contraintes look-through, ce
+    qui est exactement le cas où l'appelant doit les relâcher.
     """
     maximum = max(1, int(max_batches))
     best_score = float("-inf")
@@ -579,23 +593,26 @@ def find_positive_random_seed(
     for batch_num in range(1, maximum + 1):
         candidates = build_random_sparse_population(n, batch_size, rng)
         energies = np.asarray(objective(candidates.T), dtype=float).reshape(-1)
-        finite = np.flatnonzero(np.isfinite(energies))
-        if finite.size:
-            idx = int(finite[np.argmin(energies[finite])])
+        ok = np.isfinite(energies)
+        if feasible is not None:
+            ok &= np.asarray(feasible(candidates.T), dtype=bool).reshape(-1)
+        admissible = np.flatnonzero(ok)
+        if admissible.size:
+            idx = int(admissible[np.argmin(energies[admissible])])
             score = -float(energies[idx])
             if score > best_score:
                 best_score = score
                 best_vector = candidates[idx].copy()
         if progress_cb is not None:
             progress_cb(batch_num, maximum, best_score if np.isfinite(best_score) else None)
-        if best_vector is not None and best_score > 0:
+        if best_vector is not None:
             return best_vector, best_score, batch_num
         if should_stop is not None and should_stop():
             raise RuntimeError("Optimisation arrêtée pendant la recherche initiale positive.")
 
     tested = maximum * max(1, int(batch_size))
     raise PositiveSeedNotFound(
-        "Aucun portefeuille à score positif trouvé après "
+        "Aucun portefeuille admissible trouvé après "
         f"{tested:,} essais aléatoires. Vérifiez les rendements et les contraintes."
     )
 
@@ -1083,13 +1100,39 @@ def optimize_portfolio_de(
             "brokers": per_broker,
         }
 
+    def _penalties_batch(deployed: np.ndarray, counts: np.ndarray, ok: np.ndarray) -> np.ndarray:
+        """Somme des pénalités de contrainte, par candidat retenu (masque ``ok``).
+
+        Extrait de ``neg_obj_batch`` pour être réutilisable tel quel par la
+        recherche du point de départ, qui a besoin de savoir si un candidat est
+        ADMISSIBLE (pénalité nulle) indépendamment de son score.
+        """
+        W = deployed[:, ok]
+        pen = np.zeros(W.shape[1])
+        if card_beta > 0:
+            excess = counts[:, ok] - max_per_broker
+            pen += np.where(
+                excess > 0, np.exp(np.minimum(card_beta * excess, 700.0)) - 1.0, 0.0
+            ).sum(axis=0)
+        # Contraintes look-through (défensif / pays). Si elles empêchent toute
+        # initialisation admissible (notamment un PEA concentré sur un ETF monde),
+        # la seconde passe les désactive, mais conserve les autres règles telles
+        # que la cardinalité par broker.
+        if use_lookthrough_constraints:
+            if len(d_vec) and float(np.max(d_vec)) > 0:
+                short = np.maximum(min_def - (d_vec @ W), 0.0)
+                pen += pen_k * short * short
+            if C_mat.size:
+                over = np.maximum((C_mat.T @ W) - max_country, 0.0)
+                pen += pen_k * np.sum(over * over, axis=0)
+        return pen
+
     def neg_obj_batch(X: np.ndarray) -> np.ndarray:
-        """Objectif STARR pénalisé, vectorisé sur la population entière.
+        """Objectif pénalisé, vectorisé sur la population entière.
 
         ``X`` : [n_inv × S] (convention scipy ``vectorized=True``) ; retourne [S].
         Une seule passe BLAS pour toute la population (remplace l'ancien pool de
-        threads qui évaluait individu par individu). Mêmes formules que
-        ``per_broker_cardinality_penalty`` / ``constraint_penalty``, en batch.
+        threads qui évaluait individu par individu).
         """
         X = np.asarray(X, dtype=float)
         if X.ndim == 1:
@@ -1103,26 +1146,27 @@ def optimize_portfolio_de(
             annual_costs=annual_costs,
         )
         if ok.any():
-            W = deployed[:, ok]
-            pen = np.zeros(W.shape[1])
-            if card_beta > 0:
-                excess = counts[:, ok] - max_per_broker
-                pen += np.where(
-                    excess > 0, np.exp(np.minimum(card_beta * excess, 700.0)) - 1.0, 0.0
-                ).sum(axis=0)
-            # Contraintes look-through (défensif / pays). Si elles empêchent
-            # toute initialisation positive (notamment un PEA concentré sur un
-            # ETF monde), la seconde passe les désactive, mais conserve les
-            # autres règles telles que la cardinalité par broker.
-            if use_lookthrough_constraints:
-                if len(d_vec) and float(np.max(d_vec)) > 0:
-                    short = np.maximum(min_def - (d_vec @ W), 0.0)
-                    pen += pen_k * short * short
-                if C_mat.size:
-                    over = np.maximum((C_mat.T @ W) - max_country, 0.0)
-                    pen += pen_k * np.sum(over * over, axis=0)
-            base[ok] += pen
+            base[ok] += _penalties_batch(deployed, counts, ok)
         return base
+
+    def feasible_batch(X: np.ndarray) -> np.ndarray:
+        """Masque des candidats qui respectent TOUTES les contraintes.
+
+        Sert de critère d'admissibilité au point de départ du DE : exiger un score
+        positif reviendrait, depuis que le score mesure l'écart au benchmark, à
+        demander au tirage aléatoire de battre déjà CW8.PA.
+        """
+        X = np.asarray(X, dtype=float)
+        if X.ndim == 1:
+            X = X[:, None]
+        Xp = np.maximum(X, 0.0)
+        ok = Xp.sum(axis=0) > 1e-12
+        out = np.zeros(X.shape[1], dtype=bool)
+        if not ok.any():
+            return out
+        deployed, counts, _ = _deploy_batch(Xp)
+        out[ok] = _penalties_batch(deployed, counts, ok) <= 1e-9
+        return out
 
     def neg_obj(x: np.ndarray) -> float:
         """Version scalaire (polish Nelder-Mead) — mêmes numériques que le batch."""
@@ -1157,6 +1201,7 @@ def optimize_portfolio_de(
             max_batches=init_max_batches,
             progress_cb=initialization_cb,
             should_stop=should_stop,
+            feasible=feasible_batch,
         )
 
     try:
@@ -1164,7 +1209,7 @@ def optimize_portfolio_de(
     except PositiveSeedNotFound:
         use_lookthrough_constraints = False
         print(
-            "    * Aucun portefeuille positif avec les contraintes look-through; "
+            "    * Aucun portefeuille admissible avec les contraintes look-through; "
             "nouvelle tentative sans minimum defensif ni plafond par pays."
         )
         try:
@@ -1172,7 +1217,7 @@ def optimize_portfolio_de(
         except PositiveSeedNotFound as exc:
             tested = init_batch_size * init_max_batches
             raise PositiveSeedNotFound(
-                "Aucun portefeuille à score positif trouvé, même sans minimum "
+                "Aucun portefeuille admissible trouvé, même sans minimum "
                 f"défensif ni plafond par pays, après {tested:,} nouveaux essais aléatoires."
             ) from exc
     print(

@@ -156,12 +156,18 @@ def test_optimize_portfolio_de_reports_progress(monkeypatch):
     matrix = [[True], [True], [True]]
 
     calls: list[tuple[int, int, float, float]] = []
+    # Le score mesure désormais l'écart à un benchmark : celui-ci est une entrée
+    # obligatoire de l'optimiseur (cf. test_benchmark_injection.py).
+    # Au moins STARR_MIN_HISTORY_DAYS points : l'optimiseur refuse un benchmark
+    # trop court. Seules les dernières lignes, alignées sur `rets`, sont utilisées.
+    benchmark = pd.Series(rng.normal(0.0008, 0.018, 800))
     weights, sharpe = optimize_portfolio_de(
         ["A", "B", "C"],
         rets,
         matrix,
         ["IBKR"],
         n_sim=2000,
+        benchmark_returns=benchmark,
         progress_cb=lambda seed_num, it, conv, best=None: calls.append((seed_num, it, conv, best)),
     )
     assert len(calls) > 0

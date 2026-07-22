@@ -79,7 +79,10 @@ def test_de_returns_feasible_finite_weights(monkeypatch):
     )
 
     assert np.isfinite(W).all()
-    assert np.isfinite(sharpe) and sharpe > 0          # plus de -inf
+    # Le score est un ÉCART au benchmark : il peut légitimement être négatif (le
+    # portefeuille perd contre CW8.PA). Seule la finitude est une propriété du DE
+    # — c'est la régression d'origine, un -inf qui annulait toute allocation.
+    assert np.isfinite(sharpe)
     assert abs(W.sum() - 1.0) < 1e-6                    # capital total investi = 100 %
     # disponibilité respectée : aucun poids là où l'accès est False
     for i in range(n):
@@ -356,45 +359,75 @@ def test_build_init_population_tiny_universe():
         assert (pop.max(axis=0) > 0.0).all()
 
 
-def test_find_positive_random_seed_retries_until_score_is_positive():
+def test_find_seed_retries_until_un_candidat_est_admissible():
+    """Le critère d'amorçage est la PÉNALITÉ NULLE, pas un score positif.
+
+    Tant que l'objectif était le ratio rendement/risque, « positif » voulait dire
+    « rendement > 0 » — presque toujours vrai. Depuis que le score mesure l'écart
+    au benchmark, l'exiger reviendrait à demander au tirage aléatoire de battre
+    déjà CW8.PA, c'est-à-dire de résoudre le problème avant de commencer.
+    """
     from app.services.finance.buffett.optimizer import find_positive_random_seed
 
     calls = {"n": 0}
     progress: list[tuple[int, int, float | None]] = []
 
-    def objective(candidates):
+    def feasible(candidates):
         calls["n"] += 1
-        energies = np.full(candidates.shape[1], 0.2)
-        if calls["n"] == 2:
-            energies[3] = -0.35
-        return energies
+        mask = np.zeros(candidates.shape[1], dtype=bool)
+        if calls["n"] == 2:           # aucun candidat admissible au 1er lot
+            mask[3] = True
+        return mask
 
+    # Score NÉGATIF partout : il ne doit plus empêcher l'amorçage.
     vector, score, batch = find_positive_random_seed(
         8,
         np.random.default_rng(12),
-        objective,
+        lambda candidates: np.full(candidates.shape[1], 0.35),
         batch_size=6,
         max_batches=4,
         progress_cb=lambda current, maximum, best: progress.append((current, maximum, best)),
+        feasible=feasible,
     )
 
     assert batch == 2
-    assert score == pytest.approx(0.35)
+    assert score == pytest.approx(-0.35)
     assert vector.shape == (8,)
-    assert progress[-1] == (2, 4, pytest.approx(0.35))
+    assert progress[-1] == (2, 4, pytest.approx(-0.35))
 
 
-def test_find_positive_random_seed_fails_before_starting_de():
+def test_find_seed_fails_quand_aucun_candidat_ne_respecte_les_contraintes():
+    """C'est le SEUL cas d'échec qui subsiste, et c'est bien celui que la
+    relaxation look-through de l'appelant doit rattraper."""
     from app.services.finance.buffett.optimizer import find_positive_random_seed
 
-    with pytest.raises(RuntimeError, match="Aucun portefeuille à score positif"):
+    with pytest.raises(RuntimeError, match="Aucun portefeuille admissible"):
         find_positive_random_seed(
             5,
             np.random.default_rng(13),
             lambda candidates: np.full(candidates.shape[1], 0.1),
             batch_size=4,
             max_batches=3,
+            feasible=lambda candidates: np.zeros(candidates.shape[1], dtype=bool),
         )
+
+
+def test_un_score_negatif_ne_bloque_plus_l_amorcage():
+    """Régression : le DE doit pouvoir démarrer d'un portefeuille qui perd contre
+    le benchmark — c'est justement le point de départ normal."""
+    from app.services.finance.buffett.optimizer import find_positive_random_seed
+
+    vector, score, batch = find_positive_random_seed(
+        5,
+        np.random.default_rng(15),
+        lambda candidates: np.full(candidates.shape[1], 4.2),   # score = -4.2
+        batch_size=4,
+        max_batches=3,
+        feasible=lambda candidates: np.ones(candidates.shape[1], dtype=bool),
+    )
+    assert batch == 1
+    assert score == pytest.approx(-4.2)
+    assert vector.shape == (5,)
 
 
 def test_positive_seed_error_has_a_specific_runtime_error_type():
@@ -410,6 +443,7 @@ def test_positive_seed_error_has_a_specific_runtime_error_type():
             lambda candidates: np.full(candidates.shape[1], 0.1),
             batch_size=2,
             max_batches=1,
+            feasible=lambda candidates: np.zeros(candidates.shape[1], dtype=bool),
         )
 
 
@@ -446,7 +480,9 @@ def test_de_retries_without_lookthrough_constraints(monkeypatch, capsys):
 
     output = capsys.readouterr().out
     assert "nouvelle tentative sans minimum defensif ni plafond par pays" in output
-    assert np.isfinite(score) and score > 0
+    # Ce test porte sur la RELAXATION des contraintes, pas sur le signe du score :
+    # l'écart au benchmark est négatif ici et c'est normal.
+    assert np.isfinite(score)
     assert weights.sum() == pytest.approx(1.0)
 
 
@@ -485,7 +521,6 @@ def _patch_fast_deterministic_de(monkeypatch, returns: pd.DataFrame):
 def test_final_score_uses_actual_broker_deployment(monkeypatch):
     from app.services.finance.buffett.config import Config
     from app.services.finance.buffett.optimizer import optimize_portfolio_de
-    from app.services.finance.buffett.starr import neg_starr
 
     returns = pd.DataFrame(
         np.tile(
@@ -508,23 +543,19 @@ def test_final_score_uses_actual_broker_deployment(monkeypatch):
         return_diagnostics=True,
     )
 
-    actual_global = weights.sum(axis=1)
-    raw_mean = returns.to_numpy().mean(axis=0)
-    expected_mean = (
-        Config.STARR_MEAN_SIGNAL_WEIGHT * raw_mean
-        + (1.0 - Config.STARR_MEAN_SIGNAL_WEIGHT) * np.median(raw_mean)
-    )
-    expected = -neg_starr(
-        actual_global,
-        np.resize(scenarios, (60, 4)),
-        expected_mean,
-        Config.STARR_ALPHA,
-        Config.STARR_DOWNSIDE_WEIGHT,
-    )
-    assert score == pytest.approx(expected)
+    # Le score doit porter sur le déploiement RÉEL par broker (budgets 800/200),
+    # pas sur le vecteur de préférences qui le précède. On vérifie la propriété
+    # plutôt que de reproduire l'arithmétique interne : la reproduire obligerait à
+    # dupliquer le prior par classe, l'alignement du benchmark et sa colonne
+    # simulée — un test qui ne casserait plus que sur ses propres copies.
     assert weights[:, 0].sum() == pytest.approx(0.8)
     assert weights[:, 1].sum() == pytest.approx(0.2)
+    assert np.isfinite(score)
     assert diagnostics["benchmarks"]["optimized"] == pytest.approx(score)
+    # Chaque titre n'est finançable que par SON broker (accès disjoint) : un score
+    # calculé sur les préférences brutes ignorerait cette contrainte et donnerait
+    # donc une valeur différente de l'équipondéré déployé.
+    assert diagnostics["benchmarks"]["equal_weight"] != pytest.approx(score)
 
 
 def test_stagnation_is_bounded_and_run_is_reproducible(monkeypatch):
@@ -554,7 +585,12 @@ def test_stagnation_is_bounded_and_run_is_reproducible(monkeypatch):
     assert first_diag == second_diag
 
 
-def test_turnover_diagnostics_use_previous_target_weights(monkeypatch):
+def test_diagnostics_signalent_le_portefeuille_detenu_et_le_benchmark(monkeypatch):
+    """Le bloc `turnover` a disparu : sa pénalité faisait DOUBLON avec les frais de
+    transaction, qui modélisent déjà le coût en euros des ordres. Les positions
+    courantes restent utilisées (frais + amorçage de la population), et les
+    diagnostics doivent le refléter — ainsi que les repères du benchmark, qui
+    donnent son sens au score."""
     from app.services.finance.buffett.config import Config
     from app.services.finance.buffett.optimizer import optimize_portfolio_de
 
@@ -576,7 +612,10 @@ def test_turnover_diagnostics_use_previous_target_weights(monkeypatch):
         return_diagnostics=True,
     )
 
-    assert diagnostics["turnover"]["current_weights_available"] is True
-    assert diagnostics["turnover"]["penalty"] == Config.STARR_TURNOVER_PENALTY
-    assert diagnostics["turnover"]["rebalance_band"] == Config.STARR_REBALANCE_BAND_PCT
-    assert diagnostics["turnover"]["estimated_one_way"] >= 0.0
+    assert "turnover" not in diagnostics
+    assert diagnostics["current_weights_available"] is True
+    assert diagnostics["schema_version"] == 3
+    assert diagnostics["estimation"]["mean_prior"] == "per_asset_class_median"
+    bench = diagnostics["benchmark_relative"]
+    assert bench["ticker"] == Config.STARR_BENCHMARK_TICKER
+    assert np.isfinite(bench["cvar_pct"]) and bench["cvar_pct"] >= 0.0
