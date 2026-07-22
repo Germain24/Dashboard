@@ -33,6 +33,30 @@ def _relax_real_world_constraints_for_synthetic_universes(monkeypatch):
     monkeypatch.setattr(Config, "TRANSACTION_COSTS_ENABLED", False)
 
 
+@pytest.fixture(autouse=True)
+def _default_benchmark_series(monkeypatch):
+    """Fournit une série de benchmark par défaut aux appels qui n'en passent pas.
+
+    Le score d'optimisation mesure désormais l'écart à un benchmark, qui est donc
+    une entrée obligatoire. Ces tests portent sur la MÉCANIQUE du DE (faisabilité,
+    arrêt, reproductibilité), pas sur l'injection du benchmark — couverte par
+    ``test_benchmark_injection.py``. On évite ainsi de répéter la même série dans
+    quatorze appels sans rien tester de plus.
+    """
+    from app.services.finance.buffett import optimizer as opt
+
+    original = opt.optimize_portfolio_de
+
+    def _with_default_benchmark(*args, **kwargs):
+        if kwargs.get("benchmark_returns") is None:
+            kwargs["benchmark_returns"] = pd.Series(
+                np.random.default_rng(123).normal(0.0004, 0.012, 800)
+            )
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(opt, "optimize_portfolio_de", _with_default_benchmark)
+
+
 def test_de_returns_feasible_finite_weights(monkeypatch):
     from app.services.finance.buffett.optimizer import optimize_portfolio_de
     from app.services.finance.buffett.config import Config
@@ -431,11 +455,21 @@ def _patch_fast_deterministic_de(monkeypatch, returns: pd.DataFrame):
     from app.services.finance.buffett.config import Config
 
     scenarios = np.asarray(returns, dtype=float)
-    monkeypatch.setattr(
-        starr,
-        "simulate_scenarios",
-        lambda _returns, n_sim, seed: np.resize(scenarios, (n_sim, scenarios.shape[1])),
-    )
+
+    def _deterministic_scenarios(_returns, n_sim, seed):
+        """Répète les lignes REÇUES, sans présumer de leur nombre de colonnes.
+
+        L'optimiseur simule désormais le benchmark en même temps que l'univers
+        (colonne supplémentaire quand il n'est pas déjà dedans) : un faux qui
+        renverrait une largeur fixe ne respecterait plus le contrat de la vraie
+        `simulate_scenarios` et provoquerait un décalage de dimensions. Le tuilage
+        par LIGNES préserve exactement le contenu de chaque colonne.
+        """
+        arr = np.asarray(_returns, dtype=float)
+        reps = int(np.ceil(n_sim / max(len(arr), 1)))
+        return np.tile(arr, (reps, 1))[:n_sim]
+
+    monkeypatch.setattr(starr, "simulate_scenarios", _deterministic_scenarios)
     monkeypatch.setattr(broker_availability, "load_etf_tickers", lambda: set(returns.columns))
     monkeypatch.setattr(Config, "STARR_DE_POPSIZE", 8)
     monkeypatch.setattr(Config, "STARR_DE_POSITIVE_INIT_BATCH_SIZE", 8)

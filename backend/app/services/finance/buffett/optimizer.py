@@ -462,8 +462,11 @@ def ticker_standalone_scores(
     cvar = -tail.mean(axis=0, dtype=np.float64)
     downside = np.minimum(sim, 0.0).astype(np.float64)
     dd = np.sqrt(np.mean(downside**2, axis=0))
-    risk = np.maximum((cvar + downside_weight * dd) * np.sqrt(252.0), 0.005)
-    return np.asarray(mean_daily, dtype=float) * 252.0 / risk
+    # Forme SOUSTRACTIVE, comme l'objectif : un ratio est invariant d'echelle et
+    # classait premier tout actif a risque minuscule (un ETF monetaire sortait
+    # devant les actions), ce qui orientait deja mal la population initiale.
+    risk = (cvar + downside_weight * dd) * np.sqrt(252.0)
+    return np.asarray(mean_daily, dtype=float) * 252.0 - risk
 
 
 def build_init_population(
@@ -678,26 +681,55 @@ def optimize_portfolio_de(
     from scipy.optimize._differentialevolution import DifferentialEvolutionSolver
 
     from .starr import (
+        benchmark_stats,
         correlation_stability_diagnostics,
-        neg_starr,
-        neg_starr_batch,
+        neg_benchmark_relative,
+        neg_benchmark_relative_batch,
         simulate_regime_scenarios,
     )
 
-    # Le benchmark n'appartient PAS a l'univers d'optimisation : verifie sur le run
-    # #51, select_etfs_per_broker l'ecarte (855 ETF -> 58). Ses rendements sont donc
-    # injectes par le runner. Sans lui le score n'a aucun sens -> echec explicite.
-    if benchmark_returns is None or len(benchmark_returns) < 2:
-        raise ValueError(
-            f"benchmark introuvable ({Config.STARR_BENCHMARK_TICKER}) : "
-            "le score relatif ne peut pas etre calcule"
-        )
-    bench_series = np.asarray(benchmark_returns, dtype=float)
-    if len(bench_series) < int(Config.STARR_MIN_HISTORY_DAYS):
-        raise ValueError(
-            f"benchmark {Config.STARR_BENCHMARK_TICKER} : "
-            f"{len(bench_series)} jours < {Config.STARR_MIN_HISTORY_DAYS} requis"
-        )
+    # Le benchmark n'appartient pas forcement a l'univers d'optimisation -- mais
+    # PEUT y figurer en pratique : s'il est deja eligible par lui-meme (cas reel
+    # aujourd'hui, cf. cache_status.json -- CW8.PA y est score=200 ETF, Achat=true,
+    # tres liquide), le runner le laisse dans `tickers`/`returns` comme un candidat
+    # d'allocation legitime. C'est VOULU : un portefeuille 100% benchmark score
+    # exactement 0 (jamais exploitable par le DE), donc en detenir une fraction
+    # comme diversification est sain -- la correction n'est PAS de l'exclure.
+    #
+    # Dans ce cas, on REUTILISE sa colonne existante comme serie de reference : on
+    # n'en injecte PAS une seconde. Sinon la meme serie apparaitrait deux fois des
+    # qu'elle est combinee a `returns` pour la simulation -> paire de correlation
+    # 1.0 -> matrice de correlation singuliere (l'ajustement de copule et la
+    # decomposition de Cholesky y sont sensibles).
+    #
+    # Seulement s'il est ABSENT de `tickers` (cas fantome deja neutralise par le
+    # runner -- score/Achat/liquidite insuffisants -- ou ecarte plus tard par la
+    # dedup/selection ETF) sa seule source redevient la serie injectee par
+    # l'appelant : sans elle le score relatif n'a aucun sens -> echec explicite.
+    # Le message precise que c'est l'APPELANT qui n'a pas fourni la serie (pas
+    # seulement "ticker introuvable") : le bouton manuel de creation de
+    # portefeuille (app/api/finance/buffett.py, _run_portfolio_creation) a
+    # longtemps appele optimize_portfolio_de sans passer benchmark_returns du
+    # tout, et le message d'origine laissait croire a tort que CW8.PA lui-meme
+    # etait injoignable.
+    tickers_upper = [str(t).upper() for t in tickers]
+    bench_ticker_cfg = str(Config.STARR_BENCHMARK_TICKER).strip().upper()
+    bench_in_universe = bool(bench_ticker_cfg) and bench_ticker_cfg in tickers_upper
+    if bench_in_universe:
+        bench_series = np.asarray(returns, dtype=float)[:, tickers_upper.index(bench_ticker_cfg)]
+    else:
+        if benchmark_returns is None or len(benchmark_returns) < 2:
+            raise ValueError(
+                f"benchmark {Config.STARR_BENCHMARK_TICKER} absent de l'univers "
+                "optimise ET aucune serie benchmark_returns fournie par "
+                "l'appelant : le score relatif ne peut pas etre calcule"
+            )
+        bench_series = np.asarray(benchmark_returns, dtype=float)
+        if len(bench_series) < int(Config.STARR_MIN_HISTORY_DAYS):
+            raise ValueError(
+                f"benchmark {Config.STARR_BENCHMARK_TICKER} : "
+                f"{len(bench_series)} jours < {Config.STARR_MIN_HISTORY_DAYS} requis"
+            )
 
     n_sim = int(Config.STARR_N_SIM if n_sim is None else n_sim)
     alpha = float(Config.STARR_ALPHA if alpha is None else alpha)
@@ -726,10 +758,18 @@ def optimize_portfolio_de(
     R_mean = R[-min(len(R), mean_window_days):]
     raw_mean_daily = R_mean.mean(axis=0)
     mean_signal_weight = min(max(float(Config.STARR_MEAN_SIGNAL_WEIGHT), 0.0), 1.0)
-    common_mean = float(np.nanmedian(raw_mean_daily))
+    # Prior par CLASSE d'actif et non mediane globale : tirer une obligation vers la
+    # mediane de tout l'univers (15,79 %/an mesure) lui offrait ~9 points de
+    # rendement fictif tout en lui laissant son risque quasi nul -- c'est ce qui
+    # faisait allouer 96 % du portefeuille a un ETF monetaire.
+    from .broker_availability import load_asset_classes
+
+    asset_classes = load_asset_classes()
+    ticker_classes = [asset_classes.get(str(t).upper()) for t in tickers]
+    prior_daily = class_aware_prior(raw_mean_daily, ticker_classes)
     mean_daily_all = (
         mean_signal_weight * raw_mean_daily
-        + (1.0 - mean_signal_weight) * common_mean
+        + (1.0 - mean_signal_weight) * prior_daily
     )
     std = R_mean.std(axis=0)
 
@@ -749,16 +789,63 @@ def optimize_portfolio_de(
     R_inv = R[:, inv_idx]
     mean_daily = mean_daily_all[inv_idx]
     access_inv = access[inv_idx]  # dispo broker restreinte aux titres investissables
-    print(
-        f"    * STARR/DE : {len(inv_idx)} titres, {n_sim} scénarios "
-        f"(Monte-Carlo + copule de Vine, CVaR {int(alpha * 100)} %)..."
+    inv_tickers_upper = [str(tickers[i]).upper() for i in inv_idx]
+    # Le benchmark est simule AVEC l'univers : memes scenarios, memes dependances
+    # de queue. S'il fait deja partie des titres investissables, on REUTILISE sa
+    # colonne -- en ajouter une seconde ferait apparaitre la meme serie deux fois,
+    # donc une paire de correlation 1,0 qui peut rendre la matrice singuliere
+    # (l'ajustement de copule et la decomposition de Cholesky y sont sensibles).
+    bench_pos = (
+        inv_tickers_upper.index(bench_ticker_cfg)
+        if bench_ticker_cfg in inv_tickers_upper
+        else None
     )
-    sim_rets, regime_diagnostics = simulate_regime_scenarios(
-        R_inv,
+    if bench_pos is None:
+        bench_aligned = bench_series[-R_inv.shape[0]:]
+        if len(bench_aligned) < R_inv.shape[0]:
+            bench_aligned = np.concatenate(
+                [np.zeros(R_inv.shape[0] - len(bench_aligned)), bench_aligned]
+            )
+        R_sim = np.column_stack([R_inv, bench_aligned])
+    else:
+        bench_aligned = R_inv[:, bench_pos]
+        R_sim = R_inv
+    print(
+        f"    * Score vs {Config.STARR_BENCHMARK_TICKER} : {len(inv_idx)} titres, "
+        f"{n_sim} scénarios (Monte-Carlo + copule, CVaR {int(alpha * 100)} %)..."
+    )
+    sim_full, regime_diagnostics = simulate_regime_scenarios(
+        R_sim,
         n_sim=n_sim,
         seed=seed,
         windows=Config.STARR_REGIME_WINDOWS,
         min_coverage=Config.STARR_REGIME_MIN_COVERAGE,
+    )
+    if bench_pos is None:
+        sim_rets = sim_full[:, :-1]
+        bench_sim = sim_full[:, -1]
+        # Le benchmark passe par le MEME estimateur que les candidats (prior de
+        # classe « actions ») : comparer une estimation regularisee a une moyenne
+        # brute biaiserait la comparaison en faveur du benchmark.
+        raw_bench = float(
+            np.mean(bench_aligned[-min(len(bench_aligned), mean_window_days):])
+        )
+        actions_mask = np.array([c == "actions" for c in ticker_classes], dtype=bool)
+        pool = raw_mean_daily[actions_mask] if actions_mask.any() else raw_mean_daily
+        finite_pool = pool[np.isfinite(pool)]
+        bench_prior = float(np.median(finite_pool)) if finite_pool.size else 0.0
+        bench_mean_daily = (
+            mean_signal_weight * raw_bench + (1.0 - mean_signal_weight) * bench_prior
+        )
+    else:
+        sim_rets = sim_full
+        bench_sim = sim_full[:, bench_pos]
+        bench_mean_daily = float(mean_daily[bench_pos])
+    bench = benchmark_stats(bench_sim, bench_mean_daily, alpha, 0.0)
+    print(
+        f"    * Benchmark : rendement {bench['annual_return'] * 100:.2f} %, "
+        f"CVaR {bench['cvar'] * 100:.2f} %, "
+        f"baisse {bench['downside_deviation'] * 100:.2f} %"
     )
     correlation_diagnostics = correlation_stability_diagnostics(
         R_inv,
@@ -788,8 +875,10 @@ def optimize_portfolio_de(
     has_current_weights = current_total > 1e-12
     if has_current_weights:
         current_inv /= current_total
-    turnover_lambda = max(float(Config.STARR_TURNOVER_PENALTY), 0.0)
-    rebalance_band = max(float(Config.STARR_REBALANCE_BAND_PCT), 0.0)
+    # Plus de penalite de turnover : elle faisait DOUBLON avec les frais de
+    # transaction, qui modelisent deja le cout en euros des ordres (x
+    # REBALANCES_PER_YEAR). `current_inv` reste necessaire pour ces frais et pour
+    # amorcer la population avec le portefeuille reellement detenu.
 
     # ── Contraintes look-through (défensif min, pays max) ────────────────────
     from .lookthrough import fill_unknown_countries, load_lookthrough
@@ -1009,8 +1098,8 @@ def optimize_portfolio_de(
         s = Xp.sum(axis=0)
         ok = s > 1e-12
         deployed, counts, annual_costs = _deploy_batch(Xp)
-        base = neg_starr_batch(
-            deployed, sim_search, mean_daily, alpha, downside_weight,
+        base = neg_benchmark_relative_batch(
+            deployed, sim_search, mean_daily, bench, alpha, downside_weight,
             annual_costs=annual_costs,
         )
         if ok.any():
@@ -1032,10 +1121,6 @@ def optimize_portfolio_de(
                 if C_mat.size:
                     over = np.maximum((C_mat.T @ W) - max_country, 0.0)
                     pen += pen_k * np.sum(over * over, axis=0)
-            if has_current_weights and turnover_lambda > 0:
-                changes = np.maximum(np.abs(W - current_inv[:, None]) - rebalance_band, 0.0)
-                turnover = 0.5 * np.sum(changes, axis=0)
-                pen += turnover_lambda * turnover
             base[ok] += pen
         return base
 
@@ -1173,7 +1258,14 @@ def optimize_portfolio_de(
     runs = []  # (energie, x, nit, raison_arret)
     k = 0
     stop_requested = False
+    # Une seule seed (STARR_DE_MAX_SEEDS = 1) amorcee par le portefeuille
+    # REELLEMENT detenu : le DE part de l'existant au lieu d'un tirage arbitraire.
+    # Le reste de la population conserve la couverture de l'univers (chaque titre
+    # apparait dans au moins un individu), sans quoi le DE n'aurait aucune
+    # diversite genetique et les coordonnees nulles le resteraient a jamais.
     warm_starts: list[np.ndarray] = [positive_seed]
+    if has_current_weights:
+        warm_starts.insert(0, current_inv.copy())
     while True:
         init_pop = build_init_population(
             n_inv,
@@ -1294,21 +1386,24 @@ def optimize_portfolio_de(
     deployed_inv, W = _to_broker_matrix(best_x)
     transaction_cost_details = _portfolio_cost_details(W[inv_idx, :])
 
-    # STARR PUR (sans le malus de cardinalité, qui ne sert qu'à orienter l'optimiseur)
-    # — mesuré sur le portefeuille final déjà projeté (contraintes garanties), sur
-    # les n_sim scénarios COMPLETS en float64 (la recherche DE n'utilisait qu'un
-    # sous-échantillon float32, cf. STARR_N_SIM_SEARCH).
-    starr = -neg_starr(
+    # SCORE PUR (sans le malus de cardinalité, qui ne sert qu'à orienter
+    # l'optimiseur) — mesuré sur le portefeuille final déjà projeté (contraintes
+    # garanties), sur les n_sim scénarios COMPLETS en float64 (la recherche DE
+    # n'utilisait qu'un sous-échantillon float32, cf. STARR_N_SIM_SEARCH).
+    starr = -neg_benchmark_relative(
         deployed_inv,
         sim_rets,
         mean_daily,
+        bench,
         alpha,
         downside_weight,
         annual_cost=transaction_cost_details["annualized_cost_pct"],
     )
     if not np.isfinite(starr):
         starr = 0.0
-    print(f"    * STARR final : {starr:.3f}")
+    print(
+        f"    * Score final vs {Config.STARR_BENCHMARK_TICKER} : {starr:+.2f} points/an"
+    )
 
     # Benchmarks déterministes et broker-aware : mêmes scénarios, mêmes budgets,
     # même matrice d'accès. Ils permettent de vérifier que la complexité du DE
@@ -1316,10 +1411,11 @@ def optimize_portfolio_de(
     def _full_starr(preferences: np.ndarray) -> float:
         actual, broker_matrix = _to_broker_matrix(preferences)
         costs = _portfolio_cost_details(broker_matrix[inv_idx, :])
-        value = -neg_starr(
+        value = -neg_benchmark_relative(
             actual,
             sim_rets,
             mean_daily,
+            bench,
             alpha,
             downside_weight,
             annual_cost=costs["annualized_cost_pct"],
@@ -1349,7 +1445,7 @@ def optimize_portfolio_de(
             best_single_ticker = ticker
 
     diagnostics = {
-        "schema_version": 2,
+        "schema_version": 3,
         "seed": int(seed),
         "n_sim": int(n_sim),
         "n_search": int(n_search),
@@ -1358,18 +1454,35 @@ def optimize_portfolio_de(
         "estimation": {
             "mean_window_observations": int(len(R_mean)),
             "mean_signal_weight": float(mean_signal_weight),
-            "mean_prior": "cross_sectional_median",
+            "mean_prior": "per_asset_class_median",
+            "class_priors": {
+                name: {
+                    "n": int(sum(1 for c in ticker_classes if c == name)),
+                    "annual_pct": float(
+                        np.median([
+                            raw_mean_daily[i]
+                            for i, c in enumerate(ticker_classes)
+                            if c == name and np.isfinite(raw_mean_daily[i])
+                        ]) * 252.0 * 100.0
+                    ),
+                }
+                for name in sorted({c for c in ticker_classes if c is not None})
+                if any(
+                    c == name and np.isfinite(raw_mean_daily[i])
+                    for i, c in enumerate(ticker_classes)
+                )
+            },
             "correlation_shrinkage": float(Config.STARR_CORRELATION_SHRINKAGE),
         },
-        "turnover": {
-            "current_weights_available": bool(has_current_weights),
-            "penalty": float(turnover_lambda),
-            "rebalance_band": float(rebalance_band),
-            "estimated_one_way": float(
-                0.5 * np.sum(np.abs(W.sum(axis=1)[inv_idx] - current_inv))
-                if has_current_weights else 0.0
-            ),
+        "benchmark_relative": {
+            "ticker": str(Config.STARR_BENCHMARK_TICKER),
+            "in_universe": bool(bench_pos is not None),
+            "annual_return_pct": float(bench["annual_return"] * 100.0),
+            "cvar_pct": float(bench["cvar"] * 100.0),
+            "downside_deviation_pct": float(bench["downside_deviation"] * 100.0),
+            "score_unit": "points de rendement annuel vs benchmark",
         },
+        "current_weights_available": bool(has_current_weights),
         "transaction_costs": {
             **transaction_cost_details,
             "base_currency": "EUR",

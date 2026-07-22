@@ -11,6 +11,8 @@ from sqlmodel import Session, delete, select
 from app.core.timeutil import utcnow
 from app.models.finance import BuffettRun, BuffettRunResult, BuffettRunStatus
 
+from .config import Config
+
 
 def get_latest_results_by_ticker(
     session: Session, tickers: Iterable[str]
@@ -128,10 +130,17 @@ def update_run_optimization_diagnostics(
     best_ticker = benchmarks.get("best_single_ticker")
     best_single = benchmarks.get("best_single")
     if optimized is not None and equal_weight is not None:
+        # Le score n'est plus un ratio sans unité mais un ÉCART au benchmark, en
+        # points de rendement annuel : un « 2,05 » d'un ancien run et un « +3,22 »
+        # d'un nouveau ne sont pas comparables, d'où l'étiquette explicite.
+        bench_ticker = (diagnostics.get("benchmark_relative") or {}).get(
+            "ticker", Config.STARR_BENCHMARK_TICKER
+        )
         run.resume = (
-            f"STARR réel {float(optimized):.4f} · équipondéré {float(equal_weight):.4f}"
+            f"score vs {bench_ticker} {float(optimized):+.2f} pts "
+            f"· équipondéré {float(equal_weight):+.2f}"
             + (
-                f" · meilleur candidat simple {best_ticker} {float(best_single):.4f}"
+                f" · meilleur candidat simple {best_ticker} {float(best_single):+.2f}"
                 if best_ticker and best_single is not None
                 else ""
             )

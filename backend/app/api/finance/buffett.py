@@ -617,7 +617,16 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
             opt_prog.finish(message="Aucun ticker valide.")
             return
 
+        # Le benchmark doit etre telecharge meme s'il n'est pas eligible : c'est
+        # la reference du score, pas un candidat a l'allocation force (meme
+        # logique que runner.py -- ce chemin est le SECOND call site independant
+        # vers optimize_portfolio_de, celui du bouton manuel "Creer le
+        # portefeuille optimal" ; avant ce correctif il ne passait pas du tout
+        # benchmark_returns et levait donc systematiquement une ValueError).
+        bench_ticker = str(Config.STARR_BENCHMARK_TICKER).strip().upper()
         t_list = list(verified.keys())
+        if bench_ticker and bench_ticker not in {t.upper() for t in t_list}:
+            t_list.append(bench_ticker)
         ticker_col = "Ticker Yahoo Finance"
         try:
             opt_prog.set_phase("preparation", "Téléchargement des cours…")
@@ -643,6 +652,27 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
                 logger.info(f"[portfolio_create] Fenêtre commune de rendements : {len(rets)} jours "
                             f"({rets.index[0].date()} -> {rets.index[-1].date()})")
 
+            # Extraction du benchmark AVANT dedup/selection : ces etapes peuvent
+            # l'ecarter (jumeau d'indice, plafond de 50 ETF/broker) alors qu'il
+            # doit rester la reference du score (meme raisonnement que runner.py).
+            from app.services.finance.buffett.dedup import returns_in_base_currency
+            bench_rets = None
+            bench_col = next((c for c in rets.columns if str(c).upper() == bench_ticker), None)
+            if bench_col is not None:
+                bench_rets = returns_in_base_currency(
+                    rets[[bench_col]], "EUR", strict=True
+                )[bench_col]
+                logger.info(f"[portfolio_create] Benchmark {bench_ticker} : {len(bench_rets)} jours")
+                if bench_ticker not in {t.upper() for t in verified}:
+                    # Ajoute uniquement pour extraire son rendement (pas eligible,
+                    # cf. plus haut) : ne doit pas rester un candidat a
+                    # l'allocation, sinon prepare_optimization lui accorderait un
+                    # acces broker par defaut (ticker absent de df_m -> True) et
+                    # le DE pourrait l'acheter reellement.
+                    rets = rets.drop(columns=[bench_col])
+            else:
+                logger.warning(f"[portfolio_create] ATTENTION : benchmark {bench_ticker} absent des cours")
+
             df_m = pd.DataFrame([{
                 ticker_col: t,
                 "Nom": verified[t][1].get("Nom", ""),
@@ -656,10 +686,10 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
             df_m = merge_broker_columns(df_m, ticker_col)
             opt_prog.set_phase("preparation", "Déduplication (cross-listings)…")
             rets = deduplicate_tickers(rets, df_m, ticker_col)
-            from app.services.finance.buffett.dedup import (
-                deduplicate_correlated,
-                returns_in_base_currency,
-            )
+            # returns_in_base_currency deja importe plus haut (extraction du
+            # benchmark) : cet appel-ci convertit tout `rets`, pas seulement sa
+            # colonne.
+            from app.services.finance.buffett.dedup import deduplicate_correlated
             from app.services.finance.buffett.etf_selection import select_etfs_per_broker
             rets = returns_in_base_currency(rets, "EUR", strict=True)
             rets = deduplicate_correlated(
@@ -687,6 +717,7 @@ def _run_portfolio_creation(run_id: int, min_score_val: float) -> None:
                 should_stop=lambda: opt_prog.snapshot()["stop_requested"],
                 current_weights=previous_weights,
                 ttf_tickers=ttf_tickers,
+                benchmark_returns=bench_rets,
                 return_diagnostics=True,
             )
             diagnostics["etf_selection"] = etf_selection_diagnostics
