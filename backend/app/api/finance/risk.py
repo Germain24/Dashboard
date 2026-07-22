@@ -55,14 +55,20 @@ _risk_cache = TTLCache(ttl_seconds=300.0)
 
 @router.get("/risk", response_model=RiskMetricsOut)
 def risk(session: Session = Depends(get_session)):
-    rows = get_history(session, limit=365)
+    # Même fenêtre que la carte de performance : le backfill antérieur au
+    # premier relevé broker perd 20 % de chaque versement et rendait Sharpe,
+    # Sortino et drawdown ininterprétables (cf. `documented_history_start`).
+    from app.services.finance.snapshots import documented_history_start, get_metric_history
+
+    rows = get_metric_history(session)
     snapshots = [{"date": str(r.date), "valeur": r.valeur, "investit": r.investit} for r in rows]
     positions = get_positions(session)
     # Cache 5 min : la signature (nb points + dernière date + nb positions) suffit
     # à invalider dès qu'un snapshot ou une position change.
     key = (len(snapshots), snapshots[-1]["date"] if snapshots else None, len(positions))
     m = _risk_cache.get_or_set(key, lambda: get_risk_metrics(snapshots, positions))
-    return RiskMetricsOut(**m)
+    start = documented_history_start(session)
+    return RiskMetricsOut(**m, periode_debut=start.isoformat() if start else None)
 
 
 @router.get("/treemap", response_model=list[TreemapNodeOut])

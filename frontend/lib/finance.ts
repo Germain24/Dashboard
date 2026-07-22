@@ -225,6 +225,9 @@ export interface PerfMetrics {
   twr_pct?: number | null;
   twr_annualise_pct?: number | null;
   date_snapshot?: string;
+  // Début de la période documentée : les ratios excluent le backfill antérieur
+  // au premier relevé broker.
+  periode_debut?: string | null;
 }
 
 export interface BenchmarkOut {
@@ -248,6 +251,7 @@ export interface RiskMetrics {
   hhi?: number;
   concentration: string;
   n_positions: number;
+  periode_debut?: string | null;
 }
 
 export interface TreemapNode {

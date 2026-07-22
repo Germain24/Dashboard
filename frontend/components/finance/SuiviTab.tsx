@@ -516,6 +516,11 @@ export function SuiviTab() {
         )
       : null;
   const cw8Annualized = hasMoneyWeightedReturn ? cw8MoneyWeighted : cw8CapitalReturn;
+  // Les ratios n'englobent que la période couverte par des relevés broker ; le
+  // graphique, lui, continue d'afficher tout l'historique reconstruit.
+  const documentedSince = perf?.periode_debut
+    ? new Date(perf.periode_debut).toLocaleDateString("fr-FR")
+    : null;
   const coreError = snapshotQuery.error ?? perfQuery.error ?? historyQuery.error;
   const errorMessage = error ?? (coreError instanceof Error ? coreError.message : null);
 
@@ -632,6 +637,14 @@ export function SuiviTab() {
           <span className="text-xs text-[var(--muted-foreground)]">
             · même période · mêmes apports
           </span>
+          {documentedSince && (
+            <span
+              className="text-xs text-[var(--muted-foreground)]"
+              title="L'historique antérieur au premier relevé broker est une reconstruction : il n'entre dans aucun ratio."
+            >
+              · depuis le {documentedSince} (données documentées)
+            </span>
+          )}
           {!hasMoneyWeightedReturn && (
             <span className="text-xs text-[var(--warning-foreground)]">
               · TRI indisponible : dates d&apos;apports incomplètes

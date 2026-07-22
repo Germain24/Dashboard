@@ -10,6 +10,7 @@ type RiskRatios = {
   max_drawdown_pct?: number | null;
   volatilite_annualisee_pct?: number | null;
   concentration?: string | null;
+  periode_debut?: string | null;
 };
 
 const fmt = (v: number) => v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -27,6 +28,7 @@ export function RiskMetricsRow({ metrics }: { metrics: RiskRatios }) {
     max_drawdown_pct: drawdown,
     volatilite_annualisee_pct: volatilite,
     concentration,
+    periode_debut: periodeDebut,
   } = metrics;
   if (sharpe == null && sortino == null && drawdown == null) return null;
 
@@ -75,6 +77,16 @@ export function RiskMetricsRow({ metrics }: { metrics: RiskRatios }) {
           >
             {concentration}
           </span>
+        </span>
+      )}
+      {periodeDebut && (
+        // Les ratios ne portent que sur la période couverte par des relevés :
+        // l'historique reconstruit en amont les rendait ininterprétables.
+        <span
+          className="text-xs text-[var(--muted-foreground)]"
+          title="L'historique antérieur au premier relevé broker est une reconstruction : il n'entre dans aucun ratio."
+        >
+          · depuis le {new Date(periodeDebut).toLocaleDateString("fr-FR")}
         </span>
       )}
     </div>

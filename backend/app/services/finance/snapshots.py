@@ -166,6 +166,42 @@ def carry_forward_partial_values(
     return carried
 
 
+def documented_history_start(session: Session) -> dt.date | None:
+    """Date du premier mouvement réellement documenté (grand livre broker).
+
+    Tout ce qui précède est une reconstruction sans relevé en face. Sur la base
+    réelle, ce backfill perd exactement 20 % de chaque versement mensuel
+    (280 € apportés, +224 € de valeur, médiane 0,80 sur 59 apports) : chaîné, il
+    écrase l'indice de richesse à 0,585 et fabrique un drawdown de 63,7 %, un
+    Sharpe négatif et un rendement annualisé de 4,5 % sur un portefeuille
+    pourtant en plus-value.
+
+    Les ratios de risque et de rendement ne sont donc publiés qu'à partir de
+    cette date. Le graphique, lui, garde tout l'historique : c'est une décision
+    de publication, pas une suppression de données. ``None`` = aucun document
+    importé, auquel cas les métriques retombent sur la série complète faute de
+    mieux.
+    """
+    first = session.exec(
+        select(Transaction).order_by(Transaction.date.asc()).limit(1)
+    ).first()
+    if first is None:
+        return None
+    return _cash_flow_date(first)
+
+
+def get_metric_history(session: Session) -> list[SnapshotPortefeuille]:
+    """Série destinée aux métriques : restreinte à la période documentée."""
+    rows = get_history(session, limit=100_000)
+    start = documented_history_start(session)
+    if start is None:
+        return rows
+    windowed = [row for row in rows if row.date >= start]
+    # Une fenêtre trop courte pour produire un rendement ne doit pas vider la
+    # carte de performance : on garde alors la série complète.
+    return windowed if len(windowed) >= 2 else rows
+
+
 def get_latest_snapshot(session: Session) -> SnapshotPortefeuille | None:
     rows = get_history(session, limit=1)
     return rows[-1] if rows else None

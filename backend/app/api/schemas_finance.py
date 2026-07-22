@@ -78,6 +78,9 @@ class PerfMetricsOut(BaseModel):
     twr_pct: Optional[float] = None
     twr_annualise_pct: Optional[float] = None
     date_snapshot: Optional[str] = None
+    # Début de la période documentée couverte par les ratios ci-dessus. Le
+    # backfill antérieur au premier relevé broker en est exclu.
+    periode_debut: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +119,8 @@ class RiskMetricsOut(BaseModel):
     hhi: float = 0.0
     concentration: str = "inconnu"
     n_positions: int = 0
+    # Même fenêtre documentée que PerfMetricsOut. None = aucun document importé.
+    periode_debut: Optional[str] = None
 
 
 class TreemapNodeOut(BaseModel):

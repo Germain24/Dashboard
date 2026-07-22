@@ -205,9 +205,14 @@ def get_perf_metrics(session: Session) -> dict:
     # ``get_history`` réconcilie notamment le capital investi depuis les flux
     # documentés. La carte de performance doit consommer la même série que le
     # graphique et les métriques de risque, pas les lignes brutes divergentes.
-    from app.services.finance.snapshots import get_history
+    # La fenêtre documentée écarte le backfill antérieur au premier relevé
+    # broker : sa fuite de 20 % par versement fabriquait un drawdown de 63,7 %
+    # et un Sharpe négatif sur un portefeuille en plus-value (cf.
+    # ``documented_history_start``). Le patrimoine affiché reste le dernier
+    # état connu ; seuls les ratios sont restreints.
+    from app.services.finance.snapshots import documented_history_start, get_metric_history
 
-    snaps = get_history(session, limit=10_000)
+    snaps = get_metric_history(session)
     if not snaps:
         return {}
     latest = snaps[-1]
@@ -238,14 +243,23 @@ def get_perf_metrics(session: Session) -> dict:
     # Rendement pondéré dans le temps (retire l'effet des apports)
     twr = time_weighted_return([(s.date, s.valeur, s.investit) for s in snaps])
 
-    # CAGR demandé par l'interface : annualisation explicite du multiple
-    # valeur/capital investi. Il reste séparé du TWR, qui est nullable lorsque
-    # la chronologie des flux n'est pas suffisamment fiable.
+    # Rendement annualisé hors apports : croissance de l'indice de performance
+    # sur la durée de la fenêtre. Sur une fenêtre qui s'ouvre avec un capital
+    # déjà constitué, annualiser le simple multiple valeur/capital attribuerait
+    # à la période l'intégralité des gains des années précédentes.
     start_date = prepared[0].date if prepared else snaps[0].date
-    cagr = annualized_capital_return(valeur, investit, start_date, latest.date)
+    if len(wealth) >= 2 and wealth[-1] > 0:
+        cagr = annualized_capital_return(wealth[-1], wealth[0], start_date, latest.date)
+    else:
+        cagr = None
     mwr = money_weighted_annual_return(prepared, prepared=True)
 
     return {
+        "periode_debut": (
+            start.isoformat()
+            if (start := documented_history_start(session)) is not None
+            else None
+        ),
         "valeur": valeur,
         "investit": investit,
         "pl_total": pl_total,
