@@ -361,12 +361,27 @@ soustractive produit naturellement.
    migration de données n'est nécessaire (les diagnostics sont du JSON libre), mais
    l'étiquette affichée doit distinguer les deux.
 
-7. **`find_positive_random_seed`** — cherche un objectif pénalisé strictement
-   positif pour amorcer le DE. Avec le nouveau score, « positif » signifie
-   désormais « bat CW8.PA après pénalités », ce qui est nettement plus exigeant
-   qu'auparavant. Le portefeuille équipondéré atteignant +3,22 avant pénalités, la
-   condition reste atteignable, mais **le comportement de l'initialisation doit être
-   vérifié sur un run réel** — c'est le principal risque d'intégration du design.
+7. **`find_positive_random_seed`** — le critère d'amorçage passe de « score
+   strictement positif » à « **pénalité nulle** » (contraintes respectées).
+
+   Le risque anticipé s'est matérialisé dès les tests : tant que l'objectif était
+   le ratio `rendement / risque`, « positif » voulait simplement dire
+   « rendement > 0 » — presque toujours vrai, donc un garde-fou quasi gratuit.
+   Depuis que le score mesure l'écart au benchmark, « positif » voudrait dire
+   « battre CW8.PA dès le tirage au sort » : ce serait exiger du point de départ
+   qu'il résolve déjà le problème que le DE doit résoudre. Sur un univers
+   synthétique à deux titres, aucun tirage n'y parvient et le run échoue.
+
+   Le nouveau critère est celui que ce garde-fou visait réellement : l'échec
+   `PositiveSeedNotFound` signale qu'aucun portefeuille aléatoire ne respecte les
+   contraintes look-through — exactement le cas où l'appelant doit les relâcher.
+   La relaxation automatique (défensif / pays) conserve donc tout son sens, alors
+   qu'un simple « prendre le meilleur candidat » l'aurait désactivée à jamais.
+
+   Mise en œuvre : les pénalités sont extraites de `neg_obj_batch` dans un
+   `_penalties_batch` réutilisable, et `feasible_batch` expose le masque des
+   candidats à pénalité nulle. `find_positive_random_seed` reçoit ce masque via un
+   paramètre `feasible=`.
 
 ## Hors périmètre
 
