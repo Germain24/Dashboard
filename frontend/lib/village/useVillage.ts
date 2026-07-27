@@ -126,6 +126,14 @@ export function useVillage(tabs: TabsView = EMPTY_TABS, enabled = true): Village
     const onKey = (e: KeyboardEvent) => {
       const current = ref.current.state;
       if (!current || isInert(e.target)) return;
+
+      // La barre d'onglets gère elle-même ←/→ (navigation à tabIndex glissant,
+      // pattern ARIA). Sans cette garde, la touche serait traitée DEUX fois :
+      // une fois par le bouton, une fois par le village — on sauterait deux
+      // onglets, ou on changerait d'onglet en ressortant du bâtiment.
+      const el = e.target instanceof Element ? e.target : null;
+      if (el?.closest('[role="tablist"]')) return;
+
       const action = actionForKey(e.key);
       if (!action) return;
       // Au niveau 2 les flèches verticales restent le seul moyen clavier de
