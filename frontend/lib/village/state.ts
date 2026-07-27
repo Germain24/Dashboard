@@ -8,7 +8,11 @@
  *
  *   niveau 0 — les quartiers   → `/?q=<groupSlug>`
  *   niveau 1 — les bâtiments   → `/?q=<groupSlug>&b=<moduleSlug>`
- *   niveau 2 — l'intérieur     → `/<moduleSlug>?tab=<id>`
+ *   niveau 2 — les salles      → `/<moduleSlug>?v=salles`
+ *   niveau 3 — le contenu      → `/<moduleSlug>`
+ *
+ * Le niveau 3 porte l'URL nue à dessein : un lien partagé `/finance` doit
+ * ouvrir la donnée, pas le hall du bâtiment.
  *
  * Tout ici est pur et testé : le hook React (`useVillage`) ne fait que lire
  * l'URL, appeler `villageReducer`, puis pousser `urlForState`.
@@ -22,7 +26,10 @@ import {
   type Module,
 } from "@/lib/modules";
 
-export type VillageLevel = 0 | 1 | 2;
+export type VillageLevel = 0 | 1 | 2 | 3;
+
+/** Valeur du paramètre `?v=` qui distingue le hall des salles du contenu. */
+export const ROOMS_VIEW = "salles";
 
 /** Les quatre gestes, déjà normalisés par la couche gestuelle. */
 export type VillageAction = "up" | "down" | "enter" | "back";
@@ -33,7 +40,7 @@ export type VillageState = {
   groupIndex: number;
   /** Index dans `MODULE_GROUPS[groupIndex].items`. */
   moduleIndex: number;
-  /** Index de l'onglet, niveau 2 uniquement. */
+  /** Index de la salle (= de l'onglet), niveaux 2 et 3. */
   tabIndex: number;
 };
 
@@ -84,7 +91,7 @@ export function segmentOf(pathname: string): string {
  */
 export function deriveVillageState(
   pathname: string,
-  params: { q?: string | null; b?: string | null },
+  params: { q?: string | null; b?: string | null; v?: string | null },
   activeTabIndex = 0,
 ): VillageState | null {
   const segment = segmentOf(pathname);
@@ -114,7 +121,8 @@ export function deriveVillageState(
   if (!at) return null;
 
   return {
-    level: 2,
+    // `?v=salles` = on parcourt le hall ; sans lui, on est dans le contenu.
+    level: params.v === ROOMS_VIEW ? 2 : 3,
     groupIndex: at.groupIndex,
     moduleIndex: at.moduleIndex,
     tabIndex: Math.max(0, activeTabIndex),
@@ -124,11 +132,12 @@ export function deriveVillageState(
 /**
  * Applique un geste. Pur, total (toujours un état valide), clampé aux bornes.
  *
- * Asymétrie voulue au niveau 2 : « droite » avance d'un onglet, « gauche »
- * ressort du bâtiment. L'axe vertical y appartient au contenu de la page —
- * `up`/`down` n'y arrivent que par le clavier.
+ * Chaque niveau a son axe vertical : les quartiers, puis les bâtiments, puis
+ * les salles. « Droite » descend d'un niveau, « gauche » remonte. Le niveau 3
+ * fait exception : l'axe vertical y appartient au contenu de la page, qu'il
+ * faut pouvoir lire — `up`/`down` n'y font donc rien.
  *
- * @param tabCount nombre d'onglets du module courant (0 si inconnu).
+ * @param tabCount nombre de salles du module courant (0 si inconnu).
  */
 export function villageReducer(
   state: VillageState,
@@ -156,9 +165,16 @@ export function villageReducer(
     case 2: {
       const max = Math.max(0, tabCount - 1);
       if (action === "up") return { ...state, tabIndex: clamp(state.tabIndex - 1, max) };
-      if (action === "down" || action === "enter")
-        return { ...state, tabIndex: clamp(state.tabIndex + 1, max) };
+      if (action === "down") return { ...state, tabIndex: clamp(state.tabIndex + 1, max) };
+      if (action === "enter") return { ...state, level: 3 };
       return { ...state, level: 1, tabIndex: 0 };
+    }
+
+    case 3: {
+      // On lit. Seul « gauche » répond : il ramène dans le hall, sur la salle
+      // qu'on vient de quitter.
+      if (action === "back") return { ...state, level: 2 };
+      return state;
     }
   }
 }
@@ -166,9 +182,9 @@ export function villageReducer(
 /**
  * URL correspondant à un état.
  *
- * Le niveau 2 n'encode PAS l'onglet : il vit dans la page, pas dans l'URL.
- * Changer d'onglet ne navigue donc pas — le village appelle le `onChange`
- * publié par `ModuleHeader` (voir `lib/village/tabs.tsx`).
+ * L'onglet n'y figure PAS : il vit dans la page, pas dans l'URL. Changer de
+ * salle ne navigue donc pas — le village appelle le `onChange` publié par
+ * `ModuleHeader` (voir `lib/village/tabs.tsx`).
  */
 export function urlForState(state: VillageState): string {
   const group = MODULE_GROUPS[state.groupIndex];
@@ -180,6 +196,7 @@ export function urlForState(state: VillageState): string {
   if (!mod) return `/?q=${GROUP_SLUGS[group.group]}`;
 
   if (state.level === 1) return `/?q=${GROUP_SLUGS[group.group]}&b=${mod.slug}`;
+  if (state.level === 2) return `/${mod.slug}?v=${ROOMS_VIEW}`;
 
   return `/${mod.slug}`;
 }

@@ -13,6 +13,13 @@ import { MODULE_GROUPS } from "@/lib/modules";
 import { NavModeToggle } from "@/components/NavModeToggle";
 import type { VillageState } from "@/lib/village/state";
 
+/** Ce que l'axe vertical parcourt, niveau par niveau. */
+const LEVEL_AXIS: Record<number, string> = {
+  0: "quartiers",
+  1: "bâtiments",
+  2: "salles",
+};
+
 function trail(state: VillageState, tabLabel?: string): string[] {
   const group = MODULE_GROUPS[state.groupIndex];
   if (!group) return [];
@@ -31,7 +38,9 @@ export function VillageHud({
   tabLabel?: string;
 }) {
   const path = trail(state, tabLabel);
-  const inside = state.level === 2;
+  // Seul le niveau 3 rend l'axe vertical au contenu : c'est là, et là
+  // seulement, que « lire » remplace « parcourir ».
+  const reading = state.level === 3;
 
   return (
     <div className="village-hud" data-village-hud>
@@ -55,12 +64,14 @@ export function VillageHud({
         <p className="village-hints" aria-hidden="true">
           <span>
             <ChevronsUpDown size={13} />
-            {inside ? "lire" : "parcourir"}
+            {reading ? "lire" : LEVEL_AXIS[state.level]}
           </span>
-          <span>
-            <ChevronRight size={13} />
-            {inside ? "onglet" : "entrer"}
-          </span>
+          {!reading && (
+            <span>
+              <ChevronRight size={13} />
+              entrer
+            </span>
+          )}
           {state.level > 0 && (
             <span>
               <ChevronLeft size={13} />

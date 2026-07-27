@@ -58,10 +58,11 @@ export function useVillage(tabs: TabsView = EMPTY_TABS, enabled = true): Village
 
   const q = search.get("q");
   const b = search.get("b");
+  const v = search.get("v");
 
   const state = useMemo(
-    () => (enabled ? deriveVillageState(pathname, { q, b }, tabs.activeIndex) : null),
-    [enabled, pathname, q, b, tabs.activeIndex],
+    () => (enabled ? deriveVillageState(pathname, { q, b, v }, tabs.activeIndex) : null),
+    [enabled, pathname, q, b, v, tabs.activeIndex],
   );
 
   // Référence vivante : les écouteurs natifs sont posés une fois et ne doivent
@@ -78,8 +79,10 @@ export function useVillage(tabs: TabsView = EMPTY_TABS, enabled = true): Village
       const next = villageReducer(current, action, liveTabs.tabs.length);
       if (sameState(current, next)) return;
 
-      // Changer d'onglet ne navigue pas : l'onglet actif vit dans la page.
-      // On appelle son `onChange`, et l'état se re-dérive de la republication.
+      // Changer de salle ne navigue pas : l'onglet actif vit dans la page. On
+      // appelle son `onChange`, et l'état se re-dérive de la republication.
+      // Parcourir le hall change donc DÉJÀ l'onglet affiché derrière, si bien
+      // qu'entrer dans la salle n'a plus rien à charger.
       if (current.level === 2 && next.level === 2) {
         select?.(next.tabIndex);
         return;
@@ -100,9 +103,10 @@ export function useVillage(tabs: TabsView = EMPTY_TABS, enabled = true): Village
       const current = ref.current.state;
       if (!current || e.ctrlKey || e.metaKey || isInert(e.target)) return;
 
-      // Au niveau 2, l'axe vertical appartient au contenu de la page : le
-      // village ne capte que l'horizontal (droite = onglet, gauche = sortir).
-      const allowVertical = current.level !== 2;
+      // Le vertical n'appartient au contenu de la page qu'au niveau 3, celui
+      // où on lit vraiment. Aux niveaux 0 à 2 il fait voyager la caméra —
+      // entre quartiers, entre bâtiments, puis entre salles.
+      const allowVertical = current.level !== 3;
 
       const { acc: next, action, consumed } = resolveGesture(acc, {
         dx: e.deltaX,
@@ -166,7 +170,7 @@ export function useVillage(tabs: TabsView = EMPTY_TABS, enabled = true): Village
       const action = actionForSwipe(dx, dy);
       // Niveau 2 : le balayage vertical fait défiler la page, pas le village.
       if (!action) return;
-      if (current.level === 2 && (action === "up" || action === "down")) return;
+      if (current.level === 3 && (action === "up" || action === "down")) return;
       dispatch(action);
     };
 

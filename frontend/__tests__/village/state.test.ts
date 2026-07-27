@@ -70,22 +70,34 @@ describe("deriveVillageState — niveaux 0 et 1", () => {
 });
 
 describe("deriveVillageState — niveau 2", () => {
-  it("un deep link module atterrit directement dans le bâtiment", () => {
-    expect(deriveVillageState("/finance", {})).toEqual(at({ level: 2, ...FINANCE }));
+  it("un deep link module nu atterrit DANS LE CONTENU, pas dans le hall", () => {
+    expect(deriveVillageState("/finance", {})).toEqual(at({ level: 3, ...FINANCE }));
   });
 
-  it("prend l'onglet actif publié par la page, pas l'URL", () => {
-    expect(deriveVillageState("/finance", {}, 2)).toEqual(
-      at({ level: 2, ...FINANCE, tabIndex: 2 }),
+  it("`?v=salles` ouvre le hall des salles", () => {
+    expect(deriveVillageState("/finance", { v: "salles" })).toEqual(
+      at({ level: 2, ...FINANCE }),
     );
   });
 
-  it("sans onglet publié, retombe sur le premier", () => {
+  it("une valeur de vue inconnue retombe sur le contenu", () => {
+    expect(deriveVillageState("/finance", { v: "nimporte" })).toEqual(
+      at({ level: 3, ...FINANCE }),
+    );
+  });
+
+  it("prend la salle active publiée par la page, pas l'URL", () => {
+    expect(deriveVillageState("/finance", {}, 2)).toEqual(
+      at({ level: 3, ...FINANCE, tabIndex: 2 }),
+    );
+  });
+
+  it("sans salle publiée, retombe sur la première", () => {
     expect(deriveVillageState("/finance", {})).toEqual(
-      at({ level: 2, ...FINANCE, tabIndex: 0 }),
+      at({ level: 3, ...FINANCE, tabIndex: 0 }),
     );
     expect(deriveVillageState("/finance", {}, -1)).toEqual(
-      at({ level: 2, ...FINANCE, tabIndex: 0 }),
+      at({ level: 3, ...FINANCE, tabIndex: 0 }),
     );
   });
 
@@ -155,32 +167,53 @@ describe("villageReducer — niveau 1", () => {
   });
 });
 
-describe("villageReducer — niveau 2", () => {
+describe("villageReducer — niveau 2 (le hall des salles)", () => {
   const base = at({ level: 2, ...FINANCE });
 
-  it("`enter` (droite) avance d'un onglet", () => {
-    expect(villageReducer(base, "enter", 3).tabIndex).toBe(1);
-  });
-
-  it("`enter` sur le dernier onglet ne déborde pas", () => {
-    expect(villageReducer({ ...base, tabIndex: 2 }, "enter", 3).tabIndex).toBe(2);
-  });
-
-  it("`up`/`down` naviguent aussi les onglets (clavier)", () => {
-    expect(villageReducer({ ...base, tabIndex: 1 }, "up", 3).tabIndex).toBe(0);
+  it("`up`/`down` parcourent les salles", () => {
     expect(villageReducer(base, "down", 3).tabIndex).toBe(1);
+    expect(villageReducer({ ...base, tabIndex: 1 }, "up", 3).tabIndex).toBe(0);
   });
 
-  it("sans onglets connus, la navigation d'onglet est inerte", () => {
-    expect(villageReducer(base, "enter").tabIndex).toBe(0);
+  it("clampe à la dernière salle", () => {
+    expect(villageReducer({ ...base, tabIndex: 2 }, "down", 3).tabIndex).toBe(2);
   });
 
-  it("`back` (gauche) ressort du bâtiment et réinitialise l'onglet", () => {
+  it("`enter` (droite) entre dans la salle, sans en changer", () => {
+    expect(villageReducer({ ...base, tabIndex: 2 }, "enter", 3)).toEqual({
+      ...base,
+      level: 3,
+      tabIndex: 2,
+    });
+  });
+
+  it("sans salles connues, le parcours est inerte", () => {
+    expect(villageReducer(base, "down").tabIndex).toBe(0);
+  });
+
+  it("`back` (gauche) ressort du bâtiment", () => {
     expect(villageReducer({ ...base, tabIndex: 2 }, "back", 3)).toEqual({
       ...base,
       level: 1,
       tabIndex: 0,
     });
+  });
+});
+
+describe("villageReducer — niveau 3 (on lit)", () => {
+  const base = at({ level: 3, ...FINANCE, tabIndex: 2 });
+
+  it("l'axe vertical est rendu au contenu : `up`/`down` ne font rien", () => {
+    expect(villageReducer(base, "up", 5)).toEqual(base);
+    expect(villageReducer(base, "down", 5)).toEqual(base);
+  });
+
+  it("`enter` ne descend pas plus bas", () => {
+    expect(villageReducer(base, "enter", 5)).toEqual(base);
+  });
+
+  it("`back` ramène au hall, sur la salle qu'on quitte", () => {
+    expect(villageReducer(base, "back", 5)).toEqual({ ...base, level: 2 });
   });
 });
 
@@ -196,10 +229,17 @@ describe("urlForState", () => {
     expect(urlForState({ ...finance, level: 1 })).toBe(`/?q=${groupSlug}&b=finance`);
   });
 
-  it("niveau 2 → la route module, sans encoder l'onglet", () => {
-    expect(urlForState(finance)).toBe("/finance");
-    // L'onglet vit dans la page, pas dans l'URL : changer d'onglet ne navigue pas.
-    expect(urlForState({ ...finance, tabIndex: 3 })).toBe("/finance");
+  it("niveau 2 → la route module marquée `?v=salles`", () => {
+    expect(urlForState(finance)).toBe("/finance?v=salles");
+  });
+
+  it("niveau 3 → la route module nue", () => {
+    expect(urlForState({ ...finance, level: 3 })).toBe("/finance");
+  });
+
+  it("n'encode jamais la salle : elle vit dans la page, pas dans l'URL", () => {
+    expect(urlForState({ ...finance, level: 3, tabIndex: 3 })).toBe("/finance");
+    expect(urlForState({ ...finance, tabIndex: 3 })).toBe("/finance?v=salles");
   });
 
   it("un état hors bornes dégrade proprement", () => {

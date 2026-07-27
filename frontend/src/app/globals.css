@@ -642,10 +642,11 @@ ol[data-sonner-toaster] {
   .deck { scroll-snap-type: y proximity; }
   .deck-section > .deck-pop { animation: none; }
 }
-
 /* ══════════════════════════════════════════════════════════
-   Le village — navigation 2D immersive (data-nav="village").
-   Scroll vertical = parcourir, droite = entrer, gauche = sortir.
+   Le village — une caméra continue dans un monde unique
+   (data-nav="village"). Quartier → bâtiment → salle → contenu.
+   Aucune transition n'est écrite ici : elles émergent de
+   l'interpolation d'un seul transform sur .village-plane.
    ══════════════════════════════════════════════════════════ */
 
 /* Tant que le village est aux commandes, il EST le chrome : le dock, le fil
@@ -664,120 +665,153 @@ html[data-village-active] body {
   overscroll-behavior-x: contain;
 }
 
-/* Aux niveaux 0 et 1, le rail se pose EN PLEIN ÉCRAN par-dessus la page
-   d'accueil, qui reste montée dessous. C'est le prix de la robustesse : sortir
-   l'application de la frontière Suspense évite le doublon serveur/client, mais
-   le village ne peut plus démonter ce qu'il recouvre. */
-.village-overlay {
+/* ── Le monde ─────────────────────────────────────────────── */
+
+.village-click {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: var(--background);
-  overflow: hidden;
 }
 
-/* Seul le contenu s'anime ; le calque au-dessus reste opaque en permanence. */
-.village-overlay-inner {
-  height: 100%;
-}
-
-/* Le rail (niveaux 0 et 1) occupe l'écran ; rien n'y défile nativement. */
-.village-stage {
-  position: relative;
-  height: 100dvh;
-  overflow: hidden;
-}
-
-.village-wash {
+.village-viewport {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  background: var(--background);
+}
+
+/* LE plan. Un seul transform, animé par ressort — c'est toute la mécanique.
+   `transform-origin` à l'origine est obligatoire : la translation calculée par
+   planeTransform() suppose que l'échelle s'applique depuis le coin, pas depuis
+   le centre. */
+.village-plane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* Une couche d'échelle, positionnée en unités de plan. Surtout pas d'ombre ni
+   de filtre ici : le compositeur reprendrait chaque couche à chaque frame. */
+.village-layer {
+  position: absolute;
+}
+.village-layer img {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ── Niveau 3 : la page passe devant, le monde reste derrière ── */
+
+/* Le monde n'est pas démonté — il recule. Ressortir fait donc repartir la
+   caméra depuis la façade, au lieu de la reconstruire de zéro. */
+html[data-village-level="3"] .village-click {
   pointer-events: none;
 }
+html[data-village-level="3"] .village-viewport {
+  opacity: 0.5;
+  filter: blur(7px);
+  transition: opacity 420ms var(--ease-out), filter 420ms var(--ease-out);
+}
 
-.village-rail {
+/* Le contenu doit peindre AU-DESSUS du monde. <main> reçoit donc son propre
+   contexte d'empilement — ses ancêtres n'en créent aucun, la remontée est
+   donc sûre. */
+html[data-village-level="3"] #main-content {
+  position: relative;
+  z-index: calc(var(--z-modal) + 1);
+  padding-bottom: 6.5rem;
+}
+
+/* Un voile entre le monde flouté et le texte, sinon la page est illisible. */
+html[data-village-level="3"] #main-content::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--background) 84%, transparent);
+}
+
+/* ── L'enfilade de salles ─────────────────────────────────── */
+
+.village-rooms {
   position: absolute;
   inset-inline: 0;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.village-slot {
-  display: flex;
-  width: min(880px, 88vw);
-  align-items: center;
-  justify-content: center;
-  padding-block: 1.5vh;
-}
-
-.village-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1rem;
-  width: 100%;
-  height: 100%;
-  border-radius: var(--radius-lg);
-  padding: 1rem;
-  text-decoration: none;
-  color: inherit;
-}
-
-/* Ratio 3/2, celui des visuels : la boîte épouse l'image au lieu de la
-   cantonner à une bande, sinon le diorama flotte tout petit au milieu d'un
-   grand vide. Le plafond en `vh` garde la légende à l'écran sur écran bas. */
-.village-card-art {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 3 / 2;
-  max-height: 46vh;
-  border-radius: var(--radius-lg);
+  top: 50%;
+  translate: 0 -50%;
+  pointer-events: none;
   overflow: hidden;
 }
 
-.village-card-copy {
-  text-align: center;
+.village-rooms-strip {
+  display: flex;
+  align-items: center;
+  will-change: transform;
 }
-.village-card-copy h2 {
+
+.village-room {
+  flex: 0 0 auto;
+  aspect-ratio: 3 / 2;
+  border: 1px solid;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: flex-end;
+  padding: 1rem;
+  /* Le verre laisse deviner la facade derriere : on est DANS le batiment,
+     pas devant un panneau pose par-dessus. */
+  backdrop-filter: blur(2px) saturate(1.1);
+  box-shadow: inset 0 1px 0 0 var(--glass-highlight), var(--shadow-lg);
+}
+
+.village-room-label {
   font-family: var(--font-libre-caslon), serif;
-  font-size: clamp(1.5rem, 3.2vw, 2.25rem);
-  line-height: 1.15;
+  font-size: clamp(1rem, 2vw, 1.6rem);
   color: var(--foreground);
 }
-.village-card-copy p {
+
+/* ── Le titre de ce qu'on regarde ─────────────────────────── */
+
+.village-title {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 16vh;
+  text-align: center;
+  pointer-events: none;
+  padding-inline: 1.5rem;
+}
+html[data-village-level="2"] .village-title,
+html[data-village-level="3"] .village-title {
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+.village-title-eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.village-title h2 {
+  font-family: var(--font-libre-caslon), serif;
+  font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+  line-height: 1.1;
+  color: var(--foreground);
+}
+.village-title-sub {
   margin-top: 0.35rem;
   font-size: 0.9rem;
   color: var(--muted-foreground);
 }
 
-/* Intérieur d'un bâtiment : la page module s'affiche telle quelle, le village
-   n'ajoute qu'un lavis de quartier et la place du HUD. Aucun `transform` ne
-   doit couvrir la page — ça créerait un bloc conteneur et casserait ses
-   en-têtes `sticky`. */
-.village-interior-wash {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    120% 70% at 50% 0%,
-    color-mix(in srgb, var(--village-accent) 10%, transparent),
-    transparent 65%
-  );
-}
-html[data-village-level="2"] #main-content {
-  padding-bottom: 6.5rem;
-}
+/* ── HUD ──────────────────────────────────────────────────── */
 
-/* HUD : position, gestes disponibles, recherche, sortie du village. */
 .village-hud {
   position: fixed;
   inset-inline: 0;
   bottom: max(1rem, env(safe-area-inset-bottom));
-  /* Au-dessus de la surcouche des niveaux 0/1 (--z-modal), sinon le HUD
-     disparaîtrait derrière le village dès qu'on quitte un bâtiment. */
-  z-index: var(--z-toast);
+  /* Au-dessus du monde ET de la page : le HUD est la seule constante. */
+  z-index: calc(var(--z-modal) + 2);
   display: flex;
   justify-content: center;
   pointer-events: none;
@@ -841,8 +875,19 @@ html[data-village-level="2"] #main-content {
   background: var(--muted);
 }
 
-/* Écran étroit : la carte prend la largeur, les indices de geste s'effacent. */
 @media (max-width: 640px) {
-  .village-slot { width: 92vw; }
   .village-hints { display: none; }
+  .village-title { bottom: 12vh; }
+}
+
+/* Mouvement réduit : la caméra se téléporte au lieu de voyager, mais le
+   village reste entièrement navigable. */
+@media (prefers-reduced-motion: reduce) {
+  .village-plane,
+  .village-rooms-strip {
+    will-change: auto;
+  }
+  html[data-village-level="3"] .village-viewport {
+    transition: none;
+  }
 }

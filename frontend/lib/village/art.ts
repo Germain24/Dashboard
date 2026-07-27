@@ -40,3 +40,12 @@ export function districtArt(group: ModuleGroup): string | null {
 export function buildingArt(moduleSlug: string): string | null {
   return buildings.has(moduleSlug) ? `/village/buildings/${moduleSlug}.webp` : null;
 }
+
+/**
+ * La carte d'ensemble : les 7 quartiers réunis en un seul village, vue la plus
+ * large de la caméra. Absente tant qu'elle n'est pas générée — le plan affiche
+ * alors directement les îlots de quartier, ce qui reste lisible.
+ */
+export function worldArt(): string | null {
+  return districts.has("world") ? "/village/districts/world.webp" : null;
+}
