@@ -712,19 +712,26 @@ html[data-village-active] body {
 }
 
 .village-card {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  gap: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
   width: 100%;
   height: 100%;
   border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  padding: 1rem;
   text-decoration: none;
   color: inherit;
 }
 
+/* Ratio 3/2, celui des visuels : la boîte épouse l'image au lieu de la
+   cantonner à une bande, sinon le diorama flotte tout petit au milieu d'un
+   grand vide. Le plafond en `vh` garde la légende à l'écran sur écran bas. */
 .village-card-art {
   position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  max-height: 46vh;
   border-radius: var(--radius-lg);
   overflow: hidden;
 }

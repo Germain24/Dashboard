@@ -21,18 +21,31 @@ type Props = {
   label: string;
   /** L'élément est-il celui qu'on regarde ? Pilote le chargement prioritaire. */
   active?: boolean;
+  /**
+   * Voisin immédiat de l'élément actif. On le charge sans attendre : le rail
+   * n'a qu'une case d'avance, et une image encore paresseuse au moment où on
+   * arrive dessus laisse une carte vide le temps du décodage.
+   */
+  near?: boolean;
 };
 
-export function VillageArt({ src, accent, icon: Icon, label, active = false }: Props) {
+export function VillageArt({
+  src,
+  accent,
+  icon: Icon,
+  label,
+  active = false,
+  near = false,
+}: Props) {
   if (src) {
     return (
       <Image
         src={src}
         alt=""
         fill
-        sizes="(max-width: 768px) 100vw, 60vw"
+        sizes="(max-width: 768px) 92vw, 720px"
         priority={active}
-        loading={active ? undefined : "lazy"}
+        loading={active || near ? "eager" : "lazy"}
         className="object-contain"
       />
     );

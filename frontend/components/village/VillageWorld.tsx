@@ -136,6 +136,7 @@ export function VillageWorld({
                     icon={item.icon}
                     label={item.label}
                     active={active}
+                    near={Math.abs(i - activeIndex) === 1}
                   />
                 </div>
                 <div className="village-card-copy">

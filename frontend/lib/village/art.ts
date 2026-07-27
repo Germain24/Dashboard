@@ -10,6 +10,7 @@
 
 import { INK } from "@/lib/design/colors";
 import { GROUP_SLUGS, type ModuleGroup } from "@/lib/modules";
+import { BUILDING_ART, DISTRICT_ART } from "@/lib/village/art.generated";
 
 /** Un accent par quartier, pris dans la palette d'encres du design system. */
 export const DISTRICT_ACCENT: Record<ModuleGroup, string> = {
@@ -23,21 +24,19 @@ export const DISTRICT_ACCENT: Record<ModuleGroup, string> = {
 };
 
 /**
- * Visuels déjà présents dans `public/village/`. À compléter au fur et à mesure
- * de la génération ; tout ce qui n'y figure pas rend la façade procédurale.
+ * Visuels réellement présents dans `public/village/`, inventoriés à la
+ * génération (`node scripts/village-art-manifest.mjs`). Tout ce qui n'y figure
+ * pas rend la façade procédurale — un module ajouté demain s'affiche donc
+ * correctement sans qu'on ait à penser à son image.
  */
-export const AVAILABLE_ART = {
-  districts: new Set<string>(),
-  buildings: new Set<string>(),
-};
+const districts = new Set(DISTRICT_ART);
+const buildings = new Set(BUILDING_ART);
 
 export function districtArt(group: ModuleGroup): string | null {
   const slug = GROUP_SLUGS[group];
-  return AVAILABLE_ART.districts.has(slug) ? `/village/districts/${slug}.webp` : null;
+  return districts.has(slug) ? `/village/districts/${slug}.webp` : null;
 }
 
 export function buildingArt(moduleSlug: string): string | null {
-  return AVAILABLE_ART.buildings.has(moduleSlug)
-    ? `/village/buildings/${moduleSlug}.webp`
-    : null;
+  return buildings.has(moduleSlug) ? `/village/buildings/${moduleSlug}.webp` : null;
 }
