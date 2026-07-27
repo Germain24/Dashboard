@@ -50,7 +50,7 @@ export function MobileNav() {
 
   return (
     <>
-      <header className="glass-panel md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-[var(--glass-border)] px-4 h-12">
+      <header data-mobile-nav className="glass-panel md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-[var(--glass-border)] px-4 h-12">
         <Link href="/" className="flex items-center gap-2">
           <span className="font-display text-base tracking-tight">Mission Control</span>
         </Link>
@@ -65,7 +65,7 @@ export function MobileNav() {
         </button>
       </header>
 
-      <div className="md:hidden h-12 shrink-0" aria-hidden="true" />
+      <div data-mobile-nav className="md:hidden h-12 shrink-0" aria-hidden="true" />
 
       <div
         id="mobile-nav-drawer"

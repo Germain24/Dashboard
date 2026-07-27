@@ -302,3 +302,24 @@ export const MODULE_GROUPS: { group: ModuleGroup; items: Module[] }[] =
 export function moduleForSlug(slug: string): Module | undefined {
   return MODULES.find((m) => m.slug === slug);
 }
+
+/**
+ * Slug URL stable de chaque groupe. Les libellés `ModuleGroup` portent des
+ * accents et des `&` : inutilisables tels quels dans une query string. Ces
+ * slugs sont un contrat d'URL (le village les expose dans `?q=`) — les
+ * renommer casse les liens déjà partagés.
+ */
+export const GROUP_SLUGS: Record<ModuleGroup, string> = {
+  "Exécution & Système": "execution",
+  "Finances & Ingénierie": "finances",
+  "Santé & Performance": "corps",
+  "Carrière & Études": "carriere",
+  "Culture & Loisirs": "culture",
+  "Style & Horizons": "style",
+  Configuration: "configuration",
+};
+
+/** Résout un slug de groupe vers son libellé canonique. */
+export function groupForSlug(slug: string): ModuleGroup | undefined {
+  return GROUP_ORDER.find((g) => GROUP_SLUGS[g] === slug);
+}

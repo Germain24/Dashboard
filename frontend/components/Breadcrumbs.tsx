@@ -31,6 +31,7 @@ export function Breadcrumbs() {
 
   return (
     <nav
+      data-breadcrumbs
       aria-label="Fil d'Ariane"
       className="flex items-center gap-1.5 px-6 pt-4 text-xs text-[var(--muted-foreground)]"
     >

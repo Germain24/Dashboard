@@ -34,6 +34,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
+import { VillageShell } from "@/components/village/VillageShell";
 import { MotionProvider } from "@/lib/motion/MotionProvider";
 import { PageTransition } from "@/lib/motion/PageTransition";
 import { MIDNIGHT } from "@/lib/design/colors";
@@ -64,7 +65,7 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var t=localStorage.getItem('mc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);var d=localStorage.getItem('mc-density');if(d==='compact')document.documentElement.setAttribute('data-density','compact');}catch(e){}})();",
+              "(function(){try{var t=localStorage.getItem('mc-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);var d=localStorage.getItem('mc-density');if(d==='compact')document.documentElement.setAttribute('data-density','compact');var n=localStorage.getItem('mc-nav');document.documentElement.setAttribute('data-nav',n==='village'?'village':'classique');}catch(e){}})();",
           }}
         />
       </head>
@@ -93,12 +94,16 @@ export default function RootLayout({
 
             {/* Contenu : l'accueil est le Deck plein écran ; les pages module
                 défilent normalement avec une garde basse pour le Dock. */}
-            <div className="flex min-h-screen">
-              <MainShell>
-                <Breadcrumbs />
-                <PageTransition>{children}</PageTransition>
-              </MainShell>
-            </div>
+            {/* Le village enveloppe tout le contenu. En mode classique (défaut
+                et rendu serveur), c'est un passe-plat strict. */}
+            <VillageShell>
+              <div className="flex min-h-screen">
+                <MainShell>
+                  <Breadcrumbs />
+                  <PageTransition>{children}</PageTransition>
+                </MainShell>
+              </div>
+            </VillageShell>
           </MotionProvider>
         </QueryProvider>
       </body>

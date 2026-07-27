@@ -18,6 +18,10 @@ export const springs = {
   countUp: { type: 'spring', stiffness: 90, damping: 26, mass: 1 } as Spring,
   /** Tilt / parallax au survol : inertie marquée mais retour calme. */
   tilt: { type: 'spring', stiffness: 150, damping: 18, mass: 0.6 } as Spring,
+  /** Village — changement de niveau (zoom vers/depuis un bâtiment). */
+  zoom: { type: 'spring', stiffness: 150, damping: 24, mass: 1 } as Spring,
+  /** Village — glissement du rail vertical entre quartiers ou bâtiments. */
+  rail: { type: 'spring', stiffness: 180, damping: 26, mass: 1 } as Spring,
 } as const
 
 export const durations = {

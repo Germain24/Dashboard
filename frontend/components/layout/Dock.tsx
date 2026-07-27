@@ -12,6 +12,7 @@ import { Home, Search, CircleHelp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { DensityToggle } from '@/components/DensityToggle'
+import { NavModeToggle } from '@/components/NavModeToggle'
 import { NotificationsWidget } from '@/components/layout/NotificationsWidget'
 
 export function Dock() {
@@ -21,6 +22,7 @@ export function Dock() {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[var(--z-header)] hidden justify-center md:flex">
       <nav
+        data-dock
         aria-label="Navigation principale"
         className="glass-panel pointer-events-auto flex items-center gap-1 rounded-[var(--radius-full)] border border-[var(--glass-border)] p-1.5 shadow-[inset_0_1px_0_0_var(--glass-highlight),var(--shadow-lg)]"
       >
@@ -62,6 +64,7 @@ export function Dock() {
         >
           <CircleHelp className="h-5 w-5" aria-hidden="true" />
         </button>
+        <NavModeToggle />
         <DensityToggle />
         <ThemeToggle />
       </nav>

@@ -10,6 +10,7 @@ import { MODULE_GROUPS } from '@/lib/modules'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { DensityToggle } from '@/components/DensityToggle'
+import { NavModeToggle } from '@/components/NavModeToggle'
 import { CommandTrigger } from '@/components/CommandTrigger'
 import { NotificationsWidget } from '@/components/layout/NotificationsWidget'
 
@@ -117,6 +118,7 @@ export function Sidebar() {
           </button>
         </div>
         <div className="flex items-center gap-1">
+          <NavModeToggle />
           <DensityToggle />
           <ThemeToggle />
         </div>

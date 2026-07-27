@@ -11,6 +11,7 @@
 
 import type { ElementType } from 'react'
 import { cn } from '@/lib/utils'
+import { usePublishVillageTabs } from '@/lib/village/tabs'
 
 export type ModuleTab = {
   id: string
@@ -36,6 +37,19 @@ export function ModuleHeader({
   onChange,
   actions,
 }: ModuleHeaderProps) {
+  // Rend les onglets navigables au geste depuis le village : on publie la
+  // liste, l'onglet actif ET `onChange`, seul moyen de changer d'onglet
+  // (l'état vit dans la page, pas dans l'URL). Inerte hors village.
+  usePublishVillageTabs(
+    tabs?.length
+      ? {
+          tabs: tabs.map(({ id, label }) => ({ id, label })),
+          activeId: active,
+          select: onChange,
+        }
+      : null,
+  )
+
   return (
     <div className="glass-panel sticky top-0 z-[var(--z-header)] border-b border-[var(--glass-border)] px-6 py-4">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -61,6 +75,7 @@ export function ModuleHeader({
                 key={tab.id}
                 type="button"
                 role="tab"
+                data-tab-id={tab.id}
                 aria-selected={isActive}
                 onClick={() => onChange?.(tab.id)}
                 className={cn(
