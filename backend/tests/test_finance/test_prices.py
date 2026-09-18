@@ -1,0 +1,222 @@
+"""Source de cours avec cache quotidien."""
+
+from __future__ import annotations
+
+import datetime as dt
+import threading
+
+from app.services.finance import portfolio_state, prices
+
+
+def test_cache_hits_same_day_fetches_once():
+    prices.clear_cache()
+    calls: list[list[str]] = []
+
+    def fake_fetch(tickers):
+        calls.append(list(tickers))
+        return {"AAPL": 100.0, "MSFT": 200.0}
+
+    day = dt.date(2026, 6, 3)
+    r1 = prices.get_prices(["AAPL", "MSFT"], fetcher=fake_fetch, today=day)
+    assert r1 == {"AAPL": 100.0, "MSFT": 200.0}
+
+    # 2e appel le même jour : aucun nouvel appel réseau
+    r2 = prices.get_prices(["AAPL", "MSFT"], fetcher=fake_fetch, today=day)
+    assert r2 == {"AAPL": 100.0, "MSFT": 200.0}
+    assert len(calls) == 1  # une seule récupération
+
+
+def test_refetch_next_day():
+    prices.clear_cache()
+    calls: list[list[str]] = []
+
+    def fake_fetch(tickers):
+        calls.append(list(tickers))
+        return {"AAPL": 100.0}
+
+    prices.get_prices(["AAPL"], fetcher=fake_fetch, today=dt.date(2026, 6, 3))
+    prices.get_prices(["AAPL"], fetcher=fake_fetch, today=dt.date(2026, 6, 4))
+    assert len(calls) == 2  # nouveau jour -> nouvelle récupération
+
+
+def test_fetch_failure_keeps_last_known_price():
+    prices.clear_cache()
+
+    prices.get_prices(["AAPL"], fetcher=lambda t: {"AAPL": 150.0}, today=dt.date(2026, 6, 3))
+    # Le lendemain le fetch échoue (rien renvoyé) -> on garde l'ancien prix
+    r = prices.get_prices(["AAPL"], fetcher=lambda t: {}, today=dt.date(2026, 6, 4))
+    assert r["AAPL"] == 150.0
+
+
+def test_unknown_ticker_is_zero():
+    prices.clear_cache()
+    r = prices.get_prices(["ZZZZ"], fetcher=lambda t: {}, today=dt.date(2026, 6, 3))
+    assert r["ZZZZ"] == 0.0
+
+
+def test_external_price_can_authoritatively_be_zero():
+    prices.clear_cache()
+    prices.set_external_prices({"REALT-123": 0.0, "BTC": 50_000.0})
+    calls = []
+    result = prices.get_prices(
+        ["REALT-123", "BTC"], fetcher=lambda tickers: calls.append(tickers) or {}
+    )
+    assert result == {"REALT-123": 0.0, "BTC": 50_000.0}
+    assert calls == []
+
+
+# ── Cache NEGATIF : un ticker dont le fetch echoue (delisted, symbole invalide
+# type ANTIN/LR sans suffixe .PA) ne doit PAS etre re-telecharge a chaque appel
+# -- chaque poll de /finance/state relancait fast_info + history(1y) + history(5d)
+# derriere le throttle global, affamant les endpoints interactifs (#ECONNRESET). ──
+
+def test_failed_ticker_not_refetched_within_retry_window(monkeypatch):
+    prices.clear_cache()
+    calls: list[list[str]] = []
+
+    def failing_fetch(tickers):
+        calls.append(list(tickers))
+        return {}
+
+    day = dt.date(2026, 6, 3)
+    monkeypatch.setattr(prices, "_now", lambda: 1000.0)
+    prices.get_prices(["ANTIN"], fetcher=failing_fetch, today=day)
+    # 10 minutes plus tard, meme jour : PAS de nouvelle tentative
+    monkeypatch.setattr(prices, "_now", lambda: 1000.0 + 600.0)
+    r = prices.get_prices(["ANTIN"], fetcher=failing_fetch, today=day)
+
+    assert r["ANTIN"] == 0.0
+    assert len(calls) == 1
+
+
+def test_failed_ticker_refetched_after_retry_window(monkeypatch):
+    prices.clear_cache()
+    calls: list[list[str]] = []
+
+    def fetch(tickers):
+        calls.append(list(tickers))
+        return {} if len(calls) == 1 else {"ANTIN": 12.0}
+
+    day = dt.date(2026, 6, 3)
+    monkeypatch.setattr(prices, "_now", lambda: 1000.0)
+    prices.get_prices(["ANTIN"], fetcher=fetch, today=day)
+    monkeypatch.setattr(prices, "_now", lambda: 1000.0 + prices.NEG_RETRY_S + 1.0)
+    r = prices.get_prices(["ANTIN"], fetcher=fetch, today=day)
+
+    assert len(calls) == 2
+    assert r["ANTIN"] == 12.0
+
+
+def test_failed_ticker_still_serves_last_known_price(monkeypatch):
+    prices.clear_cache()
+    monkeypatch.setattr(prices, "_now", lambda: 1000.0)
+    prices.get_prices(["AAPL"], fetcher=lambda t: {"AAPL": 150.0}, today=dt.date(2026, 6, 3))
+    # Le lendemain le fetch echoue -> dernier cours connu, puis cache negatif
+    calls: list[list[str]] = []
+
+    def failing_fetch(tickers):
+        calls.append(list(tickers))
+        return {}
+
+    day2 = dt.date(2026, 6, 4)
+    r1 = prices.get_prices(["AAPL"], fetcher=failing_fetch, today=day2)
+    r2 = prices.get_prices(["AAPL"], fetcher=failing_fetch, today=day2)
+    assert r1["AAPL"] == 150.0
+    assert r2["AAPL"] == 150.0
+    assert len(calls) == 1  # 2e appel servi sans re-fetch (cache negatif)
+
+
+def test_success_clears_negative_cache(monkeypatch):
+    prices.clear_cache()
+    monkeypatch.setattr(prices, "_now", lambda: 1000.0)
+    day = dt.date(2026, 6, 3)
+    prices.get_prices(["MSFT"], fetcher=lambda t: {}, today=day)
+    monkeypatch.setattr(prices, "_now", lambda: 1000.0 + prices.NEG_RETRY_S + 1.0)
+    prices.get_prices(["MSFT"], fetcher=lambda t: {"MSFT": 300.0}, today=day)
+    # Succes -> plus de cache negatif, le prix vient du cache positif
+    calls: list[list[str]] = []
+    r = prices.get_prices(["MSFT"], fetcher=lambda t: calls.append(list(t)) or {}, today=day)
+    assert r["MSFT"] == 300.0
+    assert calls == []
+
+
+# ── Pendant un run Buffett (throttle global sature par 10 workers), les
+# endpoints interactifs ne doivent JAMAIS faire la queue pour un fetch live :
+# on sert le dernier cours connu. Sans ca : /finance/state attendait plusieurs
+# minutes -> proxy Next "socket hang up" (#ECONNRESET). ──
+
+def test_no_fetch_while_analysis_running(monkeypatch):
+    prices.clear_cache()
+    calls: list[list[str]] = []
+    monkeypatch.setattr(prices, "_analysis_running", lambda: True)
+
+    r = prices.get_prices(["AAPL"], fetcher=lambda t: calls.append(list(t)) or {"AAPL": 1.0},
+                          today=dt.date(2026, 6, 3))
+    assert calls == []          # aucun fetch live pendant l'analyse
+    assert r["AAPL"] == 0.0     # pas de cours connu -> 0
+
+
+def test_serves_stale_price_while_analysis_running(monkeypatch):
+    prices.clear_cache()
+    monkeypatch.setattr(prices, "_analysis_running", lambda: False)
+    prices.get_prices(["AAPL"], fetcher=lambda t: {"AAPL": 150.0}, today=dt.date(2026, 6, 3))
+
+    monkeypatch.setattr(prices, "_analysis_running", lambda: True)
+    calls: list[list[str]] = []
+    r = prices.get_prices(["AAPL"], fetcher=lambda t: calls.append(list(t)) or {},
+                          today=dt.date(2026, 6, 4))  # lendemain : cache "perime"
+    assert calls == []
+    assert r["AAPL"] == 150.0   # dernier cours connu servi tel quel
+
+
+def test_stale_ok_refreshes_default_fetcher_in_background(tmp_path, monkeypatch):
+    monkeypatch.setattr(prices, "_PRICE_CACHE_FILE", tmp_path / "prices.json")
+    prices.clear_cache()
+    started = threading.Event()
+    release = threading.Event()
+    stored = threading.Event()
+    invalidated = threading.Event()
+
+    def slow_fetch(tickers):
+        started.set()
+        assert release.wait(2)
+        return {"AAPL": 175.0}
+
+    original_store = prices._store_fetched
+
+    def store_and_signal(*args, **kwargs):
+        result = original_store(*args, **kwargs)
+        stored.set()
+        return result
+
+    monkeypatch.setattr(prices, "_default_fetch", slow_fetch)
+    monkeypatch.setattr(prices, "_store_fetched", store_and_signal)
+    monkeypatch.setattr(portfolio_state, "invalidate_state", invalidated.set)
+    day = dt.date(2026, 7, 15)
+
+    result = prices.get_prices(["AAPL"], today=day, stale_ok=True)
+    assert result == {"AAPL": 0.0}
+    assert started.wait(1)
+
+    release.set()
+    assert stored.wait(2)
+    assert invalidated.wait(2)
+    assert prices.get_prices(["AAPL"], today=day) == {"AAPL": 175.0}
+    prices.clear_cache()
+
+
+def test_default_fetcher_prices_survive_process_cache_reset(tmp_path, monkeypatch):
+    monkeypatch.setattr(prices, "_PRICE_CACHE_FILE", tmp_path / "prices.json")
+    monkeypatch.setattr(prices, "_default_fetch", lambda tickers: {"MSFT": 420.0})
+    prices.clear_cache()
+    day = dt.date(2026, 7, 15)
+
+    assert prices.get_prices(["MSFT"], today=day) == {"MSFT": 420.0}
+    prices.clear_cache()
+
+    def must_not_fetch(_tickers):
+        raise AssertionError("le cache disque du jour doit suffire")
+
+    monkeypatch.setattr(prices, "_default_fetch", must_not_fetch)
+    assert prices.get_prices(["MSFT"], today=day) == {"MSFT": 420.0}
+    prices.clear_cache()

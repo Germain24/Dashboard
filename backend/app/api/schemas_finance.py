@@ -1,0 +1,525 @@
+"""Pydantic v2 schemas for Finance API.
+
+Field names match the actual model/service outputs to avoid mapping bugs.
+"""
+from __future__ import annotations
+
+import datetime as dt
+from typing import Literal, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+
+# ---------------------------------------------------------------------------
+# Snapshot / History  (model fields: valeur, investit)
+# ---------------------------------------------------------------------------
+
+class SnapshotOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    date: dt.date
+    valeur: float
+    investit: float
+
+
+class HistoryPointOut(BaseModel):
+    date: dt.date
+    valeur: float
+    investit: float
+
+
+# ---------------------------------------------------------------------------
+# Portfolio / Positions  (from get_positions() dict)
+# ---------------------------------------------------------------------------
+
+class PositionOut(BaseModel):
+    ticker: str
+    broker: Optional[str] = None
+    quantite: float
+    pmu: Optional[float] = None
+    devise: str = "EUR"
+    prix_actuel: float = 0.0
+    valeur_actuelle: float = 0.0
+    pl_latent: float = 0.0
+    pl_pct: float = 0.0
+
+
+class PositionCreate(BaseModel):
+    """Schema pour creer ou mettre a jour une position manuelle."""
+    ticker: str
+    quantite: float
+    pmu: Optional[float] = None         # prix moyen unitaire
+    devise: str = "EUR"
+    broker: Optional[str] = None
+
+
+class PositionIdOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    ticker: str
+    broker: Optional[str] = None
+    quantite: float
+    pmu: Optional[float] = None
+    devise: str = "EUR"
+    updated_at: Optional[dt.datetime] = None
+
+
+class PerfMetricsOut(BaseModel):
+    valeur: float = 0.0
+    investit: float = 0.0
+    pl_total: float = 0.0
+    pl_pct: float = 0.0
+    max_drawdown_pct: float = 0.0
+    ytd_pct: float = 0.0
+    twr_pct: float = 0.0
+    twr_annualise_pct: float = 0.0
+    date_snapshot: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Benchmarks  (from get_portfolio_vs_benchmarks())
+# ---------------------------------------------------------------------------
+
+class BenchmarkSeriePoint(BaseModel):
+    date: str
+    valeur: float
+
+
+class BenchmarkOut(BaseModel):
+    nom: str
+    ticker: str
+    perf_1a_pct: Optional[float] = None
+    perf_6m_pct: Optional[float] = None
+    perf_mtd_pct: Optional[float] = None
+    serie: list[BenchmarkSeriePoint] = []
+
+
+# ---------------------------------------------------------------------------
+# Risk  (from get_risk_metrics())
+# ---------------------------------------------------------------------------
+
+class RiskMetricsOut(BaseModel):
+    # Noms alignés sur ce que `get_risk_metrics` produit réellement. Ils ont
+    # divergé (`volatilite_annuelle_pct`, `hhi_label`) : pydantic ignorant les
+    # clés en trop, l'endpoint renvoyait volatilité 0.0 et label « — » en
+    # permanence, sans jamais lever d'erreur.
+    max_drawdown_pct: float = 0.0
+    volatilite_annualisee_pct: float = 0.0
+    sharpe: Optional[float] = None
+    # None = aucun rendement baissier sur la période (ratio non défini), cf.
+    # services/finance/risk.compute_sortino.
+    sortino: Optional[float] = None
+    hhi: float = 0.0
+    concentration: str = "inconnu"
+    n_positions: int = 0
+
+
+class TreemapNodeOut(BaseModel):
+    id: str
+    parent: str
+    valeur: float
+    label: str
+
+
+# ---------------------------------------------------------------------------
+# Transactions  (model fields: type, date — not type_transaction)
+# ---------------------------------------------------------------------------
+
+class TransactionCreate(BaseModel):
+    ticker: str = Field(min_length=1, max_length=32)
+    type_transaction: str = Field(
+        ...,
+        pattern="^(?i:(achat|vente|dividende|interet|frais|depot|retrait))$",
+    )
+    date_transaction: dt.date
+    quantite: float = Field(gt=0)
+    prix_unitaire: float = Field(ge=0)
+    frais: float = Field(default=0.0, ge=0)
+    montant_brut: Optional[float] = Field(default=None, ge=0)
+    retenue_source: float = Field(default=0.0, ge=0)
+    devise: str = Field(default="EUR", pattern="^[A-Za-z]{3}$")
+    broker: Optional[str] = None
+    note: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_withholding(self):
+        gross = (
+            self.montant_brut
+            if self.montant_brut is not None
+            else self.quantite * self.prix_unitaire
+        )
+        if self.retenue_source > gross:
+            raise ValueError("La retenue a la source depasse le montant brut")
+        return self
+
+
+class TransactionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    date: dt.datetime
+    ticker: str
+    broker: Optional[str] = None
+    type: str
+    quantite: float
+    prix_unitaire: float
+    frais: float
+    montant_brut: Optional[float] = None
+    retenue_source: float = 0.0
+    devise: str
+    note: Optional[str] = None
+    created_at: dt.datetime
+
+
+class ImportResultOut(BaseModel):
+    imported: int
+    updated: int = 0
+    skipped: int
+    errors: list[str]
+
+
+# ---------------------------------------------------------------------------
+# Buffett runs  (model fields match)
+# ---------------------------------------------------------------------------
+
+class BuffettRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    run_date: dt.date
+    statut: str
+    n_tickers_total: int = 0
+    n_tickers_analyzed: int = 0
+    progress_pct: float = 0.0
+    duree_sec: Optional[float] = None
+    resume: Optional[str] = None
+    erreur: Optional[str] = None
+    created_at: dt.datetime
+
+
+class BuffettResultOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    run_id: Optional[int] = None
+    ticker: str
+    nom: Optional[str] = None
+    chance_moat: Optional[float] = None
+    secteur: Optional[str] = None
+    pays: Optional[str] = None
+    allocation_pct: Optional[float] = None
+    broker_cible: Optional[str] = None
+    # Détail brut par broker (non sérialisé) ; exposé via `allocations`.
+    secteurs_extra: Optional[dict] = Field(default=None, exclude=True)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def display_name(self) -> str:
+        current = str(self.nom or "").strip()
+        if current and current.upper() != self.ticker.upper():
+            return current
+        try:
+            from app.services.finance.buffett.broker_availability import load_instrument_names
+
+            return load_instrument_names().get(self.ticker.upper(), current or self.ticker)
+        except Exception:
+            return current or self.ticker
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score(self) -> Optional[float]:
+        """Classement V3 par shrinkage (alias historique ``chance_moat``)."""
+        return self.chance_moat
+
+    def _score_value(self, key: str) -> Optional[float]:
+        values = (self.secteurs_extra or {}).get("scores") or {}
+        try:
+            value = values.get(key)
+            return float(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def buffett_rules_score(self) -> Optional[float]:
+        return self._score_value("buffett_rules_score")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def buffett_quality_score(self) -> Optional[float]:
+        return self._score_value("buffett_quality_score")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_confidence_pct(self) -> Optional[float]:
+        return self._score_value("confidence_pct")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def durability_score(self) -> Optional[float]:
+        return self._score_value("durability_score")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def financial_moat_proxy_score(self) -> Optional[float]:
+        return self._score_value("financial_moat_proxy_score")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def dilution_discipline_score(self) -> Optional[float]:
+        return self._score_value("dilution_discipline_score")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def resilience_score(self) -> Optional[float]:
+        return self._score_value("resilience_score")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_comparable_to_standard(self) -> Optional[bool]:
+        values = (self.secteurs_extra or {}).get("scores") or {}
+        value = values.get("comparable_to_standard")
+        return bool(value) if value is not None else None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_model_version(self) -> Optional[int]:
+        value = self._score_value("model_version")
+        return int(value) if value is not None else None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_business_model(self) -> Optional[str]:
+        values = (self.secteurs_extra or {}).get("scores") or {}
+        value = values.get("business_model")
+        return str(value) if value else None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_model_fit(self) -> Optional[float]:
+        return self._score_value("model_fit")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_model_status(self) -> Optional[str]:
+        values = (self.secteurs_extra or {}).get("scores") or {}
+        value = values.get("model_status")
+        return str(value) if value else None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_model_complete(self) -> Optional[bool]:
+        values = (self.secteurs_extra or {}).get("scores") or {}
+        value = values.get("model_complete")
+        return bool(value) if value is not None else None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_comparison_group(self) -> Optional[str]:
+        values = (self.secteurs_extra or {}).get("scores") or {}
+        value = values.get("comparison_group")
+        return str(value) if value else None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_scoring_template(self) -> Optional[str]:
+        values = (self.secteurs_extra or {}).get("scores") or {}
+        value = values.get("scoring_template")
+        return str(value) if value else None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_confidence_breakdown(self) -> Optional[dict]:
+        values = (self.secteurs_extra or {}).get("scores") or {}
+        breakdown = values.get("confidence_breakdown")
+        families = values.get("family_scores")
+        if not isinstance(breakdown, dict) and not isinstance(families, dict):
+            return None
+        return {
+            **(breakdown if isinstance(breakdown, dict) else {}),
+            "families": families if isinstance(families, dict) else {},
+        }
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def score_versions(self) -> Optional[dict]:
+        values = (self.secteurs_extra or {}).get("scores") or {}
+        if not values:
+            return None
+        return {
+            "quality": values.get("quality_score_version"),
+            "durability": values.get("durability_version"),
+            "moat_proxy": values.get("moat_proxy_version"),
+        }
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def company_id(self) -> Optional[str]:
+        entity = (self.secteurs_extra or {}).get("entity") or {}
+        value = entity.get("company_id")
+        return str(value) if value else None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def company_listings(self) -> list[str]:
+        entity = (self.secteurs_extra or {}).get("entity") or {}
+        return [str(value) for value in (entity.get("listings") or [self.ticker])]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def fundamental_mismatch(self) -> bool:
+        entity = (self.secteurs_extra or {}).get("entity") or {}
+        return bool(entity.get("fundamental_mismatch", False))
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def purchase_ineligibility_reasons(self) -> list[str]:
+        if str(self.secteur or "").upper() == "ETF":
+            return []
+        reasons: list[str] = []
+        if self.fundamental_mismatch:
+            reasons.append("FUNDAMENTAL_MISMATCH")
+        if self.score_comparable_to_standard is False:
+            reasons.append("NOT_COMPARABLE")
+        if self.score_model_complete is False:
+            reasons.append("MODEL_INCOMPLETE")
+        if not self.score_business_model:
+            reasons.append("UNKNOWN_MODEL")
+        return reasons
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def eligible_for_purchase(self) -> bool:
+        return not self.purchase_ineligibility_reasons
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def allocations(self) -> Optional[list[dict]]:
+        """Détail actionnable par broker : pie % (Trading212) ou nb d'actions.
+
+        Chaque entrée : {broker, type 'pie'|'shares', pie_pct, shares, eur, prix, pct}.
+        """
+        if not self.secteurs_extra:
+            return None
+        allocs = self.secteurs_extra.get("allocations")
+        return allocs or None
+
+
+class BuffettRunDetailOut(BaseModel):
+    run: BuffettRunOut
+    top_results: list[BuffettResultOut]
+    allocation_cible: list[BuffettResultOut]
+    optimization: Optional[dict] = None
+    buy_signal: Optional[dict] = None
+
+
+class BuffettScenarioSelectIn(BaseModel):
+    scenario: Literal["free", "world_25", "world_40", "world_55"]
+
+
+class BuffettEquityLookthroughLineOut(BaseModel):
+    ticker: str
+    name: str
+    weight_pct: float
+    sources: list[str] = Field(default_factory=list)
+    is_other: bool = False
+    asset_type: str = "action"
+    country: str = ""
+    maturity_bucket: str = ""
+
+
+class BuffettEtfDecompositionOut(BaseModel):
+    ticker: str
+    name: str
+    portfolio_weight_pct: float
+    holdings_coverage_pct: float
+    known_holdings: int
+    residual_pct: float
+    source: str = "unknown"
+    replication: str = "unknown"
+    index: str = ""
+    status: str = "partial"
+
+
+class BuffettEquityLookthroughOut(BaseModel):
+    version: int = 3
+    run_id: int
+    generated_at: dt.datetime
+    total_pct: float
+    known_pct: float
+    other_pct: float
+    coverage_pct: float
+    equity_coverage_pct: float = 0.0
+    known_equities_pct: float = 0.0
+    other_equities_pct: float = 0.0
+    unknown_pct: float = 0.0
+    non_equity_pct: float = 0.0
+    known_bonds_pct: float = 0.0
+    other_non_equity_pct: float = 0.0
+    rows: list[BuffettEquityLookthroughLineOut]
+    etfs: list[BuffettEtfDecompositionOut]
+
+
+class BuffettProgressOut(BaseModel):
+    run_id: Optional[int] = None
+    statut: str
+    progress_pct: float
+    n_done: Optional[int] = None
+    n_total: Optional[int] = None
+    active: bool = False  # True = une analyse tourne reellement dans ce process
+    # Epoch (s) de reprise estimee si l'analyse est en pause (plafond API Yahoo
+    # atteint) ; None sinon. Permet d'afficher "en pause, reprise ~HH:MM" (#193).
+    paused_until: Optional[float] = None
+    phase: str = "idle"
+    throughput_per_min: float = 0.0
+    eta_seconds: Optional[int] = None
+    cache_hits: int = 0
+    error_counts: dict[str, int] = Field(default_factory=dict)
+    catalog_version: Optional[str | int] = None
+    already_completed: int = 0
+    session_processed: int = 0
+    unique_instruments: int = 0
+    secondary_quotes_skipped: int = 0
+    propagated_quotes: int = 0
+    http_requests: int = 0
+    http_requests_per_hour: int = 0
+    deferred_rate_limits: int = 0
+
+
+class BuffettLiveStateOut(BaseModel):
+    """État cohérent du run et de son optimisation pour restaurer le dashboard."""
+
+    analysis: BuffettProgressOut
+    optimization: dict = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# Rebalancing
+# ---------------------------------------------------------------------------
+
+class RebalancingLineOut(BaseModel):
+    ticker: str
+    nom: str
+    broker: str = "—"
+    quantite_actuelle: float = 0.0
+    valeur_actuelle_eur: float
+    allocation_actuelle_pct: float
+    cible_type: str = "pie"               # "pie" | "shares"
+    cible_shares: Optional[int] = None    # actions entières cibles (None si pie)
+    prix_unitaire: float = 0.0
+    valeur_cible_eur: float
+    allocation_cible_pct: float
+    delta_eur: float
+    delta_shares: Optional[int] = None    # actions à acheter(+)/vendre(-)
+    action: str
+    ecart_pct: float = 0.0
+    alerte: bool = False
+
+
+class RebalancingDiffOut(BaseModel):
+    run_id: int
+    run_date: str
+    valeur_totale_eur: float
+    budget_total_eur: float = 0.0
+    lignes: list[RebalancingLineOut]
+    n_acheter: int
+    n_vendre: int
+    n_conserver: int
+    seuil_alerte_pct: float = 0.0
+    n_alertes: int = 0

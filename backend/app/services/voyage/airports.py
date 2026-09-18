@@ -1,0 +1,45 @@
+"""Lookup IATA -> (lat, lon) depuis une table statique locale.
+
+Source : `data/airports_iata.csv` (colonnes iata,name,lat,lon), dérivé du
+dataset public domain OurAirports (CC0), filtré aux entrées ayant un code
+IATA renseigné. Généré une fois via `scripts/build_airports_iata.py`
+(backend/) — pas régénéré automatiquement au runtime, aucun appel réseau
+lors du lookup.
+"""
+from __future__ import annotations
+
+import csv
+import math
+from pathlib import Path
+from typing import Optional
+
+_DATA_PATH = Path(__file__).parent / "data" / "airports_iata.csv"
+_cache: dict[Path, dict[str, tuple[float, float]]] = {}
+
+
+def _load(path: Path) -> dict[str, tuple[float, float]]:
+    if path not in _cache:
+        table: dict[str, tuple[float, float]] = {}
+        with path.open(newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                iata = (row.get("iata") or "").strip().upper()
+                if iata:
+                    table[iata] = (float(row["lat"]), float(row["lon"]))
+        _cache[path] = table
+    return _cache[path]
+
+
+def lookup_coords(iata: str, *, path: Optional[Path] = None) -> Optional[tuple[float, float]]:
+    """Renvoie `(lat, lon)` pour un code IATA, ou `None` si absent de la table."""
+    table = _load(path or _DATA_PATH)
+    return table.get(iata.strip().upper())
+
+
+def haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:
+    """Distance à vol d'oiseau entre deux points `(lat, lon)` en degrés, en km."""
+    r = 6371.0
+    lat1, lon1 = math.radians(a[0]), math.radians(a[1])
+    lat2, lon2 = math.radians(b[0]), math.radians(b[1])
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return 2 * r * math.asin(min(1.0, math.sqrt(h)))

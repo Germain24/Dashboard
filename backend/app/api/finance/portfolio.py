@@ -1,0 +1,268 @@
+"""Sous-routeur Finance : portefeuille, snapshots, positions, historique."""
+from __future__ import annotations
+
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlmodel import Session
+
+from app.api.schemas_finance import (
+    HistoryPointOut,
+    PerfMetricsOut,
+    PositionCreate,
+    PositionIdOut,
+    PositionOut,
+    SnapshotOut,
+)
+from app.core.db import get_session
+from app.core.timeutil import utcnow
+from app.services.finance.portfolio import get_perf_metrics, get_positions, get_title_detail
+from app.services.finance.snapshots import (
+    downsample_history,
+    get_history,
+    get_latest_snapshot,
+    monotonic_invested_values,
+    take_snapshot_now,
+)
+
+router = APIRouter()
+
+
+@router.get("/ping")
+def ping():
+    return {"module": "finance", "ready": True}
+
+
+@router.get("/portfolio", response_model=list[PositionOut])
+def portfolio(session: Session = Depends(get_session)):
+    try:
+        from app.services.finance.external_accounts import refresh_external_accounts
+        refresh_external_accounts(session)
+    except Exception:
+        pass
+    return get_positions(session)
+
+
+@router.get("/portfolio/perf", response_model=PerfMetricsOut)
+def portfolio_perf(session: Session = Depends(get_session)):
+    m = get_perf_metrics(session)
+    return PerfMetricsOut(**m) if m else PerfMetricsOut()
+
+
+@router.get("/titre/{ticker}")
+def titre_detail(ticker: str, session: Session = Depends(get_session)):
+    """Vue détaillée d'un titre : cours, P/E, score Buffett, poids, performance."""
+    return get_title_detail(session, ticker)
+
+
+@router.get("/state")
+def portfolio_state(session: Session = Depends(get_session)):
+    """État dérivé complet du portefeuille (positions, cash, P&L réalisé/latent, taxes)."""
+    try:
+        from app.services.finance.external_accounts import refresh_external_accounts
+        refresh_external_accounts(session)
+    except Exception:
+        pass
+    from app.services.finance.portfolio_state import get_portfolio_state
+    return get_portfolio_state(session)
+
+
+@router.get("/cash")
+def cash(session: Session = Depends(get_session)):
+    """Liquidités par broker + total, dérivées des dépôts/retraits/mouvements."""
+    from app.services.finance.portfolio_state import get_portfolio_state
+    st = get_portfolio_state(session)
+    return {"cash_par_broker": st["cash_par_broker"], "cash_total": st["cash_total"]}
+
+
+@router.get("/tax")
+def tax(annee: int | None = None, session: Session = Depends(get_session)):
+    """Alias historique vers l'estimation fiscale annuelle de l'onglet Impots."""
+    import datetime as dt
+
+    from app.services.finance.impots_transactions import compute_tax_summary
+
+    return compute_tax_summary(session, annee=annee or dt.date.today().year)
+
+
+@router.get("/settings")
+def get_settings(session: Session = Depends(get_session)):
+    """Paramètres Finance (taux de taxe estimés, devise)."""
+    from app.services.finance.portfolio_state import get_or_create_settings
+    s = get_or_create_settings(session)
+    return {
+        "taux_plus_value_pct": s.taux_plus_value_pct,
+        "taux_dividende_pct": s.taux_dividende_pct,
+        "devise_affichage": s.devise_affichage,
+    }
+
+
+@router.patch("/settings")
+def patch_settings(body: dict, session: Session = Depends(get_session)):
+    """Met à jour les taux de taxe / la devise d'affichage."""
+    from app.services.finance.portfolio_state import get_or_create_settings, invalidate_state
+    s = get_or_create_settings(session)
+    for k in ("taux_plus_value_pct", "taux_dividende_pct", "devise_affichage"):
+        if k in body and body[k] is not None:
+            setattr(s, k, body[k])
+    s.updated_at = utcnow()
+    session.add(s)
+    session.commit()
+    session.refresh(s)
+    invalidate_state()  # les taxes dépendent des taux
+    return {
+        "taux_plus_value_pct": s.taux_plus_value_pct,
+        "taux_dividende_pct": s.taux_dividende_pct,
+        "devise_affichage": s.devise_affichage,
+    }
+
+
+@router.get("/projection")
+def projection(
+    initial: float = 0,
+    mensuel: float = 0,
+    taux: float = 5.0,
+    mois: int = 120,
+    objectif: float = 0,
+):
+    """Projection d'épargne à intérêts composés (+ mois pour atteindre un objectif)."""
+    from app.services.finance.projection import mois_pour_objectif, project_savings
+    res = project_savings(initial, mensuel, taux, mois)
+    if objectif and objectif > 0:
+        res["objectif"] = objectif
+        res["mois_pour_objectif"] = mois_pour_objectif(initial, mensuel, taux, objectif)
+    return res
+
+
+@router.get("/fx")
+def fx_rates(base: str = "EUR", quotes: str = "USD,CAD"):
+    """Taux de change du jour : 1 base = X quote, pour chaque devise demandée."""
+    from app.services.finance.fx import get_rate
+    wanted = [q.strip().upper() for q in quotes.split(",") if q.strip()]
+    return {
+        "base": base.upper(),
+        "rates": {q: get_rate(base, q) for q in wanted},
+    }
+
+
+@router.get("/snapshot/latest", response_model=Optional[SnapshotOut])
+def snapshot_latest(session: Session = Depends(get_session)):
+    return get_latest_snapshot(session)
+
+
+@router.post("/snapshot", response_model=Optional[SnapshotOut], status_code=201)
+def snapshot_create(session: Session = Depends(get_session)):
+    snap = take_snapshot_now(session)
+    if snap is None:
+        raise HTTPException(422, "Aucune position active pour creer un snapshot")
+    return snap
+
+
+@router.get("/history", response_model=list[HistoryPointOut])
+def history(
+    days: int = Query(365, ge=1, le=10_000),
+    max_points: int = Query(1_000, ge=2, le=2_000),
+    session: Session = Depends(get_session),
+):
+    all_rows = get_history(session, limit=days)
+    invested_values = monotonic_invested_values(all_rows)
+    value_by_date = {row.date: value for row, value in zip(all_rows, invested_values)}
+    rows = downsample_history(all_rows, max_points=max_points)
+    return [HistoryPointOut(date=r.date, valeur=r.valeur, investit=value_by_date[r.date])
+            for r in rows]
+
+
+# --- Positions manuelles ---
+
+@router.get("/positions/list", response_model=list[PositionIdOut])
+def positions_list(session: Session = Depends(get_session)):
+    """Liste toutes les positions avec leur id (pour edition/suppression)."""
+    from sqlmodel import select as sel
+
+    from app.models.finance import Position
+    return list(session.exec(sel(Position)).all())
+
+
+@router.post("/positions", response_model=PositionIdOut, status_code=201)
+def positions_create(body: PositionCreate, session: Session = Depends(get_session)):
+    """Cree ou met a jour une position (upsert par ticker+broker)."""
+    from sqlmodel import select as sel
+
+    from app.models.finance import Position
+    broker = body.broker or "default"
+    existing = session.exec(
+        sel(Position)
+        .where(Position.ticker == body.ticker.upper())
+        .where(Position.broker == broker)
+    ).first()
+    if existing:
+        existing.quantite = body.quantite
+        existing.pmu = body.pmu
+        existing.devise = body.devise
+        existing.updated_at = utcnow()
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+        return existing
+    pos = Position(
+        ticker=body.ticker.upper(),
+        broker=broker,
+        quantite=body.quantite,
+        pmu=body.pmu,
+        devise=body.devise,
+        updated_at=utcnow(),
+    )
+    session.add(pos)
+    session.commit()
+    session.refresh(pos)
+    return pos
+
+
+@router.put("/positions/{pos_id}", response_model=PositionIdOut)
+def positions_update(pos_id: int, body: PositionCreate, session: Session = Depends(get_session)):
+    """Met a jour une position par son id."""
+    from app.models.finance import Position
+    pos = session.get(Position, pos_id)
+    if not pos:
+        raise HTTPException(404, f"Position {pos_id} introuvable")
+    pos.ticker = body.ticker.upper()
+    pos.quantite = body.quantite
+    pos.pmu = body.pmu
+    pos.devise = body.devise
+    pos.broker = body.broker or pos.broker
+    pos.updated_at = utcnow()
+    session.add(pos)
+    session.commit()
+    session.refresh(pos)
+    return pos
+
+
+@router.delete("/positions/{pos_id}", status_code=204)
+def positions_delete(pos_id: int, session: Session = Depends(get_session)):
+    """Supprime une position."""
+    from app.models.finance import Position
+    pos = session.get(Position, pos_id)
+    if not pos:
+        raise HTTPException(404, f"Position {pos_id} introuvable")
+    session.delete(pos)
+    session.commit()
+
+
+@router.post("/snapshot/auto", status_code=200)
+def snapshot_auto(session: Session = Depends(get_session)):
+    """Auto-snapshot silencieux : prend un snapshot si des positions existent.
+    Retourne le snapshot du jour (nouveau ou existant). Jamais d'erreur 422.
+    """
+    import datetime as _dt
+
+    from sqlmodel import select as sel
+
+    from app.models.finance import SnapshotPortefeuille
+    today = _dt.date.today()
+    existing = session.exec(sel(SnapshotPortefeuille).where(SnapshotPortefeuille.date == today)).first()
+    if existing:
+        return {"status": "already_exists", "date": str(today), "valeur": existing.valeur}
+    snap = take_snapshot_now(session)
+    if snap:
+        return {"status": "created", "date": str(snap.date), "valeur": snap.valeur}
+    return {"status": "no_positions"}

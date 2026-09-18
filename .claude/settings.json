@@ -1,0 +1,8 @@
+{
+  "enabledPlugins": {
+    "codex@openai-codex": true
+  },
+  "worktree": {
+    "bgIsolation": "none"
+  }
+}

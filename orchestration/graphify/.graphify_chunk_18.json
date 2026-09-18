@@ -1,0 +1,552 @@
+{
+  "nodes": [
+    {
+      "id": "Fossil02_watch",
+      "label": "Fossil Skeleton Mechanical Watch (Black/Brown)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/Fossil02.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "accessory",
+        "subcategory": "watch",
+        "brand": "Fossil",
+        "style": "skeleton mechanical",
+        "color": "black case, brown leather strap",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "garmin_smartwatch",
+      "label": "Garmin Forerunner GPS Sports Smartwatch (Black)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/garmin.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "accessory",
+        "subcategory": "smartwatch",
+        "brand": "Garmin",
+        "style": "GPS sports watch",
+        "color": "black",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "ghibli01_necklace",
+      "label": "Gold Chain Necklace with Cube Pendant (Ghibli-themed)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/ghibli_01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "accessory",
+        "subcategory": "necklace",
+        "brand": "unknown / Ghibli-themed",
+        "style": "gold chain with cube pendant",
+        "color": "gold",
+        "art_style": "pixel art",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85
+      }
+    },
+    {
+      "id": "GM01_glasses",
+      "label": "Gentle Monster Titanium Glasses (Gold Octagonal)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/GM_01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "accessory",
+        "subcategory": "glasses",
+        "brand": "Gentle Monster",
+        "style": "octagonal titanium frames",
+        "color": "gold",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "Lacoste01_trackjacket",
+      "label": "Lacoste Green Monogram Track Jacket",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/Lacoste_01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "jacket",
+        "brand": "Lacoste",
+        "style": "monogram track jacket with white side stripes",
+        "color": "green",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "Lacoste02_trackpants",
+      "label": "Lacoste Green Monogram Track Pants",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/Lacoste_02.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "pants",
+        "brand": "Lacoste",
+        "style": "monogram track pants with green side stripes",
+        "color": "green",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "Lacoste03_polo",
+      "label": "Lacoste Green Monogram Polo Shirt (Black Collar)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/Lacoste_03.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "polo shirt",
+        "brand": "Lacoste",
+        "style": "monogram polo with black collar and white side stripes",
+        "color": "green with black collar",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "lacoste04_polo",
+      "label": "Lacoste Red Polo Shirt",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/lacoste_04.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "polo shirt",
+        "brand": "Lacoste",
+        "style": "classic polo",
+        "color": "red",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "Musee01_glasses",
+      "label": "Musee Octagonal Glasses (Gold Frame, Mint Arms)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/Musee_01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "accessory",
+        "subcategory": "glasses",
+        "brand": "unknown / Musee",
+        "style": "octagonal frame, mint/teal arms",
+        "color": "gold frame with mint temples",
+        "art_style": "pixel art",
+        "confidence": "INFERRED",
+        "confidence_score": 0.75
+      }
+    },
+    {
+      "id": "nike01_tshirt",
+      "label": "Nike Cream T-Shirt",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/nike_01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "t-shirt",
+        "brand": "Nike",
+        "style": "crew neck t-shirt with swoosh logo",
+        "color": "cream / off-white",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "p01_jeans",
+      "label": "Blue Baggy Jeans",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/p01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "jeans",
+        "brand": "unknown",
+        "style": "baggy / wide-leg jeans",
+        "color": "blue",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "Ralph01_pants",
+      "label": "Ralph Lauren Polo Striped Pants (Light Blue Pinstripe)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/Ralph_01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "pants",
+        "brand": "Ralph Lauren / Polo",
+        "style": "pinstripe trousers",
+        "color": "light blue with white pinstripes",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "RB01_glasses",
+      "label": "Gentle Monster Titanium Glasses Semi-Rimless (Gold, Blue Arms)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/RB_01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "accessory",
+        "subcategory": "glasses",
+        "brand": "Gentle Monster",
+        "style": "semi-rimless titanium, rectangular",
+        "color": "gold frame with light blue arms",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "S01_shirt",
+      "label": "Striped Long-Sleeve Open-Collar Shirt (White/Grey)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/S01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "shirt",
+        "brand": "unknown",
+        "style": "long-sleeve open-collar striped shirt",
+        "color": "white with grey stripes",
+        "art_style": "line art / illustration",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "uniqlo01_longsleeve",
+      "label": "Uniqlo Dark Grey Long-Sleeve T-Shirt",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/uniqlo_01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "long-sleeve t-shirt",
+        "brand": "Uniqlo",
+        "style": "crew neck long-sleeve",
+        "color": "dark grey / charcoal",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "Uniqlo02_item",
+      "label": "Uniqlo Item (Unreadable — Image Too Large)",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/Uniqlo_02.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "unknown",
+        "brand": "Uniqlo",
+        "style": "unknown",
+        "color": "unknown",
+        "art_style": "unknown",
+        "confidence": "AMBIGUOUS",
+        "confidence_score": 0.2
+      }
+    },
+    {
+      "id": "V01_jacket",
+      "label": "Blue Hooded Puffer Field Jacket",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/V01.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "jacket",
+        "brand": "unknown",
+        "style": "hooded puffer / field jacket with toggle clips",
+        "color": "blue",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    },
+    {
+      "id": "V02_jacket",
+      "label": "Khaki Hooded Puffer Field Jacket",
+      "file_type": "image",
+      "source_file": "legacy_code/habits/assets/V02.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "properties": {
+        "category": "clothing",
+        "subcategory": "jacket",
+        "brand": "unknown",
+        "style": "hooded puffer / field jacket with toggle clips",
+        "color": "khaki / olive",
+        "art_style": "pixel art",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "Fossil02_watch",
+      "target": "garmin_smartwatch",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "legacy_code/habits/assets/Fossil02.png",
+      "source_location": null,
+      "weight": 0.8,
+      "note": "Both are wristwatches / timepieces in the wardrobe accessories category"
+    },
+    {
+      "source": "GM01_glasses",
+      "target": "RB01_glasses",
+      "relation": "semantically_similar_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "legacy_code/habits/assets/GM_01.png",
+      "source_location": null,
+      "weight": 1.0,
+      "note": "Both are Gentle Monster Titanium glasses in pixel art style — same brand, different frame shapes"
+    },
+    {
+      "source": "GM01_glasses",
+      "target": "Musee01_glasses",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "legacy_code/habits/assets/GM_01.png",
+      "source_location": null,
+      "weight": 0.9,
+      "note": "Both are octagonal frame glasses in pixel art style; same silhouette, different brand/colorway"
+    },
+    {
+      "source": "RB01_glasses",
+      "target": "Musee01_glasses",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "legacy_code/habits/assets/RB_01.png",
+      "source_location": null,
+      "weight": 0.8,
+      "note": "Both are glasses accessories in gold-toned pixel art style"
+    },
+    {
+      "source": "Lacoste01_trackjacket",
+      "target": "Lacoste02_trackpants",
+      "relation": "semantically_similar_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "legacy_code/habits/assets/Lacoste_01.png",
+      "source_location": null,
+      "weight": 1.0,
+      "note": "Matching Lacoste monogram tracksuit set — jacket and pants share same green monogram pattern and green side stripes"
+    },
+    {
+      "source": "Lacoste01_trackjacket",
+      "target": "Lacoste03_polo",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "legacy_code/habits/assets/Lacoste_01.png",
+      "source_location": null,
+      "weight": 0.9,
+      "note": "Same brand (Lacoste) and monogram pattern — jacket and polo from the same collection"
+    },
+    {
+      "source": "Lacoste03_polo",
+      "target": "lacoste04_polo",
+      "relation": "semantically_similar_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "legacy_code/habits/assets/Lacoste_03.png",
+      "source_location": null,
+      "weight": 1.0,
+      "note": "Both are Lacoste polo shirts in pixel art style — same item type, different colorways (green monogram vs plain red)"
+    },
+    {
+      "source": "Lacoste02_trackpants",
+      "target": "Ralph01_pants",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "legacy_code/habits/assets/Lacoste_02.png",
+      "source_location": null,
+      "weight": 0.7,
+      "note": "Both are pants/trousers in the wardrobe clothing category"
+    },
+    {
+      "source": "p01_jeans",
+      "target": "Ralph01_pants",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "legacy_code/habits/assets/p01.png",
+      "source_location": null,
+      "weight": 0.8,
+      "note": "Both are bottom garments / trousers in pixel art style"
+    },
+    {
+      "source": "V01_jacket",
+      "target": "V02_jacket",
+      "relation": "semantically_similar_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "legacy_code/habits/assets/V01.png",
+      "source_location": null,
+      "weight": 1.0,
+      "note": "Identical style jacket (hooded puffer/field jacket with toggle clips) — V01 is blue, V02 is khaki; likely same item in two colorways"
+    },
+    {
+      "source": "V01_jacket",
+      "target": "Lacoste01_trackjacket",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "legacy_code/habits/assets/V01.png",
+      "source_location": null,
+      "weight": 0.6,
+      "note": "Both are outerwear/jacket garments in the wardrobe clothing category"
+    },
+    {
+      "source": "nike01_tshirt",
+      "target": "uniqlo01_longsleeve",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "legacy_code/habits/assets/nike_01.png",
+      "source_location": null,
+      "weight": 0.7,
+      "note": "Both are casual tops / t-shirts in pixel art style"
+    },
+    {
+      "source": "uniqlo01_longsleeve",
+      "target": "Uniqlo02_item",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "legacy_code/habits/assets/uniqlo_01.png",
+      "source_location": null,
+      "weight": 0.8,
+      "note": "Both are Uniqlo brand items — likely same brand, different items or colorways"
+    },
+    {
+      "source": "S01_shirt",
+      "target": "nike01_tshirt",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "legacy_code/habits/assets/S01.png",
+      "source_location": null,
+      "weight": 0.65,
+      "note": "Both are tops/shirts in the wardrobe clothing category"
+    },
+    {
+      "source": "ghibli01_necklace",
+      "target": "GM01_glasses",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "legacy_code/habits/assets/ghibli_01.png",
+      "source_location": null,
+      "weight": 0.6,
+      "note": "Both are gold-toned accessories in the wardrobe accessories category"
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

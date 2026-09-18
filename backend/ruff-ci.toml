@@ -1,0 +1,37 @@
+# Ratchet de lint (amélioration §6.1) — jeu de règles BLOQUANT en CI.
+#
+# `pyproject.toml` sélectionne E/F/I/B/UP en entier : ~1770 violations
+# pré-existantes, impossible de bloquer dessus sans réécrire tout le dépôt.
+# Ce fichier isole les règles qui sont DÉJÀ à zéro violation aujourd'hui : les
+# rendre bloquantes ne demande aucune correction et empêche toute régression.
+#
+# Pour étendre le ratchet : corriger une règle de la dette (`ruff check .
+# --statistics` donne le reste), puis ajouter son code ici.
+#
+# Volontairement absents (dette réelle, encore advisory) : I001, E402, E701,
+# E702, E712, E731, E741, F401, F811, F841, B023, B904, B905, UP007, UP012,
+# UP035, UP037.
+# B008 est exclu définitivement : `Depends()`/`Query()` en argument par défaut
+# est le patron normal de FastAPI, pas un défaut (374 occurrences légitimes).
+
+line-length = 100
+target-version = "py310"
+
+[lint]
+select = [
+  # Erreurs franches (pyflakes)
+  "F632", "F701", "F702", "F704", "F706", "F707", "F821",
+  # Pièges bugbear
+  "B002", "B003", "B004", "B005", "B006", "B007", "B009", "B010", "B011",
+  "B012", "B013", "B014", "B015", "B016", "B017", "B018", "B019", "B020",
+  "B021", "B022", "B025", "B026", "B028", "B029", "B030", "B031", "B032",
+  "B033", "B034", "B035",
+  # pycodestyle : comparaisons et except douteux
+  "E711", "E713", "E714", "E721", "E722", "E743", "E902",
+  # pyupgrade : tournures obsolètes
+  "UP001", "UP003", "UP004", "UP005", "UP006", "UP008", "UP009", "UP010",
+  "UP011", "UP013", "UP014", "UP015", "UP018", "UP019", "UP020", "UP021",
+  "UP022", "UP023", "UP024", "UP025", "UP026", "UP028", "UP029", "UP030",
+  "UP031", "UP032", "UP033", "UP034", "UP036", "UP039", "UP040", "UP041",
+  "UP042", "UP043",
+]

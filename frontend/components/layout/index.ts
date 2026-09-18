@@ -1,0 +1,5 @@
+export { Dock } from './Dock'
+export { MainShell } from './MainShell'
+export { ModuleHeader, ModuleTabPanel } from './ModuleHeader'
+export type { ModuleTab } from './ModuleHeader'
+export { NotificationsWidget } from './NotificationsWidget'

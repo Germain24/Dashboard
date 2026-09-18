@@ -1,0 +1,185 @@
+const BASE = '/api/automatisations'
+
+export type TriggerType = 'cron' | 'event' | 'webhook'
+
+export type RoutineAction =
+  | { type: 'notify'; titre: string; message: string; level?: string }
+  | { type: 'job'; job_id: string }
+  | { type: 'webhook'; url: string }
+  | { type: string; [k: string]: unknown }
+
+export type Routine = {
+  id: number
+  name: string
+  description: string
+  trigger_type: TriggerType
+  trigger_value: string
+  actions: RoutineAction[]
+  enabled: boolean
+  last_run_at: string | null
+  created_at: string
+}
+
+const json = (r: Response) => r.json()
+const jsonHeaders = { 'Content-Type': 'application/json' }
+
+export const fetchRoutines = (): Promise<Routine[]> =>
+  fetch(`${BASE}/routines`).then(json)
+
+export const createRoutine = (data: Partial<Routine> & { name: string }): Promise<Routine> =>
+  fetch(`${BASE}/routines`, {
+    method: 'POST',
+    headers: jsonHeaders,
+    body: JSON.stringify(data),
+  }).then(json)
+
+export const updateRoutine = (id: number, patch: Partial<Routine>): Promise<Routine> =>
+  fetch(`${BASE}/routines/${id}`, {
+    method: 'PATCH',
+    headers: jsonHeaders,
+    body: JSON.stringify(patch),
+  }).then(json)
+
+export const deleteRoutine = (id: number): Promise<void> =>
+  fetch(`${BASE}/routines/${id}`, { method: 'DELETE' }).then(() => undefined)
+
+export const runRoutine = (id: number): Promise<{ result: string }> =>
+  fetch(`${BASE}/routines/${id}/run`, { method: 'POST' }).then(json)
+
+// ── Kill switch global + journal d'audit (#217) ──────────────────────────────
+
+export type RoutineRun = {
+  id: number
+  routine_id: number
+  routine_name: string
+  ran_at: string
+  status: 'ok' | 'blocked' | 'error'
+  detail: string
+  created_ids?: string
+  rolled_back?: boolean
+}
+
+export const fetchKillSwitch = (): Promise<{ enabled: boolean }> =>
+  fetch(`${BASE}/routines/kill-switch`).then(json)
+
+export const setKillSwitch = (enabled: boolean): Promise<{ enabled: boolean }> =>
+  fetch(`${BASE}/routines/kill-switch`, {
+    method: 'POST',
+    headers: jsonHeaders,
+    body: JSON.stringify({ enabled }),
+  }).then(json)
+
+export const fetchRoutineRuns = (limit = 30): Promise<RoutineRun[]> =>
+  fetch(`${BASE}/routines/runs?limit=${limit}`).then(json)
+
+// Suggestions d'automatisation apprises des habitudes (#218)
+export type AutomationSuggestion = {
+  titre: string
+  weekday: number
+  jour: string
+  heure: string
+  occurrences: number
+  message: string
+}
+
+export const fetchAutomationSuggestions = (): Promise<{ suggestions: AutomationSuggestion[]; count: number }> =>
+  fetch(`${BASE}/suggestions`).then(json)
+
+// Planificateur deep work (#220)
+export const applyDeepWork = (nBlocks = 5): Promise<{ week_start: string; created: number }> =>
+  fetch(`${BASE}/deep-work/apply?n_blocks=${nBlocks}`, { method: 'POST' }).then(json)
+
+// Corrélations cross-modules (#221)
+export type Correlation = { a: string; b: string; r: number; n: number; interpretation: string }
+
+export const fetchCorrelations = (): Promise<{ days: number; correlations: Correlation[]; count: number }> =>
+  fetch(`${BASE}/correlations`).then(json)
+
+// Insights hebdomadaires (#223)
+export type WeeklyInsights = { week_start: string; reussites: string[]; vigilance: string[]; tendances: string[] }
+
+export const fetchWeeklyInsights = (): Promise<WeeklyInsights> =>
+  fetch(`${BASE}/insights`).then(json)
+
+// Pistes de causalité / liens décalés (#224)
+export type CausalLink = { cause: string; effet: string; lag: number; r: number; n: number; piste: string }
+
+export const fetchCausalites = (): Promise<{ links: CausalLink[]; count: number }> =>
+  fetch(`${BASE}/causalites`).then(json)
+
+// Alertes de seuils (#235)
+export type SeuilAlerte = { metric: string; op: string; seuil: number; enabled: boolean }
+export type AlertesConfig = { alertes: SeuilAlerte[]; metriques: string[]; declenchees: { metric: string; message: string }[] }
+export const fetchAlertes = (): Promise<AlertesConfig> => fetch(`${BASE}/alertes`).then(json)
+export const putAlertes = (alertes: SeuilAlerte[]): Promise<{ alertes: SeuilAlerte[] }> =>
+  fetch(`${BASE}/alertes`, { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(alertes) }).then(json)
+
+// Bilan mensuel (#234)
+export type MonthlyReport = {
+  annee: number; mois: number; periode: string; jours_couverts: number;
+  metriques: Record<string, number>;
+  poids: { debut: number; fin: number; delta: number } | null;
+}
+export const fetchMonthlyReport = (year: number, month: number): Promise<MonthlyReport> =>
+  fetch(`${BASE}/bilan?year=${year}&month=${month}`).then(json)
+
+// Détection de surcharge (#231)
+export type OverloadDay = { date: string; load_min: number; load_h: number; n_events: number; suggestion: string }
+export const fetchSurcharge = (): Promise<{ week_start: string; jours: OverloadDay[]; count: number }> =>
+  fetch(`${BASE}/surcharge`).then(json)
+
+// Prédiction de tendances (#228)
+export type Forecast = { metric: string; slope_per_day: number; courant: number; horizon_days: number; prevision: number; variation: number; direction: string; n: number }
+export const fetchForecasts = (): Promise<{ horizon_days: number; forecasts: Forecast[]; count: number }> =>
+  fetch(`${BASE}/forecasts`).then(json)
+
+// Recommandations priorisées (#227)
+export type Recommendation = { titre: string; module: string; impact: number; raison: string }
+export const fetchRecommendations = (): Promise<{ recommendations: Recommendation[]; count: number }> =>
+  fetch(`${BASE}/recommendations`).then(json)
+
+// Objectifs de vie inter-modules (#226) + jalons datés (§5.4)
+export type LifeGoalMetric = { metric: string; label: string }
+/** `statut` est dérivé côté serveur depuis `date` et la progression ; `date`
+ *  est null pour les sous-objectifs stockés avant les jalons datés. */
+export type LifeGoalJalonStatut = 'atteint' | 'en_retard' | 'a_venir'
+export type LifeGoalSub = { label: string; metric: string; baseline: number; cible: number; courant: number | null; pct: number | null; atteint: boolean; date: string | null; statut: LifeGoalJalonStatut }
+export type LifeGoal = { id: number; titre: string; echeance: string | null; objectifs: LifeGoalSub[]; pct_global: number | null; jalons_en_retard: number }
+export type LifeGoalCreate = { titre: string; echeance?: string | null; objectifs: { label: string; metric: string; baseline: number; cible: number; date?: string | null }[] }
+
+export const fetchLifeGoals = (): Promise<LifeGoal[]> => fetch(`${BASE}/objectifs-vie`).then(json)
+export const fetchLifeGoalMetrics = (): Promise<LifeGoalMetric[]> => fetch(`${BASE}/objectifs-vie/metriques`).then(json)
+export const createLifeGoal = (body: LifeGoalCreate): Promise<LifeGoal> =>
+  fetch(`${BASE}/objectifs-vie`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) }).then(json)
+export const deleteLifeGoal = (id: number): Promise<void> =>
+  fetch(`${BASE}/objectifs-vie/${id}`, { method: 'DELETE' }).then(() => undefined)
+
+// File d'automatisations : ré-exécution + rollback (#216)
+export const rerunRoutineRun = (runId: number): Promise<{ result: string }> =>
+  fetch(`${BASE}/routines/runs/${runId}/rerun`, { method: 'POST' }).then(json)
+
+export const rollbackRoutineRun = (runId: number): Promise<{ result: string }> =>
+  fetch(`${BASE}/routines/runs/${runId}/rollback`, { method: 'POST' }).then(json)
+
+// ── Constructeur no-code (#205) ──────────────────────────────────────────────
+
+export type BuilderOptions = {
+  events: { value: string; label: string }[]
+  jobs: { id: string; label: string }[]
+  action_types: { type: string; label: string }[]
+}
+
+export const fetchBuilderOptions = (): Promise<BuilderOptions> =>
+  fetch(`${BASE}/routines/builder-options`).then(json)
+
+// ── Recettes cross-module (#215) ─────────────────────────────────────────────
+
+export type Recipe = {
+  id: string; name: string; emoji: string; description: string; nb_actions: number
+}
+
+export const fetchRecipes = (): Promise<Recipe[]> =>
+  fetch(`${BASE}/recipes`).then(json)
+
+export const runRecipe = (id: string): Promise<{ result: string }> =>
+  fetch(`${BASE}/recipes/${id}/run`, { method: 'POST' }).then(json)

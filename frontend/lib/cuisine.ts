@@ -1,0 +1,234 @@
+const BASE = '/api/cuisine'
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+export type PantryItem = {
+  id: number
+  ingredient: string
+  quantite: number
+  unite: string
+  date_peremption: string | null
+  rayon: string
+  statut: 'ok' | 'warning' | 'expired' | 'no_date' | 'best_before_passed' | 'best_before_soon'
+  source_produit?: string
+  marque?: string
+  quantite_source?: string
+  type_aliment?: 'aliment' | 'supplement' | 'non_mappe' | string
+  optimizer_excluded?: boolean
+  ciqual_code?: string
+  ciqual_nom?: string
+  source_url?: string
+  nutrition_label?: {
+    serving_size: string
+    values: { nutrient: string; value: number; unit: string }[]
+    source_label: string
+    source_url: string
+    source_updated?: string
+    note?: string
+  }
+}
+
+export type PantryItemInput = Omit<PantryItem, 'id' | 'statut'>
+
+export type Ingredient = {
+  nom_libre: string
+  quantite: number
+  unite: string
+  aliment_id?: number | null // lien catalogue Santé (macros) ; null = texte libre
+}
+
+/** Aliment du catalogue Santé (source des macros). */
+export type Aliment = { id: number; nom: string; proprietes: Record<string, number> }
+
+export type Recipe = {
+  id: number
+  titre: string
+  portions: number
+  temps_prep: number
+  temps_cuisson: number
+  instructions?: string
+  image_url?: string | null
+  source_url?: string | null
+  ingredient_count?: number
+}
+
+export type RecipeInput = {
+  titre: string
+  portions: number
+  temps_prep: number
+  temps_cuisson: number
+  instructions: string
+  ingredients: Ingredient[]
+}
+
+export type RestaurantMeal = {
+  id: number
+  name: string
+  price: number
+  calories: number
+  proteines: number
+  glucides: number
+  lipides: number
+  description: string
+  menu_url: string
+  macros_estimees: boolean
+}
+
+export type MealEntry = {
+  id: number
+  semaine: string
+  jour: number
+  repas: string
+  recipe_id: number | null
+  notes?: string
+  restaurant?: RestaurantMeal | null
+  coupon_cad?: number
+}
+
+// ── Recettes ─────────────────────────────────────────────────────────────────
+
+function recipeQuery(search?: string, ingredient?: string): string {
+  const params = new URLSearchParams()
+  if (search) params.set('search', search)
+  if (ingredient) params.set('ingredient', ingredient)
+  return params.toString()
+}
+
+export async function fetchRecipes(search?: string, ingredient?: string): Promise<Recipe[]> {
+  const q = recipeQuery(search, ingredient)
+  const r = await fetch(`${BASE}/recipes${q ? '?' + q : ''}`)
+  if (!r.ok) throw new Error('Échec du chargement des recettes')
+  return r.json()
+}
+
+export type RecipeDetail = Recipe & { ingredients: Ingredient[] }
+
+export async function fetchRecipe(id: number): Promise<RecipeDetail> {
+  const r = await fetch(`${BASE}/recipes/${id}`)
+  if (!r.ok) throw new Error('Recette introuvable')
+  return r.json()
+}
+
+export async function createRecipe(data: RecipeInput): Promise<Recipe> {
+  const r = await fetch(`${BASE}/recipes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!r.ok) throw new Error('Échec de la création de la recette')
+  return r.json()
+}
+
+export async function importFromUrl(url: string): Promise<Recipe> {
+  const r = await fetch(`${BASE}/recipes/from-url?url=${encodeURIComponent(url)}`, { method: 'POST' })
+  if (!r.ok) throw new Error('Impossible de parser cette URL')
+  return r.json()
+}
+
+// ── Catalogue Santé + cibles (pour lier les ingrédients et optimiser le plan) ──
+
+export async function fetchAliments(): Promise<Aliment[]> {
+  const r = await fetch('/api/sante/aliments')
+  if (!r.ok) throw new Error('Échec du chargement du catalogue d’aliments')
+  return r.json()
+}
+
+/** Cibles macros du jour calculées par l'optimiseur Santé (clés capitalisées). */
+export async function fetchDailyTargets(): Promise<Record<string, number>> {
+  const r = await fetch('/api/sante/targets/today')
+  if (!r.ok) throw new Error('Cibles nutrition indisponibles')
+  const d = await r.json()
+  return (d?.targets as Record<string, number>) ?? {}
+}
+
+// ── Plan repas + courses (branchés plus tard) ────────────────────────────────
+
+export const fetchMealPlan = (week: string): Promise<MealEntry[]> =>
+  fetch(`${BASE}/meal-plan?week=${week}`).then((r) => r.json())
+
+export const generateMealPlan = (semaine: string, cibles: Record<string, number>) =>
+  fetch(`${BASE}/meal-plan/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ semaine, cibles }),
+  }).then((r) => r.json() as Promise<MealEntry[]>)
+
+export type ShoppingItem = {
+  ingredient: string
+  quantite: number
+  unite: string
+  rayon: string
+  magasin_recommande?: string
+  prix_estime?: number
+  promo?: boolean
+}
+
+/** Liste de courses calculée (non persistée), scopable sur des jours du plan. */
+export async function fetchShoppingPreview(week: string, jours?: number[]): Promise<ShoppingItem[]> {
+  const q = jours && jours.length ? `&jours=${jours.join(',')}` : ''
+  const r = await fetch(`${BASE}/shopping-list/preview?week=${week}${q}`)
+  if (!r.ok) throw new Error('Liste de courses indisponible')
+  return r.json()
+}
+
+// ── Garde-manger (#127) ──────────────────────────────────────────────────────
+
+export async function fetchPantry(): Promise<PantryItem[]> {
+  const r = await fetch(`${BASE}/pantry`)
+  if (!r.ok) throw new Error('Garde-manger indisponible')
+  return r.json()
+}
+
+export async function addPantryItem(data: PantryItemInput): Promise<PantryItem> {
+  const r = await fetch(`${BASE}/pantry`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!r.ok) throw new Error("Echec de l'ajout")
+  return r.json()
+}
+
+export async function updatePantryItem(id: number, patch: Partial<PantryItemInput>): Promise<PantryItem> {
+  const r = await fetch(`${BASE}/pantry/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!r.ok) throw new Error('Échec de la mise à jour')
+  return r.json()
+}
+
+export async function deletePantryItem(id: number): Promise<void> {
+  const r = await fetch(`${BASE}/pantry/${id}`, { method: 'DELETE' })
+  if (!r.ok) throw new Error('Échec de la suppression')
+}
+
+// ── Favoris & notes (#128) ───────────────────────────────────────────────────
+
+export async function fetchFavorites(): Promise<{ favorites: number[] }> {
+  const r = await fetch(`${BASE}/favorites`)
+  if (!r.ok) throw new Error('Favoris indisponibles')
+  return r.json()
+}
+
+export async function toggleFavorite(recipeId: number): Promise<{ is_favorite: boolean; favorites: number[] }> {
+  const r = await fetch(`${BASE}/recipes/${recipeId}/favorite`, { method: 'POST' })
+  if (!r.ok) throw new Error('Échec du toggle favori')
+  return r.json()
+}
+
+export async function fetchRecipeNote(recipeId: number): Promise<string> {
+  const r = await fetch(`${BASE}/recipes/${recipeId}/note`)
+  if (!r.ok) return ''
+  const d = await r.json()
+  return d.note ?? ''
+}
+
+export async function setRecipeNote(recipeId: number, note: string): Promise<void> {
+  await fetch(`${BASE}/recipes/${recipeId}/note`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note }),
+  })
+}

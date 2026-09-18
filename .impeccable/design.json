@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-05T00:00:00Z",
+  "title": "Design System: Mission Control",
+  "extensions": {
+    "colorMeta": {
+      "academic-navy": {
+        "role": "primary",
+        "displayName": "Academic Navy",
+        "canonical": "#04142c",
+        "tonalRamp": ["#02060f", "#04142c", "#0b2547", "#173a66", "#2a5286", "#5a7da8", "#9bb4d0", "#d6e1ef"]
+      },
+      "brass": {
+        "role": "secondary",
+        "displayName": "Brass / Laiton",
+        "canonical": "#C5A059",
+        "tonalRamp": ["#4a3a17", "#6b541f", "#8c6e2a", "#a98637", "#C5A059", "#d4b87f", "#e3cda6", "#f1e7c8"]
+      },
+      "editorial-oxblood": {
+        "role": "tertiary",
+        "displayName": "Editorial Oxblood",
+        "canonical": "#501312",
+        "tonalRamp": ["#2a0908", "#501312", "#6e1f1c", "#8f2f2a", "#b5443c", "#d17771", "#e9a8a3", "#ffdad7"]
+      },
+      "english-green": {
+        "role": "success",
+        "displayName": "English Green",
+        "canonical": "#536252",
+        "tonalRamp": ["#2f3a2e", "#3c4a3c", "#4a5a48", "#536252", "#6f7e6c", "#94a190", "#bbcbb8", "#d4e4d0"]
+      },
+      "ochre": {
+        "role": "warning",
+        "displayName": "Ochre",
+        "canonical": "#8a6d1f",
+        "tonalRamp": ["#3a2d0a", "#574311", "#74591a", "#8a6d1f", "#a6852f", "#c5a85e", "#ddca97", "#f1e7c8"]
+      },
+      "vermilion": {
+        "role": "destructive",
+        "displayName": "Vermilion",
+        "canonical": "#ba1a1a",
+        "tonalRamp": ["#5c0606", "#93000a", "#ba1a1a", "#d33a33", "#e66a63", "#f29790", "#ffb4ab", "#ffdad6"]
+      },
+      "paper-cream": {
+        "role": "neutral",
+        "displayName": "Paper Cream",
+        "canonical": "#faf9f5",
+        "tonalRamp": ["#3b3a35", "#56554f", "#74736c", "#9a988f", "#c2c0b6", "#e0ded6", "#efeeea", "#faf9f5"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1b1c1a",
+        "tonalRamp": ["#0d0d0c", "#1b1c1a", "#2c2e2b", "#44474d", "#6a6e72", "#9aa0a4", "#c8cccf", "#eceeef"]
+      },
+      "midnight-marine": {
+        "role": "neutral",
+        "displayName": "Midnight Marine",
+        "canonical": "#0B121E",
+        "tonalRamp": ["#05080f", "#0B121E", "#111a2a", "#18222f", "#243042", "#3a4a60", "#6a7c96", "#aab8cc"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (Libre Caslon)", "purpose": "h1 et wordmark uniquement — la seule présence du serif dans l'UI." },
+      "title": { "displayName": "Title", "purpose": "Titres de carte, en-têtes de section, labels d'onglet (Public Sans 600)." },
+      "body": { "displayName": "Body", "purpose": "Corps et prose, 15px/1.6, ligne 65–75ch." },
+      "label": { "displayName": "Label", "purpose": "Labels de champ, légendes, métadonnées en Muted Ink." },
+      "mono": { "displayName": "Mono", "purpose": "Valeurs numériques alignées (tabular-nums)." }
+    },
+    "shadows": [
+      { "name": "shadow-sm", "value": "0 1px 2px 0 rgb(26 41 66 / 0.04)", "purpose": "Boutons pleins, badges soulevés." },
+      { "name": "shadow", "value": "0 2px 8px 0 rgb(26 41 66 / 0.06)", "purpose": "Cartes au repos." },
+      { "name": "shadow-md", "value": "0 4px 16px -2px rgb(26 41 66 / 0.08)", "purpose": "Popovers, cartes survolées (.card-hover)." },
+      { "name": "shadow-lg", "value": "0 4px 20px 0 rgb(26 41 66 / 0.10)", "purpose": "Dialogues et surfaces flottantes (overlay/modal)." }
+    ],
+    "motion": [
+      { "name": "transition-fast", "value": "100ms ease", "purpose": "Boutons et micro-feedback (active:scale 0.97)." },
+      { "name": "transition", "value": "150ms ease", "purpose": "États interactifs (hover, changement de couleur)." },
+      { "name": "transition-slow", "value": "250ms ease", "purpose": "Entrées de carte et transitions de page." },
+      { "name": "fade-in-up", "value": "fadeInUp 0.3s ease", "purpose": "Entrée d'un bloc : opacity 0 + translateY(12px) → repos." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action primaire : aplat marine académique, action unique par contexte.",
+      "html": "<button class=\"ds-btn-primary\">Enregistrer</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:8px; height:32px; padding:0 12px; border:none; border-radius:var(--radius,4px); background:var(--primary,#04142c); color:var(--primary-foreground,#fff); font:500 0.875rem/1 var(--font-sans,ui-sans-serif,system-ui,sans-serif); box-shadow:var(--shadow-sm,0 1px 2px 0 rgb(26 41 66 / 0.04)); cursor:pointer; transition:all 100ms ease; } .ds-btn-primary:hover { opacity:0.9; } .ds-btn-primary:active { transform:scale(0.97); } .ds-btn-primary:focus-visible { outline:2px solid var(--ring,#04142c); outline-offset:2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Action secondaire : bordure fine, fond transparent.",
+      "html": "<button class=\"ds-btn-secondary\">Annuler</button>",
+      "css": ".ds-btn-secondary { display:inline-flex; align-items:center; justify-content:center; gap:8px; height:32px; padding:0 12px; border:1px solid var(--border,#c5c6ce); border-radius:var(--radius,4px); background:transparent; color:var(--foreground,#1b1c1a); font:500 0.875rem/1 var(--font-sans,ui-sans-serif,system-ui,sans-serif); cursor:pointer; transition:all 100ms ease; } .ds-btn-secondary:hover { background:var(--accent,#efeeea); } .ds-btn-secondary:active { transform:scale(0.97); } .ds-btn-secondary:focus-visible { outline:2px solid var(--ring,#04142c); outline-offset:2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Conteneur de contenu : blanc soulevé du papier, lift discret au survol.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Portefeuille</h3><p class=\"ds-card-desc\">Valeur et performance du mois.</p></div>",
+      "css": ".ds-card { border-radius:var(--radius-lg,8px); border:1px solid var(--border,#c5c6ce); background:var(--card,#fff); color:var(--card-foreground,#1b1c1a); padding:16px; box-shadow:var(--shadow,0 2px 8px 0 rgb(26 41 66 / 0.06)); transition:box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease; } .ds-card:hover { box-shadow:var(--shadow-md,0 4px 16px -2px rgb(26 41 66 / 0.08)); transform:translateY(-1px); border-color:var(--ring,#04142c); } .ds-card-title { margin:0; font:600 0.875rem/1.2 var(--font-sans,ui-sans-serif,system-ui,sans-serif); letter-spacing:-0.01em; } .ds-card-desc { margin:4px 0 0; font-size:0.75rem; color:var(--muted-foreground,#44474d); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Champ texte : fond transparent, bordure qui passe à la marine au focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"Rechercher…\" />",
+      "css": ".ds-input { height:32px; width:100%; box-sizing:border-box; border-radius:var(--radius,4px); border:1px solid var(--border,#c5c6ce); background:transparent; padding:4px 12px; font-size:0.875rem; color:var(--foreground,#1b1c1a); transition:border-color 150ms ease; } .ds-input::placeholder { color:var(--muted-foreground,#44474d); } .ds-input:focus-visible { border-color:var(--ring,#04142c); outline:none; }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge-default",
+      "description": "Étiquette de statut : fond tonal doux par rôle sémantique.",
+      "html": "<span class=\"ds-badge ds-badge-success\">À jour</span>",
+      "css": ".ds-badge { display:inline-flex; align-items:center; border-radius:var(--radius-sm,2px); padding:2px 8px; font:500 0.75rem/1.4 var(--font-sans,ui-sans-serif,system-ui,sans-serif); background:var(--muted,#efeeea); color:var(--muted-foreground,#44474d); } .ds-badge-success { background:var(--success-muted,#d4e4d0); color:var(--success-foreground,#2f3a2e); }"
+    },
+    {
+      "name": "Nav Item (active)",
+      "kind": "nav",
+      "refersTo": "nav-active",
+      "description": "Item de navigation actif : lavis marine + teinte marine + aria-current (trois indices redondants, daltonien-safe).",
+      "html": "<a class=\"ds-nav-item\" href=\"#\" aria-current=\"page\"><svg class=\"ds-nav-ico\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/><path d=\"M9 22V12h6v10\"/></svg>Accueil</a>",
+      "css": ".ds-nav-item { display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:var(--radius,4px); color:var(--muted-foreground,#44474d); font:500 0.875rem/1.4 var(--font-sans,ui-sans-serif,system-ui,sans-serif); text-decoration:none; transition:background-color 150ms ease, color 150ms ease; } .ds-nav-ico { width:16px; height:16px; flex:0 0 auto; } .ds-nav-item:hover { background:var(--accent,#efeeea); color:var(--foreground,#1b1c1a); } .ds-nav-item[aria-current=\"page\"] { background:color-mix(in srgb, var(--ring,#04142c) 12%, transparent); color:var(--nav-active-fg,#04142c); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Old Money Almanac",
+    "overview": "Mission Control se tient comme un almanach patrimonial relié : papier crème, encre marine, des chiffres tenus avec la rigueur tranquille d'un grand livre. C'est un outil de pilotage de vie pour un seul lecteur, dense et quotidien, où l'interface se lit comme un document bien composé plutôt que comme un tableau de bord à la mode. La couleur ne décore jamais ; elle porte l'état et l'action. Le serif (Libre Caslon Text) est réservé aux titres et au wordmark ; tout le reste, la donnée comprise, reste en sans (Public Sans). Le thème suit le papier en clair et bascule sur une marine de minuit rehaussée de laiton en sombre.",
+    "keyCharacteristics": [
+      "Papier crème + encre marine ; une seule voix interactive (la marine académique).",
+      "Serif éditorial pour les titres, sans institutionnel pour la donnée dense.",
+      "Palette restreinte ; couleurs sémantiques portées en couches tonales douces.",
+      "Rayons courts (2–8 px), ombres lithographiques discrètes teintées marine.",
+      "Clair = papier ; sombre = marine de minuit + laiton."
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "La marine académique est le seul accent interactif en clair (laiton en sombre) : focus, nav active, liens, action primaire — rien d'autre. Sa rareté fait sa force.", "section": "colors" },
+      { "name": "The Ink-on-Paper Rule", "body": "Le corps de texte est de l'encre (#1b1c1a), pas du gris clair. Le gris (#44474d) est réservé au texte secondaire.", "section": "colors" },
+      { "name": "The Serif-for-Headlines-Only Rule", "body": "Libre Caslon est interdit dans boutons, labels, champs et cellules de données ; il vit dans h1 et le wordmark.", "section": "typography" },
+      { "name": "The Lithograph Rule", "body": "Une ombre est nette, à flou large, opacité ≤ 0.10, teintée marine en clair (noire en sombre). Au survol, lift -1px + bordure marine.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do réserver la marine académique (#04142c) au focus, à la nav active, aux liens et à l'action primaire — la One Voice Rule. Laiton (#C5A059) en sombre.",
+      "Do garder le corps de texte en encre (#1b1c1a) ; le gris (#44474d) est pour le secondaire, jamais pour le corps.",
+      "Do réserver Libre Caslon aux h1 et au wordmark ; toute la donnée et l'UI restent en Public Sans.",
+      "Do porter les statuts en couches tonales *-muted douces, et coder l'état par au moins deux indices (couleur + label/icône).",
+      "Do des ombres lithographiques (nettes, flou large, opacité ≤ 0.10, teintées marine) ; au survol, lift -1px + bordure marine."
+    ],
+    "donts": [
+      "Don't virer au dashboard AI SaaS générique : pas de dégradés crème-et-violet, pas de grilles de cartes identiques, pas de gabarit hero-metric, pas d'eyebrows en petites majuscules trackées.",
+      "Don't retomber sur un kit Material/Bootstrap par défaut : composants non travaillés, ombres dures et sombres, look admin panel.",
+      "Don't mettre du serif (Libre Caslon) dans un bouton, un label, un champ ou une cellule de tableau.",
+      "Don't utiliser un border-left/border-right coloré > 1px comme bandeau d'accent ; bordure pleine ou fond teinté à la place.",
+      "Don't remplir les champs d'un gris de fond ni écrire le corps en gris clair ; Don't dépenser la marine en décoration."
+    ]
+  }
+}

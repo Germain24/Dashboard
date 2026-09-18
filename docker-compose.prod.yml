@@ -1,0 +1,39 @@
+# Overlay production (#200) — reverse proxy Caddy en façade, services non publiés.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+# Point d'entrée unique : http://localhost  (Caddy route /api/* -> backend, reste -> front).
+#
+# NOTE workers : WEB_CONCURRENCY reste à 1. Les caches et le rate limit sont
+# in-memory PAR process ; >1 worker uvicorn donnerait des compteurs/quotas
+# incohérents et SQLite n'aime pas la concurrence d'écriture. Pour scaler il
+# faudrait externaliser l'état (Redis) et la base (Postgres).
+services:
+  backend:
+    ports: []
+    expose:
+      - "8000"
+    environment:
+      WEB_CONCURRENCY: "1"
+
+  frontend:
+    build:
+      args:
+        # En prod, le client passe par le reverse proxy (même origine).
+        NEXT_PUBLIC_API_BASE_URL: http://localhost
+    ports: []
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    restart: unless-stopped
+
+volumes:
+  caddy_data:

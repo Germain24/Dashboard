@@ -1,0 +1,76 @@
+COLONNES:
+  [0] Pièce d'identité
+  [1] Date
+  [2] Date et heure
+  [3] Montant
+  [4] Devise
+  [5] Description
+  [6] Référence du paiement
+  [7] Solde actuel
+  [8] Convertir depuis
+  [9] Convertir vers
+  [10] Taux de change
+  [11] Total des frais
+  [12] Nom du payeur
+  [13] Nom du bénéficiaire
+  [14] Numéro de compte du bénéficiaire
+  [15] Commerçant
+  [16] 4 derniers chiffres de la carte
+  [17] Nom complet du titulaire de la carte
+  [18] Pièce jointe
+  [19] Note
+  [20] Montant vers lequel convertir
+  [21] Type de transaction
+  [22] Type d'informations de transaction
+
+NB lignes: 51
+
+PREMIERE ligne:
+  Pièce d'identité = 'CARD-3656726806'
+  Date = Timestamp('2026-04-10 00:00:00')
+  Date et heure = Timestamp('2026-04-10 10:25:46.914000')
+  Montant = np.float64(-557.53)
+  Devise = 'EUR'
+  Description = 'Transaction de carte de 922,69 AUD émise par Shinzo Brand Pty Ltd BRUNSWICK (fee: 2,40 EUR)'
+  Référence du paiement = nan
+  Solde actuel = np.float64(5.07)
+  Convertir depuis = 'EUR'
+  Convertir vers = 'AUD'
+  Taux de change = np.float64(1.65496)
+  Total des frais = np.float64(2.4)
+  Nom du payeur = nan
+  Nom du bénéficiaire = np.float64(nan)
+  Numéro de compte du bénéficiaire = np.float64(nan)
+  Commerçant = 'Shinzo Brand Pty Ltd BRUNSWICK'
+  4 derniers chiffres de la carte = np.float64(8817.0)
+  Nom complet du titulaire de la carte = 'Germain De Sousa'
+  Pièce jointe = np.float64(nan)
+  Note = np.float64(nan)
+  Montant vers lequel convertir = np.float64(922.69)
+  Type de transaction = 'DEBIT'
+  Type d'informations de transaction = 'CARD'
+
+DERNIERE ligne:
+  Pièce d'identité = 'TRANSFER-1219362536'
+  Date = Timestamp('2024-09-18 00:00:00')
+  Date et heure = Timestamp('2024-09-18 11:51:02.850000')
+  Montant = np.float64(2500.0)
+  Devise = 'EUR'
+  Description = 'Compte rechargé'
+  Référence du paiement = nan
+  Solde actuel = np.float64(2500.0)
+  Convertir depuis = nan
+  Convertir vers = nan
+  Taux de change = np.float64(nan)
+  Total des frais = np.float64(0.0)
+  Nom du payeur = nan
+  Nom du bénéficiaire = np.float64(nan)
+  Numéro de compte du bénéficiaire = np.float64(nan)
+  Commerçant = nan
+  4 derniers chiffres de la carte = np.float64(nan)
+  Nom complet du titulaire de la carte = nan
+  Pièce jointe = np.float64(nan)
+  Note = np.float64(nan)
+  Montant vers lequel convertir = np.float64(nan)
+  Type de transaction = 'CREDIT'
+  Type d'informations de transaction = 'MONEY_ADDED'

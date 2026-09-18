@@ -1,0 +1,75 @@
+"""Store de préférences applicatives (#544).
+
+Les secrets (clés API) restent dans .env ; cette couche gère les préférences
+éditables depuis la page /parametres (rétentions, dossier musique, etc.).
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from app.core.config import settings as env_settings
+
+DEFAULT_PREFS: dict = {
+    "backup_retention_count": 0,
+    "jobrun_retention_days": 30,
+    "notification_retention_days": 30,
+    "music_dir": "Z:/Musique/Qobuz",
+    "mode_vacances": False,
+    # Objectif patrimonial d'investissement (montant cible en EUR)
+    "objectif_patrimoine_eur": 300_000,
+    # Projet Japon : enveloppe dédiée, distincte du patrimoine investi.
+    "objectif_japon_eur": 0,
+    "objectif_japon_date": "2028-01-11",
+    # Date à laquelle objectif_japon_eur représente 100 % du budget restant.
+    "objectif_japon_date_reference": "",
+    # Kill switch global des automatisations (#217) : si True, aucune routine
+    # ne s'exécute (manuelle ou planifiée) — chaque tentative est journalisée.
+    "automatisations_kill_switch": False,
+    # Navigation personnelle, partagée entre appareils via le même backend.
+    "module_access": {"favorites": [], "recents": []},
+}
+
+_ALLOWED_KEYS = set(DEFAULT_PREFS.keys())
+
+
+class SettingsStore:
+    def __init__(self, path: Path | None = None):
+        self._path = path or (env_settings.data_dir / "app_settings.json")
+
+    def load(self) -> dict:
+        prefs = dict(DEFAULT_PREFS)
+        if self._path.exists():
+            try:
+                saved = json.loads(self._path.read_text(encoding="utf-8"))
+                for k in _ALLOWED_KEYS:
+                    if k in saved:
+                        prefs[k] = saved[k]
+            except Exception:
+                pass
+        return prefs
+
+    def save(self, data: dict) -> dict:
+        clean = {k: v for k, v in data.items() if k in _ALLOWED_KEYS}
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._path.write_text(json.dumps(clean, ensure_ascii=False, indent=2), encoding="utf-8")
+        return self.load()
+
+    def update(self, patch: dict) -> dict:
+        current = self.load()
+        for k, v in patch.items():
+            if k in _ALLOWED_KEYS:
+                current[k] = v
+        return self.save(current)
+
+
+_store = SettingsStore()
+
+
+def get_preferences() -> dict:
+    return _store.load()
+
+
+def set_preferences(patch: dict) -> dict:
+    return _store.update(patch)

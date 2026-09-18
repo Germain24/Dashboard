@@ -1,0 +1,320 @@
+"""Tests TDD — patrimoine net : actifs manuels (RealT) + passifs (emprunt)."""
+
+from __future__ import annotations
+
+import datetime as dt
+from types import SimpleNamespace
+
+import pytest
+from sqlmodel import Session, SQLModel, create_engine
+
+from app.models.patrimoine import PatrimoineItem, PatrimoineSnapshot  # noqa: F401 (enregistre les tables)
+from app.models.finance import SnapshotPortefeuille
+from app.services.finance.patrimoine import (
+    all_account_value_eur,
+    bank_account_value_eur,
+    compute_net_worth,
+    create_item,
+    delete_item,
+    investment_value_eur,
+    financial_freedom_value_eur,
+    list_items,
+    net_worth_history,
+    net_worth_summary,
+    record_net_worth_snapshot,
+    to_eur,
+    update_item,
+)
+
+
+def test_to_eur_noop_for_eur():
+    assert to_eur(100, "EUR") == 100
+    assert to_eur(100, None) == 100
+
+
+def test_net_worth_converts_local_currencies(session, monkeypatch):
+    # FX simulé : 1 USD = 0.9 EUR, 1 CAD = 0.7 EUR
+    rates = {("USD", "EUR"): 0.9, ("CAD", "EUR"): 0.7}
+    monkeypatch.setattr(
+        "app.services.finance.fx.convert",
+        lambda amount, base, quote: round(amount * rates[(base, quote)], 2),
+    )
+    create_item(session, type="actif", label="RealT", valeur=1000, categorie="RealT", devise="USD")
+    create_item(session, type="actif", label="Desjardins", valeur=2000, categorie="cash", devise="CAD")
+    create_item(session, type="actif", label="BanquePop", valeur=500, categorie="cash", devise="EUR")
+    create_item(session, type="passif", label="Prêt", valeur=10000, categorie="emprunt", devise="EUR")
+    out = net_worth_summary(session)
+    # actifs EUR = 900 + 1400 + 500 = 2800 ; passifs = 10000
+    assert out["actifs_manuels"] == 2800
+    assert out["passifs"] == 10000
+    assert out["net"] == 2800 - 10000
+    realt = next(i for i in out["items"] if i["label"] == "RealT")
+    assert realt["valeur_eur"] == 900  # 1000 USD × 0.9
+
+
+def test_net_worth_overlays_auto_account_balance(session, monkeypatch):
+    """Une ligne dont le libellé correspond à un compte connu prend
+    automatiquement le solde importé (Desjardins) au lieu de la saisie manuelle."""
+    rates = {("CAD", "EUR"): 0.7}
+    monkeypatch.setattr(
+        "app.services.finance.fx.convert",
+        lambda amount, base, quote: round(amount * rates[(base, quote)], 2),
+    )
+    monkeypatch.setattr(
+        "app.services.finance.account_balances.get_balances",
+        lambda: {"desjardins-eop": {"solde": 5763.43, "devise": "CAD", "date": "2025-10-31"}},
+    )
+    create_item(session, type="actif", label="Desjardins", valeur=10.0,
+                categorie="Compte en banque", devise="CAD")
+    out = net_worth_summary(session)
+    dj = next(i for i in out["items"] if i["label"] == "Desjardins")
+    assert dj["valeur"] == 5763.43          # solde auto, pas la saisie manuelle (10)
+    assert dj["valeur_source"] == "auto"
+    assert dj["valeur_eur"] == round(5763.43 * 0.7, 2)
+
+
+def test_investment_value_eur_only_sums_investment_accounts(session, monkeypatch):
+    """"Objectif patrimoine" doit correspondre à la même source que l'onglet
+    Patrimoine (#bug 2026-07-10 : divergeait de SnapshotPortefeuille)."""
+    monkeypatch.setattr("app.services.finance.fx.convert", lambda amount, base, quote: amount)
+    create_item(session, type="actif", label="Bourse Direct", valeur=27817.62, devise="EUR", categorie="compte-titres")
+    create_item(session, type="actif", label="Trading 212", valeur=1022.90, devise="EUR", categorie="compte-titres")
+    create_item(session, type="actif", label="RealT", valeur=15917.27, devise="EUR", categorie="RealT")
+    create_item(session, type="actif", label="Desjardins", valeur=2000.0, devise="EUR", categorie="Compte en banque")
+    create_item(session, type="passif", label="Emprunt", valeur=20000.0, devise="EUR", categorie="emprunt")
+    total = investment_value_eur(session)
+    assert total == round(27817.62 + 1022.90 + 15917.27, 2)  # ni Desjardins (banque) ni l'emprunt
+
+
+def test_investment_value_eur_uses_auto_balance_over_manual(session, monkeypatch):
+    monkeypatch.setattr("app.services.finance.fx.convert", lambda amount, base, quote: amount)
+    monkeypatch.setattr(
+        "app.services.finance.account_balances.get_balances",
+        lambda: {"trading212": {"solde": 1022.90, "devise": "EUR", "date": "2026-07-06"}},
+    )
+    create_item(session, type="actif", label="Trading 212", valeur=905.10, devise="EUR", categorie="compte-titres")
+    assert investment_value_eur(session) == 1022.90  # solde relevé, pas la saisie manuelle périmée
+
+
+def test_investment_value_eur_zero_when_no_investment_accounts(session):
+    create_item(session, type="actif", label="Desjardins", valeur=2000.0, devise="EUR", categorie="Compte en banque")
+    assert investment_value_eur(session) == 0.0
+
+
+def test_goal_account_totals_separate_banks_from_investments(session, monkeypatch):
+    monkeypatch.setattr("app.services.finance.fx.convert", lambda amount, base, quote: amount)
+    create_item(
+        session,
+        type="actif",
+        label="Banque Populaire",
+        valeur=3_000,
+        devise="EUR",
+        categorie="Compte en banque",
+    )
+    create_item(
+        session,
+        type="actif",
+        label="Wise",
+        valeur=750,
+        devise="EUR",
+        categorie="Compte en banque",
+    )
+    create_item(
+        session,
+        type="actif",
+        label="Trading 212",
+        valeur=5_000,
+        devise="EUR",
+        categorie="compte-titres",
+    )
+    create_item(
+        session,
+        type="passif",
+        label="Emprunt",
+        valeur=2_000,
+        devise="EUR",
+        categorie="emprunt",
+    )
+
+    assert bank_account_value_eur(session) == 3_750
+    assert all_account_value_eur(session) == 8_750
+
+
+def test_financial_freedom_deducts_loans_and_estimated_taxes(session, monkeypatch):
+    create_item(
+        session,
+        type="actif",
+        label="Banque Populaire",
+        valeur=20_000,
+        devise="EUR",
+        categorie="Compte en banque",
+    )
+    create_item(
+        session,
+        type="actif",
+        label="Trading 212",
+        valeur=30_000,
+        devise="EUR",
+        categorie="compte-titres",
+    )
+    create_item(
+        session,
+        type="passif",
+        label="Emprunt",
+        valeur=12_000,
+        devise="EUR",
+        categorie="emprunt",
+    )
+    monkeypatch.setattr(
+        "app.services.finance.portfolio_state.get_portfolio_state",
+        lambda _session: {"taxes": {"total": 2_500}},
+    )
+
+    assert financial_freedom_value_eur(session) == 35_500
+
+
+def test_breakdown_history_daily_backfill_for_manual_accounts(session):
+    # account_history_points est neutralisé en test (conftest) → comptes manuels :
+    # valeur courante depuis la création, 0 avant, JOUR par JOUR.
+    from app.models.patrimoine import PatrimoineItem
+    from app.services.finance.patrimoine import net_worth_breakdown_history
+
+    session.add(PatrimoineItem(type="actif", label="Wise", valeur=100.0, devise="EUR",
+                               created_at=dt.datetime(2024, 1, 10)))
+    session.add(PatrimoineItem(type="actif", label="RealT", valeur=50.0, devise="EUR",
+                               created_at=dt.datetime(2024, 3, 5)))
+    session.commit()
+    out = net_worth_breakdown_history(session)
+    assert out["comptes"] == ["Wise", "RealT"]            # ordre = création
+    assert out["dates"][0] == "2024-01-10"                # 1er jour = plus ancienne création
+    assert out["series"]["Wise"][0] == 100.0
+    assert out["series"]["RealT"][0] == 0.0               # 0 avant le 5 mars
+    mar = out["dates"].index("2024-03-05")
+    assert out["series"]["RealT"][mar] == 50.0
+    assert out["total"][mar] == 150.0
+
+
+def test_account_balances_roundtrip(tmp_path):
+    from app.services.finance import account_balances as ab
+    p = tmp_path / "bal.json"
+    ab.set_balance("desjardins-eop", 1234.5, devise="CAD", date="2026-06-20", path=p)
+    data = ab.get_balances(path=p)
+    assert data["desjardins-eop"]["solde"] == 1234.5
+    assert data["desjardins-eop"]["devise"] == "CAD"
+    assert data["desjardins-eop"]["date"] == "2026-06-20"
+
+
+@pytest.fixture()
+def session():
+    e = create_engine("sqlite:///:memory:")
+    SQLModel.metadata.create_all(e)
+    with Session(e) as s:
+        yield s
+
+
+# ── compute_net_worth (pur) ───────────────────────────────────────────────────
+
+def test_net_worth_assets_minus_liabilities_plus_portfolio():
+    items = [
+        SimpleNamespace(type="actif", valeur=20000),   # RealT
+        SimpleNamespace(type="actif", valeur=5000),     # crypto
+        SimpleNamespace(type="passif", valeur=12000),   # emprunt étudiant
+    ]
+    out = compute_net_worth(30000, items)
+    assert out["portefeuille"] == 30000
+    assert out["actifs_manuels"] == 25000
+    assert out["passifs"] == 12000
+    assert out["net"] == 30000 + 25000 - 12000
+
+
+def test_net_worth_handles_empty():
+    out = compute_net_worth(0, [])
+    assert out == {"portefeuille": 0, "actifs_manuels": 0, "passifs": 0, "net": 0}
+
+
+# ── CRUD + intégration ────────────────────────────────────────────────────────
+
+def test_create_and_list(session):
+    create_item(session, type="actif", label="RealT — 10 tokens", valeur=520.0, categorie="RealT")
+    create_item(session, type="passif", label="Prêt étudiant", valeur=12000, categorie="emprunt étudiant", taux_pct=1.5, mensualite=150)
+    items = list_items(session)
+    assert {i.type for i in items} == {"actif", "passif"}
+
+
+def test_create_rejects_bad_type(session):
+    with pytest.raises(ValueError):
+        create_item(session, type="autre", label="x", valeur=1)
+
+
+def test_update_and_delete(session):
+    it = create_item(session, type="actif", label="RealT", valeur=500, categorie="RealT")
+    update_item(session, it.id, {"valeur": 540})
+    assert session.get(PatrimoineItem, it.id).valeur == 540
+    assert delete_item(session, it.id) is True
+    assert list_items(session) == []
+
+
+def test_net_worth_summary_uses_latest_portfolio_snapshot(session):
+    session.add(SnapshotPortefeuille(date=dt.date(2026, 6, 1), valeur=10000, investit=8000))
+    session.add(SnapshotPortefeuille(date=dt.date(2026, 6, 10), valeur=11000, investit=8000))
+    session.commit()
+    create_item(session, type="actif", label="RealT", valeur=2000, categorie="RealT")
+    create_item(session, type="passif", label="Prêt", valeur=12000, categorie="emprunt étudiant")
+    out = net_worth_summary(session, cad_eur=1.0, inclure_portefeuille=True)
+    assert out["portefeuille"] == 11000          # dernier snapshot (×1.0)
+    assert out["net"] == 11000 + 2000 - 12000
+    assert len(out["items"]) == 2
+
+
+def test_net_worth_excludes_portfolio_by_default():
+    e = create_engine("sqlite:///:memory:")
+    SQLModel.metadata.create_all(e)
+    with Session(e) as session:
+        session.add(SnapshotPortefeuille(date=dt.date(2026, 6, 10), valeur=99999, investit=8000))
+        session.commit()
+        create_item(session, type="actif", label="RealT", valeur=2000, categorie="RealT")
+        out = net_worth_summary(session)  # défaut : portefeuille exclu
+        assert out["portefeuille"] == 0
+        assert out["net"] == 2000
+
+
+def test_net_worth_converts_portfolio_cad_to_eur():
+    e = create_engine("sqlite:///:memory:")
+    SQLModel.metadata.create_all(e)
+    with Session(e) as session:
+        session.add(SnapshotPortefeuille(date=dt.date(2026, 6, 10), valeur=10000, investit=8000))
+        session.commit()
+        out = net_worth_summary(session, cad_eur=0.7, inclure_portefeuille=True)
+        assert out["portefeuille"] == 7000  # 10000 CAD × 0.7
+        assert out["taux_cad_eur"] == 0.7
+
+
+# ── Historisation dans le temps (#257) ──────────────────────────────────────
+
+def test_record_snapshot_is_idempotent_per_day(session):
+    create_item(session, type="actif", label="RealT", valeur=2000, categorie="RealT")
+    create_item(session, type="passif", label="Prêt", valeur=1200, categorie="emprunt")
+    today = dt.date(2026, 6, 17)
+    snap1 = record_net_worth_snapshot(session, today=today)
+    assert snap1.actifs == 2000 and snap1.passifs == 1200
+    assert snap1.net == 2000 - 1200
+    # Même jour après modif : met à jour la même ligne, pas de doublon.
+    update_item(session, list_items(session)[0].id, {"valeur": 2500})
+    snap2 = record_net_worth_snapshot(session, today=today)
+    assert snap2.id == snap1.id
+    assert snap2.net == 2500 - 1200
+    assert len(net_worth_history(session)) == 1
+
+
+def test_net_worth_history_window_and_order(session):
+    create_item(session, type="actif", label="X", valeur=100)
+    today = dt.date.today()
+    record_net_worth_snapshot(session, today=today - dt.timedelta(days=400))
+    record_net_worth_snapshot(session, today=today - dt.timedelta(days=10))
+    record_net_worth_snapshot(session, today=today)
+    hist = net_worth_history(session, days=365)
+    dates = [h["date"] for h in hist]
+    assert dates == sorted(dates)             # ordre chronologique croissant
+    assert today.isoformat() in dates
+    assert len(hist) == 2                     # le point à −400 j est hors fenêtre
+    assert set(hist[0]) == {"date", "net", "actifs", "passifs", "portefeuille"}

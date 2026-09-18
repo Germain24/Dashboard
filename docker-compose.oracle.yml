@@ -1,0 +1,85 @@
+# Profil Oracle Cloud Always Free (Ampere A1 ARM64).
+# Préparer .env.oracle puis lancer :
+#   docker compose --env-file .env.oracle -f docker-compose.oracle.yml up -d --build
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      APP_ENV: prod
+      APP_HOST: 0.0.0.0
+      DATABASE_URL: sqlite:////data/mission-control.db
+      BACKUP_DIR: /backups
+      MUSIC_DIR: /data/music/library
+      MUSIC_TELE_DIR: /data/music/tele
+      WALKMAN_DIR: /data/music/walkman
+      GARDEROBE_INVENTAIRE_DIR: /data/imports/Garderobe
+      WEB_CONCURRENCY: "1"
+    env_file:
+      - path: .env.oracle
+        required: true
+    volumes:
+      - ./oracle-data:/data
+      - ./oracle-data:/app/data
+      - ./oracle-backups:/backups
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.8"
+          memory: 10G
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://${DOMAIN}
+        BACKEND_URL: http://backend:8000
+    environment:
+      NODE_ENV: production
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 1G
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./deployment/oracle/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./oracle-caddy-data:/data
+      - ./oracle-caddy-config:/config
+    restart: unless-stopped

@@ -1,0 +1,106 @@
+"""Sous-routeur Finance : benchmarks, risque, treemap."""
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends
+from sqlmodel import Session
+
+from app.api.schemas_finance import (
+    BenchmarkOut,
+    BenchmarkSeriePoint,
+    RiskMetricsOut,
+    TreemapNodeOut,
+)
+from app.core.cache import TTLCache
+from app.core.db import get_session
+from app.services.finance.benchmarks import get_portfolio_vs_benchmarks
+from app.services.finance.portfolio import get_positions
+from app.services.finance.risk import get_risk_metrics, get_sector_diversification, get_treemap_data
+from app.services.finance.snapshots import get_history, monotonic_invested_values
+
+router = APIRouter()
+
+
+@router.get("/diversification")
+def diversification(session: Session = Depends(get_session)):
+    """Diversification sectorielle + détection de surpondération (> seuil)."""
+    return get_sector_diversification(session)
+
+
+@router.get("/benchmarks", response_model=list[BenchmarkOut])
+def benchmarks(session: Session = Depends(get_session)):
+    from app.services.finance.benchmarks import BENCHMARKS
+    rows = get_history(session, limit=10000)  # tout l'historique pour la simulation CW8
+    invested_values = monotonic_invested_values(rows)
+    snapshots = [{"date": str(r.date), "valeur": r.valeur, "investit": invested}
+                 for r, invested in zip(rows, invested_values)]
+    data = get_portfolio_vs_benchmarks(snapshots, background_refresh=True)
+    bench = data.get("benchmarks", {})
+    result = []
+    for nom, info in bench.items():
+        if not info:
+            continue
+        serie = [BenchmarkSeriePoint(date=p["date"], valeur=p["valeur"])
+                 for p in info.get("serie", [])]
+        result.append(BenchmarkOut(
+            nom=nom,
+            ticker=BENCHMARKS.get(nom, ""),
+            perf_1a_pct=info.get("perf_1y_pct"),
+            perf_6m_pct=info.get("perf_6m_pct"),
+            perf_mtd_pct=info.get("perf_mtd_pct"),
+            serie=serie,
+        ))
+    return result
+
+
+_risk_cache = TTLCache(ttl_seconds=300.0)
+
+
+@router.get("/risk", response_model=RiskMetricsOut)
+def risk(session: Session = Depends(get_session)):
+    rows = get_history(session, limit=365)
+    invested_values = monotonic_invested_values(rows)
+    snapshots = [{"date": str(r.date), "valeur": r.valeur, "investit": invested}
+                 for r, invested in zip(rows, invested_values)]
+    positions = get_positions(session)
+    # Cache 5 min : la signature (nb points + dernière date + nb positions) suffit
+    # à invalider dès qu'un snapshot ou une position change.
+    key = (len(snapshots), snapshots[-1]["date"] if snapshots else None, len(positions))
+    m = _risk_cache.get_or_set(key, lambda: get_risk_metrics(snapshots, positions))
+    return RiskMetricsOut(**m)
+
+
+@router.get("/treemap", response_model=list[TreemapNodeOut])
+def treemap(group_by: str = "secteur", session: Session = Depends(get_session)):
+    positions = get_positions(session)
+    label_by_ticker: dict[str, str] = {}
+    frac_by_ticker: dict[str, dict[str, float]] = {}
+    if group_by in ("secteur", "pays"):
+        from app.services.finance.buffett.reporting import get_latest_results_by_ticker
+
+        latest = get_latest_results_by_ticker(session, (p["ticker"] for p in positions))
+        label_by_ticker = {
+            r.ticker: getattr(r, group_by)
+            for r in latest.values()
+            if getattr(r, group_by)
+        }
+        if group_by == "pays":
+            # Look-through ETF : CW8.PA etc. sont sinon attribués à leur seul
+            # pays de cotation au lieu d'être répartis sur leurs sous-jacents.
+            try:
+                from app.services.finance.buffett.lookthrough import load_lookthrough
+                _defensif, paysmap = load_lookthrough()
+                frac_by_ticker = {t: dist for t, dist in paysmap.items() if dist}
+            except Exception:
+                frac_by_ticker = {}
+        elif group_by == "secteur":
+            # Les ETF portent "ETF" en secteur brut (Secteur 1) ; la classification
+            # ToutBroker donne un vrai libellé (secteur sectoriel ou "Actions
+            # diversifiées") au lieu de les regrouper tous sous "ETF".
+            try:
+                from app.services.finance.buffett.breakdown import load_classification
+                _classmap, sectmap = load_classification()
+                label_by_ticker.update({t: s for t, s in sectmap.items() if s and s != "Inconnu"})
+            except Exception:
+                pass
+    nodes = get_treemap_data(positions, group_by, label_by_ticker, frac_by_ticker)
+    return [TreemapNodeOut(**n) for n in nodes]

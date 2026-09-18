@@ -1,0 +1,8 @@
+[Unit]
+Description=Sauvegarde des données Mission Control
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/mission-control
+ExecStart=/opt/mission-control/deployment/oracle/backup-data.sh

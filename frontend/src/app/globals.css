@@ -1,0 +1,2325 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   Mission Control — Design System
+   Mood : « Liquid Glass » — clair, profond, cinétique, façon Apple.
+   Papier crème + encre marine, accents laiton & vert anglais.
+   Tout le chrome est en verre clair : translucide, blur profond,
+   arête lumineuse, posé sur des lavis ambiants qui dérivent
+   lentement. Navigation immersive : le Deck (scroll vertical =
+   catégories, horizontal = modules) remplace la sidebar.
+   Clair = papier ; Sombre = marine minuit + laiton.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Backgrounds (crème / papier) ──────────────────────── */
+  --background: #faf9f5;
+  --background-subtle: #f4f4f0;
+
+  /* ── Grain papier (texture SVG inline, statique) ───────── */
+  --grain-opacity: 0.025;
+
+  /* ── Lavis ambiants (profondeur derrière le verre) ─────── */
+  --wash-1: rgb(4 20 44 / 0.07);
+  --wash-2: rgb(197 160 89 / 0.1);
+  --wash-3: rgb(83 98 82 / 0.06);
+
+  /* Lavis d'accent par module (catégories du Deck) — repère spatial subtil. */
+  --wash-module: transparent;
+  --tint-finance: rgb(4 20 44 / 0.08);
+  --tint-corps: rgb(83 98 82 / 0.07);
+  --tint-quotidien: rgb(138 109 31 / 0.07);
+  --tint-savoir: rgb(80 19 18 / 0.06);
+  --tint-loisirs: rgb(56 71 98 / 0.08);
+
+  /* ── Foreground (encre) ────────────────────────────────── */
+  --foreground: #1b1c1a;
+
+  /* ── Surfaces neutres (couches tonales) ────────────────── */
+  --muted: #efeeea;
+  --muted-foreground: #44474d;
+  --border: #d9d9df;
+
+  /* ── Cartes (verre clair, soulevé du papier) ───────────── */
+  --card: rgb(255 255 255 / 0.72);
+  --card-foreground: #1b1c1a;
+
+  /* ── Matière verre (liquid glass) ──────────────────────── */
+  --glass: rgb(255 255 255 / 0.5);
+  --glass-strong: rgb(255 255 255 / 0.72);
+  --glass-border: rgb(27 28 26 / 0.08);
+  --glass-highlight: rgb(255 255 255 / 0.7);
+  --glass-blur: 18px;
+  --field: rgb(255 255 255 / 0.5);
+
+  /* ── Fonts (auto-hébergées via next/font, cf. layout.tsx) ── */
+  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-libre-caslon), Georgia, "Times New Roman", serif;
+
+  /* ── Actions primaires (marine académique) ─────────────── */
+  --primary: #04142c;
+  --primary-foreground: #ffffff;
+
+  /* ── Hover / surfaces secondaires ─────────────────────── */
+  --accent: rgb(27 28 26 / 0.05);
+  --accent-foreground: #1b1c1a;
+
+  /* ── Sidebar (verre, le fond ambiant transparaît) ──────── */
+  --sidebar: transparent;
+
+  /* ── Accent interactif (marine : focus, nav active, liens) ─ */
+  --ring: #04142c;
+  /* Texte/icône d'un item de nav actif, sur le lavis 10 %. */
+  --nav-active-fg: #04142c;
+  /* Bordeaux éditorial (états actifs, surlignages, puces) */
+  --tertiary: #501312;
+  --tertiary-muted: #ffdad7;
+  --tertiary-foreground: #501312;
+
+  /* ── Sémantiques (vert anglais / bordeaux / gris) ──────── */
+  --success: #536252;
+  --success-muted: #d4e4d0;
+  --success-foreground: #2f3a2e;
+
+  --warning: #8a6d1f;
+  --warning-muted: #f1e7c8;
+  --warning-foreground: #574311;
+
+  --destructive: #ba1a1a;
+  --destructive-muted: #ffdad6;
+  --destructive-foreground: #93000a;
+
+  --info: #384762;
+  --info-muted: #d6e3ff;
+  --info-foreground: #0b1b34;
+
+  /* ── Température du recuit (graphe d'optimisation) ──────────
+     Palette DIVERGENTE : deux teintes opposées + un gris neutre au milieu.
+     Froid = le programme exploite un bassin ; chaud = il explore large.
+     Le milieu est gris et non coloré : une teinte au point neutre ferait
+     lire « troisième régime » là où il n'y en a pas.
+     Pas validés (validate_palette.js, surfaces réelles du projet) :
+     ΔE daltonisme 18,1 en clair / 21,6 en sombre, contraste >= 3:1 partout.
+     Le mode sombre a ses PROPRES pas : le bleu marine et le bordeaux du
+     mode clair tombent à ~2:1 sur fond nuit, donc sous le plancher. */
+  --temp-cold: #184f95;
+  --temp-mid: #898781;
+  --temp-hot: #9b2226;
+
+  /* ── Rayons de bordure (géométrie apaisée) ─────────────── */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* ── Ombres (lithograph : net, flou large, faible opacité) ─ */
+  --shadow-sm: 0 1px 2px 0 rgb(26 41 66 / 0.05);
+  --shadow: 0 2px 10px 0 rgb(26 41 66 / 0.05), 0 1px 2px 0 rgb(26 41 66 / 0.04);
+  --shadow-md: 0 6px 24px -4px rgb(26 41 66 / 0.09);
+  --shadow-lg: 0 12px 40px -8px rgb(26 41 66 / 0.16);
+
+  /* ── Mouvement ─────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out-quint */
+  /* Ressort doux (léger dépassement) pour les transforms — le feel Apple. */
+  --spring: linear(
+    0,
+    0.009,
+    0.035 2.1%,
+    0.141 4.4%,
+    0.281 6.7%,
+    0.723 12.9%,
+    0.938 16.7%,
+    1.017,
+    1.077 20.4%,
+    1.121,
+    1.149 24.3%,
+    1.159,
+    1.163 27%,
+    1.154,
+    1.129 32.8%,
+    1.051 39.6%,
+    1.017 43.1%,
+    0.991,
+    0.977 51%,
+    0.974 53.8%,
+    0.975 57.1%,
+    0.997 69.8%,
+    1.003 76.9%,
+    1
+  );
+  --transition-fast: 100ms var(--ease-out);
+  --transition: 180ms var(--ease-out);
+  --transition-slow: 280ms var(--ease-out);
+
+  /* ── Z-index ───────────────────────────────────────────── */
+  --z-sidebar: 20;
+  --z-header: 30;
+  --z-overlay: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /* ── Sidebar width ─────────────────────────────────────── */
+  --sidebar-width: 224px;
+}
+
+/* Thème sombre automatique (OS), sauf si l'utilisateur a explicitement choisi clair. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0b121e;
+    --background-subtle: #111a2a;
+    --grain-opacity: 0.02;
+    --foreground: #f2f1ed;
+
+    --wash-1: rgb(197 160 89 / 0.09);
+    --wash-2: rgb(56 71 98 / 0.3);
+    --wash-3: rgb(80 19 18 / 0.14);
+
+    --tint-finance: rgb(56 71 98 / 0.12);
+    --tint-corps: rgb(83 98 82 / 0.1);
+    --tint-quotidien: rgb(197 160 89 / 0.09);
+    --tint-savoir: rgb(80 19 18 / 0.1);
+    --tint-loisirs: rgb(56 71 98 / 0.12);
+
+    --muted: rgb(242 241 237 / 0.06);
+    --muted-foreground: #9aa3b0;
+    --border: rgb(242 241 237 / 0.12);
+
+    --card: rgb(23 33 51 / 0.55);
+    --card-foreground: #f2f1ed;
+
+    --glass: rgb(13 20 33 / 0.45);
+    --glass-strong: rgb(20 30 48 / 0.72);
+    --glass-border: rgb(242 241 237 / 0.12);
+    --glass-highlight: rgb(242 241 237 / 0.12);
+    --field: rgb(242 241 237 / 0.05);
+
+    --primary: #c8d6f0;
+    --primary-foreground: #0b1b34;
+
+    --accent: rgb(242 241 237 / 0.07);
+    --accent-foreground: #f2f1ed;
+
+    --sidebar: transparent;
+
+    --ring: #c5a059;
+    --nav-active-fg: #d8be8a;
+    --tertiary: #d17771;
+    --tertiary-muted: #501312;
+    --tertiary-foreground: #ffb3ad;
+
+    --success: #bbcbb8;
+    --success-muted: #3c4a3c;
+    --success-foreground: #d7e7d3;
+
+    --warning: #c5a059;
+    --warning-muted: #574311;
+    --warning-foreground: #f1e7c8;
+
+    --destructive: #ffb4ab;
+    --destructive-muted: #93000a;
+    --destructive-foreground: #ffdad6;
+
+    --info: #b8c7e7;
+    --info-muted: #1a2942;
+    --info-foreground: #d6e3ff;
+
+    /* Pas propres au fond nuit : cf. commentaire du mode clair. Le gris
+       neutre, lui, est identique dans les deux modes. */
+    --temp-cold: #2a78d6;
+    --temp-mid: #898781;
+    --temp-hot: #c94a4a;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+    --shadow: 0 2px 10px 0 rgb(0 0 0 / 0.35);
+    --shadow-md: 0 6px 24px -4px rgb(0 0 0 / 0.45);
+    --shadow-lg: 0 16px 48px -8px rgb(0 0 0 / 0.55);
+  }
+}
+
+/* Densité d'affichage compacte : Tailwind v4 dimensionne en rem, donc réduire
+   la taille de police racine compacte espacements ET textes d'un seul coup. */
+:root[data-density="compact"] {
+  font-size: 14px;
+}
+
+/* Thème sombre explicite (toggle manuel) — prime sur la préférence OS. */
+:root[data-theme="dark"] {
+  --background: #0b121e;
+  --background-subtle: #111a2a;
+  --grain-opacity: 0.02;
+  --foreground: #f2f1ed;
+
+  --wash-1: rgb(197 160 89 / 0.09);
+  --wash-2: rgb(56 71 98 / 0.3);
+  --wash-3: rgb(80 19 18 / 0.14);
+
+  --tint-finance: rgb(56 71 98 / 0.12);
+  --tint-corps: rgb(83 98 82 / 0.1);
+  --tint-quotidien: rgb(197 160 89 / 0.09);
+  --tint-savoir: rgb(80 19 18 / 0.1);
+  --tint-loisirs: rgb(56 71 98 / 0.12);
+
+  --muted: rgb(242 241 237 / 0.06);
+  --muted-foreground: #9aa3b0;
+  --border: rgb(242 241 237 / 0.12);
+
+  --card: rgb(23 33 51 / 0.55);
+  --card-foreground: #f2f1ed;
+
+  --glass: rgb(13 20 33 / 0.45);
+  --glass-strong: rgb(20 30 48 / 0.72);
+  --glass-border: rgb(242 241 237 / 0.12);
+  --glass-highlight: rgb(242 241 237 / 0.12);
+  --field: rgb(242 241 237 / 0.05);
+
+  --primary: #c8d6f0;
+  --primary-foreground: #0b1b34;
+
+  --accent: rgb(242 241 237 / 0.07);
+  --accent-foreground: #f2f1ed;
+
+  --sidebar: transparent;
+
+  --ring: #c5a059;
+  --nav-active-fg: #d8be8a;
+  --tertiary: #d17771;
+  --tertiary-muted: #501312;
+  --tertiary-foreground: #ffb3ad;
+
+  --success: #bbcbb8;
+  --success-muted: #3c4a3c;
+  --success-foreground: #d7e7d3;
+
+  --warning: #c5a059;
+  --warning-muted: #574311;
+  --warning-foreground: #f1e7c8;
+
+  --destructive: #ffb4ab;
+  --destructive-muted: #93000a;
+  --destructive-foreground: #ffdad6;
+
+  --info: #b8c7e7;
+  --info-muted: #1a2942;
+  --info-foreground: #d6e3ff;
+
+  /* Pas propres au fond nuit : cf. commentaire du mode clair. */
+  --temp-cold: #2a78d6;
+  --temp-mid: #898781;
+  --temp-hot: #c94a4a;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --shadow: 0 2px 10px 0 rgb(0 0 0 / 0.35);
+  --shadow-md: 0 6px 24px -4px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 16px 48px -8px rgb(0 0 0 / 0.55);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-info: var(--info);
+  --font-mono: var(--font-jetbrains-mono), "Cascadia Code", Consolas, ui-monospace, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  /* Pas de flash gris/bleu Android au tap. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Lavis ambiants : trois nappes radiales douces (marine, laiton, vert) fixées
+   derrière tout le contenu, qui dérivent très lentement. Elles donnent au
+   verre quelque chose à réfracter — sans elles, le translucide est invisible.
+   inset négatif : la dérive ne découvre jamais de bord. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -12%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 720px at 85% -8%, var(--wash-1), transparent 62%),
+    radial-gradient(940px 640px at -4% 100%, var(--wash-2), transparent 58%),
+    radial-gradient(760px 540px at 55% 48%, var(--wash-3), transparent 62%),
+    radial-gradient(900px 600px at 50% -10%, var(--wash-module), transparent 60%);
+  animation: washDrift 70s ease-in-out infinite alternate;
+}
+@keyframes washDrift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-2.5%, 2%, 0) scale(1.08);
+  }
+}
+
+/* Arrêter la dérive en prefers-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+  }
+}
+
+/* Grain papier : texture PNG statique — même rendu que l'ancien feTurbulence
+   mais sans coût GPU (pas de filtre SVG live). */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: url("/noise.png");
+  background-repeat: repeat;
+}
+
+/* Catégorie -> teinte. Les segments hors table gardent les lavis de base. */
+body[data-module="finance"],
+body[data-module="patrimoine"],
+body[data-module="budget"] {
+  --wash-module: var(--tint-finance);
+}
+
+body[data-module="sante"],
+body[data-module="entrainement"],
+body[data-module="score"],
+body[data-module="skincare"],
+body[data-module="garderobe"] {
+  --wash-module: var(--tint-corps);
+}
+
+body[data-module="cuisine"],
+body[data-module="routines"],
+body[data-module="agenda"],
+body[data-module="habitudes"] {
+  --wash-module: var(--tint-quotidien);
+}
+
+body[data-module="etudes"],
+body[data-module="travail"],
+body[data-module="jobs"],
+body[data-module="langues"],
+body[data-module="documents"],
+body[data-module="livres"] {
+  --wash-module: var(--tint-savoir);
+}
+
+body[data-module="musique"],
+body[data-module="film"],
+body[data-module="series"],
+body[data-module="gaming"],
+body[data-module="voyage"],
+body[data-module="journal"] {
+  --wash-module: var(--tint-loisirs);
+}
+
+/* Titres en serif éditorial (Libre Caslon) — la voix de l'almanach, conservée
+   dans le monde liquid glass. `.font-display` étend le serif à un élément
+   précis (wordmark, grande valeur). L'UI dense reste en sans. */
+h1,
+.font-display {
+  font-family: var(--font-serif);
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* ── Matière verre (liquid glass) ──────────────────────────
+   .glass-panel : chrome (dock, en-têtes collants, drawers).
+   .glass-modal : surfaces flottantes (dialogues, palette) — plus opaques.
+   Arête lumineuse = inset 1px en haut + fin rim sur tout le tour. */
+.glass-panel {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
+}
+.glass-modal {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(36px) saturate(1.8);
+  backdrop-filter: blur(36px) saturate(1.8);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--glass-highlight) 40%, transparent),
+    var(--shadow-lg);
+}
+.glass-card {
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    var(--shadow);
+}
+/* Voile d'overlay (dialogs, palette, menus) — le fond reste deviné. */
+.glass-veil {
+  background: rgb(0 0 0 / 0.3);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+/* Surface encastrée (rail d'onglets, champs) : le creux, pas le relief. */
+.glass-inset {
+  background: var(--field);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass-panel,
+  .glass-modal {
+    background: color-mix(in srgb, var(--background) 94%, var(--foreground) 6%);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --glass-blur: 12px;
+  }
+
+  body::before {
+    animation: none;
+  }
+
+  .glass-modal {
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+  }
+
+  .glass-veil {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel,
+  .glass-modal {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Anneau de focus clavier : règle unique définie plus bas (audit §2.G, dédupe
+   des 3 copies identiques). Voir « Accessibilité : anneau de focus clavier ». */
+
+/* ── Scroll fluide ─────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (pointer: coarse) {
+  [data-ui-control] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ── Scrollbar discrète (Webkit) ──────────────────────────
+   Largeur ≥ 10 px : sobre, fonctionnelle, pas décorative. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 18%, transparent);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted-foreground) 32%, transparent);
+  background-clip: padding-box;
+}
+
+/* ── Sélection de texte ────────────────────────────────────── */
+::selection {
+  background: color-mix(in srgb, var(--ring) 20%, transparent);
+  color: var(--foreground);
+}
+
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.45s var(--ease-out) forwards;
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s var(--ease-out) forwards;
+}
+
+.animate-slide-left {
+  animation: slideInLeft 0.3s var(--ease-out) forwards;
+}
+.animate-scale-in {
+  animation: scaleIn 0.28s var(--ease-out) forwards;
+}
+
+/* Skeleton shimmer */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in srgb, var(--muted-foreground) 14%, transparent) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Toasts sonner : entrée/sortie/empilement sur la courbe de l'app (--ease-out,
+   durée base 0.45 s) au lieu du `ease` par défaut de la lib.
+   :not([data-swiping='true']) laisse sonner couper la transition pendant le
+   drag ; sa media query prefers-reduced-motion (!important) reste prioritaire. */
+[data-sonner-toast]:not([data-swiping="true"]) {
+  transition:
+    transform 0.45s var(--ease-out),
+    opacity 0.45s var(--ease-out),
+    height 0.45s var(--ease-out),
+    box-shadow 0.2s var(--ease-out);
+}
+ol[data-sonner-toaster] {
+  transition: transform 0.45s var(--ease-out);
+}
+
+/* Accessibilité : anneau de focus clavier cohérent sur tous les interactifs.
+   :where() garde une spécificité nulle -> un composant peut surcharger. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* prefers-reduced-motion : désactive toutes les animations */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Interactions globales ─────────────────────────────────── */
+.card-hover {
+  transition:
+    box-shadow 220ms var(--ease-out),
+    transform 220ms var(--ease-out),
+    border-color 220ms var(--ease-out);
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--ring) 35%, transparent);
+}
+
+.interactive {
+  transition:
+    background-color 180ms var(--ease-out),
+    color 180ms var(--ease-out),
+    opacity 180ms var(--ease-out),
+    transform 120ms var(--ease-out);
+  cursor: pointer;
+}
+.interactive:active {
+  transform: scale(0.98);
+}
+
+/* Remplissage des barres de progression : quand la donnée revalide (TanStack),
+   le delta glisse au lieu de sauter. La largeur inline vient du composant. */
+.bar-fill {
+  transition:
+    width 0.45s var(--ease-out),
+    background-color 0.45s var(--ease-out);
+}
+
+/* Item de navigation actif (« vous êtes ici »).
+   Trois indices cumulés : lavis plein (fond présent vs transparent — indice
+   non chromatique perceptible en daltonisme), teinte marine/laiton du texte
+   et de l'icône (l'icône hérite de currentColor), et aria-current côté markup.
+   --nav-active-fg est assombri en clair pour rester ≥ 4.5:1 sur le lavis. */
+.nav-active {
+  background-color: color-mix(in srgb, var(--ring) 10%, transparent);
+  color: var(--nav-active-fg);
+  box-shadow: inset 0 1px 0 0 var(--glass-highlight);
+}
+
+/* ── Le Deck — ville isométrique continue ────────────────────
+   Les sections ne sont plus huit scènes isolées. Une seule ville reste derrière
+   l'interface ; la progression verticale déplace une caméra continue entre ses
+   quartiers. Chaque bâtiment est un module navigable. */
+
+/* ── Spatial Grid GSAP ──────────────────────────────────────── */
+.spatial-grid {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 72% 18%, rgb(31 71 104 / 0.3), transparent 34%),
+    linear-gradient(145deg, #0b1727, #050914 62%);
+}
+.spatial-grid-stage {
+  width: 100%;
+  height: 400dvh;
+  will-change: transform;
+}
+.spatial-chapter {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      circle at 78% 34%,
+      color-mix(in srgb, var(--spatial-accent) 13%, transparent),
+      transparent 32%
+    ),
+    linear-gradient(115deg, rgb(10 25 42 / 0.98), rgb(5 10 19 / 0.98));
+  --spatial-accent: #ffffff;
+}
+.spatial-track {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: max-content;
+  height: 100dvh;
+  will-change: transform;
+}
+.spatial-panel {
+  position: relative;
+  flex: 0 0 100vw;
+  width: 100vw;
+  height: 100dvh;
+  display: grid;
+  align-items: center;
+  padding: clamp(5.5rem, 10vh, 8rem) clamp(1.25rem, 7vw, 7rem) clamp(6.5rem, 12vh, 8.5rem);
+}
+.spatial-panel::after {
+  content: "";
+  position: absolute;
+  top: 16%;
+  right: 0;
+  bottom: 16%;
+  width: 1px;
+  background: linear-gradient(transparent, rgb(255 255 255 / 0.22), transparent);
+}
+.spatial-panel-content {
+  position: relative;
+  width: min(42rem, 84vw);
+}
+.spatial-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: rgb(255 255 255 / 0.72);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.spatial-kicker span {
+  color: var(--spatial-accent);
+  font-family: var(--font-mono);
+}
+.spatial-kicker::after {
+  content: "";
+  width: 3rem;
+  height: 1px;
+  background: color-mix(in srgb, var(--spatial-accent) 72%, transparent);
+}
+.spatial-title-row h3 {
+  color: #ffffff;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+  text-wrap: balance;
+  text-shadow: 0 8px 40px rgb(0 0 0 / 0.42);
+}
+.spatial-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+.spatial-title-row h3 {
+  max-width: 11ch;
+  font-size: clamp(3.4rem, 7vw, 7rem);
+}
+.spatial-module-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 4rem;
+  height: 4rem;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: 1.25rem;
+  color: var(--spatial-accent);
+  background: rgb(255 255 255 / 0.1);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.22),
+    0 18px 44px rgb(0 0 0 / 0.24);
+  backdrop-filter: blur(10px);
+}
+.spatial-module-icon svg {
+  width: 1.65rem;
+  height: 1.65rem;
+}
+.spatial-panel-description {
+  max-width: 48ch;
+  margin-top: 1.25rem;
+  color: rgb(255 255 255 / 0.76);
+  font-size: clamp(0.95rem, 1.3vw, 1.1rem);
+  line-height: 1.7;
+  text-shadow: 0 2px 16px rgb(0 0 0 / 0.7);
+}
+.spatial-data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 2rem;
+}
+.spatial-glass-card {
+  min-height: 8.5rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 1.35rem;
+  background: rgb(255 255 255 / 0.1);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.18),
+    0 22px 55px rgb(0 0 0 / 0.24);
+  backdrop-filter: blur(10px);
+}
+.spatial-glass-card > strong {
+  display: block;
+  margin-top: 0.8rem;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  font-weight: 550;
+}
+.spatial-glass-card > span:last-child {
+  display: block;
+  margin-top: 0.55rem;
+  color: rgb(255 255 255 / 0.65);
+  font-size: 0.72rem;
+}
+.spatial-functions-card {
+  margin-top: 2rem;
+  min-height: auto;
+}
+.spatial-functions-card ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.spatial-functions-card li {
+  position: relative;
+  padding: 0.8rem 0.85rem 0.8rem 1.6rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 0.9rem;
+  color: rgb(255 255 255 / 0.82);
+  background: rgb(0 0 0 / 0.12);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.spatial-functions-card li::before {
+  position: absolute;
+  top: 1.08rem;
+  left: 0.75rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 999px;
+  background: var(--spatial-accent);
+  box-shadow: 0 0 0.8rem var(--spatial-accent);
+  content: "";
+}
+.spatial-data-label {
+  color: rgb(255 255 255 / 0.55);
+  font-size: 0.6rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.spatial-status-line {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+}
+.spatial-status-line i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--spatial-accent);
+  box-shadow: 0 0 12px var(--spatial-accent);
+}
+.spatial-open-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 1.2rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgb(5 12 23 / 0.42);
+  backdrop-filter: blur(10px);
+  transition:
+    color 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease;
+}
+.spatial-open-link:hover,
+.spatial-open-link:focus-visible {
+  border-color: color-mix(in srgb, var(--spatial-accent) 75%, white);
+  color: #07111f;
+  background: var(--spatial-accent);
+  outline: none;
+}
+.spatial-open-link svg {
+  width: 1rem;
+  height: 1rem;
+}
+.spatial-chapter-label {
+  position: absolute;
+  z-index: 6;
+  top: clamp(4.5rem, 8vh, 6.25rem);
+  right: clamp(1.25rem, 5vw, 5rem);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: rgb(255 255 255 / 0.72);
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.spatial-chapter-label span {
+  color: var(--spatial-accent);
+  font-family: var(--font-mono);
+}
+.spatial-grid-nav {
+  position: fixed;
+  z-index: 16;
+  left: 50%;
+  top: 1.1rem;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+  background: rgb(5 11 21 / 0.58);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.22);
+  backdrop-filter: blur(14px);
+  transform: translateX(-50%);
+}
+.spatial-grid-nav button {
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  color: rgb(255 255 255 / 0.76);
+  cursor: pointer;
+  font-size: 0.68rem;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease;
+}
+.spatial-grid-nav button:hover,
+.spatial-grid-nav button:focus-visible,
+.spatial-grid-nav button[data-active="true"] {
+  color: #ffffff;
+  background: rgb(255 255 255 / 0.12);
+  outline: none;
+}
+.spatial-grid-nav button[data-active="true"] {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+.spatial-grid-nav button span {
+  color: rgb(255 255 255 / 0.42);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+}
+.spatial-position {
+  position: fixed;
+  z-index: 15;
+  left: clamp(1rem, 3vw, 3rem);
+  bottom: clamp(5.6rem, 10vh, 7rem);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgb(255 255 255 / 0.15);
+  border-radius: 999px;
+  color: rgb(255 255 255 / 0.56);
+  background: rgb(5 11 21 / 0.68);
+  box-shadow: 0 12px 34px rgb(0 0 0 / 0.22);
+  backdrop-filter: blur(12px);
+  font-size: 0.65rem;
+}
+.spatial-position > span {
+  font-family: var(--font-mono);
+}
+.spatial-position > strong {
+  overflow: hidden;
+  max-width: 15rem;
+  color: #ffffff;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spatial-position > i {
+  width: 1px;
+  height: 1.1rem;
+  background: rgb(255 255 255 / 0.18);
+}
+.spatial-keyboard-hint {
+  position: fixed;
+  z-index: 15;
+  right: clamp(1rem, 3vw, 3rem);
+  bottom: clamp(5.6rem, 10vh, 7rem);
+  display: flex;
+  gap: 1rem;
+  color: rgb(255 255 255 / 0.58);
+  font-size: 0.65rem;
+}
+.spatial-keyboard-hint > span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.spatial-keyboard-hint kbd {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 0.45rem;
+  color: #ffffff;
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.12);
+  font-family: var(--font-mono);
+}
+.spatial-dpad {
+  position: fixed;
+  z-index: 16;
+  right: 1rem;
+  top: 50%;
+  display: grid;
+  grid-template-columns: repeat(2, 2.6rem);
+  gap: 0.35rem;
+  transform: translateY(-50%);
+}
+.spatial-dpad button {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 0.8rem;
+  color: #ffffff;
+  cursor: pointer;
+  background: rgb(5 11 21 / 0.66);
+  backdrop-filter: blur(10px);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    opacity 180ms ease;
+}
+.spatial-dpad button:hover:not(:disabled),
+.spatial-dpad button:focus-visible {
+  border-color: var(--ring);
+  background: rgb(255 255 255 / 0.14);
+  outline: none;
+}
+.spatial-dpad button:disabled {
+  cursor: not-allowed;
+  opacity: 0.25;
+}
+.spatial-dpad svg {
+  width: 1rem;
+  height: 1rem;
+}
+.spatial-intro-slot {
+  position: absolute;
+  left: calc(100% + clamp(2rem, 6vw, 7rem));
+  top: 50%;
+  width: min(43vw, 42rem);
+  transform: translateY(-50%);
+}
+.spatial-intro-slot .deck-today {
+  display: block;
+}
+.spatial-intro-slot .deck-today-copy {
+  display: none;
+}
+.spatial-intro-slot .deck-today-panel {
+  width: 100%;
+  max-height: min(56dvh, 34rem);
+}
+@media (max-width: 767px) {
+  .spatial-grid-nav {
+    top: 3.8rem;
+    max-width: calc(100vw - 1rem);
+    overflow-x: auto;
+  }
+  .spatial-grid-nav button {
+    flex: 0 0 auto;
+  }
+  .spatial-intro-slot {
+    position: static;
+    width: 100%;
+    margin-top: 1.25rem;
+    transform: none;
+  }
+  .spatial-keyboard-hint {
+    display: none;
+  }
+  .spatial-position {
+    bottom: 5.4rem;
+    max-width: calc(100vw - 5rem);
+  }
+  .spatial-position > strong:first-of-type,
+  .spatial-position > i,
+  .spatial-position > span:first-of-type {
+    display: none;
+  }
+  .spatial-dpad {
+    right: 0.55rem;
+  }
+}
+@media (max-width: 560px) {
+  .spatial-panel {
+    padding-inline: 1rem;
+  }
+  .spatial-title-row {
+    align-items: flex-end;
+    gap: 0.8rem;
+  }
+  .spatial-title-row h3 {
+    font-size: clamp(2.8rem, 14vw, 4.5rem);
+  }
+  .spatial-module-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 1rem;
+  }
+  .spatial-data-grid {
+    grid-template-columns: 1fr;
+  }
+  .spatial-functions-card ul {
+    grid-template-columns: 1fr;
+  }
+  .spatial-glass-card {
+    min-height: 7.25rem;
+  }
+  .spatial-chapter-label {
+    display: none;
+  }
+}
+
+.deck {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y proximity;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  position: relative;
+  isolation: isolate;
+  background: #050914;
+}
+.deck-section {
+  height: 100dvh;
+  min-height: 100svh;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  pointer-events: none;
+  padding-block: clamp(5rem, 9vh, 7rem) clamp(6.5rem, 12vh, 8rem);
+  --deck-accent: var(--ring);
+}
+
+/* Le premier enfant du long conteneur reste collé à l'écran. Sa marge
+   négative évite d'ajouter une neuvième hauteur de viewport aux huit chapitres.
+   La durée ressentie se règle donc simplement avec la hauteur/le nombre des
+   `.deck-section` (plus de vh = lecture vidéo plus lente). */
+.scroll-video-stage {
+  position: sticky;
+  z-index: 0;
+  top: 0;
+  width: 100%;
+  height: 100dvh;
+  margin-bottom: -100dvh;
+  overflow: hidden;
+  pointer-events: none;
+  background: #050914;
+}
+.scroll-video-media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  transform: scale(1.012);
+  filter: saturate(0.94) contrast(1.04) brightness(0.82);
+  will-change: contents;
+}
+.scroll-video-grade,
+.scroll-video-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.scroll-video-grade {
+  background:
+    linear-gradient(90deg, rgb(2 7 15 / 0.52), transparent 42% 73%, rgb(2 7 15 / 0.22)),
+    linear-gradient(180deg, rgb(2 7 15 / 0.18), transparent 25% 68%, rgb(2 7 15 / 0.38));
+  mix-blend-mode: multiply;
+}
+.scroll-video-vignette {
+  box-shadow: inset 0 0 12vw 2vw rgb(1 5 12 / 0.42);
+}
+
+.deck-section::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 18% 55%,
+      rgb(3 10 20 / 0.82),
+      rgb(3 10 20 / 0.42) 28%,
+      transparent 54%
+    ),
+    linear-gradient(90deg, rgb(3 10 20 / 0.34), transparent 48%);
+  opacity: 0.28;
+  transition: opacity 650ms var(--ease-out);
+}
+.deck-section[data-active="true"]::before {
+  opacity: 1;
+}
+
+.deck-scene {
+  width: 100%;
+  z-index: 3;
+}
+
+.deck-copy {
+  position: relative;
+  z-index: 4;
+  max-width: 32rem;
+  pointer-events: auto;
+}
+.deck-kicker,
+.deck-card-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+.deck-kicker > span {
+  color: var(--deck-accent);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.deck-kicker::after {
+  content: "";
+  width: 2.5rem;
+  height: 1px;
+  background: color-mix(in srgb, var(--deck-accent) 62%, transparent);
+}
+.deck-copy h2 {
+  max-width: 11ch;
+  margin-top: 0.85rem;
+  color: var(--foreground);
+  font-family: var(--font-serif);
+  font-size: clamp(2.8rem, 5.5vw, 5.4rem);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+.deck-copy-body {
+  max-width: 38ch;
+  margin-top: 1.25rem;
+  color: var(--muted-foreground);
+  font-size: clamp(0.875rem, 1.25vw, 1rem);
+  line-height: 1.65;
+}
+
+.deck-card-kicker {
+  color: color-mix(in srgb, var(--deck-accent) 72%, var(--foreground));
+}
+
+/* Carte persistante : le monde mesure 1800 × 1200 et la caméra déplace le
+   calque entier. Le ressort Motion absorbe les crans de molette et donne le
+   travelling lourd de la référence. */
+.district-viewport {
+  position: fixed;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  background: #07111f;
+  pointer-events: none;
+}
+.district-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 74% 18%,
+      color-mix(in srgb, var(--info) 14%, transparent),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 18% 82%,
+      color-mix(in srgb, var(--tertiary) 12%, transparent),
+      transparent 38%
+    ),
+    linear-gradient(145deg, #0b172a, #050d18);
+}
+.district-world-anchor {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1800px;
+  height: 1200px;
+  transform: translate(-50%, -50%);
+}
+.district-world {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  will-change: transform, filter;
+}
+.district-focus {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+.district-focus svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: none;
+}
+.district-city-art {
+  opacity: 1;
+  transition:
+    opacity 600ms var(--ease-out),
+    filter 600ms var(--ease-out);
+}
+:root.dark .district-city-art {
+  filter: none;
+}
+.district-quarter {
+  opacity: 0.18;
+  transition:
+    opacity 700ms var(--ease-out),
+    filter 700ms var(--ease-out);
+}
+.district-viewport[data-overview="true"] .district-quarter,
+.district-quarter.is-active {
+  opacity: 1;
+}
+.district-quarter-focus {
+  fill: color-mix(in srgb, var(--district-accent) 7%, transparent);
+  stroke: color-mix(in srgb, var(--district-accent) 24%, transparent);
+  stroke-width: 2;
+  opacity: 0;
+  transition: opacity 500ms var(--ease-out);
+}
+.district-quarter.is-active .district-quarter-focus {
+  opacity: 1;
+}
+.district-building-link {
+  pointer-events: auto;
+  cursor: pointer;
+  outline: none;
+}
+.district-building {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 300ms var(--ease-out) var(--building-delay, 0ms),
+    opacity 300ms var(--ease-out);
+}
+.district-building-link:hover .district-building,
+.district-building-link:focus-visible .district-building,
+.district-building.is-selected {
+  transform: translateY(-5px);
+}
+.district-landmark-hit {
+  fill: transparent;
+}
+.district-landmark-ring {
+  fill: color-mix(in srgb, var(--district-accent) 5%, transparent);
+  stroke: color-mix(in srgb, var(--district-accent) 44%, transparent);
+  stroke-width: 2;
+  opacity: 0.18;
+  transition:
+    opacity 250ms var(--ease-out),
+    stroke-width 250ms var(--ease-out);
+}
+.district-building-link:hover .district-landmark-ring,
+.district-building-link:focus-visible .district-landmark-ring,
+.district-building.is-selected .district-landmark-ring {
+  opacity: 1;
+  stroke-width: 4;
+}
+.district-building.is-selected .district-landmark-ring {
+  animation: districtLandmarkPulse 2.2s var(--ease-out) infinite;
+}
+.district-landmark-index circle {
+  fill: color-mix(in srgb, var(--glass-strong) 92%, transparent);
+  stroke: color-mix(in srgb, var(--district-accent) 55%, var(--glass-border));
+  stroke-width: 1.5;
+}
+.district-landmark-index text {
+  fill: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 750;
+}
+.district-building-sign rect {
+  fill: rgb(7 17 31 / 0.9);
+  stroke: color-mix(in srgb, var(--district-accent) 38%, var(--glass-border));
+  stroke-width: 1;
+}
+.district-building.is-selected .district-building-sign rect,
+.district-building-link:focus-visible .district-building-sign rect {
+  fill: color-mix(in srgb, var(--district-accent) 14%, var(--glass-strong));
+  stroke: var(--district-accent);
+  stroke-width: 2.5;
+}
+.district-building-sign text {
+  fill: #f5f2e9;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+}
+.district-quarter-label {
+  fill: #f5f2e9;
+  font-family: var(--font-serif);
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+.district-quarter-number {
+  fill: rgb(225 232 242 / 0.62);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+.district-hub {
+  opacity: 0.25;
+  transition: opacity 700ms var(--ease-out);
+}
+.district-hub.is-active {
+  opacity: 1;
+}
+.district-hub-ring {
+  fill: color-mix(in srgb, var(--warning) 7%, transparent);
+  stroke: color-mix(in srgb, var(--warning) 68%, transparent);
+  stroke-width: 2;
+}
+.district-hub-ring-inner {
+  opacity: 0.7;
+}
+.district-hub-pulse {
+  fill: var(--warning);
+  animation: districtHubPulse 2.8s var(--ease-out) infinite;
+}
+.district-hub-title {
+  fill: #f5f2e9;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+}
+@keyframes districtLandmarkPulse {
+  0%,
+  100% {
+    stroke-opacity: 0.58;
+  }
+  50% {
+    stroke-opacity: 1;
+  }
+}
+@keyframes districtHubPulse {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(0.82);
+    transform-origin: center;
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.16);
+    transform-origin: center;
+  }
+}
+.district-atmosphere {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 45%, transparent 45%, rgb(2 8 18 / 0.18) 100%),
+    linear-gradient(
+      90deg,
+      rgb(3 10 20 / 0.28),
+      transparent 28%,
+      transparent 78%,
+      rgb(3 10 20 / 0.16)
+    ),
+    linear-gradient(0deg, rgb(3 10 20 / 0.2), transparent 24%);
+}
+
+/* Passage caméra : au milieu d'un changement de quartier, le décor vient
+   toucher l'objectif. Ces deux masses floues jouent le rôle des murs/piliers
+   de la vidéo et cachent la reprise de cadrage vers la scène suivante. */
+.district-camera-gate {
+  position: absolute;
+  z-index: 5;
+  inset: -8%;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at center, rgb(8 19 34 / 0.12) 0 18%, rgb(5 12 23 / 0.72) 64%),
+    linear-gradient(115deg, rgb(20 35 54 / 0.68), rgb(3 9 18 / 0.94));
+  transform-origin: 50% 50%;
+  mix-blend-mode: normal;
+  will-change: opacity, transform;
+}
+.district-camera-gate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 0.07), transparent 18% 78%, rgb(255 255 255 / 0.05)),
+    radial-gradient(circle at 50% 44%, transparent 0 7%, rgb(1 5 12 / 0.3) 58%);
+  filter: blur(12px);
+}
+.district-camera-gate-edge {
+  position: absolute;
+  top: -12%;
+  bottom: -12%;
+  width: 42%;
+  background:
+    linear-gradient(90deg, rgb(2 8 16 / 0.98), rgb(18 34 52 / 0.72)),
+    repeating-linear-gradient(90deg, transparent 0 44px, rgb(255 255 255 / 0.035) 46px 48px);
+  filter: blur(7px);
+}
+.district-camera-gate-edge-left {
+  left: -7%;
+  clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%);
+}
+.district-camera-gate-edge-right {
+  right: -7%;
+  clip-path: polygon(18% 0, 100% 0, 100% 100%, 0 100%);
+  transform: scaleX(-1);
+}
+
+/* À droite/gauche, un premier plan traverse brièvement l'objectif pendant que
+   la caméra se recentre sur le bâtiment suivant. */
+.district-focus-wipe {
+  position: absolute;
+  z-index: 5;
+  top: -16%;
+  bottom: -16%;
+  left: 34%;
+  width: 34%;
+  border-inline: 1px solid rgb(255 255 255 / 0.08);
+  background:
+    linear-gradient(90deg, transparent, rgb(4 12 23 / 0.9) 22% 75%, transparent),
+    repeating-linear-gradient(90deg, transparent 0 52px, rgb(111 151 183 / 0.1) 54px 56px);
+  filter: blur(9px);
+  transform: skewX(-8deg);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: districtFocusWipe 920ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+@keyframes districtFocusWipe {
+  0% {
+    opacity: 0;
+    transform: translateX(-420%) skewX(-8deg);
+  }
+  48% {
+    opacity: 0.64;
+    transform: translateX(-55%) skewX(-8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(420%) skewX(-8deg);
+  }
+}
+
+/* Vie locale des modules : aucun personnage ne traverse la carte. Chaque
+   vignette reste attachée à son bâtiment et ne s'éveille que lorsque la
+   sous-section correspondante est sélectionnée. */
+.district-life-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.district-life {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 144px;
+  height: 112px;
+  opacity: 0;
+  transform: translate3d(calc(var(--life-x) - 72px), calc(var(--life-y) - 106px), 0);
+  transition: opacity 260ms var(--ease-out);
+  --life-color: #72c7e7;
+}
+.district-life.is-active {
+  opacity: 1;
+}
+.district-life[data-module="agenda"],
+.district-life[data-module="score"] {
+  --life-color: #e6bd6a;
+}
+.district-life[data-module="budget"],
+.district-life[data-module="finance"],
+.district-life[data-module="patrimoine"],
+.district-life[data-module="credit"] {
+  --life-color: #75b9db;
+}
+.district-life[data-module="entrainement"],
+.district-life[data-module="cuisine"],
+.district-life[data-module="sante"],
+.district-life[data-module="skincare"] {
+  --life-color: #6fd2a1;
+}
+.district-life[data-module="etudes"],
+.district-life[data-module="travail"],
+.district-life[data-module="objectifs"] {
+  --life-color: #a991eb;
+}
+.district-life[data-module="musique"],
+.district-life[data-module="film"],
+.district-life[data-module="series"],
+.district-life[data-module="livres"],
+.district-life[data-module="gaming"] {
+  --life-color: #e889b1;
+}
+.district-life-workbench {
+  position: absolute;
+  right: 9px;
+  bottom: 8px;
+  width: 76px;
+  height: 58px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--life-color) 72%, transparent);
+  border-radius: 8px 8px 13px 13px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--life-color) 23%, #0a1422), #08111e 68%),
+    #08111e;
+  box-shadow:
+    0 10px 12px rgb(0 0 0 / 0.38),
+    0 0 18px color-mix(in srgb, var(--life-color) 20%, transparent),
+    inset 0 1px rgb(255 255 255 / 0.12);
+  animation: lifeConsole 2.1s ease-in-out var(--life-delay) infinite;
+}
+.district-life-workbench::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  bottom: 5px;
+  left: 6px;
+  height: 4px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--life-color) 65%, transparent);
+  filter: blur(3px);
+}
+.district-life-icon {
+  position: absolute;
+  left: 25px;
+  top: 13px;
+  width: 27px;
+  height: 27px;
+  color: var(--life-color);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--life-color) 72%, transparent));
+  animation: lifeIcon 1.8s ease-in-out var(--life-delay) infinite;
+}
+.district-life-scan {
+  position: absolute;
+  inset-inline: 7px;
+  top: 5px;
+  height: 1px;
+  background: var(--life-color);
+  box-shadow: 0 0 7px var(--life-color);
+  animation: lifeScan 1.65s linear var(--life-delay) infinite;
+}
+.district-life-particle {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--life-color);
+  box-shadow: 0 0 7px var(--life-color);
+  animation: lifeParticle 1.9s ease-out var(--life-delay) infinite;
+}
+.district-life-particle.particle-two {
+  left: 32%;
+  animation-delay: calc(var(--life-delay) - 0.65s);
+}
+.district-life-particle.particle-three {
+  left: 69%;
+  animation-delay: calc(var(--life-delay) - 1.2s);
+}
+.district-life-worker {
+  position: absolute;
+  left: 12px;
+  bottom: 6px;
+  display: block;
+  width: 59px;
+  height: 79px;
+  background-image: url("/images/districts/mission-control-residents-v1.png");
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  filter: drop-shadow(0 8px 5px rgb(0 0 0 / 0.42));
+  transform-origin: 50% 100%;
+  animation: lifeWorker 1.25s ease-in-out var(--life-delay) infinite;
+}
+.district-life-worker-arm {
+  position: absolute;
+  right: -2px;
+  top: 42px;
+  width: 22px;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--life-color) 35%, #8b674f);
+  box-shadow: 0 2px 3px rgb(0 0 0 / 0.35);
+  transform-origin: 2px 50%;
+  animation: lifeWorkerArm 900ms ease-in-out var(--life-delay) infinite alternate;
+}
+.district-life-worker.sprite-0 {
+  background-position: 0 0;
+}
+.district-life-worker.sprite-1 {
+  background-position: 33.333% 0;
+}
+.district-life-worker.sprite-2 {
+  background-position: 66.666% 0;
+}
+.district-life-worker.sprite-3 {
+  background-position: 100% 0;
+}
+.district-life-worker.sprite-4 {
+  background-position: 0 100%;
+}
+.district-life-worker.sprite-5 {
+  background-position: 33.333% 100%;
+}
+.district-life-worker.sprite-6 {
+  background-position: 66.666% 100%;
+}
+.district-life-worker.sprite-7 {
+  background-position: 100% 100%;
+}
+@keyframes lifeWorker {
+  0%,
+  100% {
+    transform: rotate(-1deg) translateY(0);
+  }
+  50% {
+    transform: rotate(1.5deg) translateY(-2px);
+  }
+}
+@keyframes lifeWorkerArm {
+  from {
+    transform: rotate(-24deg);
+  }
+  to {
+    transform: rotate(18deg);
+  }
+}
+@keyframes lifeConsole {
+  0%,
+  100% {
+    filter: brightness(0.92);
+  }
+  50% {
+    filter: brightness(1.14);
+  }
+}
+@keyframes lifeIcon {
+  0%,
+  100% {
+    opacity: 0.68;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+@keyframes lifeScan {
+  from {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  18%,
+  82% {
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(45px);
+    opacity: 0;
+  }
+}
+@keyframes lifeParticle {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.5);
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(8px, -49px, 0) scale(1.15);
+  }
+}
+
+.deck-district-overlay {
+  position: relative;
+  min-height: min(72dvh, 720px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.deck-district-copy {
+  max-width: min(31rem, 40vw);
+  margin-top: 5vh;
+  padding: 1.25rem 1.35rem 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--glass-border) 75%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--glass-strong) 76%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--shadow-md);
+  backdrop-filter: blur(18px) saturate(1.05);
+}
+.deck-district-key {
+  align-self: flex-end;
+  width: min(28rem, 42vw);
+  padding: 1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--glass-strong) 82%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--shadow-md);
+  backdrop-filter: blur(18px) saturate(1.08);
+  pointer-events: auto;
+}
+.deck-district-key > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+.deck-district-key a,
+.deck-district-key span {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--deck-accent) 22%, var(--glass-border));
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--deck-accent) 7%, transparent);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 650;
+  transition:
+    background-color 200ms var(--ease-out),
+    border-color 200ms var(--ease-out);
+}
+.deck-district-key a {
+  cursor: pointer;
+}
+.deck-district-key a:hover,
+.deck-district-key a:focus-visible,
+.deck-district-key [data-selected="true"] {
+  border-color: color-mix(in srgb, var(--deck-accent) 54%, var(--glass-border));
+  background: color-mix(in srgb, var(--deck-accent) 15%, var(--glass-strong));
+  outline: none;
+}
+.deck-district-key [data-selected="true"] {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--deck-accent) 35%, transparent);
+}
+.deck-district-key b {
+  color: color-mix(in srgb, var(--deck-accent) 76%, var(--foreground));
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+.deck-district-instruction {
+  margin-top: 0.8rem;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+}
+
+/* Corps conserve ses données vivantes comme HUD, mais la navigation principale
+   appartient maintenant aux quatre bâtiments du quartier Santé. */
+.deck-composition {
+  display: grid;
+  min-height: min(70dvh, 700px);
+  align-items: end;
+  gap: clamp(1.5rem, 4vw, 4rem);
+}
+.deck-corps-stage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  max-width: 34rem;
+  margin-left: auto;
+  pointer-events: auto;
+}
+.deck-corps-stage > * {
+  min-width: 0;
+}
+.deck-corps-score {
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.deck-corps-card:nth-child(n + 4) {
+  display: none;
+}
+.deck-corps-card > * {
+  height: 100%;
+}
+.deck-corps-card .glass-card {
+  min-height: 8.5rem;
+}
+.deck-corps-composition {
+  position: relative;
+}
+.deck-corps-key {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+/* Premier chapitre : copie éditoriale + panneau opérationnel. */
+.deck-today {
+  display: grid;
+  min-height: min(74dvh, 740px);
+  align-items: end;
+  gap: clamp(1.25rem, 3vw, 3rem);
+}
+.deck-today-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 27rem;
+  padding: clamp(1.15rem, 2vw, 1.65rem);
+  border: 1px solid rgb(160 184 220 / 0.2);
+  border-radius: var(--radius-lg);
+  background: rgb(6 15 28 / 0.88);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 24px 70px rgb(0 0 0 / 0.3);
+  backdrop-filter: blur(22px) saturate(1.08);
+}
+.deck-today-copy h1,
+.deck-today-copy p {
+  color: #f5f2e9;
+}
+.deck-today-copy > p:not(.deck-kicker),
+.deck-today-copy h1 + p {
+  color: rgb(225 232 242 / 0.72);
+}
+.deck-today-panel {
+  width: min(100%, 31rem);
+  max-height: min(62dvh, 580px);
+  justify-self: end;
+  overflow-y: auto;
+  padding: 0;
+  pointer-events: auto;
+}
+.today-card {
+  --foreground: #f5f2e9;
+  --muted-foreground: rgb(220 228 240 / 0.68);
+  --border: rgb(150 177 214 / 0.2);
+  --card: rgb(7 17 31 / 0.94);
+  --muted: rgb(255 255 255 / 0.07);
+  overflow: hidden;
+  border-color: rgb(150 177 214 / 0.24);
+  background: rgb(7 17 31 / 0.94);
+  color: #f5f2e9;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 28px 80px rgb(0 0 0 / 0.38);
+  backdrop-filter: blur(24px) saturate(1.08);
+}
+.today-card > div:first-child {
+  border-color: rgb(150 177 214 / 0.2);
+}
+.today-events {
+  display: grid;
+  gap: 0.4rem;
+}
+.today-event {
+  display: grid;
+  grid-template-columns: 0.55rem 4.4rem minmax(0, 1fr) auto;
+  min-height: 3rem;
+  align-items: start;
+  gap: 0.7rem;
+  padding: 0.65rem;
+  border: 1px solid rgb(255 255 255 / 0.07);
+  border-left: 3px solid transparent;
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.035);
+}
+.today-event.is-past {
+  opacity: 0.58;
+}
+.today-event-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.035);
+  margin-top: 0.3rem;
+}
+.today-event-time {
+  padding-top: 0.18rem;
+  color: rgb(220 228 240 / 0.72);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.today-event-title {
+  min-width: 0;
+  overflow: hidden;
+  color: #f7f4ec;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-top: 0.1rem;
+}
+.today-event-place {
+  max-width: 8rem;
+  overflow: hidden;
+  color: rgb(220 228 240 / 0.58);
+  font-size: 0.6875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.today-more-events {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+  color: rgb(220 228 240 / 0.65);
+  font-size: 0.75rem;
+  transition: color 180ms var(--ease-out);
+}
+.today-more-events:hover {
+  color: #fff;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ancien indice de scroll, conservé pour les rares consommateurs : trois
+   respirations seulement, afin d'éviter une animation décorative perpétuelle. */
+@keyframes hintFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+}
+.deck-hint {
+  animation: hintFloat 2.4s var(--ease-out) 3;
+}
+
+/* Transforms à ressort (hover de cartes, dots, pastilles). */
+.springy {
+  transition:
+    transform 480ms var(--spring),
+    box-shadow 320ms var(--ease-out),
+    border-color 320ms var(--ease-out),
+    background-color 320ms var(--ease-out);
+}
+
+/* ── Tiroir latéral (menu principal, depuis le dock) ───────
+   « Porte lourde bien huilée » : démarre vite, atterrit doux. */
+.drawer-enter {
+  transition:
+    transform 350ms var(--ease-out),
+    opacity 350ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck {
+    scroll-snap-type: y proximity;
+    scroll-behavior: auto;
+  }
+  .deck-section::before {
+    opacity: 0.72;
+    transform: none;
+    transition: none;
+  }
+  .scroll-video-media {
+    transform: none;
+    filter: brightness(0.68);
+  }
+  .district-quarter,
+  .district-building,
+  .district-hub {
+    transition: none;
+  }
+  .district-building.is-selected .district-landmark-ring,
+  .district-hub-pulse {
+    animation: none;
+  }
+  .district-life-workbench,
+  .district-life-icon,
+  .district-life-scan,
+  .district-life-particle,
+  .district-life-worker,
+  .district-life-worker-arm,
+  .district-camera-gate,
+  .district-focus-wipe {
+    animation: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .deck-composition {
+    grid-template-columns: minmax(16rem, 0.34fr) minmax(0, 1fr);
+  }
+  .deck-today {
+    grid-template-columns: minmax(19rem, 27rem) minmax(22rem, 31rem);
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 1023px) {
+  .deck-composition,
+  .deck-today {
+    min-height: auto;
+  }
+  .deck-copy {
+    max-width: 42rem;
+  }
+  .deck-copy h2 {
+    font-size: clamp(2.6rem, 8vw, 4.8rem);
+  }
+  .deck-district-copy {
+    max-width: min(32rem, 64vw);
+  }
+  .deck-district-key {
+    width: min(26rem, 58vw);
+  }
+}
+
+@media (max-width: 639px) {
+  .deck-section {
+    padding-block: 4.7rem 6.8rem;
+  }
+  .deck-composition {
+    gap: 0.85rem;
+  }
+  .deck-district-overlay {
+    min-height: calc(100dvh - 11.5rem);
+  }
+  .deck-district-copy {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 0;
+    padding: 0.8rem 0.9rem 0.9rem;
+    backdrop-filter: blur(14px);
+  }
+  .deck-copy h2 {
+    max-width: 13ch;
+    margin-top: 0.45rem;
+    font-size: clamp(2rem, 9.5vw, 3rem);
+  }
+  .deck-copy-body {
+    margin-top: 0.55rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+  .deck-district-key {
+    width: 100%;
+    padding: 0.7rem;
+    backdrop-filter: blur(14px);
+  }
+  .deck-district-key:not(.deck-corps-key) {
+    position: absolute;
+    right: 0;
+    bottom: 6.5rem;
+  }
+  .deck-district-key > div {
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+    overflow-x: auto;
+    margin-top: 0.5rem;
+    scrollbar-width: none;
+  }
+  .deck-district-key > div::-webkit-scrollbar {
+    display: none;
+  }
+  .deck-district-key a,
+  .deck-district-key span {
+    flex: 0 0 auto;
+    min-height: 2rem;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.6875rem;
+  }
+  .deck-district-instruction {
+    display: none;
+  }
+  .district-atmosphere {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--background) 32%, transparent),
+        transparent 33%
+      ),
+      linear-gradient(0deg, color-mix(in srgb, var(--background) 52%, transparent), transparent 32%);
+  }
+  .deck-corps-stage {
+    display: none;
+  }
+  .deck-corps-key {
+    display: block;
+    bottom: 6.5rem;
+  }
+  .deck-today {
+    gap: 1.2rem;
+  }
+  .deck-today-copy > p:not(.deck-kicker),
+  .deck-today-copy > div:last-child {
+    display: none;
+  }
+  .deck-today-copy .deck-health-badge {
+    display: none;
+  }
+  .deck-today-panel {
+    max-height: 40dvh;
+  }
+}

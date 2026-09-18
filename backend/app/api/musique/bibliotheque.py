@@ -1,0 +1,141 @@
+"""Sous-routeur Musique : scan, classement, pistes, ambiances (#511)."""
+from __future__ import annotations
+
+from pathlib import Path, PurePosixPath
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
+from sqlmodel import Session, select
+
+from app.api.musique.common import ambiances_for, track_dict
+from app.core.config import settings
+from app.core.db import get_session
+from app.models.musique import MusicTrack, TrackAmbiance
+from app.services.musique import classify, scan, walkman_sync
+from app.services.musique.constants import AMBIANCE_LABELS, AMBIANCE_NAMES
+from app.services.musique.quality import purchase_status, quality_label, quality_tier
+
+router = APIRouter()
+
+
+class QobuzAvailableIn(BaseModel):
+    available: bool | None
+
+
+@router.post("/scan")
+def run_scan(session: Session = Depends(get_session)):
+    try:
+        return scan.scan_library(session, Path(settings.music_dir))
+    except FileNotFoundError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/classify", status_code=202)
+def run_classify(background_tasks: BackgroundTasks):
+    from app.services.musique import deepseek_client
+    if not deepseek_client.is_configured():
+        raise HTTPException(503, "DEEPSEEK_API_KEY n'est pas configurée")
+    if classify.get_progress()["active"]:
+        return {"message": "Classement déjà en cours"}
+    from app.core.db import engine
+    from sqlmodel import Session as S
+
+    def job():
+        with S(engine) as s:
+            classify.classify_untagged(s)
+    background_tasks.add_task(job)
+    return {"message": "Classement démarré"}
+
+
+@router.get("/classify/progress")
+def classify_progress():
+    return classify.get_progress()
+
+
+@router.post("/walkman/sync", status_code=202)
+def start_walkman_sync(background_tasks: BackgroundTasks):
+    try:
+        walkman_sync.validate_roots(
+            Path(settings.music_dir),
+            Path(settings.music_tele_dir),
+            Path(settings.walkman_dir),
+        )
+        walkman_sync.validate_encoder()
+    except Exception as error:
+        raise HTTPException(503, str(error) or "Configuration Walkman invalide.") from error
+
+    if not walkman_sync.begin_sync():
+        return {"message": "Synchronisation du Walkman déjà en cours"}
+
+    background_tasks.add_task(
+        walkman_sync.synchronize,
+        Path(settings.music_dir),
+        Path(settings.music_tele_dir),
+        Path(settings.walkman_dir),
+    )
+    return {"message": "Synchronisation du Walkman démarrée"}
+
+
+@router.get("/walkman/sync/status")
+def walkman_sync_status():
+    return walkman_sync.get_progress()
+
+
+@router.post("/classify/reset")
+def classify_reset(tout: bool = False, session: Session = Depends(get_session)):
+    """Réinitialise pour reclasser. Par défaut : morceaux sans ambiance.
+    ``?tout=true`` : efface aussi les attributions auto (mauvais run),
+    en préservant les ambiances posées à la main."""
+    return classify.reset_classification(session, tout=tout)
+
+
+@router.get("/tracks")
+def list_tracks(session: Session = Depends(get_session), q: str | None = None,
+                ambiance: str | None = None):
+    stmt = select(MusicTrack)
+    if q:
+        like = f"%{q.lower()}%"
+        stmt = stmt.where(MusicTrack.title.ilike(like) | MusicTrack.artist.ilike(like))  # type: ignore[attr-defined]
+    tracks = list(session.exec(stmt.limit(500)).all())
+    amb_map = ambiances_for(session, [t.id for t in tracks])
+    rows = [track_dict(t, amb_map.get(t.id, [])) for t in tracks]
+    if ambiance:
+        rows = [r for r in rows if ambiance in r["ambiances"]]
+    return rows
+
+
+@router.get("/ambiances")
+def ambiances(session: Session = Depends(get_session)):
+    counts: dict[str, int] = {a: 0 for a in AMBIANCE_NAMES}
+    for r in session.exec(select(TrackAmbiance)).all():
+        if r.ambiance in counts:
+            counts[r.ambiance] += 1
+    return [{"ambiance": a, "label": AMBIANCE_LABELS[a], "count": counts[a]} for a in AMBIANCE_NAMES]
+
+
+@router.get("/quality")
+def quality(session: Session = Depends(get_session)):
+    rows = []
+    for t in session.exec(select(MusicTrack)).all():
+        suffix = PurePosixPath(t.path).suffix
+        tier = quality_tier(suffix, t.bits_per_sample, t.sample_rate_hz)
+        rows.append({
+            "id": t.id, "title": t.title, "artist": t.artist,
+            "format": suffix.lstrip(".").lower(),
+            "quality_label": quality_label(suffix, t.bitrate_kbps, t.sample_rate_hz, t.bits_per_sample),
+            "tier": tier,
+            "qobuz_available": t.qobuz_available,
+            "status": purchase_status(tier, t.qobuz_available),
+        })
+    return rows
+
+
+@router.put("/tracks/{track_id}/qobuz-available", status_code=204)
+def set_qobuz_available(track_id: int, body: QobuzAvailableIn,
+                        session: Session = Depends(get_session)):
+    track = session.get(MusicTrack, track_id)
+    if track is None:
+        raise HTTPException(404, "Morceau inconnu")
+    track.qobuz_available = body.available
+    session.add(track)
+    session.commit()

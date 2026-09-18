@@ -1,0 +1,13 @@
+# Reverse proxy local de production (#200) — point d'entrée unique sur :80.
+# /api/* -> backend FastAPI ; tout le reste -> frontend Next.
+:80 {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

@@ -1,0 +1,31 @@
+"""Module Musique — bibliothèque + appartenance multi-ambiances."""
+import datetime as dt
+from app.core.timeutil import utcnow
+
+from sqlmodel import Field, SQLModel
+
+
+class MusicTrack(SQLModel, table=True):
+    __tablename__ = "music_track"
+    id: int | None = Field(default=None, primary_key=True)
+    path: str = Field(index=True, unique=True)  # relatif à music_dir
+    artist: str = ""
+    album: str = ""
+    title: str = ""
+    genre: str = ""
+    duree_sec: int | None = None
+    cover: str | None = None      # chemin relatif de la pochette
+    classified: bool = False      # déjà passé par le classifieur DeepSeek
+    bitrate_kbps: int | None = None       # auto (scan mutagen)
+    sample_rate_hz: int | None = None     # auto
+    bits_per_sample: int | None = None    # auto (None pour MP3)
+    qobuz_available: bool | None = None   # manuel (None = à vérifier)
+    created_at: dt.datetime = Field(default_factory=utcnow)
+
+
+class TrackAmbiance(SQLModel, table=True):
+    __tablename__ = "track_ambiance"
+    id: int | None = Field(default=None, primary_key=True)
+    track_id: int = Field(foreign_key="music_track.id", index=True)
+    ambiance: str
+    source: str = "auto"          # auto | manuel

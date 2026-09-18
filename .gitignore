@@ -1,0 +1,118 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+.turbo/
+dist/
+build/
+*.tsbuildinfo
+.npm/
+
+# --- Env / secrets ---
+.env
+.env.local
+.env.*.local
+!.env.example
+# Identifiants OAuth Google (fichier client_secret téléchargé depuis GCP) +
+# tout secret hors-env. Jamais sur GitHub.
+secrets/
+client_secret_*.json
+*.credentials.json
+
+# --- Données / DB ---
+# Bases SQLite (et sidecars WAL/SHM/journal) où qu'elles soient : elles
+# contiennent les données personnelles saisies dans l'app (finance, fiscalité,
+# santé…). Le dépôt est public — ne JAMAIS les versionner.
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+# imports/ tracked via .gitkeep, contents ignored
+data/imports/*
+!data/imports/.gitkeep
+# Données financières téléchargées (xlsx par société) + sauvegardes + cache : générées, jamais versionnées.
+backend/data/financials_by_company/
+data/backups/
+data/cache/
+backend/data/cache_status.json
+# Oracle deployment runtime (SQLite, caches, backups, TLS state).
+oracle-data/
+oracle-backups/
+oracle-caddy-data/
+oracle-caddy-config/
+/.env.oracle
+# Photos personnelles de vêtements (avant/arrière) — servies via /media/garderobe, jamais versionnées.
+data/garderobe_photos/
+# Soldes de comptes mémorisés à l'import (relevés) — données bancaires, jamais versionnées.
+data/account_balances.json
+backend/data/account_balances.json
+# URL secrète des calendriers iCal personnels (source de travail).
+data/ical_source.json
+
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Sorties pytest laissées à la racine par erreur ---
+pytest_out.txt
+pytest_full.txt
+
+# --- Serveurs de développement locaux ---
+.dev-*.log
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.claude/worktrees/
+
+# --- Résidus d'agents & artefacts de test jetables (audit §1.A, §3.G) ---
+**/.tmp/
+**/.tmp_*/
+**/.pytest*/
+**/.test*/
+backend/data/*
+!backend/data/.gitkeep
+data/*
+!data/.gitkeep
+data/buffett_universes/*
+orchestration/graphify/cache/
+orchestration/graphify/graph.html
+orchestration/graphify/graph.json
+orchestration/graphify/manifest.json
+mission-control-oracle.tar.gz
+backend/.codex-*
+backend/.tmp-pytest-*
+# Sauvegardes de cache Buffett (11 Mo pièce) — polluaient git status en permanence
+backend/data/cache_status*.bak*
+backend/data/cache_status*.before_*
+# État runtime versionné à tort (réécrit à chaque job de rappel, salit tous les diffs)
+data/*_reminded.json
+
+# --- graphify build output ---
+graphify-out/
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
+.worktrees/

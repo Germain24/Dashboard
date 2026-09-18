@@ -1,0 +1,45 @@
+# Mission Control — lancement complet en une commande (#195).
+#   docker compose up --build
+# Backend sur :8000, frontend sur :3000. La base SQLite est persistée dans ./data.
+# Pour le mode production avec reverse proxy : voir docker-compose.prod.yml (#200).
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: sqlite:////data/mission-control.db
+      BACKUP_DIR: /backups
+      MUSIC_DIR: /music/library
+      MUSIC_TELE_DIR: /music/tele
+      WALKMAN_DIR: /music/walkman
+      WEB_CONCURRENCY: "1"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/data
+      - "${BACKUP_DIR_HOST:?Set BACKUP_DIR_HOST to Z:/BackUp/mission-control}:/backups"
+      - "${MUSIC_SOURCE_DIR_HOST:-Z:/Musique/Qobuz}:/music/library:ro"
+      - "${MUSIC_TELE_SOURCE_DIR_HOST:-Z:/Musique/Musique Tele}:/music/tele:ro"
+      - "${WALKMAN_DIR_HOST:-D:/MUSIC}:/music/walkman"
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        # Base de compatibilité serveur ; le navigateur utilise le proxy Next.
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+        BACKEND_URL: http://backend:8000
+    environment:
+      # Proxy same-origin /proxy/* côté serveur Next vers le service backend.
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

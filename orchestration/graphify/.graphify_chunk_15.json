@@ -1,0 +1,128 @@
+{
+  "nodes": [
+    {
+      "id": "file_icon",
+      "label": "File / Document Icon",
+      "file_type": "image",
+      "source_file": "frontend/public/file.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "description": "A small 16x16 document icon showing a page with a folded top-right corner (dog-ear) and three horizontal lines representing text content. Generic file/document symbol filled in gray (#666).",
+      "visual_concept": "document",
+      "confidence_score": 1.0,
+      "confidence": "EXTRACTED"
+    },
+    {
+      "id": "globe_icon",
+      "label": "Globe / World / Internet Icon",
+      "file_type": "image",
+      "source_file": "frontend/public/globe.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "description": "A 16x16 globe icon depicting a circle overlaid with latitude and longitude grid lines, representing the internet, internationalization (i18n), or a web link. Filled in gray (#666).",
+      "visual_concept": "globe / internet / world",
+      "confidence_score": 1.0,
+      "confidence": "EXTRACTED"
+    },
+    {
+      "id": "nextjs_logo",
+      "label": "Next.js Wordmark Logo",
+      "file_type": "image",
+      "source_file": "frontend/public/next.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "description": "The official Next.js wordmark SVG (394x80 viewBox). Renders the text 'NEXT.JS' in the framework's canonical black logotype. Used as a brand asset identifying the Next.js React framework.",
+      "visual_concept": "Next.js brand / wordmark",
+      "confidence_score": 1.0,
+      "confidence": "EXTRACTED"
+    },
+    {
+      "id": "vercel_logo",
+      "label": "Vercel Logo (Triangle Logomark)",
+      "file_type": "image",
+      "source_file": "frontend/public/vercel.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "description": "The Vercel logomark: a solid white upward-pointing equilateral triangle on a transparent background (1155x1000 viewBox). Represents the Vercel cloud deployment platform, the default hosting provider for Next.js apps.",
+      "visual_concept": "Vercel brand / triangle logomark",
+      "confidence_score": 1.0,
+      "confidence": "EXTRACTED"
+    },
+    {
+      "id": "window_icon",
+      "label": "Browser / Application Window Icon",
+      "file_type": "image",
+      "source_file": "frontend/public/window.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "description": "A 16x16 icon of a desktop application or browser window: a rounded rectangle with a title bar area containing three small circles (traffic-light buttons) in the top-left corner. Filled in gray (#666). Represents a GUI window or browser tab.",
+      "visual_concept": "browser window / desktop app window",
+      "confidence_score": 1.0,
+      "confidence": "EXTRACTED"
+    }
+  ],
+  "edges": [
+    {
+      "source": "nextjs_logo",
+      "target": "vercel_logo",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "frontend/public/next.svg",
+      "source_location": null,
+      "weight": 0.95,
+      "note": "Next.js is developed and maintained by Vercel; both logos are default assets scaffolded by create-next-app and co-appear on the default Next.js landing page."
+    },
+    {
+      "source": "globe_icon",
+      "target": "window_icon",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "frontend/public/globe.svg",
+      "source_location": null,
+      "weight": 0.85,
+      "note": "Both icons are part of the default Next.js create-next-app public asset set, used together as decorative link icons on the default landing page (globe = 'learn', window = 'examples')."
+    },
+    {
+      "source": "file_icon",
+      "target": "window_icon",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "frontend/public/file.svg",
+      "source_location": null,
+      "weight": 0.85,
+      "note": "Both icons are part of the default Next.js create-next-app public asset set, co-scaffolded alongside globe.svg."
+    },
+    {
+      "source": "file_icon",
+      "target": "globe_icon",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "frontend/public/file.svg",
+      "source_location": null,
+      "weight": 0.85,
+      "note": "Both icons are part of the default Next.js create-next-app public asset set."
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,0 +1,88 @@
+"""Modèles Santé / Nutrition — CONV 3.
+
+Notes :
+- `dt.date` plutôt que `date` à cause du clash Pydantic 2 / SQLModel.
+- `MesureSante.extra` reste un JSON libre pour stocker tout indicateur futur.
+- `PlanNutrition` stocke à la fois les targets *de base* et les *compensés*.
+- `NutritionGoal` est un singleton logique : on lit toujours `actif=True`.
+"""
+
+import datetime as dt
+from app.core.timeutil import utcnow
+from typing import Optional
+
+from sqlalchemy import JSON, Column
+from sqlmodel import Field, SQLModel
+
+
+class MesureSante(SQLModel, table=True):
+    __tablename__ = "mesure_sante"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    date: dt.date = Field(index=True, unique=True)
+    poids: Optional[float] = None
+    photo_url: Optional[str] = None
+    note: Optional[str] = None
+    extra: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+
+
+class PlanNutrition(SQLModel, table=True):
+    __tablename__ = "plan_nutrition"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    date: dt.date = Field(index=True, unique=True)
+    poids_used: Optional[float] = None
+    intensite: Optional[str] = None
+    base_targets: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    targets: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    quantites: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    totals: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    consumed: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    warning: Optional[str] = None
+    extra: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+
+
+class WindowPlan(SQLModel, table=True):
+    """Plan d'une fenêtre batch-cook (spec §5) : jeu d'aliments commun, liste de
+    courses agrégée, score, dette. Les portions par jour vivent dans PlanNutrition."""
+
+    __tablename__ = "window_plan"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    anchor_date: dt.date = Field(index=True, unique=True)
+    length: int
+    poids_used: Optional[float] = None
+    food_set: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    shopping_list: list = Field(default_factory=list, sa_column=Column(JSON))
+    score: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    debt_series: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    warning: Optional[str] = None
+    created_at: dt.datetime = Field(default_factory=utcnow)
+
+
+class Aliment(SQLModel, table=True):
+    __tablename__ = "aliment"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    nom: str = Field(unique=True, index=True)
+    proprietes: dict = Field(sa_column=Column(JSON))  # {Prix: x, Proteines: y, ...}
+
+
+class NutritionGoal(SQLModel, table=True):
+    """Objectif nutritionnel actif (poids cible, type de diète, etc.)."""
+
+    __tablename__ = "nutrition_goal"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    date_set: dt.date = Field(default_factory=dt.date.today, index=True)
+    poids_cible: Optional[float] = None
+    body_fat_target_pct: Optional[float] = None
+    date_cible: Optional[dt.date] = None
+    type: str = "bulk"
+    surplus_kcal_sport: float = 500.0
+    rest_factor: float = 1.1
+    sport_days: list = Field(default_factory=lambda: [0, 1, 2, 4, 5], sa_column=Column(JSON))
+    actif: bool = Field(default=True, index=True)
+    note: Optional[str] = None
+    created_at: dt.datetime = Field(default_factory=utcnow)
+    updated_at: dt.datetime = Field(default_factory=utcnow)

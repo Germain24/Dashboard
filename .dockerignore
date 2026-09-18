@@ -1,0 +1,24 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.oracle.example
+
+# Environnements spécifiques au PC développeur ; ils sont incompatibles avec
+# l'image ARM et sont reconstruits par uv/npm dans les Dockerfiles.
+backend/.venv
+backend/__pycache__
+backend/.pytest_cache
+frontend/node_modules
+frontend/.next
+frontend/debug.log
+
+# Les données sont montées comme volumes et ne doivent pas être copiées dans
+# les images. Elles restent dans oracle-data/ sur la VM.
+data
+oracle-data
+oracle-backups
+oracle-caddy-data
+oracle-caddy-config
+*.db
+*.sqlite

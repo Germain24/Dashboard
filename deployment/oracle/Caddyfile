@@ -1,0 +1,24 @@
+{$DOMAIN} {
+    encode gzip
+
+    # Let Next.js apply its compatibility rewrite from /api/* to /api/v1/*.
+    handle /api/* {
+        reverse_proxy frontend:3000
+    }
+
+    # The frontend's same-origin proxy uses /proxy/api/*; route that through
+    # Next.js as well so its rewrite rules remain effective.
+    handle /proxy/api/* {
+        uri strip_prefix /proxy
+        reverse_proxy frontend:3000
+    }
+
+    handle /proxy/* {
+        uri strip_prefix /proxy
+        reverse_proxy backend:8000
+    }
+
+    handle {
+        reverse_proxy frontend:3000
+    }
+}

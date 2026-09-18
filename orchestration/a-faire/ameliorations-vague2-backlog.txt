@@ -1,0 +1,380 @@
+================================================================================
+MISSION CONTROL — BACKLOG « DEUXIÈME VAGUE » (items 256-500)
+Extrait de AMELIORATIONS_200.txt le 2026-07-04 : les items 1-255 et 501-549
+sont entièrement résolus (FINIS ou ABANDONNÉ) et restent dans
+AMELIORATIONS_200.txt à la racine. Ce fichier isole la tranche 256-500
+(sections W à AM), qui reste très majoritairement non commencée (229
+items pending sur 245 à l'extraction) — c'est le vrai backlog « idées pas
+encore attaquées », classé par avancement (a-faire/) plutôt que mélangé au
+reste de l'historique déjà livré.
+================================================================================
+
+Légende d'effort : [S] petit  [M] moyen  [L] gros
+Légende d'impact : (*) confort  (**) valeur réelle  (***) structurant
+Suivi : chaque item terminé est daté — `← FINIS ✓ (AAAA-MM-JJ) <note>`.
+Un item toujours sans marqueur = jamais commencé.
+
+================================================================================
+TRIAGE DE PERTINENCE (2026-07-20)
+================================================================================
+Ce fichier est une liste d'idées brainstormées, pas une feuille de route
+validée. Passe de tri pour séparer ce qui est réellement actionnable de ce qui
+ne le sera jamais dans CE produit. Rien n'a été supprimé — un item écarté
+reste lisible avec sa raison.
+
+Les contraintes produit qui décident (cf. README, PLAN.md, décisions passées) :
+mono-utilisateur · local-first · pas d'IA conversationnelle ni générative ·
+pas de vocal ni d'aides handicap · les données réelles sont la source de vérité.
+
+FAMILLES ÉCARTÉES EN BLOC (raison structurelle, pas un manque de temps) :
+
+- Z. Domotique (306-320) — aucun équipement domotique dans le périmètre de
+  l'utilisateur. Rien à piloter, rien à lire : construire l'intégration
+  reviendrait à écrire un module contre des données inexistantes.
+
+- AF. Intégrations externes (386-400) — chacune demande un compte tiers, des
+  clés d'API et un flux OAuth pour un seul utilisateur. Contradiction directe
+  avec local-first. 398/399 (marketplace, SDK de plugins) supposent en plus une
+  communauté qui n'existe pas — même raison que #500, déjà abandonné.
+
+- AG. Mobile natif / Watch (401, 403-412) — le dashboard est une app web
+  consultée au poste de travail. Le responsive et le mode hors-ligne de base
+  sont déjà traités ailleurs ; app native, complications montre, biométrie et
+  share sheet sont un produit différent.
+
+- AJ. IA/ML (436-450, sauf 439) — modèles prédictifs, embeddings, MLOps,
+  explicabilité. Écarté par la contrainte « pas d'IA » et par le volume de
+  données : un historique mono-utilisateur ne nourrit pas un modèle appris.
+  Exception 439 (prévision de dépenses) : faisable en statistique pure, et
+  déjà couvert par #259 (cash_flow_forecast).
+
+- AM. Nouveaux modules de vie (477-499) — 23 modules spéculatifs (jardin,
+  bénévolat, DIY, famille, réceptions…). Aucun ne répond à un besoin exprimé ;
+  les modules existants viennent tous d'un usage réel. À rouvrir un par un si
+  le besoin apparaît, jamais en bloc.
+
+- Multi-utilisateur (339, 340, 344, 345, 491, 499) — partage, listes
+  partagées, calendrier familial, finances du foyer. Le produit est
+  mono-utilisateur par conception ; l'authentification et les permissions que
+  ça impliquerait sont un chantier hors sujet.
+
+RESTE ACTIONNABLE : les sections W (finances), X (santé), Y (productivité),
+AD (administratif), AE (analytics) et AL (qualité/plateforme) contiennent des
+items faisables hors-ligne sur des données déjà présentes. C'est là qu'il faut
+piocher — en vérifiant d'abord ce qui existe déjà (plusieurs items « à faire »
+se sont révélés déjà couverts, cf. #289).
+
+--------------------------------------------------------------------------------
+W. FINANCES PERSONNELLES AVANCÉES (256-270)
+--------------------------------------------------------------------------------
+256. [L](***) Agrégation bancaire (open banking / import OFX/CSV multi-comptes) avec catégorisation auto.   ← FINIS ✓ (2026-06-17) (import CSV multi-comptes + catégorisation auto via règles existaient déjà ; ajout du support OFX/QFX : parse_ofx (sans dépendance, <STMTTRN> SGML 1.x/XML 2.x — DTPOSTED/TRNAMT/NAME→MEMO) + import_ofx (même pipeline de catégorisation #115) + dispatcher import_transactions (sniff OFXHEADER/<OFX> sinon CSV) câblé sur POST /budget/import ; UI TransactionsTab accepte .ofx/.qfx ; open banking en ligne hors périmètre offline ; 6 tests TDD)
+257. [M](***) Vue patrimoine net consolidée (comptes, placements, immobilier, dettes) dans le temps.   ← FINIS ✓ (2026-06-17) (la vue consolidée (PatrimoineItem + net_worth_summary) existait depuis cette session ; ajout du « dans le temps » : modèle PatrimoineSnapshot (1 ligne/jour, EUR) + migration q257 ; record_net_worth_snapshot (upsert idempotent par date) + net_worth_history(days) ; capture auto via le job snapshot quotidien + à l'ouverture de la page (GET idempotent) ; GET /finance/patrimoine/history ; UI : courbe SVG NetWorthChart (sans dépendance) + delta depuis le 1er point dans PatrimoineTab ; 2 tests TDD)
+258. [M](**) Catégorisation automatique des transactions par ML + règles apprenables.   ← FINIS ✓ (2026-06-17) (volet « règles apprenables » sans ML, conforme à la contrainte « pas d'IA » : suggest_rules_from_history (pur) déduit des BudgetRule des marchands catégorisés à la main — clé = 1er token alpha ≥3 lettres, pureté de catégorie + min_occurrences, ignore ceux déjà couverts par une règle ; learn_rules(apply) crée les règles puis reapply_all_rules rattrape les transactions non catégorisées ; GET /budget/rules/suggestions + POST /budget/rules/learn ; UI LearnedRulesSection (chips « MOTIF → catégorie (N×) » + bouton « Créer N règle(s) ») dans TransactionsTab ; 5 tests TDD. Le volet ML pur est volontairement abandonné.)
+259. [M](**) Prévision de trésorerie (cash-flow) sur 1-12 mois avec scénarios.   ← FINIS ✓ (2026-07-16) (cash_flow_forecast pur (moyenne revenus/dépenses des N derniers mois + projection cumulée, scénario %) + cash_flow_projection (wrapper DB sur spending_trend) ; GET /budget/forecast?months_ahead&history_months&revenus_delta_pct&depenses_delta_pct ; carte « Prévision de trésorerie » dans MoisTab (6 mois + réglage scénario revenus/dépenses) ; tests TDD back (5) + front (1))
+260. [M](**) Détection d'abonnements récurrents et alertes hausses/doublons.   ← FINIS ✓ (2026-07-20) (la détection existait déjà (#116 detect_recurring / #266 recurring_vs_oneoff) ; ajout du volet ALERTES : extraction de _monthly_cadence_groups (cadence seule, partagée avec detect_recurring) ; detect_price_increases (dernier prélèvement vs médiane des précédents sur 13 mois, plancher +1,00 $ ET +5 %) ; detect_duplicate_subscriptions (meme_service = même clé marchand des règles apprenables #258, prix à ±15 %, ≥1 mois prélevé EN COMMUN pour écarter les renommages de libellé, passerelles PAYPAL/GOOGLE… exclues ; double_prelevement = ≥2 débits au prix de l'abonnement dans le même mois) ; subscription_alerts + GET /budget/recurring/alerts ; UI : bandeau d'alertes dans la section « Abonnements détectés » de MoisTab (affichée même si la hausse a fait sortir l'abonnement du filtre de stabilité) ; 15 tests TDD back + 5 front)
+261. [M](**) Suivi et optimisation fiscale (PEA, CTO, plus-values, impôts estimés).
+262. [M](**) Simulateur de prêts/crédits (mensualités, coût total, remboursement anticipé).
+263. [M](**) Objectifs d'épargne par enveloppe avec virements programmés simulés.
+264. [M](**) Comparateur de scénarios d'investissement (DCA vs lump sum, allocations).
+265. [M](**) Alertes de marché personnalisées (seuils de prix, dividendes, résultats).   ← FINIS ✓ (2026-07-16) (seuils prix par ticker, check_alerts pur, GET/POST/PATCH/DELETE /finance/alerts + /finance/alerts/status, carte SuiviTab, tests TDD)
+266. [M](**) Dépenses récurrentes vs ponctuelles avec projection annuelle.   ← FINIS ✓ (2026-06-13) (détection des récurrences déjà en place ; ajout helper recurring_vs_oneoff (récurrent mensuel + projection ×12 + total ponctuel) + endpoint /budget/recurring/projection + UI : projection annuelle « ≈ X/an » dans l'en-tête Abonnements détectés ; 1 test TDD)
+267. [M](**) Multi-devises consolidées avec historique de change (étendre #55).
+268. [M](**) Rapport d'indépendance financière (FIRE) : taux d'épargne, années restantes.   ← FINIS ✓ (2026-07-20) (nouveau service budget/fire.py, 100 % basé sur l'existant : spending_trend (#113) pour revenus/dépenses et net_worth_summary (#257) pour le patrimoine net — rien n'est recalculé ; savings_rate + fire_projection purs (capital × (1+rendement) + épargne, interpolation dans l'année de franchissement, horizon borné à 60 ans → épargne ≤ 0 renvoie None au lieu de boucler, patrimoine ≥ objectif ou dépenses nulles → 0 an) ; taux de retrait 4 % et rendement réel 5 % configurables ; agrégats budget convertis CAD→EUR avec le convertisseur du patrimoine (sinon ratio bi-devises) ; GET /budget/fire ; UI : carte compacte FireCard sous le patrimoine net dans PatrimoineTab ; 14 tests TDD back + 4 front)
+269. [M](**) Suivi immobilier (valeur, loyers, charges, rendement).
+270. [M](**) Coffre-fort de documents financiers (relevés, contrats) chiffré et indexé.
+
+--------------------------------------------------------------------------------
+X. SANTÉ & BIEN-ÊTRE APPROFONDIS (271-288)
+--------------------------------------------------------------------------------
+271. [L](***) Intégration wearables (Apple Health / Google Fit / Garmin) : pas, FC, sommeil, VO2.
+272. [M](***) Suivi fréquence cardiaque et VFC (HRV) avec tendance de récupération.
+273. [M](**) Score de récupération quotidien (sommeil + VFC + charge) pilotant l'intensité conseillée.
+274. [M](**) Suivi du cycle / chronotype et adaptation des recommandations.
+275. [M](**) Journal de symptômes & corrélation avec alimentation/sommeil/stress.
+276. [M](**) Suivi compléments/médicaments avec rappels et interactions.
+277. [M](**) Hydratation intelligente (cible adaptée à météo + activité, étendre #66).
+278. [M](**) Suivi du stress / humeur (journal + tendances + déclencheurs).
+279. [M](**) Méditation / respiration guidée avec suivi de pratique.
+280. [M](**) Bibliothèque d'exercices avec démonstrations et progressions.
+281. [M](**) Périodisation d'entraînement (mésocycles, deload) automatique.
+282. [M](**) Estimation 1RM et suivi des records personnels (PR) par exercice.   ← FINIS ✓ (2026-06-13) (1RM Epley déjà en place ; ajout du PR board : service personal_records (meilleur 1RM + charge max all-time par exercice) + endpoint GET /entrainement/records + UI section « Records personnels » dans l'onglet Progression ; 3 tests TDD)
+283. [M](**) Scanner code-barres alimentaire (Open Food Facts) pour saisie rapide.
+284. [M](**) Analyse micro-nutriments (vitamines, minéraux) au-delà des macros.
+285. [M](**) Suivi composition corporelle (masse grasse/maigre) via impédancemètre.
+286. [M](**) Rappels santé préventive (bilans, vaccins, dentiste) avec calendrier.
+287. [M](**) Score de qualité du sommeil détaillé (cycles, latence, régularité).
+288. [M](**) Coach posture / pauses écran pendant les sessions de travail.
+
+--------------------------------------------------------------------------------
+Y. PRODUCTIVITÉ, OBJECTIFS & VIE PRO (289-305)
+--------------------------------------------------------------------------------
+289. [M](***) Module Objectifs/OKR : objectifs trimestriels, résultats clés mesurables, suivi.   ← FINIS ✓ (2026-07-16) (déjà couvert par LifeGoal (#226, backend/app/models/objectifs_vie.py + services/automatisations/objectifs_vie.py) : objectif avec échéance + sous-objectifs mesurables rattachés à une métrique d'un autre module (poids/épargne/habitudes), progression directionnelle agnostique — équivalent fonctionnel objectif/résultats-clés, l'échéance jouant le rôle de « trimestre » ; pas de nouveau module créé pour éviter la duplication avec /objectifs)
+290. [M](**) Gestion de projets personnels (tâches, jalons, dépendances, Kanban).
+291. [M](**) Inbox de capture rapide universelle (note, tâche, idée) type GTD.
+292. [M](**) Time tracking par activité avec rapports (où passe ton temps).
+293. [M](**) Pomodoro intégré avec stats de focus.
+294. [M](**) Suivi de carrière (CV, compétences, réalisations, entretiens).
+295. [M](**) Préparation d'entretiens / négociation salariale assistée par IA.
+296. [M](**) CRM personnel léger (contacts pro & réseau).
+297. [M](**) Suivi des candidatures / opportunités (pipeline).
+298. [M](**) Notes type Zettelkasten avec liens bidirectionnels.
+299. [M](**) Veille pro (RSS/newsletters) triée et résumée par IA.
+300. [M](**) Journal de décisions (decision log) avec revue a posteriori.
+301. [M](**) Suivi temps d'écran / distractions et objectifs de déconnexion.
+302. [M](**) Planificateur de « thèmes de journée » (lundi admin, mardi création...).
+303. [M](**) Coffre de mots de passe / accès local chiffré.
+304. [M](**) Suivi des formations/certifications avec échéances.
+305. [M](**) Tableau « deep life » : alignement temps réel entre valeurs et emploi du temps.
+
+--------------------------------------------------------------------------------
+Z. MAISON CONNECTÉE & DOMOTIQUE (306-320)
+--------------------------------------------------------------------------------
+306. [L](**) Intégration Home Assistant / MQTT (piloter et lire les capteurs maison).
+307. [M](**) Tableau de bord domotique (lumières, température, énergie).
+308. [M](**) Suivi conso énergétique (élec, eau, gaz) avec coûts et alertes.
+309. [M](**) Routines maison (réveil, départ, coucher) synchronisées avec l'agenda.
+310. [M](**) Températures/humidité par pièce et confort thermique.
+311. [M](**) Entretien maison (filtres, révisions, jardinage) avec rappels.
+312. [M](**) Inventaire du domicile (objets, garanties, manuels) pour l'assurance.
+313. [M](**) Maintenance véhicule (révisions, pneus, assurance, contrôle technique).
+314. [M](**) Conso carburant / recharge VE et coûts.
+315. [M](**) Gestion des plantes (arrosage, lumière) avec rappels.
+316. [M](**) Suivi des animaux (alimentation, véto, vaccins).
+317. [M](**) Sécurité maison (caméras/capteurs) — état et alertes.
+318. [M](**) Calendrier de collecte déchets/recyclage local.
+319. [M](**) Optimisation énergétique (heures creuses, pilotage des charges).
+320. [M](**) Météo intérieure vs extérieure et conseils d'aération.
+
+--------------------------------------------------------------------------------
+AA. VOYAGES & MOBILITÉ (321-333)
+--------------------------------------------------------------------------------
+321. [L](**) Module Voyages : itinéraires, réservations, budget par voyage.
+322. [M](**) Checklist de bagages intelligente selon destination/météo/durée.
+323. [M](**) Suivi des vols (statut, retards) et rappels d'enregistrement.
+324. [M](**) Carnet de voyage (photos, lieux, notes) géolocalisé.
+325. [M](**) Convertisseur de devises hors-ligne avec taux du jour.
+326. [M](**) Suggestions d'activités/restaurants par destination (IA + API).
+327. [M](**) Budget voyage avec dépenses en temps réel et multi-devises.
+328. [M](**) Documents de voyage (passeport, visas, assurances) avec expirations.
+329. [M](**) Suivi des points de fidélité (miles, hôtels).
+330. [M](**) Planificateur de trajets quotidiens (transports, vélo, temps).
+331. [M](**) Empreinte carbone des déplacements et compensation.
+332. [M](**) Phrases utiles / traduction hors-ligne par pays.
+333. [M](**) Bucket list de lieux à visiter avec carte.
+
+--------------------------------------------------------------------------------
+AB. RELATIONS, SOCIAL & ÉVÉNEMENTS (334-345)
+--------------------------------------------------------------------------------
+334. [M](**) Carnet relationnel : anniversaires, dates clés, rappels de prise de nouvelles.
+335. [M](**) Suivi des cadeaux (idées, offerts, budget) par personne.
+336. [M](**) Planification d'événements (invités, budget, tâches, RSVP).
+337. [M](**) Historique des interactions (qui, quand, quoi) — CRM de vie.
+338. [M](**) Rappels d'entretien des relations (ne pas perdre le contact).
+339. [M](**) Partage sélectif de modules avec des proches (lecture seule).
+340. [M](**) Listes partagées (courses, ménage) multi-utilisateurs.
+341. [M](**) Suggestions de sorties selon agenda libre + météo + budget.
+342. [M](**) Journal de gratitude / moments marquants.
+343. [M](**) Suivi des prêts/emprunts entre amis (objets, argent).
+344. [M](**) Calendrier familial partagé synchronisé.
+345. [M](**) Recherche de créneau commun à plusieurs.
+
+--------------------------------------------------------------------------------
+AC. APPRENTISSAGE & DÉVELOPPEMENT PERSONNEL (346-358)
+--------------------------------------------------------------------------------
+346. [M](**) Révision espacée (SRS / flashcards type Anki) intégrée.
+347. [M](**) Suivi de cours en ligne (MOOCs) avec progression et échéances.
+348. [M](**) Base de connaissances personnelle (notes + recherche sémantique).
+349. [M](**) Apprentissage de langues (vocabulaire, pratique, niveau).
+350. [M](**) Objectifs de lecture annuels + recommandations (étendre Livres).
+351. [M](**) Fiches de lecture depuis tes surlignages (saisie + organisation, sans IA).
+352. [M](**) Suivi de compétences (skill tree) avec niveaux et preuves.   ← FINIS ✓ (2026-07-16) (store JSON compétences avec niveaux 1-5 + preuves horodatées, skills_by_category/overall_stats purs, CRUD + POST preuves + /etudes/skills/stats, onglet CompetencesTab, tests TDD)
+353. [M](**) Curation de contenus (à lire/voir plus tard) priorisée.
+354. [M](**) Quiz/flashcards créés depuis tes notes pour t'auto-évaluer (sans IA).
+355. [M](**) Journal d'apprentissage quotidien (« qu'ai-je appris aujourd'hui ? »).
+356. [M](**) Suivi de pratique délibérée (instrument, code, sport) avec stats.
+357. [M](**) Progression d'un projet d'apprentissage long terme.
+358. [M](**) Intégration podcasts/vidéos avec notes horodatées.
+
+--------------------------------------------------------------------------------
+AD. DOCUMENTS, ADMINISTRATIF & VIE PRATIQUE (359-372)
+--------------------------------------------------------------------------------
+359. [L](**) Gestionnaire de documents (OCR, tags, recherche plein-texte) chiffré.
+360. [M](**) Échéances administratives (papiers, renouvellements) avec rappels.
+361. [M](**) Coffre-fort numérique (identités, contrats, garanties).
+362. [M](**) Suivi des abonnements/contrats (échéances, résiliations, coûts).   ← FINIS ✓ (2026-07-16) (store JSON contrats manuels distinct de la détection auto #116/#266, classify_echeance/monthly_cost/upcoming_renewals purs, CRUD + /budget/contracts/summary, onglet ContratsTab, tests TDD)
+363. [M](**) Garanties produits avec preuves d'achat.
+364. [M](**) Numérisation et classement automatique des reçus.
+365. [M](**) Suivi des remboursements (santé, assurances) en attente.
+366. [M](**) Modèles de courriers administratifs (templates à remplir, sans IA).
+367. [M](**) Rappels impôts / déclarations avec checklist.
+368. [M](**) Annuaire personnel (médecins, artisans, services) avec notes.
+369. [M](**) Suivi des contrats d'assurance (couvertures, sinistres).
+370. [M](**) Gestion des accès partagés du foyer (Wi-Fi, comptes).
+371. [M](**) Export/archivage légal de documents avec horodatage.
+372. [M](**) Suivi des démarches en cours (workflow administratif).
+
+--------------------------------------------------------------------------------
+AE. DONNÉES, ANALYTICS & TABLEAUX DE BORD (373-385)
+--------------------------------------------------------------------------------
+373. [L](***) Constructeur de tableaux de bord personnalisables (widgets, drag-drop, par utilisateur).
+374. [M](**) Explorateur de données ad hoc (requêtes visuelles sur tous les modules).
+375. [M](**) Graphiques avancés (corrélation, distribution, cohortes).
+376. [M](**) Export universel (CSV/JSON/Parquet) de n'importe quelle vue.
+377. [M](**) Rapports planifiés envoyés par mail/notification.
+378. [M](**) Annotations sur les graphiques (marquer un événement de vie).
+379. [M](**) Comparateur de métriques arbitraires (overlay multi-séries).
+380. [M](**) Data warehouse local (DuckDB) pour analyses lourdes hors SQLite.
+381. [M](**) KPI personnels configurables avec objectifs et alertes.
+382. [M](**) Vue « année en revue » automatique (wrapped) multi-domaines.
+383. [M](**) Détection statistique d'anomalies sur les séries temporelles.
+384. [M](**) Tendances saisonnières et désaisonnalisation.
+385. [M](**) Sauvegarde/restauration des configurations de tableaux de bord.
+
+--------------------------------------------------------------------------------
+AF. INTÉGRATIONS EXTERNES & API (386-400)
+--------------------------------------------------------------------------------
+386. [M](**) Intégration Notion / Obsidian (sync notes bidirectionnelle).
+387. [M](**) Intégration Todoist / Things (sync tâches).
+388. [M](**) Intégration Spotify (écoutes, humeur musicale, stats).
+389. [M](**) Intégration Strava (activités sportives détaillées).
+390. [M](**) Intégration YouTube/Pocket (file de visionnage/lecture).
+391. [M](**) Intégration mail (IMAP) : extraction reçus, confirmations, échéances.
+392. [M](**) Agrégation bancaire (Bridge/Plaid/Powens).
+393. [M](**) Calendriers tiers (Outlook, iCloud) au-delà de Google.
+394. [M](**) Météo enrichie (qualité air, pollen, UV).
+395. [M](**) API publique documentée pour étendre soi-même.
+396. [M](**) Bridge Zapier/Make/IFTTT pour connecter 1000+ services.
+397. [M](**) Import depuis apps existantes (MyFitnessPal, YNAB, etc.).
+398. [M](**) Marketplace de plugins/extensions communautaires.
+399. [M](**) SDK/système de plugins pour ajouter des modules tiers.
+400. [M](**) Webhooks génériques entrants/sortants par module.
+
+--------------------------------------------------------------------------------
+AG. MOBILE, PWA, OFFLINE & MULTI-APPAREIL (401-412)
+--------------------------------------------------------------------------------
+401. [L](***) App mobile native (ou PWA avancée) avec parité fonctionnelle.
+402. [M](**) Mode hors-ligne complet avec sync différée et résolution de conflits.
+403. [M](**) Notifications push mobiles (web push + natif).
+404. [M](**) Widgets d'écran d'accueil (stats clés) mobile.
+405. [M](**) Saisie rapide mobile (partage, raccourcis Siri/Shortcuts).
+406. [M](**) Synchronisation multi-appareils chiffrée de bout en bout.
+407. [M](**) Mode tablette optimisé (layouts adaptatifs avancés).
+408. [M](**) Complications Apple Watch / Wear OS (stats au poignet).
+409. [M](**) Capture photo rapide (reçus, repas, vêtements) mobile.
+410. [M](**) Géolocalisation pour rappels et journal de lieux.
+411. [M](**) Biométrie (Face/Touch ID) pour déverrouiller l'app.
+412. [M](**) Partage natif (share sheet) vers les modules.
+
+--------------------------------------------------------------------------------
+AH. VOIX, MULTIMODAL & ACCESSIBILITÉ (413-423)
+--------------------------------------------------------------------------------
+413. [M](***) Commandes vocales (STT) pour saisir et naviguer.   ← ABANDONNÉ ✗ (2026-06-09) pas de gestion vocale.
+414. [M](**) Synthèse vocale (TTS) des briefings et résumés.   ← ABANDONNÉ ✗ (2026-06-09) pas de gestion vocale.
+415. [M](**) Assistant vocal mains libres (« Hey Mission Control... »).   ← ABANDONNÉ ✗ (2026-06-09) pas de vocal + IA.
+416. [M](**) Dictée pour notes/journal avec ponctuation auto.   ← ABANDONNÉ ✗ (2026-06-09) pas de gestion vocale.
+417. [M](**) Reconnaissance d'images (repas → calories, vêtement → catégorie).   ← ABANDONNÉ ✗ (2026-06-09) vision IA, hors périmètre.
+418. [M](**) Mode accessibilité renforcé (lecteur d'écran, contrastes, tailles).   ← ABANDONNÉ ✗ (2026-06-09) pas d'aides handicap (mono-utilisateur) ; ergonomie traitée ailleurs.
+419. [M](**) Navigation 100% clavier auditée et raccourcis avancés (étendre #38).
+420. [M](**) Sous-titres/transcriptions pour contenus audio/vidéo.   ← ABANDONNÉ ✗ (2026-06-09) aide handicap, hors périmètre.
+421. [M](**) Thèmes daltoniens et réglages de mouvement réduit.   ← ABANDONNÉ ✗ (2026-06-09) aide handicap ; « mouvement réduit » déjà géré par prefers-reduced-motion.
+422. [M](**) Saisie gestuelle / raccourcis personnalisables.
+423. [M](**) Interface multilingue complète (i18n, étendre #27).
+
+--------------------------------------------------------------------------------
+AI. SÉCURITÉ, VIE PRIVÉE & SOUVERAINETÉ DES DONNÉES (424-435)
+--------------------------------------------------------------------------------
+424. [M](***) Chiffrement au repos des données sensibles (SQLCipher / par champ).   ← ABANDONNÉ ✗ (2026-07-16) même rationale que #192 : mono-utilisateur local, la clé de déchiffrement vivrait à côté du secret sur la même machine → gain de sécurité nul, complexité et risque de perte de données en plus.
+425. [M](**) Authentification locale optionnelle (PIN/biométrie) si activée.
+426. [M](**) Journal d'audit des accès et modifications sensibles.
+427. [M](**) Sauvegardes chiffrées automatiques (local + cloud au choix).
+428. [M](**) Export/suppression complète des données (portabilité, RGPD perso).
+429. [M](**) Anonymisation pour partage/démo (données factices).
+430. [M](**) Permissions fines par module/donnée.
+431. [M](**) Coffre de secrets séparé pour clés API et tokens.
+432. [M](**) Alertes de connexion / détection d'accès anormal.
+433. [M](**) Mode « données locales uniquement » (zéro appel externe) vérifiable.
+434. [M](**) Rotation et expiration des tokens d'intégration.
+435. [M](**) Vérification automatique d'intégrité des sauvegardes (restore test).
+
+--------------------------------------------------------------------------------
+AJ. IA/ML LOCALE & MODÈLES PRÉDICTIFS (436-450)
+--------------------------------------------------------------------------------
+436. [L](***) LLM local optionnel (Ollama/llama.cpp) pour un usage 100% privé.   ← ABANDONNÉ ✗ (2026-06-09) pas d'IA générative/chat dans le dashboard.
+437. [M](**) Embeddings locaux + base vectorielle (recherche sémantique sur tes données).
+438. [M](**) Prédiction poids/composition selon apports/activité.
+439. [M](**) Prévision de dépenses par catégorie (séries temporelles).
+440. [M](**) Recommandation de repas par apprentissage de tes préférences.
+441. [M](**) Classification automatique (transactions, notes, photos).
+442. [M](**) Détection d'anomalies ML (santé, finance) non supervisée.
+443. [M](**) Optimisation d'emploi du temps par contraintes (solveur).
+444. [M](**) Scoring de priorité des tâches appris de ton comportement.
+445. [M](**) Prédiction d'adhérence aux habitudes et nudges adaptatifs.
+446. [M](**) Résumé local de documents longs (extractif/abstractif).   ← ABANDONNÉ ✗ (2026-06-09) génération de texte par IA, hors périmètre.
+447. [M](**) Pipeline d'entraînement reproductible (MLOps léger).
+448. [M](**) Explicabilité des prédictions (importance des variables).
+449. [M](**) A/B des recommandations et mesure d'impact.
+450. [M](**) Déduplication intelligente (entités/doublons).
+
+--------------------------------------------------------------------------------
+AK. GAMIFICATION & MOTIVATION (451-460)
+--------------------------------------------------------------------------------
+451. [M](**) Badges/achievements multi-modules.
+452. [M](**) Streaks unifiés (séries) avec protections et récupération.
+453. [M](**) Niveaux/XP de vie par domaine avec progression.
+454. [M](**) Défis personnels (challenges) avec échéances et récompenses.
+455. [M](**) Tableau de motivation (citations, progrès, « pourquoi »).
+456. [M](**) Comparaison avec soi-même (records, jalons) plutôt qu'avec autrui.
+457. [M](**) Récompenses auto-débloquées à l'atteinte d'objectifs.
+458. [M](**) Visualisation « arbre de vie » qui grandit avec tes accomplissements.
+459. [M](**) Rappels motivationnels contextuels (non spammeurs).
+460. [M](**) Rituels de revue hebdo/mensuelle gamifiés.
+
+--------------------------------------------------------------------------------
+AL. DÉVELOPPEMENT, QUALITÉ & PLATEFORME (461-475)
+--------------------------------------------------------------------------------
+461. [M](**) Couverture de tests cible (back/front) mesurée et suivie en CI.
+462. [M](**) Tests de charge/performance des endpoints lourds.
+463. [M](**) Monitoring applicatif local (métriques, traces, OpenTelemetry).
+464. [M](**) Feature flags pour activer/désactiver des modules à chaud.
+465. [M](**) Migration optionnelle SQLite → Postgres pour scaler.
+466. [M](**) Internationalisation backend des messages d'erreur.
+467. [M](**) Aide contextuelle intégrée + documentation utilisateur.
+468. [M](**) Onboarding guidé première utilisation (tour interactif).
+469. [M](**) Thèmes/skins personnalisables au-delà clair/sombre.
+470. [M](**) Mode démo avec données générées réalistes.
+471. [M](**) Versioning et changelog visibles dans l'app.
+472. [M](**) Télémétrie locale opt-in pour améliorer l'UX (privée).
+473. [M](**) Tests de contrat API back/front automatiques (étendre l'existant).
+474. [M](**) Accessibilité auditée (axe-core) en CI.
+475. [M](**) Budget de performance front (Lighthouse) en CI.
+
+--------------------------------------------------------------------------------
+AM. NOUVEAUX MODULES DE VIE (476-500)
+--------------------------------------------------------------------------------
+476. [L](***) Module « Journaling » : prompts statiques (banque de questions) + saisie d'humeur manuelle + tendances déterministes (sans IA).   ← FINIS ✓ (2026-06-09) module Journal/Humeur : MoodEntry (1/jour) + tendances (moyennes/MA7/distribution/tags) + corrélations Pearson humeur/énergie vs sommeil/sport/poids/dépenses ; page /journal (QuickEntry, TrendsTab, CorrelationsPanel) ; sans IA. Tests TDD.
+477. [L](**) Module « Nutrition avancée » (batch cooking, gestion des restes).
+478. [L](**) Module « Jardin/Potager » (semis, arrosage, récoltes, calendrier).
+479. [L](**) Module « Collections » (vins, jeux, livres, vinyles) avec valeur.
+480. [L](**) Module « DIY/Bricolage » (plans, matériaux, budget, étapes).
+481. [L](**) Module « Bénévolat/Engagement » (heures, causes, impact).
+482. [L](**) Module « Investissement alternatif » (crypto, P2P, crowdfunding).
+483. [L](**) Module « Carrière & Compétences » (parcours, mentors, objectifs).
+484. [L](**) Module « Créativité » (idées, écriture, musique, art).
+485. [L](**) Module « Mindfulness » (pratiques, intentions, gratitude).
+486. [L](**) Module « Famille/Enfants » (suivi, école, activités, santé).
+487. [L](**) Module « Réceptions » (menus invités, allergies, organisation).
+488. [L](**) Module « Style/Mode » avancé (lookbook, capsule wardrobe, tendances).
+489. [L](**) Module « Beauté/Soins » élargi (cheveux, ongles) au-delà skincare.
+490. [L](**) Module « Sport collectif/Clubs » (matchs, équipes, stats).
+491. [L](**) Module « Finances du foyer » (multi-personnes, partage des charges).
+492. [L](**) Module « Patrimoine numérique » (comptes, abonnements, legs numérique).
+493. [L](**) Module « Santé mentale » (exercices CBT, suivi d'humeur, thérapie).
+494. [L](**) Module « Productivité créative » (deep work, flow, sprints).
+495. [L](**) Module « Écologie/Empreinte » (carbone, consommation, gestes).
+496. [L](**) Module « Mobilité douce » (vélo, marche, défis, trajets).
+497. [L](**) Module « Événements de vie » (déménagement, mariage, naissance) avec checklists.
+498. [L](**) Module « Long terme/Retraite » (projection, FIRE, planification).
+499. [L](**) Module « Communauté » (groupes, entraide, partage de modules).
+500. [L](***) « Mission Control OS » : marketplace de modules + thèmes + automatisations, extensible par la communauté.   ← ABANDONNÉ ✗ (2026-07-16) disproportionné pour un outil mono-utilisateur local (README : « pas de reconstruction ni mock data » hors intégrations réelles) ; aucune communauté à servir, pas de marketplace tiers souhaité.
+
+--------------------------------------------------------------------------------

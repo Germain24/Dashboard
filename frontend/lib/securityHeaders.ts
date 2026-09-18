@@ -1,0 +1,40 @@
+/**
+ * En-têtes de sécurité HTTP appliqués à toutes les routes (#194).
+ *
+ * Appliqués via `headers()` dans next.config.ts. La CSP reste compatible avec
+ * Next.js (script inline d'anti-flash thème/densité, HMR en dev) : on autorise
+ * `unsafe-inline`/`unsafe-eval` pour les scripts, mais on verrouille le framing
+ * (`frame-ancestors 'none'` + X-Frame-Options) contre le clickjacking.
+ */
+
+// Origines backend encore utilisées par quelques liens absolus historiques;
+// les nouveaux appels passent par le proxy same-origin /proxy.
+const BACKEND_ORIGINS = "http://127.0.0.1:8000 http://localhost:8000";
+
+const scriptSrc =
+  process.env.NODE_ENV === "development"
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self' 'unsafe-inline'";
+
+const csp = [
+  "default-src 'self'",
+  scriptSrc,
+  "style-src 'self' 'unsafe-inline'",
+  // Images livres (Open Library, Amazon, Indigo) + autres sources externes
+  `img-src 'self' data: blob: https: ${BACKEND_ORIGINS}`,
+  `media-src 'self' blob: ${BACKEND_ORIGINS}`,
+  "font-src 'self' data:",
+  `connect-src 'self' ${BACKEND_ORIGINS}`,
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
+export const securityHeaders: { key: string; value: string }[] = [
+  { key: "Content-Security-Policy", value: csp },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+];
